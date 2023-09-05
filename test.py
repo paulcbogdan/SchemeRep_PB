@@ -68,20 +68,31 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
     fMRI_vec = fMRI_RDM[tril_idx]
-    stim_RDM = stim_RDM[tril_idx]
-    return np.corrcoef(fMRI_vec, stim_RDM)[0, 1]
+    stim_vec = stim_RDM[tril_idx]
+    r = np.corrcoef(fMRI_vec, stim_vec)[0, 1]
+    z = np.arctanh(r)
+    return z
 
-
+def explore_hist(stim_RDM):
+    tril_idx = np.tril_indices_from(stim_RDM, k=-1)
+    stim_vec = stim_RDM[tril_idx]
+    vmin = np.quantile(stim_vec, .005)
+    vmax = np.quantile(stim_vec, .995)
+    fig, axs = plt.subplots(2, 1, figsize=(10, 5))
+    axs[0].imshow(stim_RDM, vmin=vmin, vmax=vmax, color='turbo')
+    axs[1].hist(stim_vec, bins=100, range=(vmin, vmax))
+    plt.show()
 
 def analyze_stim_RDM(stim_RDM):
     sns = []
     labels = dataset_ho.labels
     N_ROIs = len(labels)
     decoding_scores = np.empty((N_ROIs, len(sns)))
+    dataset_ho.maps = resample_to_img(dataset_ho.maps, get_fp_in(sns[0]),
+                                      interpolation='nearest')
     for sn in sns:
         fp_in = get_fp_in(sn)
         img = load_img(fp_in)
-        dataset_ho.maps = resample_to_img(dataset_ho.maps, img, interpolation='nearest')
         for i in range(1, N_ROIs + 1):
             fMRI_RDM = compute_RDM(img, dataset_ho.maps, 9)
             decoding_score = RDM_x_RDM(fMRI_RDM, stim_RDM)
