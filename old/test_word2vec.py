@@ -1,6 +1,6 @@
 import gensim.downloader as api
 
-from test2 import organize_subj_df
+from prep_names import organize_subj_df
 
 
 # wv = api.load('word2vec-google-news-300')
