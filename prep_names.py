@@ -43,6 +43,7 @@ def organize_subj_df(sn):
                }
 
     bhv_root = r'SchemRep_tasks/PTBtasks/results'
+    bhv_root = fr'behavFiles/ENC'
     fmri_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
     df_sn_as_l = []
     for run in range(1, 4):
@@ -50,6 +51,7 @@ def organize_subj_df(sn):
         mat = io.loadmat(fp_bhv)
         for trial in range(1, 39):
             glob_fMRI = fr'{fmri_root}/Day2_Run{run}_Trial{trial}_*.nii'
+            #print(glob_fMRI)
             fp_fMRI = glob(glob_fMRI)[0]
             # print(mat['pdata'][0][0][9])
             # quit()
@@ -57,10 +59,10 @@ def organize_subj_df(sn):
             scene = mat['pdata'][0][0][8][0][trial - 1][0]
             CIN = mat['pdata'][0][0][9][0][trial - 1][0][0]
             if obj in renamer:
-                print('In:', obj)
+                # print('In:', obj)
                 obj = renamer[obj]
             if scene in renamer:
-                print('In:', scene)
+                # print('In:', scene)
                 scene = renamer[scene]
             d = {'trial': trial,
                  'run': run,
