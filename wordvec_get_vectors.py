@@ -13,10 +13,10 @@ def get_vectors(parts_do=25):
     fp_dict = fr'cache/wiki_dict_{parts_do}.pkl'
     with open(fp_dict, 'rb') as f:
         dictionary = pickle.load(f)
-    dictionary.filter_extremes(no_below=2, no_above=0.5)
+    # dictionary.filter_extremes(no_below=2, no_above=0.5)
 
     model = pickle_wrap(fp_model, lambda: fit_word2vec_mm(parts_do=parts_do),
-                        easy_override=True, verbose=True)
+                        easy_override=False, verbose=True)
     # print(model.wv[dictionary.doc2bow(['the'])])
     # quit()
     df = organize_subj_df('138')
@@ -24,6 +24,7 @@ def get_vectors(parts_do=25):
     d_scene = {}
     d_all = {}
     for obj, scene in zip(df['obj'], df['scene']):
+        obj = scene
         print(f'1: {obj}')
         try:
             obj = obj.replace(' ', '_')
@@ -80,6 +81,5 @@ def fit_word2vec_mm(parts_do=5, min_count=5, epochs=5):
 if __name__ == '__main__':
     PARTS_DO = 100
     fp_vecs = f'cache/schemerep_sim_vecs_{PARTS_DO}.pkl'
-    d_obj, d_scene, df_as_l = pickle_wrap(fp_vecs,
-                                          lambda: get_vectors(parts_do=PARTS_DO),
-                                          easy_override=True)
+    d_all = pickle_wrap(fp_vecs, lambda: get_vectors(parts_do=PARTS_DO),
+                        easy_override=True)
