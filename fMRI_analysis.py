@@ -2,12 +2,36 @@ from pickle_wrap import pickle_wrap
 from collections import defaultdict
 
 import numpy as np
-from prep_names import organize_subj_df
+from organize_bhv import organize_subj_df
 from nilearn import image, datasets
 from glob import glob
 
 from wordvec_get_vectors import get_vectors
 import matplotlib.pyplot as plt
+
+# 0: Background
+# 1: Left Cerebral White Matter
+# 2: Left Cerebral Cortex
+# 3: Left Lateral Ventrical
+# 4: Left Thalamus
+# 5: Left Caudate
+# 6: Left Putamen
+# 7: Left Pallidum
+# 8: Brain-Stem
+# 9: Left Hippocampus
+# 10: Left Amygdala
+# 11: Left Accumbens
+# 12: Right Cerebral White Matter
+# 13: Right Cerebral Cortex
+# 14: Right Lateral Ventricle
+# 15: Right Thalamus
+# 16: Right Caudate
+# 17: Right Putamen
+# 18: Right Pallidum
+# 19: Right Hippocampus
+# 20: Right Amygdala
+# 21: Right Accumbens
+
 
 def get_stim_RDM(df_sn, d_vecs):
     # print(df_sn['obj'].iloc[0])
@@ -102,6 +126,12 @@ def get_RDM_x_RDM_sn(sn='138'):
         quit()
     return z_RDM_x_RDM
 
+    # for label, m, t in zip(labels, decoding_M, decoding_t):
+    #     print(f'{label}: {m:.3f}, {t:.3f}')
+    #
+    # plt.errorbar(np.arange(1, N_ROIs + 1), decoding_M, yerr=decoding_SE, fmt='o')
+    # plt.show()
+
 def get_all_sns():
     age2sn = defaultdict(list)
     for i in range(1, 4):
@@ -116,19 +146,11 @@ def do_all(age=1):
     age2sn = get_all_sns()
     print(age2sn[age])
     l = []
+    bad_sns = {'126', '131',
+               '201', '224', '231', '232', '233', '234', '235'}
     for sn in list(age2sn[age]) + list(age2sn[2]):
         print(f'Doing: {sn}')
-        if sn == '126': continue # missing
-        if sn == '131': continue
-
-        if sn == '201': continue
-        if sn == '224': continue
-        if sn == '231': continue
-        if sn == '232': continue
-        if sn == '233': continue
-        if sn == '234': continue
-        if sn == '235': continue
-        # if sn != '129': continue
+        if sn in bad_sns: continue
         z = get_RDM_x_RDM_sn(sn)
         print(f'{sn}: {z=:.3f}')
         l.append(z)
