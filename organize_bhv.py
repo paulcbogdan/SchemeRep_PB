@@ -2,8 +2,9 @@ from scipy import io
 from glob import glob
 import pandas as pd
 
-def organize_subj_df(sn):
-    renamer = {'inside of a car': 'car',
+# TODO: measure where congruent is more correlated object x scene
+
+NAME_RENAMER = {'inside of a car': 'car',
                'surfing board': 'surfboard',
                'tropical volcano': 'volcano',
                'coffee shop': 'cafe',
@@ -42,6 +43,9 @@ def organize_subj_df(sn):
                'picnic blanket': 'blanket',
                }
 
+def organize_subj_df(sn):
+    renamer = NAME_RENAMER
+
     bhv_root = r'SchemRep_tasks/PTBtasks/results'
     bhv_root = fr'behavFiles/ENC'
     fmri_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
@@ -53,8 +57,6 @@ def organize_subj_df(sn):
             glob_fMRI = fr'{fmri_root}/Day2_Run{run}_Trial{trial}_*.nii'
             #print(glob_fMRI)
             fp_fMRI = glob(glob_fMRI)[0]
-            # print(mat['pdata'][0][0][9])
-            # quit()
             obj = mat['pdata'][0][0][7][0][trial - 1][0]
             scene = mat['pdata'][0][0][8][0][trial - 1][0]
             CIN = mat['pdata'][0][0][9][0][trial - 1][0][0]

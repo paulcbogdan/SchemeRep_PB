@@ -2,6 +2,8 @@ from pickle_wrap import pickle_wrap
 from collections import defaultdict
 
 import numpy as np
+
+from DNN_vectors import get_DNN_vecs
 from organize_bhv import organize_subj_df
 from nilearn import image, datasets
 from glob import glob
@@ -97,11 +99,19 @@ def explore_hist(stim_RDM):
     axs[1].hist(stim_vec, bins=100, range=(vmin, vmax))
     plt.show()
 
-def get_RDM_x_RDM_sn(sn='138'):
-    fp_vecs = 'cache/schemerep_sim_vecs.pkl'
-    d_vecs = pickle_wrap(fp_vecs, lambda: get_vectors(),
+def get_RDM_x_RDM_sn(sn='138', semantic=True):
+    PARTS_DO = 100
+    if semantic:
+        fp_vecs = f'cache/schemerep_sem_vecs_{PARTS_DO}.pkl'
+        d_vecs = pickle_wrap(fp_vecs, lambda: get_vectors(),
                          easy_override=False)
+    else:
+        fp_vecs = f'cache/schemerep_per_vecs_{PARTS_DO}.pkl'
+        d_vecs = pickle_wrap(fp_vecs, lambda: get_DNN_vecs(),
+                             easy_override=False)
     df_sn = organize_subj_df(sn)
+    # print(sorted(df_sn['scene'].values))
+    # return .01
     RDM_stim = get_stim_RDM(df_sn, d_vecs)
     cnt_RDM_stim_nan = np.sum(np.isnan(RDM_stim))
     print(f'{cnt_RDM_stim_nan=}')

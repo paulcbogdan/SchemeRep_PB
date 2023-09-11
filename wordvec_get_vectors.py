@@ -24,7 +24,7 @@ def get_vectors(parts_do=25):
     d_scene = {}
     d_all = {}
     for obj, scene in zip(df['obj'], df['scene']):
-        obj = scene
+        # obj = scene
         print(f'1: {obj}')
         try:
             obj = obj.replace(' ', '_')
@@ -33,7 +33,7 @@ def get_vectors(parts_do=25):
             # print(obj)
             # scene = scene.replace(' ', '_')
             d_all[obj] = d_obj[obj] = model.wv[obj]
-            # d_all[scene] = d_scene[scene] = model.wv[scene]
+            d_all[scene] = d_scene[scene] = model.wv[scene]
         except KeyError:
             print(f'no model: {obj}')
             # pass
