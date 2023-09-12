@@ -14,7 +14,6 @@ def add_bigrams_to_corpus(corpus, bigrams):
         corpus_new = []
         bigram_in = False
         for sentence in corpus:
-            # pprint(sentence['section_texts'])
             onto_word = 0
             idxs_st = []
             idxs_end  = []
@@ -111,8 +110,6 @@ def prep_dictionary(corpus):
             n_done += n_iterate
             t_iterate = time() - t
             print(f'\tNumber done: {n_done:,} | [{t_iterate=:.3f}]')
-            # if n_done % 1_000_000 == 0:
-            #     dictionary.filter_extremes(no_below=1, no_above=1.0)
         except StopIteration:
             break
     return dictionary
@@ -130,9 +127,6 @@ def make_wiki_corpus_mm(parts_do=100):
     print('Making corpus dictionary...')
     fp_corpus_dict = fr'cache/wiki_corpus_dict_{parts_do}.pkl'
     corpus = wiki_corpus_generator(parts_do=parts_do)
-    # corpus = pickle_wrap(fp_corpus_dict,
-    #                      lambda: wiki_corpus_generator(parts_do=parts_do))
-    # corpus_dict = [dictionary.doc2bow(text) for text in corpus]
     corpus_dict = pickle_wrap(fp_corpus_dict, 
                               lambda: [dictionary.doc2bow(text) for text in corpus],
                               easy_override=True)
@@ -146,15 +140,7 @@ def make_wiki_corpus_mm(parts_do=100):
     t3 = time()
     print(f'\t Serialized mm in {t3 - t2:.3f} seconds')
 
-# test = (i for i in range(1))
-# print(next(test))
-# print(next(test))
-# quit()
-
 if __name__ == '__main__':
-    # get_bigram_vectors()
     make_wiki_corpus_mm()
-    # prep_corpus_parts(n_parts=100)
-    # do(corpus_name='wiki-english-20171001')
 
 

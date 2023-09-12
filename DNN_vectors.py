@@ -1,3 +1,5 @@
+from pickle_wrap import pickle_wrap
+
 from organize_bhv import get_trial_info, NAME_RENAMER
 import pandas as pd
 from PIL import Image
@@ -14,110 +16,126 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import argparse
-from sklearn.decomposition import PCA
+from sklearn import decomposition
 
 # The first hidden layer generated a sensory model, since this model is derived from a layer that detects sensory features, and the penultimate layer, a categorical model, since this model is derived from the layer before the images are explicitly categorized into the trained categories
 
-def get_VGG_text(x, model):
-    x = batch_img
-    # print(len(model.features))
-    for i in range(len(model.features)):
-        x = model.features[i](x)
-        print(f'{i}: {type(model.features[i])} | {x.shape}')
-    print('-' * 50)
-    x = model.avgpool(x)
-    print(f'avg pool: {type(model.avgpool)} | {x.shape}')
-    x = torch.flatten(x, 1)
-    print(f'flatten: {type(model.avgpool)} | {x.shape}')
-    for i in range(len(model.classifier)):
-        x = model.classifier[i](x)
-        print(f'{i}: {type(model.classifier[i])} | {x.shape}')
-    g = model.forward(batch_img)
-    print(f'meh: {g.shape}')
 
-def get_DNN_vecs(VGG_final=False, alexnet_first=True):
-    if alexnet_first:
-        vec_size = 64*55*55
-        model = models.alexnet(pretrained=True)
+def get_DNN_vecs_(early=True, PCA=False):
+    if early:
+        # vec_size = 64*55*55
+        vec_size = 64*224*224
+        # model = models.alexnet(pretrained=True)
+        model = models.vgg16(pretrained=True)
     else:
         vec_size = 1000
         model = models.vgg16(pretrained=True)
+    for p in model.parameters():
+        p.requires_grad = False
     model.eval()
 
-    data_transforms = transforms.Compose([
-        transforms.Resize((224,224)),             # resize the input to 224x224
-        transforms.ToTensor(),              # put the input to tensor format
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # normalize the input
-        # the normalization is based on images from ImageNet
-    ])
+    # data_transforms = transforms.Compose([
+    #     transforms.Resize((224,224)),             # resize the input to 224x224
+    #     transforms.ToTensor(),              # put the input to tensor format
+    #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # normalize the input
+    #     the normalization is based on images from ImageNet
+    # ])
 
-    names, fps = get_names_fps()
+    data_transforms = transforms.Compose([transforms.ToTensor(),
+                    transforms.Resize((224, 224)),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+                    ])
 
-    img_vecs = np.empty((vec_size, len(fps)))
+    names, fps = get_img_fns()
+    names, fps = zip(*[(name, fp) for name, fp in zip(names, fps)
+                       if 'Scene' not in fp])
 
-    for fp in fps:
+    # img_vecs = np.empty((vec_size, len(fps)))
+    img_vecs = []
+    names_sanity = []
+
+    layer1dat = np.zeros((64 * 224 * 224, len(fps)))
+
+    for i, (name, fp) in enumerate(zip(names, fps)):
+        # if 'Scene' in fp:
+        #     continue
         img = Image.open(fp)
-        transformed_img = data_transforms(img)
-        x = torch.unsqueeze(transformed_img, 0)
-        if alexnet_first:
+        # print(f'{name} | {fp}')
+        img = np.array(img, dtype=np.uint8)
+        x = data_transforms(img).unsqueeze(0)
+        if early:
             x = model.features[0](x)
             x = model.features[1](x)
         else:
             x = model.forward(x)
-        img_vecs[:, fps.index(fp)] = x.detach().numpy().flatten()
+        img_vecs.append(x.detach().numpy().flatten())
+        names_sanity.append(name)
+        # layer1dat[:, i] = x.detach().numpy().flatten()
+    img_vecs = np.array(img_vecs)
+    # img_vecs = img_vecs.T
 
-    pca = PCA(n_components=10)
-    pca.fit(img_vecs.T)
-    img_vec_brief = pca.transform(img_vecs.T)
+    if PCA:
+        # print('1:', layer1dat.shape)
+        pca = decomposition.PCA()
+        # pca.fit(layer1dat.T)
+        img_vec_brief = pca.fit_transform(img_vecs)
+        img_vec_brief = img_vec_brief
+        # print(f'{layer1dat=}')
+        # img_vec_brief = pca.transform(layer1dat.T)
+        # img_vec_brief = pca.transform(img_vecs.T)
+        print(f'{img_vec_brief=}')
+        print(f'{img_vec_brief.shape=}')
+        # print(pca.components_)
+    else:
+        img_vec_brief = img_vecs
+
+    # RSM_skl = np.corrcoef(img_vec_brief)
+    # print(f'{RSM_skl.shape=}')
+    # plt.imshow(RSM_skl)
+    # plt.title(f'{img_vec_brief=}')
+    # plt.show()
+    # print(f'{RSM_skl=}')
+    # mean = np.mean(np.tril(RSM_skl, k=-1))
+    # print(f'{mean=}')
+    # pd.DataFrame(RSM_skl).to_csv('RSM_skl.csv')
+    # quit()
+
+    # print('components:', pca.components_)
+    # quit()
+    # print(img_vec_brief.shape)
+    # quit()
 
     d_vecs = {}
-    for name, vec in zip(names, img_vec_brief):
+    for name, vec in zip(names_sanity, img_vec_brief):
         d_vecs[name] = vec
+    print('test rock:', d_vecs['rock-climbing shoe'])
+    print(f'{len(d_vecs)=}')
+    # quit()
 
     return d_vecs
 
-def get_names_fps():
-    df = get_trial_info('138')
-    names, fps = [], []
+def get_DNN_vecs(early=True, PCA=False):
+    early_late_str = 'early' if early else 'late'
+    PCA_str = '_PCA' if PCA else ''
+    fp_DNN_vecs = fr'cache/DNN_vecs_{early_late_str}{PCA_str}.pkl'
+    return pickle_wrap(fp_DNN_vecs, lambda: get_DNN_vecs_(early=early,
+                                                          PCA=PCA),
+                       easy_override=True)
+
+def get_img_fns(get_dict=False):
     dir_obj = r'SchemRep_tasks\PTBtasks\updatedObjectsResampled'
     dir_scene = r'SchemRep_tasks\PTBtasks\updatedScenesResampled'
-
     df_stim = pd.read_csv(r'SchemRep_tasks\PTBtasks/fullStimList.csv')
-    # df_obj = pd.DataFrame({'fn': df['ObjectFile'].values},
-    #                           index=df['Object'].values)
-    # scene_l = list(df['SceneCongruent'].values)# + \
-    #           # list(df['SceneIncongruent'].values) + \
-    #           # list(df['SceneNeutral'].values)
-    # scene_fn_l = list(df['SceneConFilename'].values)# + \
-    #              # list(df['SceneIncFilename'].values) + \
-    #              # list(df['SceneNeuFilename'].values)
-    # df_scene = pd.DataFrame({'fn': scene_fn_l}, index=scene_l)
-    # df_fns = pd.concat([df_obj, df_scene])
 
-    # names = list(df_stim['Object'].values) + \
-    #         list(df_stim['SceneCongruent'].values)
-    # fns = list(df_stim['ObjectFile'].values) + \
-    #       list(df_stim['SceneConFilename'].values)
-    # d_name2fn = dict(zip(names, fns))
-    d_obj_name2fn = dict(zip(df_stim['Object'].values,
-                             df_stim['ObjectFile'].values))
-    d_scene_name2fn = dict(zip(df_stim['SceneCongruent'].values,
-                               df_stim['SceneConFilename'].values))
-
-    # renamer_flipped = dict((rename, name) for name, rename in NAME_RENAMER.items())
-    # df_scene_idx = pd.DataFrame({'scene': df[]})
-
-    # print(d_name2fn)
-
-    for obj, scene in zip(df['obj'], df['scene']):
-        # obj_OG_name = renamer_flipped.get(obj, obj)
-        names.append(obj)
-        fps.append(f'{dir_obj}/{d_obj_name2fn[obj]}')
-
-        # scene_OG_name = renamer_flipped.get(scene, scene)
-        names.append(scene)
-        fps.append(f'{dir_scene}/{d_scene_name2fn[scene]}')
-    return names, fps
+    names = list(df_stim['Object'].values) + list(df_stim['SceneCongruent'].values)
+    fps_obj = [f'{dir_obj}/{fn}' for fn in df_stim['ObjectFile'].values]
+    fps_scene = [f'{dir_scene}/{fn}' for fn in df_stim['SceneConFilename'].values]
+    fps = fps_obj + fps_scene
+    if get_dict:
+        return dict(zip(names, fps))
+    else:
+        return names, fps
 
 if __name__ == '__main__':
-    get_DNN_vecs()
+    get_DNN_vecs(early=True, PCA=True)

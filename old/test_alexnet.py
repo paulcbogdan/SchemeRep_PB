@@ -42,8 +42,23 @@ def visualize_activation_maps(input, model):
 
         file_name_visual_acti_map = 'conv{}_activation_map.jpg'.format(i + 1)
         utils.save_image(tensor_visual_acti_map, file_name_visual_acti_map)
-
     return 0
+
+def get_VGG_text(x, model):
+    x = batch_img
+    for i in range(len(model.features)):
+        x = model.features[i](x)
+        print(f'{i}: {type(model.features[i])} | {x.shape}')
+    print('-' * 50)
+    x = model.avgpool(x)
+    print(f'avg pool: {type(model.avgpool)} | {x.shape}')
+    x = torch.flatten(x, 1)
+    print(f'flatten: {type(model.avgpool)} | {x.shape}')
+    for i in range(len(model.classifier)):
+        x = model.classifier[i](x)
+        print(f'{i}: {type(model.classifier[i])} | {x.shape}')
+    g = model.forward(batch_img)
+    print(f'meh: {g.shape}')
 
 
 # The first row represents regions where memory was predicted by early visual (layer 2 from VGG16) information, the second row corresponds to middle visual (layer 12), and the last row to late visual (layer 22) information.
@@ -56,7 +71,7 @@ if __name__ == '__main__':
     # print(alexnet)
     # quit()
 
-    dir_objs = r'SchemRep_tasks\PTBtasks\updatedObjectsResampled'
+    dir_objs = r'../SchemRep_tasks/PTBtasks/updatedObjectsResampled'
     fns_objs = os.listdir(dir_objs)
     fps_objs = [os.path.join(dir_objs, fn) for fn in fns_objs if '.jpg' in fn]
 
