@@ -4,11 +4,11 @@ from collections import defaultdict
 import numpy as np
 
 from DNN_vectors import get_DNN_vecs
-from organize_bhv import organize_subj_df
+from organize_bhv import get_trial_info
 from nilearn import image, datasets
 from glob import glob
 
-from wordvec_get_vectors import get_vectors
+from wordvec_get_vectors import get_semantic_vectors
 import matplotlib.pyplot as plt
 
 # 0: Background
@@ -103,13 +103,13 @@ def get_RDM_x_RDM_sn(sn='138', semantic=True):
     PARTS_DO = 100
     if semantic:
         fp_vecs = f'cache/schemerep_sem_vecs_{PARTS_DO}.pkl'
-        d_vecs = pickle_wrap(fp_vecs, lambda: get_vectors(),
-                         easy_override=False)
+        d_vecs = pickle_wrap(fp_vecs, lambda: get_semantic_vectors(),
+                             easy_override=False)
     else:
         fp_vecs = f'cache/schemerep_per_vecs_{PARTS_DO}.pkl'
         d_vecs = pickle_wrap(fp_vecs, lambda: get_DNN_vecs(),
                              easy_override=False)
-    df_sn = organize_subj_df(sn)
+    df_sn = get_trial_info(sn)
     # print(sorted(df_sn['scene'].values))
     # return .01
     RDM_stim = get_stim_RDM(df_sn, d_vecs)

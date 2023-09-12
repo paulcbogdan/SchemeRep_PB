@@ -43,7 +43,7 @@ NAME_RENAMER = {'inside of a car': 'car',
                'picnic blanket': 'blanket',
                }
 
-def organize_subj_df(sn):
+def get_trial_info(sn):
     renamer = NAME_RENAMER
 
     bhv_root = r'SchemRep_tasks/PTBtasks/results'
@@ -60,21 +60,29 @@ def organize_subj_df(sn):
             obj = mat['pdata'][0][0][7][0][trial - 1][0]
             scene = mat['pdata'][0][0][8][0][trial - 1][0]
             CIN = mat['pdata'][0][0][9][0][trial - 1][0][0]
+            # print(f'{obj=}')
+            # print(f'{scene=}')
             if obj in renamer:
-                # print('In:', obj)
-                obj = renamer[obj]
+                obj_rename = renamer[obj]
+            else:
+                obj_rename = obj
             if scene in renamer:
-                # print('In:', scene)
-                scene = renamer[scene]
+                scene_rename = renamer[scene]
+            else:
+                scene_rename = scene
+
+            # 'car' in both
             d = {'trial': trial,
                  'run': run,
                  'fp_fMRI': fp_fMRI,
                  'obj': obj,
                  'scene': scene,
+                 'obj_rename': obj_rename,
+                 'scene_rename': scene_rename,
                  'CIN': CIN}
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
     return df_sn
 
 if __name__ == '__main__':
-    organize_subj_df('138')
+    get_trial_info('138')

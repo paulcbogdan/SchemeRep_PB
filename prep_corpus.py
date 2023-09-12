@@ -3,7 +3,7 @@ import os.path
 from gensim.utils import tokenize
 from gensim.corpora import MmCorpus, Dictionary
 import gensim.downloader as api
-from organize_bhv import organize_subj_df
+from organize_bhv import get_trial_info
 from pickle_wrap import pickle_wrap
 from tqdm import tqdm
 import pickle
@@ -42,9 +42,9 @@ def add_bigrams_to_corpus(corpus, bigrams):
     return corpus
 
 def get_bigrams():
-    df = organize_subj_df('138')
+    df = get_trial_info('138')
     bigrams = []
-    for obj, scene in zip(df['obj'], df['scene']):
+    for obj, scene in zip(df['obj_rename'], df['scene_rename']):
         for s in [obj, scene]:
             if ' ' in s:
                 bigrams.append(tuple(s.split(' ')))

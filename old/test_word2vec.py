@@ -1,34 +1,12 @@
 import gensim.downloader as api
 
-from organize_bhv import organize_subj_df
+from organize_bhv import get_trial_info
 
 
 # wv = api.load('word2vec-google-news-300')
 # vec_king = wv['goggles']
 # print(f'{vec_king=}')
 
-def get_word2vecs():
-    df = organize_subj_df('138')
-    wv = api.load('word2vec-google-news-300')
-    obj2vec = {}
-    scene2vec = {}
-    for (obj, scene) in zip(df['obj'], df['scene']):
-        try:
-            obj2vec[obj] = wv[obj]
-            print('IN')
-        except:
-            try:
-                obj2vec[obj] = wv[obj.replace(' ', '')]
-            except:
-                print(f'Object {obj} not in wv')
-
-        try:
-            scene2vec[scene] = wv[scene]
-        except:
-            try:
-                scene2vec[scene] = wv[scene.replace(' ', '')]
-            except:
-                print(f'Scene {scene} not in wv')
 
 if __name__ == '__main__':
     # get_word2vecs()
