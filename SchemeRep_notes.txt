@@ -1,0 +1,31 @@
+Hey, I took a stab at calculating the fMRI RDM x stimulus RDM correlations for SchemeRep. I'm having an issue (fMRI x stimulus correlation is always negative), and I'm wondering if this is just a common problem you would have some insight into. For the stimulus data, I'm submitting the object pictures to a DNN an taking the activation from an early hidden layer to calculate the stimulus RDM. For the fMRI data, I'm using the single trial betas associated with object presentation. When I calculate the RDM x RDM correlation for each participant, and average across all participants, I'm getting negative values. Like I tried this for twenty occipital ROIs from the brainnetome atlas and it's negative for all of them (oftentimes significantly negative). Do you have any idea why this may be the case? 
+
+As a sanity check, I made sure that average cell in both the stimulus and fMRI RDMs are positive. I also double checked to cofnrim 
+
+* Look at the neural patterns elicited during baseline vs. encoding.
+- See the extent to which baseline correlates with encoding in younger/older
+- See if congruency interacts age on its impact on the correlation
+- Would suggest a larger impact of schema among OA
+- Maybe can do a trial-by-trial correlation between PFC activity during scene presentation and the degre of change. This would be a form of connectivity?
+- The difference vector could come in handy if the scene is "pulling" the object representation
+
+
+
+
+STATE TRANSITION IDEA
+- does a hippocampal pattern indicate the direction of the association?
+- maybe model the difference between the two stimulus vectors to represent a change in state? (directional)
+- see if that RSAs with anything? i.e., correlate the relation-change vector to make RDM. Then do correlation with activation RDM. Call this RDM x RDM correlation, "decoding degree"
+- could also try the absolute value
+- pearson correlation ensures this isn't simply examining the magnitude of the difference, but one could do like euclidean distance to account for that
+- predict memory accuracy with IRAF thing
+- Analysis 1: See if "decoding degree" is positive by submitting it to a one-sample t-test. This demonstrates that the hippocampus (or some ROI) represents relations as state-transitions
+	+ Assess whether absolute value difference would be better
+- Analysis 2: Calculate IRAF and see if it predicts memory encoding. This demonstrates that the state-transitions reflect memory encoding
+- Note that this two-stage analytic strategy has a built-in mechanism for enhancing statistical power. One can use analysis 1 to identify ROIs who show a significant effect, and this can be left uncorrected (e.g., identifying 10 ROIs). Then, analysis 2 needs to only be done on those ROIs that yielded significance in analysis 1, and correction can be done among only those, e.g., 10 ROIs. I don't think this would be problematic because the analysis 1 results are independent of memory encoding.
+- Analysis 3: Does aging impair state-transition encoding?
+* Side note, neural RDM creation typically focuses on brain activation, although it may be interesting to instead look at the voxel x voxel connectivity. If there are n voxels, the connectivity matrix would be flattened to a vector of size (n-1)(n-2)/2, which is much longer than the activation vector. This may enhance statistical power.
+- One could look at the conceptual-focus vs. perceptual-focus trials separately or pool them
+Novelty:
+1. Supports this "RM as state transition" hypothesis
+

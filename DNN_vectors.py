@@ -48,17 +48,21 @@ def get_DNN_vecs_(early=True, PCA=False):
                     ])
 
     names, fps = get_img_fns()
-    names, fps = zip(*[(name, fp) for name, fp in zip(names, fps)
-                       if 'Scene' not in fp])
+    # names, fps = zip(*[(name, fp) for name, fp in zip(names, fps)
+    #                    if 'Scene' not in fp])
 
     # img_vecs = np.empty((vec_size, len(fps)))
     img_vecs = []
+    obj_vecs = []
     names_sanity = []
 
     layer1dat = np.zeros((64 * 224 * 224, len(fps)))
 
     for i, (name, fp) in enumerate(zip(names, fps)):
-        # if 'Scene' in fp:
+        if 'Scene' in fp:
+            scene = 1
+        else:
+            scene = 0
         #     continue
         img = Image.open(fp)
         # print(f'{name} | {fp}')
@@ -69,17 +73,27 @@ def get_DNN_vecs_(early=True, PCA=False):
             x = model.features[1](x)
         else:
             x = model.forward(x)
-        img_vecs.append(x.detach().numpy().flatten())
+        x = x.detach().numpy().flatten()
+        # print(f'{x.shape=}')
+        x = np.concatenate([x, np.array([scene])])
+        # print(f'{x.shape=}')
+        # quit()
+        img_vecs.append(x)
+        if not scene:
+            obj_vecs.append(x)
         names_sanity.append(name)
         # layer1dat[:, i] = x.detach().numpy().flatten()
+
     img_vecs = np.array(img_vecs)
+    obj_vecs = np.array(obj_vecs)
     # img_vecs = img_vecs.T
 
     if PCA:
         # print('1:', layer1dat.shape)
         pca = decomposition.PCA()
         # pca.fit(layer1dat.T)
-        img_vec_brief = pca.fit_transform(img_vecs)
+        pca.fit(obj_vecs)
+        img_vec_brief = pca.transform(img_vecs)
         img_vec_brief = img_vec_brief
         # print(f'{layer1dat=}')
         # img_vec_brief = pca.transform(layer1dat.T)
@@ -121,7 +135,7 @@ def get_DNN_vecs(early=True, PCA=False):
     fp_DNN_vecs = fr'cache/DNN_vecs_{early_late_str}{PCA_str}.pkl'
     return pickle_wrap(fp_DNN_vecs, lambda: get_DNN_vecs_(early=early,
                                                           PCA=PCA),
-                       easy_override=True)
+                       easy_override=False)
 
 def get_img_fns(get_dict=False):
     dir_obj = r'SchemRep_tasks\PTBtasks\updatedObjectsResampled'
