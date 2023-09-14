@@ -16,14 +16,14 @@ import scipy.stats as stats
 from scipy import io
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
                  dif=True):
     # return get_stim_RDM_lifu(df_sn)
     vec_size = len(d_vecs[df_sn['obj'].iloc[0]])
-    all_vecs = np.empty((len(df_sn['obj']), vec_size))
-
+    # all_vecs = np.empty((len(df_sn['obj']), vec_size))
     vecs_obj = np.empty((len(df_sn['obj']), vec_size))
     vecs_scene = np.empty((len(df_sn['obj']), vec_size))
     for i, (obj, scene, obj_rename, scene_rename) in enumerate(zip(df_sn['obj'],
@@ -102,6 +102,9 @@ def get_atlas_resampled(combine_bilateral=True):
                                           interpolation='nearest')
     return atlas
 
+def stdize(v, axis=None):
+    return (v - np.mean(v, axis=axis)) / np.std(v, axis=axis)
+
 def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
@@ -117,13 +120,49 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
     z = np.arctanh(r)
     return z
 
-def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
+def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, flipper=0):
     IRAFs = []
-    np.fill_diagonal(fMRI_RDM, 0)
-    for i in range(fMRI_RDM.shape[0]):
-        cross = fMRI_RDM[i, :] @ stim_RDM[i, :]
-        IRAFs.append(cross)
+    # np.fill_diagonal(fMRI_RDM, 0)
+    # np.fill_diagonal(stim_RDM, 0)
+    good_indices = np.arange(fMRI_RDM.shape[0])[flipper::2]
+    for i in good_indices:
+    # for i in range(fMRI_RDM.shape[0]):
+        good_indices = np.arange(fMRI_RDM.shape[0])[flipper::2]
+        if i in good_indices:
+            good_indices = np.delete(good_indices, np.where(good_indices == i))
+        # fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
+        # stim_vec_std = np.delete(stim_RDM[i, :], i)
+        fMRI_vec_std = fMRI_RDM[i, good_indices]
+        stim_vec_std = stim_RDM[i, good_indices]
+        # fMRI_vec_std = stdize(fMRI_vec_std) # exclude correlation w itself
+        # stim_vec_std = stdize(stim_vec_std)
+        # fMRI_vec_std = fMRI_vec_std[flipper::2]
+        # stim_vec_std = stim_vec_std[flipper::2]
+
+        # if flipper:
+        #     fMRI_vec_std = fMRI_vec_std[:57]
+        #     stim_vec_std = stim_vec_std[:57]
+        # else:
+        #     fMRI_vec_std = fMRI_vec_std[57:]
+        #     stim_vec_std = stim_vec_std[57:]
+
+        # if i < 57:
+        #     fMRI_vec_std = fMRI_vec_std[::2]
+        #     stim_vec_std = stim_vec_std[::2]
+        # else:
+        #     fMRI_vec_std = fMRI_vec_std[1::2]
+        #     stim_vec_std = stim_vec_std[1::2]
+
+        # r = (fMRI_vec_std @ stim_vec_std) / len(fMRI_vec_std)
+        r = np.sum(fMRI_vec_std)
+
+        # cross = fMRI_RDM[i, :] @ stim_RDM[i, :]
+        IRAFs.append(r)
+        IRAFs.append(r)
     # sort alphabetically so it's the same order for every participant
+    # max_IRAF = max(IRAFs)
+    # print(f'{max_IRAF=:.3f}')
+
     IRAFs = [IRAF for (IRAF, _) in sorted(zip(IRAFs, df_sn['obj']),
                                           key=lambda x: x[1])]
     return IRAFs
@@ -149,7 +188,7 @@ def get_all_sns():
         fns = glob(bhv_root)
         for fn in fns:
             sn = fn.replace('behavFiles/ENC\\S', '').replace('_run1.mat', '')
-            sn = fn.replace(r'behavFiles/ENC/S', '').replace('_run1.mat', '')
+            # sn = fn.replace(r'behavFiles/ENC/S', '').replace('_run1.mat', '')
             if sn in bad_sns:
                 continue
             age2sn[age].append(sn)
@@ -265,33 +304,61 @@ def regress_out(x, y):
     if len(x[~nans]) < 3:
         return y
     b, m, r, p, er = stats.linregress(x[~nans], y[~nans])
+    # print(f'{x=}')
+    # print(f'{r=} | {b=}')
     return y - x*b
 
 def get_IRAF_connectivity_matrix(ROI_to_IRAF, n_ROIs, ROIs):
     # TODO: optimize to run correlations on everyone simultaneously
     first_key = next(iter(ROI_to_IRAF.keys()))
     subj_timeseries_shape = (n_ROIs, ROI_to_IRAF[first_key].shape[1])
-    subj2timeseries = defaultdict(lambda: np.empty(subj_timeseries_shape))
+    subj2timeseries = defaultdict(lambda: np.full(subj_timeseries_shape,
+                                                  np.nan))
     print(f'{len(ROI_to_IRAF)}')
     for i, ROI in enumerate(ROIs):
         ar = ROI_to_IRAF[ROI]
-    # for i, (ROI, ar) in enumerate(ROI_to_IRAF.items()):
         for subj_j in range(ar.shape[0]):
             subj2timeseries[subj_j][i, :] = ar[subj_j, :]
     all_matricies = []
-    for ar in subj2timeseries.values():
+    for sn, ar in subj2timeseries.items():
+        # avg_over_time = np.nanmean(ar, axis=0)
+        # std_over_time = np.nanstd(ar, axis=0)
+        # ar = (ar - avg_over_time) / std_over_time
+        # print(ar.shape)
+        # ar = np.append(ar, ar.mean(axis=1, keepdims=True), axis=1)
+        # print(ar.shape)
+        # print(ar.mean(axis=1, keepdims=True))
+        # max_val = np.max(np.abs(ar))
+        # print(f'{max_val=}')
+        # plt.imshow(ar)
+        # plt.title(f'Plot IRAF by ROI and stimulus: {sn}')
+        # plt.ylabel('ROI')
+        # plt.xlabel('Stimulus')
+        # plt.colorbar()
+        # plt.show()
         mat = np.corrcoef(ar)
+        mat[np.diag_indices_from(mat)] = 0
+        for i in range(mat.shape[0]):
+            for j in range(mat.shape[1]):
+                if i % 2 == j % 2:
+                    if (i < mat.shape[0] - 1):
+                        mat[i, j] = mat[i+1, j]
+        # plt.imshow(mat)
+        # plt.title('correlation matrix')
+        # plt.colorbar()
+        # plt.show()
         mat[mat > .99] = .99
         mat[mat < -.99] = -.99
         mat = np.arctanh(mat)
         all_matricies.append(mat)
+    # quit()
     return all_matricies
 
 def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
-        d_vecs = get_DNN_vecs(early=False, PCA=True)
+        d_vecs = get_DNN_vecs(early=early, PCA=True)
 
     ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
 
@@ -303,16 +370,22 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     ROI_to_obj = defaultdict(list)
     ROI_to_scn = defaultdict(list)
     n_trials = 114 if cin is None else 38
-
-    ROI_to_IRAF_dif_ = defaultdict(lambda: np.empty((0, n_trials)))
-    ROI_to_IRAF_dif = defaultdict(lambda: np.empty((0, n_trials)))
-    ROI_to_IRAF_obj = defaultdict(lambda: np.empty((0, n_trials)))
-    ROI_to_IRAF_scn = defaultdict(lambda: np.empty((0, n_trials)))
+    # n_trials *= 2
+    ROI_to_IRAF_dif_ = defaultdict(lambda: np.full((0, n_trials), np.nan))
+    ROI_to_IRAF_dif = defaultdict(lambda: np.full((0, n_trials), np.nan))
+    ROI_to_IRAF_obj = defaultdict(lambda: np.full((0, n_trials), np.nan))
+    ROI_to_IRAF_scn = defaultdict(lambda: np.full((0, n_trials), np.nan))
 
     Zs_all_ = []
-    IRAFs_connectivity_obj = []
+    # test = get_trial_info('138')
+    # for i, name in enumerate(sorted(test['obj'])):
+    #     print(f'{i}: {name}')
+    # for name, vec in d_vecs.items():
+    #     d_vecs[name] = np.random.normal(0, 1, vec.shape)
+
     for i, sn in tqdm(enumerate(age2sn[age]),
                       desc=f'Looping subjects: age2sn[{age}]'):
+        # print(i, ':', sn)
         df_sn = get_trial_info(sn)
         if cin is not None:
             df_sn = df_sn[df_sn['CIN'] == cin]
@@ -321,11 +394,17 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
                                       scene_only=True)
         RDM_stim_dif = get_stim_RDM(df_sn, d_vecs, obj_only=False, dif=True)
         img = image.load_img(df_sn['fp_fMRI']).get_fdata()
+        # regions = atlas['maps'].get_fdata() > 0
+        # print(img[regions].shape)
+        # quit()
+        # img = (img - np.nanmean(img[regions], axis=0)) / np.nanstd(img[regions], axis=0)
+        # quit()
+
         # IRAFs_obj = []
         # IRAFs_scene = []
         # IRAFs_dif = []
         # IRAFs_dif_ = []
-        for ROI, ROI_num in zip(ROIs, ROI_nums):
+        for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
             region_vecs = img[atlas['maps'].get_fdata() == ROI_num]
             voxels_w_nan = np.isnan(region_vecs).any(axis=1)
             n_nans_ROI = np.sum(voxels_w_nan)
@@ -343,9 +422,17 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             if nans_RDM_obj > 0 or nans_RDM_scn > 0:
                 print(f'{nans_RDM_obj=}, {nans_RDM_scn=}')
 
-            IRAFs_obj = get_IRAFs(RDM_fMRI, RDM_stim_obj, df_sn)
-            IRAFs_scene = get_IRAFs(RDM_fMRI, RDM_stim_scene, df_sn)
-            IRAFs_dif = get_IRAFs(RDM_fMRI, RDM_stim_dif, df_sn)
+            # flipper = 0 if i < 114 else 1
+            flipper = j % 2
+            # flipper = 0
+            IRAFs_obj = get_IRAFs(RDM_fMRI, RDM_stim_obj, df_sn, flipper=flipper)
+            # IRAFs_obj.extend(get_IRAFs(RDM_fMRI, RDM_stim_obj, df_sn, flipper=(j + 1) % 2))
+            IRAFs_scene = IRAFs_obj
+            IRAFs_dif = IRAFs_obj
+            # IRAFs_scene = get_IRAFs(RDM_fMRI, RDM_stim_scene, df_sn, flipper=flipper)
+            # IRAFs_scene.extend(get_IRAFs(RDM_fMRI, RDM_stim_scene, df_sn, flipper=(j + 1) % 2))
+            # IRAFs_dif = get_IRAFs(RDM_fMRI, RDM_stim_dif, df_sn, flipper=flipper)
+            # IRAFs_dif.extend(get_IRAFs(RDM_fMRI, RDM_stim_dif, df_sn, flipper=(j + 1) % 2))
             if np.isnan(z_RDM_x_RDM_dif):
                 print('HOW NaN?')
                 continue
@@ -372,10 +459,12 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             ROI_to_dif[ROI].append(z_RDM_x_RDM_dif)
             ROI_to_obj[ROI].append(z_RDM_x_RDM_obj)
             ROI_to_scn[ROI].append(z_RDM_x_RDM_scene)
+        # if i > 2:
+        #     break
 
     for ROI in ROI_to_dif:
         try:
-            # z_RDM_x_RDM cases. TODO: fix those NaNs
+            # catch NaNs
             zs_dif_ = regress_out(ROI_to_obj[ROI], ROI_to_dif[ROI])
             zs_dif_ = regress_out(ROI_to_scn[ROI], zs_dif_)
             ROI_to_dif_[ROI] = zs_dif_
@@ -383,15 +472,24 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             pass
 
         ROI_to_IRAF_obj[ROI] = np.array(ROI_to_IRAF_obj[ROI])
+        test = np.max(ROI_to_IRAF_obj[ROI])
+        # if test > 1:
+        #     print(f'{test} | {ROI=}')
+        #     quit()
         ROI_to_IRAF_scn[ROI] = np.array(ROI_to_IRAF_scn[ROI])
         ROI_to_IRAF_dif[ROI] = np.array(ROI_to_IRAF_dif[ROI])
-        ROI_to_IRAF_dif_[ROI] = np.empty(ROI_to_IRAF_dif[ROI].shape)
+        ROI_to_IRAF_dif_[ROI] = np.zeros(ROI_to_IRAF_dif[ROI].shape)
         n_trials = ROI_to_IRAF_obj[ROI].shape[1]
         for trial_i in range(n_trials):
-            zs_dif_ = regress_out(ROI_to_IRAF_obj[ROI][:, trial_i],
-                                  ROI_to_IRAF_dif[ROI][:, trial_i])
-            zs_dif_ = regress_out(ROI_to_IRAF_scn[ROI][:, trial_i], zs_dif_)
-            ROI_to_IRAF_dif_[ROI][:, trial_i] = zs_dif_
+            IRAF_dif_ = regress_out(ROI_to_IRAF_obj[ROI][:, trial_i],
+                                    ROI_to_IRAF_dif[ROI][:, trial_i])
+            # IRAF_dif_ = ROI_to_IRAF_dif[ROI][:, trial_i]
+            # print(f'{len(IRAF_dif_)=}')
+            # print(f'{IRAF_dif_=}')
+            # quit()
+            IRAF_dif_ = regress_out(ROI_to_IRAF_scn[ROI][:, trial_i],
+                                    IRAF_dif_)
+            ROI_to_IRAF_dif_[ROI][:, trial_i] = IRAF_dif_
 
     # IRAFs_con = np.corrcoef(IRAFs_obj)
     # IRAFs_con[np.isinf(IRAFs_con)] = np.nan
@@ -406,29 +504,46 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     el_str = '' if semantic else '_early' if early else '_late'
     IRAFs_connectivity_obj = get_IRAF_connectivity_matrix(ROI_to_IRAF_obj,
                                                           n_ROIs, ROIs)
-    fp_obj = fr'{dir_out}/{age_str}/obj{cin_str}{sem_str}{el_str}.png'
-    plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
-                      title=f'Object, {age=}, {cin=}, {early=}, {semantic=}',
-                      fp=fp_obj)
+    # fp_obj = fr'{dir_out}/{age_str}/obj{cin_str}{sem_str}{el_str}.png'
+    # plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
+    #                   title=f'Object, {age=}, {cin=}, {early=}, {semantic=}',
+    #                   fp=fp_obj)
     IRAFs_connectivity_scn = get_IRAF_connectivity_matrix(ROI_to_IRAF_scn,
                                                           n_ROIs, ROIs)
-    fp_scn = fr'{dir_out}/{age_str}/scene{cin_str}{sem_str}{el_str}.png'
-    plot_connectivity(IRAFs_connectivity_scn, ticks, tick_labels, tick_lows,
-                      title=f'Scene, {age=}, {cin=}, {early=}, {semantic=}',
-                      fp=fp_scn)
+    # fp_scn = fr'{dir_out}/{age_str}/scene{cin_str}{sem_str}{el_str}.png'
+    # plot_connectivity(IRAFs_connectivity_scn, ticks, tick_labels, tick_lows,
+    #                   title=f'Scene, {age=}, {cin=}, {early=}, {semantic=}',
+    #                   fp=fp_scn)
     IRAFs_connectivity_dif = get_IRAF_connectivity_matrix(ROI_to_IRAF_dif,
                                                           n_ROIs, ROIs)
-    fp_dif = fr'{dir_out}/{age_str}/dif{cin_str}{sem_str}{el_str}.png'
-    plot_connectivity(IRAFs_connectivity_dif, ticks, tick_labels, tick_lows,
-                      title=f'Dif, {age=}, {cin=}, {early=}, {semantic=}',
-                      fp=fp_dif)
+    # fp_dif = fr'{dir_out}/{age_str}/dif{cin_str}{sem_str}{el_str}.png'
+    # plot_connectivity(IRAFs_connectivity_dif, ticks, tick_labels, tick_lows,
+    #                   title=f'Dif, {age=}, {cin=}, {early=}, {semantic=}',
+    #                   fp=fp_dif)
 
     IRAFs_connectivity_dif_ = get_IRAF_connectivity_matrix(ROI_to_IRAF_dif_,
                                                           n_ROIs, ROIs)
-    fp_dif = fr'{dir_out}/{age_str}/dif_regressed_{cin_str}{sem_str}{el_str}.png'
+    # fp_dif = fr'{dir_out}/{age_str}/dif_regressed_{cin_str}{sem_str}{el_str}.png'
+    # plot_connectivity(IRAFs_connectivity_dif_, ticks, tick_labels, tick_lows,
+    #                   title=f'Dif regressed, {age=}, {cin=}, {early=}, {semantic=}',
+    #                   fp=fp_dif)
+
+
+    fig, axs = plt.subplots(1, 4, figsize=(27, 7))
+    plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
+                      title=f'obj {age=}, {cin=}, {early=}, {semantic=}', ax=axs[0])
+    plot_connectivity(IRAFs_connectivity_scn, ticks, tick_labels, tick_lows,
+                      title=f'scene {age=}, {cin=}, {early=}, {semantic=}', ax=axs[1])
+    plot_connectivity(IRAFs_connectivity_dif, ticks, tick_labels, tick_lows,
+                      title=f'dif {age=}, {cin=}, {early=}, {semantic=}', ax=axs[2])
     plot_connectivity(IRAFs_connectivity_dif_, ticks, tick_labels, tick_lows,
-                      title=f'Dif regressed, {age=}, {cin=}, {early=}, {semantic=}',
-                      fp=fp_dif)
+                      title=f'dif regressed {age=}, {cin=}, {early=}, {semantic=}',
+                      ax=axs[3])
+    plt.tight_layout()
+    fp_subplots = fr'{dir_out}/{age_str}/all{cin_str}{sem_str}{el_str}.png'
+    plt.savefig(fp_subplots)
+    plt.show()
+    quit()
 
     d_out = {'IRAF_conn': {'obj': IRAFs_connectivity_obj,
                            'scn': IRAFs_connectivity_scn,
@@ -450,14 +565,19 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
 
 
 
-def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None):
+def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
+                      ax=None):
     M_connect = np.nanmean(conn, axis=0)
+    # M_connect = np.nanmedian(conn, axis=0)
     vmin = np.nanquantile(M_connect, .01)
     vmax = np.nanquantile(M_connect, .99)
     print(f'vmin: {vmin}, vmax: {vmax}')
     # vmin = .2
     # vmax = .8
-    plt.figure(figsize=(10, 10))
+    if ax is None:
+        plt.figure(figsize=(10, 10))
+    else:
+        plt.sca(ax)
     plt.title(title)
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
     plt.yticks(ticks, tick_labels, fontsize=8)
@@ -467,16 +587,19 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None):
         plt.plot([low, low], [0, M_connect.shape[0]], 'w', linewidth=0.5)
     plt.xlim([0, M_connect.shape[0]])
     plt.ylim([0, M_connect.shape[0]])
-    plt.colorbar()
+    plt.colorbar(shrink=0.7, aspect=20*0.7)
     if fp is not None:
+        Path(fp).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(fp)
-    plt.show()
+    if ax is None:
+        plt.show()
 
 def run_multi_settings():
-    semantic = False
-    for early_late in [False, True]:
+    # semantic = False
+    for early_late, semantic in [(False, False), (False, True)]:
         for age in ['healthy', 1, 2]:
-            for cin in [None, 1, 2]:
+            age = 1
+            for cin in [None, 1, 2, 3]:
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'
                 cin_str = '' if cin is None else \
@@ -485,6 +608,7 @@ def run_multi_settings():
                 sem_str = '_sem' if semantic else ''
                 el_str = '' if semantic else '_early' if early_late else '_late'
                 fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}.pkl'
+                Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                 d = pickle_wrap(fp_out,
                                 lambda: mass_RDM_x_RDM(age=age, cin=cin,
                                                        early=early_late),
