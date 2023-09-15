@@ -115,6 +115,51 @@ def CIN_compare(age=1, early=False, semantic=False):
         t, p = stats.ttest_ind(l0, l1)
         print(f'{ROI}: {M0:.3f} {t=:.3f} ')
 
+def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
+    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early_late=early)
+    with open(fp, 'rb') as file:
+        d = pickle.load(file)
+    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+
+    mat = []
+    for roi0 in ROIs:
+        IRAF = d['IRAFs_ROI']['obj'][roi0]
+        IRAF_m = np.mean(IRAF, axis=1)
+        # print(f'{IRAF.shape=}')
+        # print(f'{IRAF.shape=}')
+        # quit()
+        t_iraf = np.mean(IRAF_m, axis=0) / np.std(IRAF_m, axis=0) * np.sqrt(len(IRAF))
+        if abs(t_iraf) > 2.0:
+            print(f'IRAF {roi0} {t_iraf=:.3f}')
+        # if IRAF.shape[0] != 56: continue
+        # quit()
+        v = []
+        for roi1 in ROIs:
+            # if roi0 != roi1: continue
+            d['activity'][roi1] = np.array(d['activity'][roi1])
+            activity = d['activity'][roi1]
+            if activity.shape[0] != len(IRAF):
+                v.append(np.nan)
+                continue
+            # quit()
+            rs = []
+            for n in range(len(IRAF)):
+                r, p = stats.pearsonr(IRAF[n], activity[n])
+                r = np.arctanh(r)
+                rs.append(r)
+            t = np.mean(rs) / np.std(rs) * np.sqrt(len(rs))
+            if t > 3.0:
+                print(f'POSITIVE {roi0} {roi1} {t=:.3f}')
+            elif t < -3.0:
+                print(f'NEGATIVE {roi0} {roi1} {t=:.3f}')
+            v.append(t)
+        print(f'{len(v)=}')
+        mat.append(v)
+    mat = np.array(mat)
+    print(mat.shape)
+    plot_connectivity(mat, ticks, tick_labels, tick_lows,
+                      title='Activity x IRAF', no_avg=True)
 
 if __name__ == '__main__':
-    CIN_compare()
+    # CIN_compare()
+    test_IRAF_x_activity(early=False, age=2)
