@@ -342,6 +342,9 @@ def calculate_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
 def get_vector_product():
     pass
 
+def nan_ar(shape):
+    return np.full(shape, np.nan)
+
 def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     if semantic:
         d_vecs = get_semantic_vectors()
@@ -366,7 +369,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     ROI_to_activity = defaultdict(list)
 
     triple_z = {'obj': [], 'scn': [], 'dif': []}
-    rxr = {'obj': [], 'scn': [], 'dif': []}
+    rxr_all = {'obj': [], 'scn': [], 'dif': []}
 
     Zs_all_ = []
     # test = get_trial_info('138')
@@ -387,21 +390,50 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
         RDM_stim_dif = get_stim_RDM(df_sn, d_vecs, obj_only=False, dif=True)
         img = image.load_img(df_sn['fp_fMRI']).get_fdata()
         ROI_to_RDM_fMRI = {}
-        rxr_mats = {'obj': [], 'scn': [], 'dif': []}
+        rxr_mats = {'obj': nan_ar((n_ROIs, n_ROIs)),
+                    'scn': nan_ar((n_ROIs, n_ROIs)),
+                    'dif': nan_ar((n_ROIs, n_ROIs))}
         ROI2vecs = {}
+        ROI2vecs_down = {}
         for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
-            region_vecs = img[atlas['maps'].get_fdata() == ROI_num]
+            atlas_roi = atlas['maps'].get_fdata() == ROI_num
+            atlas_roi_downsample = np.copy(atlas_roi)
+            atlas_roi_downsample[::2, :, :] = False
+            atlas_roi_downsample[:, ::2, :] = False
+            atlas_roi_downsample[:, :, ::2] = False
+            # atlas_roi_downsample[::3, :, :] = False
+            # atlas_roi_downsample[:, ::3, :] = False
+            # atlas_roi_downsample[:, :, ::3] = False
+
+            region_vecs = img[atlas_roi]
+            region_vecs_down = img[atlas_roi_downsample]
             voxels_w_nan = np.isnan(region_vecs).any(axis=1)
             n_nans_ROI = np.sum(voxels_w_nan)
             if n_nans_ROI / len(voxels_w_nan) > 0.25: # more than 10%
                 continue
             region_vecs = region_vecs[~voxels_w_nan, :]
             ROI2vecs[ROI] = region_vecs
+            region_vecs_down = (region_vecs_down.T -
+                               np.nanmean(region_vecs_down, axis=1)) / \
+                               np.nanstd(region_vecs_down, axis=1)
+            region_vecs_down = region_vecs_down.T
+            # print(region_vecs_down.shape)
+            # print(np.nanmean(region_vecs_down, axis=1).shape)
+            # quit()
+            ROI2vecs_down[ROI] = region_vecs_down
 
-        for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
-            if ROI not in ROI2vecs:
-                for key in ['obj', 'scn', 'dif']:
-                    rxr_mats[key].append([np.nan] * len(ROIs))
+        super_duper_array = []
+        for ROI in ROIs:
+            test = ROI2vecs_down[ROI]
+            print(test.shape)
+            quit()
+
+
+        for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
+                                      desc='looping ROIs outer',
+                                      total=len(ROIs), leave=True, ncols=80,
+                                      position=0):
+            if ROI not in ROI2vecs_down:
                 continue
             region_vecs = ROI2vecs[ROI]
 
@@ -440,36 +472,26 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             ROI_to_scn[ROI].append(z_RDM_x_RDM_scene)
             ROI_to_activity[ROI].append(mean_activity)
 
-            # print('Onto rxr RDM...')
             # region_vecs_ = np.expand_dims(region_vecs, 2)
+            region_vecs_down0 = ROI2vecs_down[ROI]
             # rxr_vecs = {'obj': [], 'scn': [], 'dif': []}
-            # for k, (ROI1, ROI_num1) in tqdm(enumerate(zip(ROIs, ROI_nums)), desc='test'):
-            #     if ROI1 not in ROI2vecs:
-            #         for key in ['obj', 'scn', 'dif']:
-            #             rxr_vecs[key].append(np.nan)
-            #         continue
-            #     region_vecs1 = ROI2vecs[ROI1]
-            #     # region_vecs1_ = np.expand_dims(region_vecs1, 2)
-            #     rxr = pb_outer(region_vecs.T, region_vecs1.T, flat=True)
-            #     # region_x_region_l = []
-            #     # for trial in range(n_trials):
-            #     #     region_x_region = np.matmul(region_vecs_[:, trial],
-            #     #                                 region_vecs1_[:, trial].T)
-            #     #     region_x_region_vec = region_x_region.flatten()
-            #     #     region_x_region_l.append(region_x_region_vec)
-            #     # rxr = np.stack(region_x_region_l, axis=1).T
-            #     RDM_rxr = np.corrcoef(rxr)
-            #     # RDM_rxr = np.random.normal(0, 1, (n_trials, n_trials))
-            #     del rxr
-            #     z_rxr_obj = RDM_x_RDM(RDM_rxr, RDM_stim_obj)
-            #     rxr_vecs['obj'].append(z_rxr_obj)
-            #     z_rxr_scn = RDM_x_RDM(RDM_rxr, RDM_stim_scn)
-            #     rxr_vecs['scn'].append(z_rxr_scn)
-            #     z_rxr_dif = RDM_x_RDM(RDM_rxr, RDM_stim_dif)
-            #     rxr_vecs['dif'].append(z_rxr_dif)
-            # rxr_mats['obj'].append(rxr_vecs['obj'])
-            # rxr_mats['scn'].append(rxr_vecs['scn'])
-            # rxr_mats['dif'].append(rxr_vecs['dif'])
+            for k, (ROI1, ROI_num1) in enumerate(zip(ROIs, ROI_nums)):
+                if ROI1 not in ROI2vecs_down:
+                    continue
+                if k <= j:
+                    continue
+                region_vecs_down1 = ROI2vecs_down[ROI1]
+                rxr = pb_outer(region_vecs_down0.T, region_vecs_down1.T,
+                               flat=True)
+                RDM_rxr = np.corrcoef(rxr)
+                # print(f'{ROI=} | {ROI1=}, {RDM_rxr[1, 3]=}')
+                del rxr
+                z_rxr_obj = RDM_x_RDM(RDM_rxr, RDM_stim_obj)
+                rxr_mats['obj'][j, k] = rxr_mats['obj'][k, j] = z_rxr_obj
+                z_rxr_scn = RDM_x_RDM(RDM_rxr, RDM_stim_scn)
+                rxr_mats['scn'][j, k] = rxr_mats['scn'][k, j] = z_rxr_scn
+                z_rxr_dif = RDM_x_RDM(RDM_rxr, RDM_stim_dif)
+                rxr_mats['dif'][j, k] = rxr_mats['dif'][k, j] = z_rxr_dif
 
         triple_z['obj'].append(calculate_triple_connectivity(ROI_to_RDM_fMRI,
                                                              RDM_stim_obj,
@@ -480,9 +502,9 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
         triple_z['dif'].append(calculate_triple_connectivity(ROI_to_RDM_fMRI,
                                                              RDM_stim_dif,
                                                              ROIs))
-        rxr['obj'].append(np.array(rxr_mats['obj']))
-        rxr['scn'].append(np.array(rxr_mats['scn']))
-        rxr['dif'].append(np.array(rxr_mats['dif']))
+        rxr_all['obj'].append(np.array(rxr_mats['obj']))
+        rxr_all['scn'].append(np.array(rxr_mats['scn']))
+        rxr_all['dif'].append(np.array(rxr_mats['dif']))
 
     for ROI in ROI_to_dif:
         try:
@@ -575,7 +597,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     # quit()
 
     d_out = {
-            #'rxr': rxr,
+            'rxr': rxr_all,
             'triple_z': triple_z, # triple_z is already a dict
             'IRAF_conn': {'obj': IRAFs_connectivity_obj,
                            'scn': IRAFs_connectivity_scn,
@@ -635,9 +657,9 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
 def run_multi_settings():
     # semantic = False
     for early, semantic in [(True, False), (False, False), (False, True)]:
-        for age in [1, 2, 'healthy', ]:
             # age = 'healthy'
-            for cin in [None, 1, 2, 3]:
+        for cin in [None, 1, 2, 3]:
+            for age in [1, 2, 'healthy', ]:
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'
                 cin_str = '' if cin is None else \
@@ -650,16 +672,20 @@ def run_multi_settings():
                 d = pickle_wrap(fp_out,
                                 lambda: mass_RDM_x_RDM(age=age, cin=cin,
                                                        early=early),
-                                easy_override=True)
+                                easy_override=False)
 
 def pb_outer(a, b, flat=False):
     a = np.array(a)
     b = np.array(b)
     a = np.expand_dims(a, axis=2)
+    print(f'{a.shape=}')
     b = np.expand_dims(b, axis=1)
+    print(f'{b.shape=}')
     c = a * b
+    print(f'{c.shape=}')
     if flat:
         c = c.reshape(-1, c.shape[1]*c.shape[2])
+    print(f'{c=}')
     return c
 
     # # print(b.shape)
@@ -680,18 +706,129 @@ def pb_outer(a, b, flat=False):
     # # print(c.shape)
     # return c
 
-# a = [[1, 2, 1], [3, 4, 5]]
-# b = [[4, 5, 1], [6, 7, 6]]
-# a = np.array(a)
-# b = np.array(b)
-# a = np.expand_dims(a, axis=2)
-# print(a.shape)
-# b = np.expand_dims(b, axis=1)
-# print(b.shape)
-# a = np.array([[1, 2])
-# b = np.array([[[3, 4]])
-# print(a * b)
+def pb_outer_multi(a, b, flat=False):
+    # print('\n\n\n')
+    # print('multi')
+    a = np.array(a)
+    b = np.array(b)
+    a = np.expand_dims(a, axis=2)
+    # a = np.expand_dims(a, axis=3)
+
+    print(f'Single multi: {a.shape=}')
+    b = np.expand_dims(b, axis=2)
+    print(f'Single multi: {b.shape=}')
+    c = a * b
+    if flat:
+        c = c.reshape(-1, c.shape[-2]*c.shape[-1])
+    # print(c)
+    # print(f'{c.shape=}')
+    return c
+    # print(b.shape)
+
+def fill_w_nans(b):
+    lens = [len(ROI[0]) for ROI in b]
+    max_size = max(lens)
+    # print(f'{max_size=}')
+    # print(f'{b.shape=}')
+    b_filled = np.full((len(b), len(b[0]), max_size), np.nan)
+    for i in range(len(b)):
+        for j in range(len(b[i])):
+            b_filled[i, j, :len(b[i][j])] = b[i][j]
+    return b_filled
+
+def pb_outer_double_multi(a, b, flat=False):
+    # print('\n\n\n')
+    # print('multi')
+
+    a = np.array(a)
+    b = np.array(b)
+    b = fill_w_nans(b)
+
+    # max_size = 0
+    # for ROI in range(len(b)):
+    #     vec_trial0 = b[ROI][0]
+    #     max_size = max(max_size, len(vec_trial0))
+
+    # print(b_filled)
+    # quit()
+    #
+    #
+    # print(f'{b_filled.shape=}')
+    # mask = np.arange(max_size) < np.array(lens)[:, None]
+    # print(f'{mask.shape=}')
+    # mask = np.repeat(mask[:, :, None], len(b[0]), axis=-1)
+    # print(f'{mask.shape=}')
+    # # print(mask)
+    # b_filled[mask] = np.concatenate(b)
+    # # print(b_filled)
+    # quit()
+    a = np.expand_dims(a, axis=1)
+    a = np.expand_dims(a, axis=-1) # (ROIs, 1, n_trials, longest_vec_length, 1)
+    # longest
+    # print(f'{a.shape=}')
+    # print(a.shape)
+    # print(f'{a.shape=}')
+    b = np.expand_dims(b, axis=0)
+    b = np.expand_dims(b, axis=3) # (1, ROIs, n_trials, 1, longest_vec_length)
+    # print(f'{b.shape=}')
+    assert a.shape[2] == b.shape[2], f'n_trials must be the same: {b.shape=}, {a.shape=}'
+    # quit()
+    c = a * b
+    # print(c)
+    # print(f'{c.shape=}')
+    # quit()
+    if flat:
+        c = c.reshape(a.shape[0], b.shape[1], a.shape[2], c.shape[-2]*c.shape[-1])
+    # print(f'{c.shape=}')
+    # quit()
+    return c
+
+# a0 = [[1, 2, 30],
+#      [4, 5, 60],
+#      [7, 8, 90],
+#      [10, 11, 120]]
+#
+# a2 = [[10, 2, 3],
+#      [40, 5, 6],
+#      [70, 8, 9],
+#      [10, 11, 120]]
+#
+# a = [a0, a2]
+#
+# b0_ = [[10, 20, 30],
+#      [40, 50, 60],
+#      [70, 80, 90]]
+# # # pb_outer(a, b)
+# b2_ = [[1, 2, 3],
+#      [4, 5, 6],
+#      [7, 8, 9]]
+#
+# b0 = [[10, 20, 100],
+#      [40, 50, 100],
+#      [70, 80, 100],
+#      [10, 11, 120]]
+# # pb_outer(a, b)
+# b2 = [[1, 2],
+#      [4, 5],
+#      [7, 8],
+#      [10, 11]]
+
+# pb_outer_multi(a0, [b0, b2])
 # quit()
+
+# b2 = [[1, 2, 3, 100],
+#      [4, 5, 6, 10],
+#      [7, 8, 9, 10]]
+
+# b = [b0, b2]
+#
+# # b = [b]
+# pb_outer_double_multi(a, b, flat=True)
+# quit()
+# print(np.corrcoef(pb_outer(a, b, flat=True)))
+# print(np.corrcoef(pb_outer(b, a, flat=True)))
+# quit()
+#
 
 # c = np.outer(a, b)
 # # print(c)

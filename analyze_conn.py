@@ -58,7 +58,7 @@ def get_cin_str(cin):
         '_Inc' if cin == 2 else \
         '_Neu' if cin == 3 else 'BAD_CIN'
 
-def get_cache_RSA_fp(cin, age, semantic, early_late, pre_str=''):
+def get_cache_RSA_fp(cin, age, semantic, early, pre_str=''):
     age_str = 'healthy' if age == 'healthy' else \
         'YA' if age == 1 else 'OA'
     cin_str = '' if cin is None else \
@@ -66,7 +66,7 @@ def get_cache_RSA_fp(cin, age, semantic, early_late, pre_str=''):
         '_Inc' if cin == 2 else \
         '_Neu' if cin == 3 else 'BAD_CIN'
     sem_str = '_sem' if semantic else ''
-    el_str = '' if semantic else '_early' if early_late else '_late'
+    el_str = '' if semantic else '_early' if early else '_late'
     fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}.pkl'
     return fp_out
 
@@ -91,8 +91,8 @@ def regress_out_normal_connectivity(mat, age, cin):
     return mat
 
 def CIN_compare(age=1, early=False, semantic=False):
-    fp1 = get_cache_RSA_fp(cin=1, age=age, semantic=semantic, early_late=early)
-    fp2 = get_cache_RSA_fp(cin=2, age=age, semantic=semantic, early_late=early)
+    fp1 = get_cache_RSA_fp(cin=1, age=age, semantic=semantic, early=early)
+    fp2 = get_cache_RSA_fp(cin=2, age=age, semantic=semantic, early=early)
     with open(fp1, 'rb') as file:
         d1 = pickle.load(file)
     with open(fp2, 'rb') as file:
@@ -116,7 +116,7 @@ def CIN_compare(age=1, early=False, semantic=False):
         print(f'{ROI}: {M0:.3f} {t=:.3f} ')
 
 def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
-    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early_late=early)
+    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
@@ -160,6 +160,25 @@ def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
     plot_connectivity(mat, ticks, tick_labels, tick_lows,
                       title='Activity x IRAF', no_avg=True)
 
+def test_rxr():
+    fp = get_cache_RSA_fp(cin=None, age=1, semantic=False, early=True)
+    with open(fp, 'rb') as file:
+        d = pickle.load(file)
+    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+    data = d['rxr']['obj']
+    M = np.nanmean(data, axis=0)
+    SD = np.nanstd(data, axis=0)
+    t = M / SD * np.sqrt(len(data))
+    print(t.shape)
+    plot_connectivity(t, ticks, tick_labels, tick_lows,
+                      no_avg=True)
+
+
+    # print(np.array(data).shape)
+    quit()
+
+
 if __name__ == '__main__':
+    test_rxr()
     # CIN_compare()
-    test_IRAF_x_activity(early=False, age=2)
+    # test_IRAF_x_activity(early=False, age=2)
