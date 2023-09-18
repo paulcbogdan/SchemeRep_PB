@@ -117,8 +117,9 @@ def make_title_str(pre_str, key, age, early, semantic, cin):
     out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {cin_str}'
     return out_str
 
+# TODO: within-ROI voxel-voxel connectivity
 
-def analyze_ROIs(age=1, early=True, semantic=False, cin=None):
+def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
     font = {'size': 14}
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
@@ -127,7 +128,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None):
     with open(fp1, 'rb') as file:
         d1 = pickle.load(file)
     key0 = 'z'
-    key1 = 'obj'
+    key1 = 'scn'
     ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
     colors = cmap(np.linspace(0, 1, len(ticks)))
     idxs = list(np.arange(len(colors)))
@@ -185,7 +186,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None):
     plt.plot([0, len(Ms)], [0, 0], color='k', zorder=-1, linewidth=1)
     plt.xticks(ticks, tick_labels, rotation=90, fontsize=10)
     plt.ylabel('t-value')
-    title_str = make_title_str('region-wise', key1, age, early,
+    title_str = make_title_str('', key1, age, early,
                                semantic, cin)
     plt.title(title_str, fontsize=11.5)
 
@@ -243,7 +244,7 @@ def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
         d = pickle.load(file)
     ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
 
-    IRAFs = [np.array(d['IRAFs_ROI']['scn'][roi0]) for roi0 in ROIs]
+    IRAFs = [np.array(d['IRAFs_ROI']['dif_'][roi0]) for roi0 in ROIs]
     IRAFs = replace_w_nan_if_needed(IRAFs)
     # print(f'{IRAFs.shape=}')
     # quit()
@@ -295,7 +296,7 @@ def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
     title = 'YA. Activity x Object-IRAF, 1st-layer DNN.'
     plot_connectivity(t, ticks, tick_labels, tick_lows,
                       title=title, no_avg=True,
-                      cbar_label='t-value', vmin=-3.0, vmax=3.0)
+                      cbar_label='t-value')
 
 def bulk_correlate(vals0, vals1):
     vals0 = np.expand_dims(vals0, axis=1)
@@ -360,5 +361,5 @@ def test_rxr():
 if __name__ == '__main__':
     # test_rxr()
     # CIN_compare()
-    analyze_ROIs()
-    # test_IRAF_x_activity(early=False, age=1)
+    # analyze_ROIs()
+    test_IRAF_x_activity(early=True, age=1)
