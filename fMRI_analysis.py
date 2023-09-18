@@ -19,6 +19,8 @@ from scipy import io
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
+from time import time
+import matplotlib
 
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
@@ -111,16 +113,33 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
-    fMRI_vec = 1 - fMRI_RDM[tril_idx]
+    fMRI_vec = fMRI_RDM[tril_idx]
     # print(fMRI_vec.shape)
     # quit()
-    stim_vec = 1 - stim_RDM[tril_idx]
+    stim_vec = stim_RDM[tril_idx]
     # fMRI_M = np.mean(fMRI_vec)
     # return fMRI_M
     r, _ = stats.spearmanr(fMRI_vec, stim_vec)
     # r = np.corrcoef(fMRI_vec, stim_vec)[0, 1]
     z = np.arctanh(r)
     return z
+
+def RDM_x_multi_stim_RDM(fMRI_RDM, stims_RDM):
+    tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
+    fMRI_vec = fMRI_RDM[tril_idx]
+    stim_multi_vec = stims_RDM[:, tril_idx[0], tril_idx[1]]
+    fMRI_M = np.mean(fMRI_vec)
+    fMRI_SD = np.std(fMRI_vec)
+    fMRI_stdized = (fMRI_vec - fMRI_M) / fMRI_SD
+    stim_multi_M = np.mean(stim_multi_vec, axis=1)
+    stim_multi_SD = np.std(stim_multi_vec, axis=1)
+    stim_multi_stdized = (stim_multi_vec - stim_multi_M[:, None]) / stim_multi_SD[:, None]
+    prods = fMRI_stdized @ stim_multi_stdized.T
+    # print(f'{prods=}')
+    prods /= fMRI_stdized.shape[0]
+    return prods
+
+
 
 def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, flipper=0):
     IRAFs = []
@@ -345,7 +364,7 @@ def get_vector_product():
 def nan_ar(shape):
     return np.full(shape, np.nan)
 
-def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
+def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
@@ -398,12 +417,12 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
         for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
             atlas_roi = atlas['maps'].get_fdata() == ROI_num
             atlas_roi_downsample = np.copy(atlas_roi)
-            atlas_roi_downsample[::2, :, :] = False
-            atlas_roi_downsample[:, ::2, :] = False
-            atlas_roi_downsample[:, :, ::2] = False
-            # atlas_roi_downsample[::3, :, :] = False
-            # atlas_roi_downsample[:, ::3, :] = False
-            # atlas_roi_downsample[:, :, ::3] = False
+            # atlas_roi_downsample[::2, :, :] = False
+            # atlas_roi_downsample[:, ::2, :] = False
+            # atlas_roi_downsample[:, :, ::2] = False
+            atlas_roi_downsample[::3, :, :] = False
+            atlas_roi_downsample[:, ::3, :] = False
+            atlas_roi_downsample[:, :, ::3] = False
 
             region_vecs = img[atlas_roi]
             region_vecs_down = img[atlas_roi_downsample]
@@ -416,7 +435,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             region_vecs_down = (region_vecs_down.T -
                                np.nanmean(region_vecs_down, axis=1)) / \
                                np.nanstd(region_vecs_down, axis=1)
-            region_vecs_down = region_vecs_down.T
+            # region_vecs_down = region_vecs_down.T
             # print(region_vecs_down.shape)
             # print(np.nanmean(region_vecs_down, axis=1).shape)
             # quit()
@@ -424,17 +443,40 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
 
         super_duper_array = []
         for ROI in ROIs:
-            test = ROI2vecs_down[ROI]
-            print(test.shape)
-            quit()
+            # print(ROI2vecs_down[ROI].shape)
+            # quit()
+            if ROI not in ROI2vecs_down:
+                blank = np.full((n_trials, 1), np.nan)
+                super_duper_array.append(blank)
+            else:
+                super_duper_array.append(ROI2vecs_down[ROI])
+                # print(f'{ROI2vecs_down[ROI].shape=}')
 
+        # st = time()
+        # print('Going for it...')
+        # print(np.array(super_duper_array).shape)
+        # for thing in super_duper_array:
+        #     print(len(thing))
+        # quit()
+
+        # ed = time()
+        # print(f'{rxr_all_products.shape=} | rxr time needed: {ed - st:.3f}')
+        # quit()
+        inc = 3
 
         for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
                                       desc='looping ROIs outer',
                                       total=len(ROIs), leave=True, ncols=80,
                                       position=0):
+            if j % inc == 0 and do_rxr:
+                rxr_all_products = pb_outer_double_multi(super_duper_array[j:j+inc],
+                                                         super_duper_array,
+                                                         flat=True)
+                # fast_rxr(rxr_all_products)
+                # quit()
             if ROI not in ROI2vecs_down:
                 continue
+
             region_vecs = ROI2vecs[ROI]
 
             mean_activity = np.nanmean(region_vecs, axis=0)
@@ -471,27 +513,49 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
             ROI_to_obj[ROI].append(z_RDM_x_RDM_obj)
             ROI_to_scn[ROI].append(z_RDM_x_RDM_scene)
             ROI_to_activity[ROI].append(mean_activity)
+            if not do_rxr:
+                continue
 
             # region_vecs_ = np.expand_dims(region_vecs, 2)
             region_vecs_down0 = ROI2vecs_down[ROI]
             # rxr_vecs = {'obj': [], 'scn': [], 'dif': []}
+            # rxr_all_products = pb_outer_multi(region_vecs_down0,
+            #                                   super_duper_array,
+            #                                   flat=True)
             for k, (ROI1, ROI_num1) in enumerate(zip(ROIs, ROI_nums)):
                 if ROI1 not in ROI2vecs_down:
                     continue
                 if k <= j:
                     continue
-                region_vecs_down1 = ROI2vecs_down[ROI1]
-                rxr = pb_outer(region_vecs_down0.T, region_vecs_down1.T,
-                               flat=True)
+                # region_vecs_down1 = ROI2vecs_down[ROI1]
+                # rxr = pb_outer(region_vecs_down0.T, region_vecs_down1.T,
+                #                flat=True)
+                rxr = rxr_all_products[j % inc, k]
+                # rxr = rxr_all_products[k]
+                # print(f'{rxr.shape=}')
+                # quit()
+                nans = np.isnan(rxr[0])
+                rxr = rxr[:, ~nans]
                 RDM_rxr = np.corrcoef(rxr)
+
                 # print(f'{ROI=} | {ROI1=}, {RDM_rxr[1, 3]=}')
-                del rxr
+                # z_rxr_obj, z_rxr_scn, z_rxr_dif = \
+                #     RDM_x_multi_stim_RDM(RDM_rxr, np.array([RDM_stim_obj,
+                #                                             RDM_stim_scn,
+                #                                             RDM_stim_dif]))
+                # print(f'{z_rxr_obj=}, {z_rxr_scn=}, {z_rxr_dif=}')
                 z_rxr_obj = RDM_x_RDM(RDM_rxr, RDM_stim_obj)
+                # print(f'{z_rxr_obj=}')
+                # quit()
                 rxr_mats['obj'][j, k] = rxr_mats['obj'][k, j] = z_rxr_obj
                 z_rxr_scn = RDM_x_RDM(RDM_rxr, RDM_stim_scn)
+                # print(f'{z_rxr_scn=}')
+                # quit()
                 rxr_mats['scn'][j, k] = rxr_mats['scn'][k, j] = z_rxr_scn
                 z_rxr_dif = RDM_x_RDM(RDM_rxr, RDM_stim_dif)
                 rxr_mats['dif'][j, k] = rxr_mats['dif'][k, j] = z_rxr_dif
+        if do_rxr:
+            del rxr_all_products
 
         triple_z['obj'].append(calculate_triple_connectivity(ROI_to_RDM_fMRI,
                                                              RDM_stim_obj,
@@ -539,13 +603,13 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     # IRAFs_con[np.isinf(IRAFs_con)] = np.nan
     # IRAFs_con = np.arctanh(IRAFs_con)
     # IRAFs_connectivity_all.append(IRAFs_con)
-    dir_out = r'result_pics/RSA_conn'
-    age_str = 'healthy' if age == 'healthy' else 'YA' if age == 1 else 'OA'
-    cin_str = '' if cin is None else \
-        '_Con' if cin == 1 else \
-        '_Inc' if cin == 2 else '_Neu'
-    sem_str = '_sem' if semantic else ''
-    el_str = '' if semantic else '_early' if early else '_late'
+    # dir_out = r'result_pics/RSA_conn'
+    # age_str = 'healthy' if age == 'healthy' else 'YA' if age == 1 else 'OA'
+    # cin_str = '' if cin is None else \
+    #     '_Con' if cin == 1 else \
+    #     '_Inc' if cin == 2 else '_Neu'
+    # sem_str = '_sem' if semantic else ''
+    # el_str = '' if semantic else '_early' if early else '_late'
     IRAFs_connectivity_obj = get_IRAF_connectivity_matrix(ROI_to_IRAF_obj,
                                                           n_ROIs, ROIs)
     # fp_obj = fr'{dir_out}/{age_str}/obj{cin_str}{sem_str}{el_str}.png'
@@ -575,24 +639,24 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
     #                   title=f'Dif regressed, {age=}, {cin=}, {early=}, {semantic=}',
     #                   fp=fp_dif)
 
-
-    fig, axs = plt.subplots(1, 4, figsize=(27, 7))
-    plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
-                      title=f'obj {age=}, {cin=}, {early=}, {semantic=}',
-                      ax=axs[0], t=False)
+    #
+    # fig, axs = plt.subplots(1, 4, figsize=(27, 7))
     # plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
-    #                   title=f'obj t-value {age=}, {cin=}, {early=}, {semantic=}',
-    #                   ax=axs[1], t=True)
-    plot_connectivity(IRAFs_connectivity_scn, ticks, tick_labels, tick_lows,
-                      title=f'scene {age=}, {cin=}, {early=}, {semantic=}', ax=axs[1])
-    plot_connectivity(IRAFs_connectivity_dif, ticks, tick_labels, tick_lows,
-                      title=f'dif {age=}, {cin=}, {early=}, {semantic=}', ax=axs[2])
-    plot_connectivity(IRAFs_connectivity_dif_, ticks, tick_labels, tick_lows,
-                      title=f'dif regressed {age=}, {cin=}, {early=}, {semantic=}',
-                      ax=axs[3])
-    plt.tight_layout()
-    fp_subplots = fr'{dir_out}/{age_str}/all{cin_str}{sem_str}{el_str}.png'
-    plt.savefig(fp_subplots)
+    #                   title=f'obj {age=}, {cin=}, {early=}, {semantic=}',
+    #                   ax=axs[0], t=False)
+    # # plot_connectivity(IRAFs_connectivity_obj, ticks, tick_labels, tick_lows,
+    # #                   title=f'obj t-value {age=}, {cin=}, {early=}, {semantic=}',
+    # #                   ax=axs[1], t=True)
+    # plot_connectivity(IRAFs_connectivity_scn, ticks, tick_labels, tick_lows,
+    #                   title=f'scene {age=}, {cin=}, {early=}, {semantic=}', ax=axs[1])
+    # plot_connectivity(IRAFs_connectivity_dif, ticks, tick_labels, tick_lows,
+    #                   title=f'dif {age=}, {cin=}, {early=}, {semantic=}', ax=axs[2])
+    # plot_connectivity(IRAFs_connectivity_dif_, ticks, tick_labels, tick_lows,
+    #                   title=f'dif regressed {age=}, {cin=}, {early=}, {semantic=}',
+    #                   ax=axs[3])
+    # plt.tight_layout()
+    # fp_subplots = fr'{dir_out}/{age_str}/all{cin_str}{sem_str}{el_str}.png'
+    # plt.savefig(fp_subplots)
     # plt.show()
     # quit()
 
@@ -604,24 +668,47 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False):
                            'dif': IRAFs_connectivity_dif,
                            'dif_': IRAFs_connectivity_dif_},
             'activity': ROI_to_activity,
-             'IRAFs_ROI': {'obj': ROI_to_IRAF_obj,
-                           'scn': ROI_to_IRAF_scn,
-                           'dif': ROI_to_IRAF_dif,
-                           'dif_': ROI_to_IRAF_dif_},
-             'z': {'obj': ROI_to_obj,
-                   'scn': ROI_to_scn,
-                   'dif': ROI_to_dif,
-                   'dif_': ROI_to_dif_}}
+            'IRAFs_ROI': {'obj': ROI_to_IRAF_obj,
+                          'scn': ROI_to_IRAF_scn,
+                          'dif': ROI_to_IRAF_dif,
+                          'dif_': ROI_to_IRAF_dif_},
+            'z': {'obj': ROI_to_obj,
+                  'scn': ROI_to_scn,
+                  'dif': ROI_to_dif,
+                  'dif_': ROI_to_dif_}}
     for key, d_sub in d_out.items():
         for key2, d_sub_sub in d_sub.items():
             if isinstance(d_sub_sub, defaultdict):
                 d_out[key][key2] = dict(d_sub_sub)
     return d_out
 
+# def fast_rxr(rxr_all_products):
+#     # (10, 246, 114, 12460)
+#     st = time()
+#     print(f'{rxr_all_products.shape=}')
+#     M = np.nanmean(rxr_all_products, axis=3)
+#     SD = np.nanmean(rxr_all_products, axis=3)
+#     print(f'{M.shape=}')
+#     stdized = (rxr_all_products - M[:, :, :, np.newaxis]) / SD[:, :, :, np.newaxis]
+#     stdized0 = np.expand_dims(stdized, axis=2)
+#     stdized1 = np.expand_dims(stdized, axis=3)
+#     print(f'{stdized1.shape=}')
+#     XY = stdized0 * stdized1
+#     print(XY.shape)
+#     corr_matrs = np.nanmean(XY, axis=-1)
+#     print(f'corr_matrs.shape: {corr_matrs.shape}')
+#     print(f'fast_rxr took {time() - st:.2f} seconds')
+#     quit()
+#
+#
 
 
 def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
-                      ax=None, t=False, no_avg=False):
+                      ax=None, t=False, no_avg=False, cbar_label='',
+                      vmin=None, vmax=None):
+    font = {'size': 14}
+    matplotlib.rc('font', **font)
+
     if not no_avg:
         M_connect = np.nanmean(conn, axis=0)
         if t:
@@ -629,8 +716,9 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     else:
         M_connect = conn
     # M_connect = np.nanmedian(conn, axis=0)
-    vmin = np.nanquantile(M_connect, .01)
-    vmax = np.nanquantile(M_connect, .99)
+    if vmin is None:
+        vmin = np.nanquantile(M_connect, .001)
+        vmax = np.nanquantile(M_connect, .999)
     print(f'vmin: {vmin}, vmax: {vmax}')
     # vmin = .2
     # vmax = .8
@@ -639,15 +727,21 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     else:
         plt.sca(ax)
     plt.title(title)
+    plt.ylabel('Activity')
+    plt.xlabel('IRAF')
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
-    plt.yticks(ticks, tick_labels, fontsize=8)
-    plt.xticks(ticks, tick_labels, fontsize=8, rotation=90)
+    plt.yticks(ticks, tick_labels, fontsize=10)
+    plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
     for low in tick_lows:
         plt.plot([0, M_connect.shape[0]], [low, low], 'w', linewidth=0.5)
         plt.plot([low, low], [0, M_connect.shape[0]], 'w', linewidth=0.5)
     plt.xlim([0, M_connect.shape[0]])
     plt.ylim([0, M_connect.shape[0]])
-    plt.colorbar(shrink=0.7, aspect=20*0.7)
+    cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,
+                        )
+    cbar.set_label(cbar_label, y=1.05, labelpad=-40, rotation=0)
+
+    # cbar.ax.tick_params(rotation=45, fontsize=12)
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(fp)
@@ -656,6 +750,7 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
 
 def run_multi_settings():
     # semantic = False
+    rxr = True
     for early, semantic in [(True, False), (False, False), (False, True)]:
             # age = 'healthy'
         for cin in [None, 1, 2, 3]:
@@ -667,25 +762,27 @@ def run_multi_settings():
                         '_Inc' if cin == 2 else '_Neu'
                 sem_str = '_sem' if semantic else ''
                 el_str = '' if semantic else '_early' if early else '_late'
-                fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}.pkl'
+                rxr_str = '_rxr' if rxr else ''
+                fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}{rxr_str}.pkl'
                 Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                 d = pickle_wrap(fp_out,
                                 lambda: mass_RDM_x_RDM(age=age, cin=cin,
-                                                       early=early),
+                                                       early=early,
+                                                       do_rxr=rxr),
                                 easy_override=False)
 
 def pb_outer(a, b, flat=False):
-    a = np.array(a)
-    b = np.array(b)
+    a = np.array(a).T
+    b = np.array(b).T
     a = np.expand_dims(a, axis=2)
-    print(f'{a.shape=}')
+    # print(f'{a.shape=}')
     b = np.expand_dims(b, axis=1)
-    print(f'{b.shape=}')
+    # print(f'{b.shape=}')
     c = a * b
-    print(f'{c.shape=}')
+    # print(f'{c.shape=}')
     if flat:
         c = c.reshape(-1, c.shape[1]*c.shape[2])
-    print(f'{c=}')
+    # print(f'{c=}')
     return c
 
     # # print(b.shape)
@@ -710,16 +807,17 @@ def pb_outer_multi(a, b, flat=False):
     # print('\n\n\n')
     # print('multi')
     a = np.array(a)
+    b = fill_w_nans(b)
     b = np.array(b)
     a = np.expand_dims(a, axis=2)
     # a = np.expand_dims(a, axis=3)
-
-    print(f'Single multi: {a.shape=}')
+    # print(f'Single multi: {a.shape=}')
     b = np.expand_dims(b, axis=2)
-    print(f'Single multi: {b.shape=}')
+    # print(f'Single multi: {b.shape=}')
     c = a * b
+
     if flat:
-        c = c.reshape(-1, c.shape[-2]*c.shape[-1])
+        c = c.reshape(b.shape[0], -1, c.shape[-2]*c.shape[-1])
     # print(c)
     # print(f'{c.shape=}')
     return c
@@ -737,12 +835,15 @@ def fill_w_nans(b):
     return b_filled
 
 def pb_outer_double_multi(a, b, flat=False):
+    # shapes in = (regions, n_trials, vector_length)
+
     # print('\n\n\n')
     # print('multi')
+    a = fill_w_nans(a)
+    b = fill_w_nans(b)
 
     a = np.array(a)
     b = np.array(b)
-    b = fill_w_nans(b)
 
     # max_size = 0
     # for ROI in range(len(b)):
