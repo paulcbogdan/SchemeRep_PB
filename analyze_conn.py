@@ -7,7 +7,9 @@ import numpy as np
 
 from DNN_vectors import get_DNN_vecs, get_img_fns
 from basic_fCon import get_FC
-from fMRI_analysis import get_ROI_info, plot_connectivity, regress_out, stdize
+from plotting import plot_connectivity
+from utils import regress_out, stdize
+from ROIs import add_ROI_info, get_BN_atlas, get_combined_BNA, get_BN_and_resample, get_atlas
 from organize_bhv import get_trial_info
 from nilearn import image, datasets
 from glob import glob
@@ -41,7 +43,7 @@ def plot_test():
     mat3 = d_IRAF_conn['dif_']
 
     fig, axs = plt.subplots(1, 4, figsize=(24, 7))
-    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
     plot_connectivity(mat0, ticks, tick_labels, tick_lows, title='obj',
                       ax=axs[0])
     plot_connectivity(mat1, ticks, tick_labels, tick_lows, title='scene',
@@ -62,8 +64,8 @@ def get_cin_str(cin):
         '_Inc' if cin == 2 else \
         '_Neu' if cin == 3 else 'BAD_CIN'
 
-def get_cache_RSA_fp(cin, age, semantic, early,
-                     pre_str='', rxr=False):
+def get_cache_RSA_fp(cin, age, semantic, early, pre_str='', rxr=False,
+                     combine_regions=False, bilateral=False):
     age_str = 'healthy' if age == 'healthy' else \
         'YA' if age == 1 else 'OA'
     cin_str = '' if cin is None else \
@@ -73,7 +75,10 @@ def get_cache_RSA_fp(cin, age, semantic, early,
     sem_str = '_sem' if semantic else ''
     el_str = '' if semantic else '_early' if early else '_late'
     rxr_str = '_rxr' if rxr else ''
-    fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}{rxr_str}.pkl'
+    combine_str = '_comb' if combine_regions else ''
+    bilat_str = '_bil' if bilateral else ''
+    fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
+             fr'{combine_str}{bilat_str}{rxr_str}.pkl'
     return fp_out
 
 def regress_out_normal_connectivity(mat, age, cin):
@@ -119,18 +124,21 @@ def make_title_str(pre_str, key, age, early, semantic, cin):
 
 # TODO: within-ROI voxel-voxel connectivity
 
-def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
+def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
+                 bilateral=False, combine_regions=True):
     font = {'size': 14}
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
 
-    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early)
+    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+                           bilateral=bilateral, combine_regions=combine_regions)
     with open(fp1, 'rb') as file:
         d1 = pickle.load(file)
     key0 = 'z'
-    key1 = 'scn'
-    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
-    colors = cmap(np.linspace(0, 1, len(ticks)))
+    key1 = 'dif'
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    colors = cmap(np.linspace(0, 1, len(atlas['ticks'])))
     idxs = list(np.arange(len(colors)))
     idxs_ = idxs.copy()
 
@@ -141,7 +149,7 @@ def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
     colors[:, :3] /= 1.3
     # print(colors)
     # quit()
-    region2color = dict(zip(tick_labels, colors))
+    region2color = dict(zip(atlas['tick_labels'], colors))
     # print(region2color)
     # quit()
     # print(tick_labels)
@@ -149,9 +157,9 @@ def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
     Ms = []
     colors = []
     ps = []
-    for ROI in ROIs:
-        ROI_num, ROI_str = ROI.split(' ')
-        region = ROI_str.split('_')[0]
+    for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
+        # ROI_num, ROI_str = ROI.split(' ')
+        # region = ROI_str.split('_')[0]
         color = region2color[region]
         colors.append(color)
         M0 = np.mean(d1[key0][key1][ROI])
@@ -176,7 +184,7 @@ def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
         t_cutoff = Ms[narrowest_cutoff]
         plt.plot([0, len(Ms)], [t_cutoff, t_cutoff], 'k--', linewidth=1)
 
-    plt.scatter(ROI_nums, Ms, color=colors, s=10)
+    plt.scatter(np.array(atlas['ROI_nums']) - 1, Ms, color=colors, s=10)
     min_val = np.min(Ms)
     max_val = np.max(Ms)
     plt.ylim([min_val*1.02, max_val*1.02])
@@ -184,7 +192,7 @@ def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
     #     plt.plot([tick_lows[i], tick_lows[i]], [min_val, max_val], 'k--',
     #              zorder=-10)
     plt.plot([0, len(Ms)], [0, 0], color='k', zorder=-1, linewidth=1)
-    plt.xticks(ticks, tick_labels, rotation=90, fontsize=10)
+    plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=90, fontsize=10)
     plt.ylabel('t-value')
     title_str = make_title_str('', key1, age, early,
                                semantic, cin)
@@ -192,9 +200,10 @@ def analyze_ROIs(age='healthy', early=True, semantic=False, cin=None):
 
     # plt.gca().tick_params(axis='x', colors=colors)
 
-    for i in range(len(ticks)):
+    for i in range(len(atlas['ticks'])):
         # print(tick_labels[i])
-        plt.gca().get_xticklabels()[i].set_color(region2color[tick_labels[i]])
+        plt.gca().get_xticklabels()[i].set_color(
+            region2color[atlas['tick_labels'][i]])
     plt.show()
     quit()
 
@@ -210,12 +219,13 @@ def CIN_compare(age=1, early=False, semantic=False):
 
     key0 = 'z'
     key1 = 'dif_'
-    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
+    atlas = get_BN_atlas()
     # plot_connectivity(mat, ticks, tick_labels, tick_lows, title='obj')
     # quit()
 
     # for key2 in ['obj', 'scn', 'dif', 'dif_']:
-    for ROI in ROIs:
+    for ROI in atlas['ROIs']:
         M0 = np.mean(d1[key0][key1][ROI])
         M1 = np.mean(d2[key0][key1][ROI])
         l0 = np.array(d1[key0][key1][ROI])
@@ -238,18 +248,21 @@ def replace_w_nan_if_needed(vals):
             # clean.append(np.full(vals[0].shape, np.nan))
     return np.array(clean)
 
-def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
-    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early)
+def test_IRAF_x_activity(age='healthy', early=True, semantic=False,
+                         combine_regions=True, bilateral=True):
+    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early,
+                          combine_regions=combine_regions, bilateral=bilateral)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
-    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
-    IRAFs = [np.array(d['IRAFs_ROI']['dif_'][roi0]) for roi0 in ROIs]
+    IRAFs = [np.array(d['IRAFs_ROI']['dif'][roi0]) for roi0 in atlas['ROIs']]
     IRAFs = replace_w_nan_if_needed(IRAFs)
     # print(f'{IRAFs.shape=}')
     # quit()
     # IRAFs = np.array(list(filter(lambda x: x.shape[0] == 33, IRAFs)))
-    activity = [np.array(d['activity'][roi1]) for roi1 in ROIs]
+    activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
     activity = replace_w_nan_if_needed(activity)
     # activity = np.array(list(filter(lambda x: x.shape[0] == 33, activity)))
     r_Ms, r_SDs, t = bulk_correlate(IRAFs, activity)
@@ -294,7 +307,8 @@ def test_IRAF_x_activity(age='healthy', early=True, semantic=False):
     # mat = np.array(mat)
     # print(mat.shape)
     title = 'YA. Activity x Object-IRAF, 1st-layer DNN.'
-    plot_connectivity(t, ticks, tick_labels, tick_lows,
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
                       title=title, no_avg=True,
                       cbar_label='t-value')
 
@@ -327,7 +341,8 @@ def test_rxr():
                           early=True)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
-    ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = get_ROI_info()
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
+    atlas = get_BN_atlas()
     data = d['rxr']['obj']
     data = np.array(data)
     # for val in data[:, 41, 45]:
@@ -345,7 +360,8 @@ def test_rxr():
     # print(t[41, 43])
     # quit()
     # t = np.mean(data > 0, axis=0)
-    plot_connectivity(t, ticks, tick_labels, tick_lows,
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
                       no_avg=True,
                       # title='YA, 1st-layer DNN RSA for objects. '
                       #       'triple-correlation',

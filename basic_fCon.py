@@ -5,7 +5,7 @@ from pickle_wrap import pickle_wrap
 
 from DNN_vectors import get_DNN_vecs, get_img_fns
 # from analyze_conn import get_age_str, get_cin_str
-from organize_bhv import get_trial_info
+from organize_bhv import get_trial_info, get_all_sns
 from nilearn import image, datasets
 from glob import glob
 
@@ -18,7 +18,7 @@ from scipy import io
 import pandas as pd
 from tqdm import tqdm
 
-from fMRI_analysis import get_atlas_resampled, get_all_sns
+from ROIs import get_BN_and_resample
 from organize_bhv import get_trial_info
 from nilearn.maskers import NiftiLabelsMasker
 from nilearn.connectome import ConnectivityMeasure
@@ -27,7 +27,7 @@ from nilearn import plotting
 
 
 def get_FC(age, cin):
-    atlas = get_atlas_resampled()
+    atlas = get_BN_and_resample()
     masker = NiftiLabelsMasker(labels_img=atlas['maps'], standardize=True)
     age2sn = get_all_sns()
     mats = []
