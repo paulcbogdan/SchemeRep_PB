@@ -1,5 +1,6 @@
 from scipy import io
 from glob import glob
+from pprint import pprint
 import pandas as pd
 
 # TODO: measure where congruent is more correlated object x scene
@@ -81,8 +82,29 @@ def get_trial_info(sn):
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
 
+    # old = 3 and 4
+    obj2resp = {}
+    obj2otype = {} # unused
     for run in range(1, 4):
-        pass
+        fp_enc = fr'behavFiles/RET_con/S{sn}_run{run}_RC.mat'
+        mat_enc = io.loadmat(fp_enc)
+        cols = mat_enc['pdata'].dtype
+        print(cols)
+        objs = []
+        for stim in mat_enc['pdata'][0][0][6][0]:
+            objs.append(str(stim[0]))
+        otypes = [] # 0 = old, 1 = new
+        for otype in mat_enc['pdata'][0][0][8][0]:
+            otypes.append(int(otype[0]))
+        resps = []
+        for resp in mat_enc['pdata'][0][0][9][0]:
+            resps.append(int(resp[0]))
+        obj2resp_run = dict(zip(objs, resps))
+        obj2resp.update(obj2resp_run)
+        obj2otype_run = dict(zip(objs, otypes))
+        obj2otype.update(obj2otype_run)
+    df_sn['ON'] = df_sn['obj'].map(obj2resp)
+    df_sn['hit_bool'] = df_sn['ON'] >= 3
     return df_sn
 
 if __name__ == '__main__':
