@@ -95,6 +95,7 @@ def add_ROI_info(atlas):
             region_LR = region + '_R'
         else:
             region_LR = region
+        # print(f'{ROI} {region} {region_LR}')
         ROI_regions.append(region)
         ROI_regions_laterality.append(region_LR)
         region_nums[region].append(i)#int(ROI_num)-1)
@@ -105,6 +106,7 @@ def add_ROI_info(atlas):
         ticks.append(np.mean(l))
         tick_labels.append(region)
         tick_lows.append(l[0])
+
     atlas['ROIs'] = ROIs
     atlas['ROI_nums'] = ROI_nums
     atlas['n_ROIs'] = n_ROIs
@@ -128,7 +130,7 @@ def get_BN_atlas(combine_bilaterally=False):
         labels = labels[::2]
         labels_ = []
         for ROI in labels:
-            ROI = ROI.replace('L_', '')
+            ROI = ROI.replace('_L', '')
             ROI_num, ROI_str = ROI.split(' ')
             ROI_num = int(ROI.split()[0])
             ROI_num = (ROI_num + 1) // 2

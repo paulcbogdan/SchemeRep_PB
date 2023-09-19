@@ -19,8 +19,13 @@ def regress_out_multi(X, y):
         y = regress_out(x, y)
     return y
 
-def stdize(v, axis=None):
-    return (v - np.mean(v, axis=axis)) / np.std(v, axis=axis)
+def stdize(v, axis=None, nans=False):
+    m = np.nanmean if nans else np.mean
+    s = np.nanstd if nans else np.std
+    if axis == 1:
+        return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
+    else:
+        return (v - m(v, axis=axis)) / s(v, axis=axis)
 
 
 def nan_ar(shape):
@@ -38,8 +43,8 @@ def defaultdict_to_dict(d):
 
 def pb_outer(a, b, flat=False):
     # Multiply matrix of vector a (size n) and vector b (size m) to get n x m
-    a = np.array(a).T
-    b = np.array(b).T
+    a = np.array(a)
+    b = np.array(b)
     a = np.expand_dims(a, axis=2)
     b = np.expand_dims(b, axis=1)
     c = a * b

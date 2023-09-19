@@ -65,7 +65,8 @@ def get_cin_str(cin):
         '_Neu' if cin == 3 else 'BAD_CIN'
 
 def get_cache_RSA_fp(cin, age, semantic, early, pre_str='', rxr=False,
-                     combine_regions=False, bilateral=False):
+                     combine_regions=False, bilateral=False, vec_prod=False,
+                     org_by_region=False):
     age_str = 'healthy' if age == 'healthy' else \
         'YA' if age == 1 else 'OA'
     cin_str = '' if cin is None else \
@@ -77,8 +78,11 @@ def get_cache_RSA_fp(cin, age, semantic, early, pre_str='', rxr=False,
     rxr_str = '_rxr' if rxr else ''
     combine_str = '_comb' if combine_regions else ''
     bilat_str = '_bil' if bilateral else ''
-    fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
-             fr'{combine_str}{bilat_str}{rxr_str}.pkl'
+    vecprod_str = '_vecprod' if vec_prod else ''
+    by_region_str = '_byR' if org_by_region else ''
+    fp_out = fr'cache/RSA/{pre_str}{age_str}{cin_str}{sem_str}{el_str}' \
+             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{rxr_str}.pkl'
+    print(f'{fp_out=}')
     return fp_out
 
 def regress_out_normal_connectivity(mat, age, cin):
@@ -125,19 +129,23 @@ def make_title_str(pre_str, key, age, early, semantic, cin):
 # TODO: within-ROI voxel-voxel connectivity
 
 def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=True):
+                 bilateral=False, combine_regions=False, vec_prod=False,
+                 org_by_region=True, rxr=True):
     font = {'size': 14}
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
 
     fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
-                           bilateral=bilateral, combine_regions=combine_regions)
+                           bilateral=bilateral, combine_regions=combine_regions,
+                           vec_prod=vec_prod, org_by_region=org_by_region,
+                           rxr=rxr)
     with open(fp1, 'rb') as file:
         d1 = pickle.load(file)
     key0 = 'z'
     key1 = 'dif'
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    atlas = get_atlas(combine_regions=combine_regions or org_by_region,
+                      bilateral=bilateral or org_by_region)
     colors = cmap(np.linspace(0, 1, len(atlas['ticks'])))
     idxs = list(np.arange(len(colors)))
     idxs_ = idxs.copy()
@@ -157,19 +165,23 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     Ms = []
     colors = []
     ps = []
+    # if org_by_region:
+    #     atlas['ROIs'] = atlas['ROI_regions'] = atlas['tick_labels']
+
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         # ROI_num, ROI_str = ROI.split(' ')
         # region = ROI_str.split('_')[0]
         color = region2color[region]
         colors.append(color)
-        M0 = np.mean(d1[key0][key1][ROI])
-        SD = np.std(d1[key0][key1][ROI])
+        M0 = np.nanmean(d1[key0][key1][ROI])
+        SD = np.nanstd(d1[key0][key1][ROI])
         N = len(d1[key0][key1][ROI])
         SE = SD / np.sqrt(N)
         t = M0 / SE
         p = stats.t.sf(np.abs(t), N-1)*2
         ps.append(p)
         Ms.append(t)
+        print(f'{ROI}, {t=}')
     alpha = .10
 
     sigs, p_corr, alpha_sidak, alpha_bon = multipletests(ps, alpha=alpha,
@@ -248,14 +260,18 @@ def replace_w_nan_if_needed(vals):
             # clean.append(np.full(vals[0].shape, np.nan))
     return np.array(clean)
 
-def test_IRAF_x_activity(age='healthy', early=True, semantic=False,
-                         combine_regions=True, bilateral=True):
-    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early,
-                          combine_regions=combine_regions, bilateral=bilateral)
+def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
+                 bilateral=False, combine_regions=False, vec_prod=False,
+                 org_by_region=True, rxr=True):
+    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+                           bilateral=bilateral, combine_regions=combine_regions,
+                           vec_prod=vec_prod, org_by_region=org_by_region,
+                           rxr=rxr)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    atlas = get_atlas(combine_regions=combine_regions or org_by_region,
+                      bilateral=bilateral or org_by_region)
 
     IRAFs = [np.array(d['IRAFs_ROI']['dif'][roi0]) for roi0 in atlas['ROIs']]
     IRAFs = replace_w_nan_if_needed(IRAFs)
@@ -336,14 +352,42 @@ def bulk_correlate(vals0, vals1):
     # quit()
     # pass
 
-def test_rxr():
-    fp = get_cache_RSA_fp(cin=None, age=1, semantic=False,
-                          early=True)
+def test_triple_z(age=1, early=True, semantic=False,
+                         combine_regions=True, bilateral=False):
+    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early,
+                          combine_regions=combine_regions, bilateral=bilateral)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
-    atlas = get_BN_atlas()
-    data = d['rxr']['obj']
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    data = d['triple_z']['obj']
+    data = np.array(data)
+    M = np.nanmean(data, axis=0)
+    SD = np.nanstd(data, axis=0)
+    t = M / SD * np.sqrt(len(data))
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      no_avg=True,
+                      # title='YA, 1st-layer DNN RSA for objects. '
+                      #       'triple-correlation',
+                      title='YA, 1st-layer DNN object RSA, '
+                            'voxel x voxel connectivity ',
+                      cbar_label='t-value')
+
+
+def test_rxr(age=1, early=True, semantic=False, cin=None,
+                 bilateral=False, combine_regions=False, vec_prod=False,
+                 org_by_region=True, rxr=True):
+    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+                           bilateral=bilateral, combine_regions=combine_regions,
+                           vec_prod=vec_prod, org_by_region=org_by_region,
+                           rxr=rxr)
+    with open(fp, 'rb') as file:
+        d = pickle.load(file)
+    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
+    atlas = get_atlas(combine_regions=combine_regions or org_by_region,
+                      bilateral=bilateral or org_by_region)
+    data = d['triple_z']['obj']
     data = np.array(data)
     # for val in data[:, 41, 45]:
     #     print(val > 0)
@@ -375,7 +419,8 @@ def test_rxr():
 
 
 if __name__ == '__main__':
-    # test_rxr()
+    # test_triple_z()
     # CIN_compare()
     # analyze_ROIs()
-    test_IRAF_x_activity(early=True, age=1)
+    # test_rxr()
+    test_IRAF_x_activity()
