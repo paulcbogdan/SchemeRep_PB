@@ -1,28 +1,15 @@
-import random
-
 from pickle_wrap import pickle_wrap
-from collections import defaultdict
 
 import numpy as np
 
-from DNN_vectors import get_DNN_vecs, get_img_fns
 from basic_fCon import get_FC
 from plotting import plot_connectivity
-from utils import regress_out, stdize
-from ROIs import add_ROI_info, get_BN_atlas, get_combined_BNA, get_BN_and_resample, get_atlas
-from organize_bhv import get_trial_info
-from nilearn import image, datasets
-from glob import glob
+from utils import regress_out, make_title_str
+from ROIs import get_BN_atlas, get_atlas
 
-from wordvec_get_vectors import get_semantic_vectors
 import matplotlib.pyplot as plt
-import utils
 import scipy.stats as stats
 
-from scipy import io
-import pandas as pd
-from tqdm import tqdm
-from pathlib import Path
 import pickle
 import matplotlib
 from statsmodels.stats.multitest import multipletests
@@ -105,32 +92,10 @@ def regress_out_normal_connectivity(mat, age, cin):
             quit()
     return mat
 
-def make_title_str(pre_str, key, age, early, semantic, cin):
-    if key == 'obj':
-        key_str = 'Object RSA'
-    elif key == 'scn':
-        key_str = 'Scene RSA'
-    elif key == 'dif':
-        key_str = 'Difference RSA'
-    elif key == 'dif_':
-        key_str = 'Difference RSA (regressed)'
-    else:
-        key_str = ''
-    age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
-    if semantic:
-        rsa_str = 'word2vec'
-    else:
-        rsa_str = '1st-layer DNN' if early else 'late-layer DNN'
-    cin_str = 'Con, Inc, & Neu' if cin is None \
-        else 'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
-    out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {cin_str}'
-    return out_str
 
-# TODO: within-ROI voxel-voxel connectivity
-
-def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=False, vec_prod=False,
-                 org_by_region=True, rxr=True):
+def analyze_ROIs(age=2, early=True, semantic=False, cin=None,
+                 bilateral=False, combine_regions=True, vec_prod=False,
+                 org_by_region=False, rxr=False):
     font = {'size': 14}
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
@@ -142,7 +107,8 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d1 = pickle.load(file)
     key0 = 'z'
-    key1 = 'dif'
+    key1 = 'obj'
+
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
@@ -167,6 +133,11 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     ps = []
     # if org_by_region:
     #     atlas['ROIs'] = atlas['ROI_regions'] = atlas['tick_labels']
+
+    # prune_to_only_hits(d1, key1)
+    # for ROI in atlas['ROIs']:
+    #     d1['z'][key1][ROI] = np.nanmean(d1['IRAFs_ROI'][key1][ROI], axis=1)
+    #     print(d1['z'][key1][ROI])
 
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         # ROI_num, ROI_str = ROI.split(' ')
@@ -197,8 +168,8 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
         plt.plot([0, len(Ms)], [t_cutoff, t_cutoff], 'k--', linewidth=1)
 
     plt.scatter(np.array(atlas['ROI_nums']) - 1, Ms, color=colors, s=10)
-    min_val = np.min(Ms)
-    max_val = np.max(Ms)
+    min_val = np.nanmin(Ms)
+    max_val = np.nanmax(Ms)
     plt.ylim([min_val*1.02, max_val*1.02])
     # for i in range(len(tick_lows)):
     #     plt.plot([tick_lows[i], tick_lows[i]], [min_val, max_val], 'k--',
@@ -260,87 +231,95 @@ def replace_w_nan_if_needed(vals):
             # clean.append(np.full(vals[0].shape, np.nan))
     return np.array(clean)
 
+def prune_to_only_hits(d, key, misses=False):
+    d['bhv']['hit_bool'] = np.nan_to_num(d['bhv']['hit_bool'], True).astype(bool)
+    for ROI in d['IRAFs_ROI'][key]:
+        if d['IRAFs_ROI'][key][ROI].shape[0] != 33:
+            mask = np.full(d['IRAFs_ROI'][key][ROI].shape, False)
+            print('BAH')
+        else:
+            if misses:
+                mask = ~d['bhv']['hit_bool']
+            else:
+                mask = d['bhv']['hit_bool']
+        d['IRAFs_ROI'][key][ROI][~mask] = np.nan
+        d['activity'][ROI] = np.array(d['activity'][ROI])
+        d['activity'][ROI][~mask] = np.nan
+
 def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=False, vec_prod=False,
-                 org_by_region=True, rxr=True):
+                 bilateral=False, combine_regions=True, vec_prod=False,
+                 org_by_region=False, rxr=False):
     fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
+
+
+
+    # print(np.array(d['bhv']['hit_bool']).shape)
+    # print(d['IRAFs_ROI']['dif']['SFG_L'].shape)
+    # test = np.full((33, 114), True)
+    # d['bhv']['hit_bool'] = np.nan_to_num(d['bhv']['hit_bool'], True).astype(bool)
+    # print(d['bhv']['hit_bool'])
+    # test = d['bhv']['hit_bool']
+    # d['IRAFs_ROI']['dif']['SFG_L'][~test] = np.nan
+    # print( d['IRAFs_ROI']['dif']['SFG_L'])
+    # quit()
+
+    #
+    #
+    # quit()
+
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
+    key = 'dif'
+    prune_to_only_hits(d, key)
 
-    IRAFs = [np.array(d['IRAFs_ROI']['dif'][roi0]) for roi0 in atlas['ROIs']]
+
+
+    IRAFs = [np.array(d['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
+    # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
+
     IRAFs = replace_w_nan_if_needed(IRAFs)
     # print(f'{IRAFs.shape=}')
     # quit()
     # IRAFs = np.array(list(filter(lambda x: x.shape[0] == 33, IRAFs)))
+    # activity = [np.array(d['IRAFs_ROI']['scn'][roi1]) for roi1 in atlas['ROIs']]
     activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
     activity = replace_w_nan_if_needed(activity)
-    # activity = np.array(list(filter(lambda x: x.shape[0] == 33, activity)))
-    r_Ms, r_SDs, t = bulk_correlate(IRAFs, activity)
+    # print(activity.shape)
+    # print(IRAFs.shape)
     # quit()
-    #
-    # mat = []
-    # for roi0 in ROIs:
-    #     IRAF = d['IRAFs_ROI']['obj'][roi0]
-    #     print(f'{IRAF.shape=}')
-    #     IRAF_m = np.mean(IRAF, axis=1)
-    #     # print(f'{IRAF.shape=}')
-    #     # print(f'{IRAF.shape=}')
-    #     # quit()
-    #     t_iraf = np.mean(IRAF_m, axis=0) / np.std(IRAF_m, axis=0) * np.sqrt(len(IRAF))
-    #     if abs(t_iraf) > 2.0:
-    #         print(f'IRAF {roi0} {t_iraf=:.3f}')
-    #     # if IRAF.shape[0] != 56: continue
-    #     # quit()
-    #     v = []
-    #     for roi1 in ROIs:
-    #         # if roi0 != roi1: continue
-    #         d['activity'][roi1] = np.array(d['activity'][roi1])
-    #         activity = d['activity'][roi1]
-    #         print(f'{activity.shape=}')
-    #         if activity.shape[0] != len(IRAF):
-    #             v.append(np.nan)
-    #             continue
-    #         # quit()
-    #         rs = []
-    #         for n in range(len(IRAF)):
-    #             r, p = stats.pearsonr(IRAF[n], activity[n])
-    #             r = np.arctanh(r)
-    #             rs.append(r)
-    #         t = np.mean(rs) / np.std(rs) * np.sqrt(len(rs))
-    #         # if t > 3.0:
-    #         #     print(f'POSITIVE {roi0} {roi1} {t=:.3f}')
-    #         # elif t < -3.0:
-    #         #     print(f'NEGATIVE {roi0} {roi1} {t=:.3f}')
-    #         v.append(t)
-    #     print(f'{len(v)=}')
-    #     mat.append(v)
-    # mat = np.array(mat)
-    # print(mat.shape)
-    title = 'YA. Activity x Object-IRAF, 1st-layer DNN.'
+    # activity = np.array(list(filter(lambda x: x.shape[0] == 33, activity)))
+    r_Ms, r_SDs, t = bulk_correlate(IRAFs, activity, nans=True)
+
+    title = make_title_str('Activity x IRAF', key, age, early, semantic, cin)
+    # title = 'YA. Activity x Difference-IRAF, 1st-layer DNN.'
     plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title, no_avg=True,
                       cbar_label='t-value')
 
-def bulk_correlate(vals0, vals1):
+def bulk_correlate(vals0, vals1, nans=False):
+
     vals0 = np.expand_dims(vals0, axis=1)
     vals1 = np.expand_dims(vals1, axis=0)
 
-    vals0_M = np.mean(vals0, axis=-1)
-    vals0_SD = np.std(vals0, axis=-1)
+    m = np.nanmean if nans else np.mean
+    s = np.nanstd if nans else np.std
+    vals0_M = m(vals0, axis=-1)
+
+    vals0_SD = s(vals0, axis=-1)
     vals0_ = (vals0 - vals0_M[:, :, :, None]) / vals0_SD[:, :, :, None]
-    vals1_M = np.mean(vals1, axis=-1)
-    vals1_SD = np.std(vals1, axis=-1)
+    vals1_M = m(vals1, axis=-1)
+    vals1_SD = s(vals1, axis=-1)
     vals1_ = (vals1 - vals1_M[:, :, :, None]) / vals1_SD[:, :, :, None]
 
     rs = vals0_ * vals1_
-    rs = np.mean(rs, axis=-1)
+    rs = m(rs, axis=-1)
     r_Ms = np.nanmean(rs, axis=-1)
     r_Ms[np.diag_indices_from(r_Ms)] = np.nan
     r_SDs = np.nanstd(rs, axis=-1)
@@ -421,6 +400,6 @@ def test_rxr(age=1, early=True, semantic=False, cin=None,
 if __name__ == '__main__':
     # test_triple_z()
     # CIN_compare()
-    # analyze_ROIs()
+    analyze_ROIs()
     # test_rxr()
-    test_IRAF_x_activity()
+    # test_IRAF_x_activity()

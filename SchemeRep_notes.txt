@@ -1,4 +1,8 @@
-Hey, I took a stab at calculating the fMRI RDM x stimulus RDM correlations for SchemeRep. I'm having an issue (fMRI x stimulus correlation is always negative), and I'm wondering if this is just a common problem you would have some insight into. For the stimulus data, I'm submitting the object pictures to a DNN an taking the activation from an early hidden layer to calculate the stimulus RDM. For the fMRI data, I'm using the single trial betas associated with object presentation. When I calculate the RDM x RDM correlation for each participant, and average across all participants, I'm getting negative values. Like I tried this for twenty occipital ROIs from the brainnetome atlas and it's negative for all of them (oftentimes significantly negative). Do you have any idea why this may be the case? 
+There's no conceptual memory data for 133??
+
+Hey, I took a stab at calculating the fMRI RDM x stimulus RDM correlations for SchemeRep. I'm having an issue (fMRI x stimulus correlation is always negative), and I'm wondering if this is just a common problem you would have some insight into. 
+
+For the stimulus data, I'm submitting the object pictures to a DNN an taking the activation from an early hidden layer to calculate the stimulus RDM. For the fMRI data, I'm using the single trial betas associated with object presentation. When I calculate the RDM x RDM correlation for each participant, and average across all participants, I'm getting negative values. Like I tried this for twenty occipital ROIs from the brainnetome atlas and it's negative for all of them (oftentimes significantly negative). Do you have any idea why this may be the case? 
 
 As a sanity check, I made sure that average cell in both the stimulus and fMRI RDMs are positive. I also double checked to cofnrim 
 

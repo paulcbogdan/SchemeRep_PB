@@ -38,6 +38,8 @@ def defaultdict_to_dict(d):
     if isinstance(d, dict):
         for key, d_sub in d.items():
             d[key] = defaultdict_to_dict(d_sub)
+    if isinstance(d, list):
+        d = np.array(d)
     return d
 
 
@@ -96,3 +98,23 @@ def pb_outer_double_multi(a, b, flat=False):
     return c
 
 
+def make_title_str(pre_str, key, age, early, semantic, cin):
+    if key == 'obj':
+        key_str = 'Object RSA'
+    elif key == 'scn':
+        key_str = 'Scene RSA'
+    elif key == 'dif':
+        key_str = 'Difference RSA'
+    elif key == 'dif_':
+        key_str = 'Difference RSA (regressed)'
+    else:
+        key_str = ''
+    age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
+    if semantic:
+        rsa_str = 'word2vec'
+    else:
+        rsa_str = '1st-layer DNN' if early else 'late-layer DNN'
+    cin_str = 'Con, Inc, & Neu' if cin is None \
+        else 'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
+    out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {cin_str}'
+    return out_str
