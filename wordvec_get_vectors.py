@@ -4,8 +4,11 @@ from pickle_wrap import pickle_wrap
 
 from organize_bhv import get_trial_info
 import pickle
+import gensim
+import gensim.downloader
+import numpy as np
 
-def get_semantic_vectors_(parts_do=25):
+def get_semantic_vectors_OLD_(parts_do=25):
     fp_model = fr'cache/schemerep_word2vec_model_first_do{parts_do}.pkl'
     fp_dict = fr'cache/wiki_dict_{parts_do}.pkl'
     with open(fp_dict, 'rb') as f:
@@ -32,12 +35,42 @@ def get_semantic_vectors_(parts_do=25):
             print(f'No dictionary: {obj}')
     return d_all
 
-def get_semantic_vectors(parts_do=100):
+def get_semantic_vectors_OLD(parts_do=100):
     # fit using python 3.11
     fp_vecs = f'cache/schemerep_sem_vecs_{parts_do}.pkl'
-    d_vecs = pickle_wrap(fp_vecs, lambda: get_semantic_vectors_(parts_do),
+    d_vecs = pickle_wrap(fp_vecs, lambda: get_semantic_vectors_OLD_(parts_do),
                          easy_override=False)
     return d_vecs
+
+def do_vec(stim, w2v):
+    parts = stim.split(' ')
+    vecs = []
+    for part in parts:
+        try:
+            vec = w2v[part]
+            vecs.append(vec)
+        except KeyError:
+            print(f'Bad {stim}: {part}')
+    return np.mean(vecs, axis=0)
+
+def get_semantic_vectors_():
+    w2vectors = gensim.downloader.load('word2vec-google-news-300')
+    print('Loaded word2vec')
+    df = get_trial_info('138')
+    d_all = {}
+    for obj, scene, obj_rename, scene_rename in zip(df['obj'], df['scene'],
+                          df['obj_rename'], df['scene_rename']):
+        d_all[obj] = do_vec(obj_rename, w2vectors)
+        d_all[scene] = do_vec(scene_rename, w2vectors)
+    return d_all
+
+def get_semantic_vectors():
+    # fit using python 3.11
+    fp_vecs = f'cache/schemerep_sem_vecs.pkl'
+    d_vecs = pickle_wrap(fp_vecs, get_semantic_vectors_,
+                         easy_override=False)
+    return d_vecs
+
 
 def fit_word2vec_mm(parts_do=5, min_count=5, epochs=5):
     import logging
@@ -50,9 +83,6 @@ def fit_word2vec_mm(parts_do=5, min_count=5, epochs=5):
     return model
 
 if __name__ == '__main__':
-    get_semantic_vectors()
-    # PARTS_DO = 100
-    # fp_vecs = f'cache/schemerep_sim_vecs_{PARTS_DO}.pkl'
-    # d_all = pickle_wrap(fp_vecs, lambda: get_semantic_vectors(parts_do=PARTS_DO),
-    #                     easy_override=True)
-    # print(f'{d_all=}')
+    d_all = get_semantic_vectors()
+    vec = d_all[next(iter(d_all))]
+    print(f'{vec.shape=}')

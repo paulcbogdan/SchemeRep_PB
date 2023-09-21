@@ -7,7 +7,7 @@ import pandas as pd
 
 # TODO: measure where congruent is more correlated object x scene
 
-NAME_RENAMER = {'inside of a car': 'car',
+NAME_RENAMER_OLD = {'inside of a car': 'car',
                'surfing board': 'surfboard',
                'tropical volcano': 'volcano',
                'coffee shop': 'cafe',
@@ -46,25 +46,105 @@ NAME_RENAMER = {'inside of a car': 'car',
                'picnic blanket': 'blanket',
                }
 
+NAME_RENAMER = {'inside of a car': 'car',
+               'surfing board': 'surfboard', # object
+               'tropical volcano': 'volcano',
+               'coffee shop': 'cafe',
+               #'religious statue': 'statuette',
+               #'oversize tire': 'tire',
+               'restroom stall': 'bathroom',
+               'front porch': 'porch',
+               'ice stadium': 'hockey rink',
+               #'laundry hamper': 'laundry basket',
+               'dumb bell': 'dumbbell',
+               # 'rock-climbing shoe': 'climbing shoe',
+               'rock-climbing shoe': 'rock climbing shoe', # maybe not the best
+               # 'book bag': 'backpack',
+               'sea gull': 'seagull', # object
+               'hair salon': 'salon',
+               #'movie theater': 'theater',
+               'snowy mountains': 'mountain',
+               #'dining chair': 'chair',
+               #'dining table': 'table',
+               #'police baton': 'police baton',
+               'grocery store': 'supermarket',
+               'apartment complex': 'apartment',
+               'concert hall': 'orchestra',
+               'display cabinet': 'cabinet',
+               #'potted plant': 'plant',
+               #'construction helmet': 'hard hat',
+               #'game token': 'game token',
+               'Eiffel Tower': 'paris landmark',
+               #'binder clip': 'binder clip',
+               'office space': 'office',
+               'haircomb': 'hair comb', # object
+               'soccerball': 'soccer ball', # object
+               'McDonald\'s': 'fast food',
+               #'ATM': 'ATM', # automatic teller machine
+               'college quad': 'college campus',
+               #'picnic blanket': 'blanket',
+               }
+
+# NAME_RENAMER_NEW = {'inside of a car': 'car',
+#                'surfing board': 'surfboard',
+#                'tropical volcano': 'volcano',
+#                'coffee shop': 'cafe',
+#                'religious statue': 'statuette',
+#                'oversize tire': 'tire',
+#                'restroom stall': 'bathroom',
+#                'front porch': 'porch',
+#                'ice stadium': 'hockey rink',
+#                'laundry hamper': 'laundry basket',
+#                'dumb bell': 'dumbbell',
+#                # 'rock-climbing shoe': 'climbing shoe',
+#                'rock-climbing shoe': 'climbing shoe', # maybe not the best
+#                'book bag': 'backpack',
+#                'sea gull': 'seagull',
+#                'hair salon': 'salon',
+#                'movie theater': 'theater',
+#                'snowy mountains': 'mountain',
+#                'dining chair': 'chair',
+#                'dining table': 'table',
+#                'police baton': 'police baton',
+#                'grocery store': 'supermarket',
+#                'apartment complex': 'apartment',
+#                'concert hall': 'orchestra',
+#                'display cabinet': 'cabinet',
+#                'potted plant': 'plant',
+#                'construction helmet': 'hard hat',
+#                'game token': 'game token',
+#                'Eiffel Tower': 'paris landmark',
+#                'binder clip': 'binder clip',
+#                'office space': 'office',
+#                'haircomb': 'hair comb',
+#                'soccerball': 'soccer ball',
+#                'McDonald\'s': 'fast food',
+#                'ATM': 'ATM', # automatic teller machine
+#                'college quad': 'college campus',
+#                'picnic blanket': 'blanket',
+#                }
+
+
 def get_trial_info(sn):
     renamer = NAME_RENAMER
 
-    fmri_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
+    obj_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
+    scn_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/scenes'
     df_sn_as_l = []
     for run in range(1, 4):
         fp_enc = fr'behavFiles/ENC/S{sn}_run{run}.mat'
         mat_enc = io.loadmat(fp_enc)
-        # cols = mat_enc['pdata'].dtype
         for trial in range(1, 39):
-            glob_fMRI = fr'{fmri_root}/Day2_Run{run}_Trial{trial}_*.nii'
-            #print(glob_fMRI)
-            fp_fMRI = glob(glob_fMRI)[0]
+            glob_obj = fr'{obj_root}/Day2_Run{run}_Trial{trial}_*.nii'
+            fp_obj = glob(glob_obj)[0]
+            glob_scn = fr'{scn_root}/Day2_Run{run}_Trial{trial}_*.nii'
+            fp_scn = glob(glob_scn)[0]
+
             obj = mat_enc['pdata'][0][0][7][0][trial - 1][0]
             scene = mat_enc['pdata'][0][0][8][0][trial - 1][0]
             CIN = mat_enc['pdata'][0][0][9][0][trial - 1][0][0]
             resp = mat_enc['pdata'][0][0][11][0][trial - 1][0][0]
-            # print(f'{obj=}')
-            # print(f'{scene=}')
+
             if obj in renamer:
                 obj_rename = renamer[obj]
             else:
@@ -74,10 +154,11 @@ def get_trial_info(sn):
             else:
                 scene_rename = scene
 
-            # 'car' in both
             d = {'trial': trial,
                  'run': run,
-                 'fp_fMRI': fp_fMRI,
+                 'fp_fMRI': fp_obj,
+                 'obj_fMRI': fp_obj,
+                 'scene_fMRI': fp_scn,
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,

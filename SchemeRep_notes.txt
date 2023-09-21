@@ -1,3 +1,9 @@
+3:40, arrive 20 minutes before. 1301 Fayetteville 
+
+TODO: 
+1. Update Word2Vec model
+2. Plot ROIs
+
 There's no conceptual memory data for 133??
 
 Hey, I took a stab at calculating the fMRI RDM x stimulus RDM correlations for SchemeRep. I'm having an issue (fMRI x stimulus correlation is always negative), and I'm wondering if this is just a common problem you would have some insight into. 

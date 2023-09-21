@@ -9,7 +9,9 @@ def regress_out(x, y):
     x = np.array(x)
     y = np.array(y)
     nans = np.isnan(x) | np.isnan(y)
-    if len(x[~nans]) < 3:
+    n_goods = np.sum(~nans)
+    if n_goods < 3:
+        print(f'Warning: not enough non-nan values to regress out: {n_goods=}')
         return y
     b, m, r, p, er = stats.linregress(x[~nans], y[~nans])
     return y - x*b
@@ -22,7 +24,9 @@ def regress_out_multi(X, y):
 def stdize(v, axis=None, nans=False):
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
-    if axis == 1:
+    if axis == 2:
+        return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
+    elif axis == 1:
         return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
     else:
         return (v - m(v, axis=axis)) / s(v, axis=axis)
@@ -97,18 +101,35 @@ def pb_outer_double_multi(a, b, flat=False):
         c = c.reshape(a.shape[0], b.shape[1], a.shape[2], c.shape[-2]*c.shape[-1])
     return c
 
-
-def make_title_str(pre_str, key, age, early, semantic, cin):
+def get_RSA_name(key):
     if key == 'obj':
         key_str = 'Object RSA'
     elif key == 'scn':
         key_str = 'Scene RSA'
+    elif key == 'scn_abs':
+        key_str = 'Abs-scene RSA'
     elif key == 'dif':
         key_str = 'Difference RSA'
     elif key == 'dif_':
         key_str = 'Difference RSA (regressed)'
+    elif key == 'dif_abs':
+        key_str = 'Abs-dif RSA'
+    elif key == 'dif_abs_':
+        key_str = 'Abs-dif RSA (regressed)'
+    elif key == 'add':
+        key_str = 'Addition RSA'
+    elif key == 'add_abs':
+        key_str = 'Abs-addition RSA'
+    elif key == 'prd':
+        key_str = 'Product RSA'
+    elif key == 'prd_abs':
+        key_str = 'Abs-product RSA'
     else:
         key_str = ''
+    return key_str
+
+def make_title_str(pre_str, key, age, early, semantic, cin):
+    key_str = get_RSA_name(key)
     age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
     if semantic:
         rsa_str = 'word2vec'
@@ -118,3 +139,42 @@ def make_title_str(pre_str, key, age, early, semantic, cin):
         else 'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
     out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {cin_str}'
     return out_str
+
+
+def get_cache_RSA_fp(cin, age, semantic, early, pre_str='', rxr=False,
+                     combine_regions=False, bilateral=False, vec_prod=False,
+                     org_by_region=False):
+    age_str = 'healthy' if age == 'healthy' else \
+        'YA' if age == 1 else 'OA'
+    cin_str = '' if cin is None else \
+        '_Con' if cin == 1 else \
+        '_Inc' if cin == 2 else \
+        '_Neu' if cin == 3 else 'BAD_CIN'
+    sem_str = '_sem' if semantic else ''
+    el_str = '' if semantic else '_early' if early else '_late'
+    rxr_str = '_rxr' if rxr else ''
+    combine_str = '_comb' if combine_regions else ''
+    bilat_str = '_bil' if bilateral else ''
+    vecprod_str = '_vecprod' if vec_prod else ''
+    by_region_str = '_byR' if org_by_region else ''
+    fp_out = fr'cache/RSA/{pre_str}{age_str}{cin_str}{sem_str}{el_str}' \
+             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{rxr_str}.pkl'
+    print(f'{fp_out=}')
+    return fp_out
+
+
+def prune_to_only_hits(d, key, misses=False):
+    d['bhv']['hit_bool'] = np.nan_to_num(d['bhv']['hit_bool'], True).astype(bool)
+    for ROI in d['IRAFs_ROI'][key]:
+        if d['IRAFs_ROI'][key][ROI].shape[0] != 33:
+            mask = np.full(d['IRAFs_ROI'][key][ROI].shape, False)
+            print('BAH')
+        else:
+            if misses:
+                mask = ~d['bhv']['hit_bool']
+            else:
+                mask = d['bhv']['hit_bool']
+        d['IRAFs_ROI'][key][ROI][~mask] = np.nan
+        d['activity'][ROI] = np.array(d['activity'][ROI])
+        d['activity'][ROI][~mask] = np.nan
+    return d

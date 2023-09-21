@@ -19,10 +19,10 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         M_connect = conn
     # M_connect = np.nanmedian(conn, axis=0)
     if vmin is None:
-        vmin = np.nanquantile(M_connect, .001)
-        vmin = min(vmin, -4)
-        vmax = np.nanquantile(M_connect, .999)
-        vmax = max(vmax, 4)
+        vmin = np.nanquantile(M_connect, .01)
+        # vmin = min(vmin, -4)
+        vmax = np.nanquantile(M_connect, .99)
+        # vmax = max(vmax, 4)
 
     print(f'vmin: {vmin}, vmax: {vmax}')
     # vmin = .2

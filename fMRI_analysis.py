@@ -172,7 +172,8 @@ def get_mean_activity(region_vecs, sort_by):
 
 def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
                  ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, rxr_all,
-                 do_rxr, ROI_regions, bhv, hit_only=None,
+                 do_rxr, ROI_regions, bhv, stim_keys,
+                 fp_fMRI_col='fp_fMRI',
                  org_by_region=False, region_vec_prod=True):
     assert (not do_rxr) or (not region_vec_prod), \
         f'Cannot do both rxr ({do_rxr=}) and region vec prod ({region_vec_prod=})'
@@ -182,14 +183,6 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
 
     if cin is not None:
         df_sn = df_sn[df_sn['CIN'] == cin]
-    # if hit_only is None:
-    #     pass
-    # elif hit_only:
-    #     df_sn = df_sn[df_sn['hit_bool']]
-    # else:
-    #     mask = df_sn['hit_bool']
-    #     mask = mask.apply(lambda x: False if pd.isna(x) else not x)
-    #     df_sn = df_sn[mask]
 
     df_sn_ = df_sn.sort_values(by='obj')
     bhv_cols = ['trial', 'run', 'fp_fMRI', 'obj', 'scene', 'obj_rename',
@@ -202,13 +195,19 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
 
     RDM_stims = {'obj': get_stim_RDM(df_sn, d_vecs, obj_only=True),
                  'obj_abs': get_stim_RDM(df_sn, d_vecs, obj_only=True, take_abs=True),
-                 'scn': get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=True),
-                 'dif': get_stim_RDM(df_sn, d_vecs, obj_only=False, dif=True),
-                 'dif_abs': get_stim_RDM(df_sn, d_vecs, obj_only=False,
-                                         dif=True, take_abs=True)}
-    stim_keys = ['obj', 'obj_abs', 'scn', 'dif', 'dif_abs']
+                 'scn': get_stim_RDM(df_sn, d_vecs, scene_only=True),
+                 'scn_abs': get_stim_RDM(df_sn, d_vecs, scene_only=True, take_abs=True),
+                 'dif': get_stim_RDM(df_sn, d_vecs, dif=True),
+                 'dif_abs': get_stim_RDM(df_sn, d_vecs, dif=True, take_abs=True),
+                 'prd': get_stim_RDM(df_sn, d_vecs, prod=True),
+                 'prd_abs': get_stim_RDM(df_sn, d_vecs, prod=True, take_abs=True),
+                 'add': get_stim_RDM(df_sn, d_vecs, add=True),
+                 'add_abs': get_stim_RDM(df_sn, d_vecs, add=True, take_abs=True),
+                 }
+    assert len(RDM_stims) == len(stim_keys), f'{len(RDM_stims)=} != {len(stim_keys)=}'
 
-    img = image.load_img(df_sn['fp_fMRI']).get_fdata()
+
+    img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
 
     ROI_to_RDM_fMRI = {}
     rxr_mats = {}
@@ -277,7 +276,7 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
 
 def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
                    bilateral=False, combine_regions=False, vec_prod=False,
-                   org_by_region=False, hit_only=False):
+                   org_by_region=False, fp_fMRI_col='fp_fMRI'):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
@@ -294,7 +293,11 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
     ROI_to_IRAF = defaultdict(lambda: defaultdict(lambda: np.full((0, n_trials),
                                                                   np.nan)))
     ROI_to_activity = defaultdict(lambda: np.full((0, n_trials), np.nan))
-    stim_keys = ['obj', 'obj_abs', 'scn', 'dif', 'dif_abs']
+    stim_keys = ['obj', 'obj_abs',
+                 'scn', 'scn_abs',
+                 'dif', 'dif_abs',
+                 'prd', 'prd_abs',
+                 'add', 'add_abs']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -311,18 +314,20 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
         analyze_subj(sn, cin, d_vecs, atlas['n_ROIs'], atlas['ROIs'],
                      atlas['ROI_nums'], atlas, n_trials,
                      ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, rxr_all,
-                     do_rxr, atlas['ROI_regions'], bhv,
+                     do_rxr, atlas['ROI_regions'], bhv, stim_keys,
                      region_vec_prod=vec_prod,
                      org_by_region=org_by_region,
-                     hit_only=hit_only)
+                     fp_fMRI_col=fp_fMRI_col,
+                     )
         sns.append(sn)
 
 
 
     ROIs = atlas['tick_labels'] if org_by_region else atlas['ROIs']
-
+    keys_sans_obj_scn = [key for key in stim_keys if
+                         'obj' != key and 'scn' != key]
     for ROI in ROIs:
-        for key in ['dif', 'dif_abs']:
+        for key in keys_sans_obj_scn:
             key_mod = f'{key}_'
             ROI_to_z[key_mod][ROI] = utils.regress_out_multi([ROI_to_z['obj'][ROI],
                                                              ROI_to_z['scn'][ROI]],
@@ -335,7 +340,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
                 ROI_to_IRAF[key_mod][ROI][:, trial_i] = IRAF_dif_
 
     IRAF_conn = {}
-    for key in ['obj', 'scn', 'dif', 'dif_', 'dif_abs', 'dif_abs_']:
+    for key in ROI_to_IRAF.keys():
         IRAF_conn[key] = get_IRAF_connectivity_matrix(ROI_to_IRAF[key],
                                                       atlas['n_ROIs'],
                                                       atlas['ROIs'])
@@ -347,8 +352,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
             'IRAFs_ROI': ROI_to_IRAF,
             'z': ROI_to_z,
             'bhv': bhv,
-            'sns': sns,
-            }
+            'sns': sns
+             }
     d_out = defaultdict_to_dict(d_out)
     return d_out
 
@@ -360,11 +365,14 @@ def run_multi_settings():
     bilateral = False # combines bilateral ROIs/regions
     vec_prod = False
     org_by_region = False
-    hit_only = False # None = neither
+    assert not (org_by_region and combine_regions), \
+        'Cannot combine regions and organize by region'
+    fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
     for cin in [None, 1, 2, 3]:
-        for early, semantic in [(True, False), (False, False), (False, True)]:
-            # age = 'healthy'
-            for age in [1, 2, 'healthy', ]:
+        for age in [1, 2, 'healthy', ]:
+            # for early, semantic in [(True, False), (False, False), (False, True)]:
+
+            for early, semantic in [(True, False), (False, True), ]: # (True, False),
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'
                 cin_str = '' if cin is None else \
@@ -377,10 +385,9 @@ def run_multi_settings():
                 bilat_str = '_bil' if bilateral else ''
                 vecprod_str = '_vecprod' if vec_prod else ''
                 by_region_str = '_byR' if org_by_region else ''
-                hit_miss_str = '' if hit_only is None else '_hit' if hit_only else '_miss'
                 fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
                          fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
-                         fr'{hit_miss_str}{rxr_str}.pkl'
+                         fr'{rxr_str}.pkl'
                 Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                 d = pickle_wrap(fp_out,
                                 lambda: mass_RDM_x_RDM(age=age, cin=cin,
@@ -391,8 +398,9 @@ def run_multi_settings():
                                                combine_regions=combine_regions,
                                                        vec_prod=vec_prod,
                                                    org_by_region=org_by_region,
-                                                       hit_only=hit_only),
-                                easy_override=True)
+                                                       fp_fMRI_col=fp_fMRI_col
+                                                       ),
+                                easy_override=True, verbose=True)
 
 
 if __name__ == '__main__':
