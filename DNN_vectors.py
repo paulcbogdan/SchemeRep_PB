@@ -21,25 +21,11 @@ from sklearn import decomposition
 # The first hidden layer generated a sensory model, since this model is derived from a layer that detects sensory features, and the penultimate layer, a categorical model, since this model is derived from the layer before the images are explicitly categorized into the trained categories
 
 
-def get_DNN_vecs_(early=True, PCA=False):
-    if early:
-        # vec_size = 64*55*55
-        vec_size = 64*224*224
-        # model = models.alexnet(pretrained=True)
-        model = models.vgg16(pretrained=True)
-    else:
-        vec_size = 1000
-        model = models.vgg16(pretrained=True)
+def get_DNN_vecs_(early=True, PCA=False, DNN_layer=2):
+    model = models.vgg16(pretrained=True)
     for p in model.parameters():
         p.requires_grad = False
     model.eval()
-
-    # data_transforms = transforms.Compose([
-    #     transforms.Resize((224,224)),             # resize the input to 224x224
-    #     transforms.ToTensor(),              # put the input to tensor format
-    #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # normalize the input
-    #     the normalization is based on images from ImageNet
-    # ])
 
     data_transforms = transforms.Compose([transforms.ToTensor(),
                     transforms.Resize((224, 224)),
@@ -48,84 +34,54 @@ def get_DNN_vecs_(early=True, PCA=False):
                     ])
 
     names, fps = get_img_fns()
-    # names, fps = zip(*[(name, fp) for name, fp in zip(names, fps)
-    #                    if 'Scene' not in fp])
-
-    # img_vecs = np.empty((vec_size, len(fps)))
     img_vecs = []
     obj_vecs = []
     names_sanity = []
-
-    layer1dat = np.zeros((64 * 224 * 224, len(fps)))
-
     for i, (name, fp) in enumerate(zip(names, fps)):
         if 'Scene' in fp:
             scene = 1
         else:
             scene = 0
-        #     continue
         img = Image.open(fp)
-        # print(f'{name} | {fp}')
         img = np.array(img, dtype=np.uint8)
         x = data_transforms(img).unsqueeze(0)
-        if early:
-            x = model.features[0](x)
-            x = model.features[1](x)
-        else:
+        if DNN_layer == -1:
             x = model.forward(x)
+        else:
+            for j in range(DNN_layer):
+                x = model.features[j](x)
+        # if early:
+        #     x = model.features[0](x)
+        #     x = model.features[1](x)
+        # else:
+        #     x = model.forward(x)
         x = x.detach().numpy().flatten()
-        # print(f'{x.shape=}')
         x = np.concatenate([x, np.array([scene])])
-        # print(f'{x.shape=}')
-        # quit()
         img_vecs.append(x)
         if not scene:
             obj_vecs.append(x)
         names_sanity.append(name)
-        # layer1dat[:, i] = x.detach().numpy().flatten()
 
     img_vecs = np.array(img_vecs)
     obj_vecs = np.array(obj_vecs)
-    # img_vecs = img_vecs.T
 
     if PCA:
-        # print('1:', layer1dat.shape)
         pca = decomposition.PCA()
-        # pca.fit(layer1dat.T)
         pca.fit(obj_vecs)
         img_vec_brief = pca.transform(img_vecs)
         img_vec_brief = img_vec_brief
-        # print(f'{layer1dat=}')
-        # img_vec_brief = pca.transform(layer1dat.T)
-        # img_vec_brief = pca.transform(img_vecs.T)
+
         print(f'{img_vec_brief=}')
         print(f'{img_vec_brief.shape=}')
         # print(pca.components_)
     else:
         img_vec_brief = img_vecs
 
-    # RSM_skl = np.corrcoef(img_vec_brief)
-    # print(f'{RSM_skl.shape=}')
-    # plt.imshow(RSM_skl)
-    # plt.title(f'{img_vec_brief=}')
-    # plt.show()
-    # print(f'{RSM_skl=}')
-    # mean = np.mean(np.tril(RSM_skl, k=-1))
-    # print(f'{mean=}')
-    # pd.DataFrame(RSM_skl).to_csv('RSM_skl.csv')
-    # quit()
-
-    # print('components:', pca.components_)
-    # quit()
-    # print(img_vec_brief.shape)
-    # quit()
-
     d_vecs = {}
     for name, vec in zip(names_sanity, img_vec_brief):
         d_vecs[name] = vec
     print('test rock:', d_vecs['rock-climbing shoe'])
     print(f'{len(d_vecs)=}')
-    # quit()
 
     return d_vecs
 

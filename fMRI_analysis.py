@@ -274,7 +274,8 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
 
 
 
-def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, do_rxr=False,
+def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, DNN_layer=2,
+                   do_rxr=False,
                    bilateral=False, combine_regions=False, vec_prod=False,
                    org_by_region=False, fp_fMRI_col='fp_fMRI'):
     if semantic:
@@ -368,11 +369,14 @@ def run_multi_settings():
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
     fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
-    for cin in [None, 1, 2, 3]:
-        for age in [1, 2, 'healthy', ]:
+    # for cin in [None, 1, 2, 3]:
+    cin = None
+    if True:
+        for age in [1, 2, ]:
             # for early, semantic in [(True, False), (False, False), (False, True)]:
+            for DNN_layer, semantic in [(2, False), (False, True), ]: # (True, False),
 
-            for early, semantic in [(True, False), (False, True), ]: # (True, False),
+            # for early, semantic in [(True, False), (False, True), ]: # (True, False),
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'
                 cin_str = '' if cin is None else \
@@ -380,6 +384,8 @@ def run_multi_settings():
                         '_Inc' if cin == 2 else '_Neu'
                 sem_str = '_sem' if semantic else ''
                 el_str = '' if semantic else '_early' if early else '_late'
+
+
                 rxr_str = '_rxr' if rxr else ''
                 combine_str = '_comb' if combine_regions else ''
                 bilat_str = '_bil' if bilateral else ''
