@@ -35,8 +35,8 @@ def get_stim_RDMs(df_sn, semantic=False, early=True):
 def load_and_get_ROI_vecs(df_sn, atlas, vec_prod=False):
     img = image.load_img(df_sn['fp_fMRI']).get_fdata()
     ROI2vecs, _ = get_ROI_vecs(atlas['ROIs'], atlas['ROI_nums'], atlas, img,
-                               atlas['ROI_regions'],
-                               vec_prod=vec_prod)
+                                atlas['ROI_regions'],
+                                vec_prod=vec_prod)
     return ROI2vecs, _
 
 def analyze_sn(sn, atlas):

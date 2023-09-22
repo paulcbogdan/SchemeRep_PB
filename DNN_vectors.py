@@ -21,7 +21,7 @@ from sklearn import decomposition
 # The first hidden layer generated a sensory model, since this model is derived from a layer that detects sensory features, and the penultimate layer, a categorical model, since this model is derived from the layer before the images are explicitly categorized into the trained categories
 
 
-def get_DNN_vecs_(early=True, PCA=False, DNN_layer=2):
+def get_DNN_vecs_(PCA=False, DNN_layer=2):
     model = models.vgg16(pretrained=True)
     for p in model.parameters():
         p.requires_grad = False
@@ -70,27 +70,22 @@ def get_DNN_vecs_(early=True, PCA=False, DNN_layer=2):
         pca.fit(obj_vecs)
         img_vec_brief = pca.transform(img_vecs)
         img_vec_brief = img_vec_brief
-
-        print(f'{img_vec_brief=}')
-        print(f'{img_vec_brief.shape=}')
-        # print(pca.components_)
     else:
         img_vec_brief = img_vecs
 
     d_vecs = {}
     for name, vec in zip(names_sanity, img_vec_brief):
         d_vecs[name] = vec
-    print('test rock:', d_vecs['rock-climbing shoe'])
-    print(f'{len(d_vecs)=}')
-
     return d_vecs
 
-def get_DNN_vecs(early=True, PCA=False):
-    early_late_str = 'early' if early else 'late'
+def get_DNN_vecs(PCA=False, DNN_layer=2):
+    dnn_str = 'late' if DNN_layer == -1 else \
+              'early' if DNN_layer == 2 else \
+              f'dnn{DNN_layer}'
     PCA_str = '_PCA' if PCA else ''
-    fp_DNN_vecs = fr'cache/DNN_vecs_{early_late_str}{PCA_str}.pkl'
-    return pickle_wrap(fp_DNN_vecs, lambda: get_DNN_vecs_(early=early,
-                                                          PCA=PCA),
+    fp_DNN_vecs = fr'cache/DNN_vecs_{dnn_str}{PCA_str}.pkl'
+    return pickle_wrap(fp_DNN_vecs,
+                       lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer),
                        easy_override=False)
 
 def get_img_fns(get_dict=False):

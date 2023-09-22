@@ -84,8 +84,24 @@ def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
                 np.nanmean(prod)
     return triple_prod_mat
 
-def get_ROI_vecs(ROIs, ROI_nums, atlas, img, ROI_regions,
-                 nan_thresh=.25, vec_prod=False, org_by_region=False):
+def get_ROI_vecs(sn, ROIs, ROI_nums, atlas, img, ROI_regions,
+                 fp_fMRI_col, nan_thresh=.25, vec_prod=False, org_by_region=False):
+    n_ROIs = len(ROIs)
+    n_regions = len(np.unique(ROI_regions))
+    vec_prod_str = '_vp' if vec_prod else ''
+    nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
+    org_by_region_str = '_oByR' if org_by_region else ''
+    fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}_nROI{n_ROIs}_reg{n_regions}' \
+               fr'{vec_prod_str}{org_by_region_str}{nan_str}.pkl'
+    f = lambda: get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
+                  nan_thresh=nan_thresh, vec_prod=vec_prod,
+                  org_by_region=org_by_region)
+    r2vecs, r2vecs_down = pickle_wrap(fp_cache, f, verbose=True)
+    return r2vecs, r2vecs_down
+
+
+def get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
+                  nan_thresh=.25, vec_prod=False, org_by_region=False):
     ROI2vecs = {}
     ROI2vecs_down = {}
     region2vecs = defaultdict(list)
@@ -184,7 +200,7 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
     if cin is not None:
         df_sn = df_sn[df_sn['CIN'] == cin]
 
-    df_sn_ = df_sn.sort_values(by='obj')
+    df_sn_ = df_sn.sort_values(by='obj') # TODO: makes more sense to do this sort at the start
     bhv_cols = ['trial', 'run', 'fp_fMRI', 'obj', 'scene', 'obj_rename',
                 'scene_rename', 'CIN', 'perceived_con', 'ON', 'hit_bool']
     for key in bhv_cols:
@@ -215,10 +231,10 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
         rxr_mats[key] = nan_ar((n_ROIs, n_ROIs))
 
     # NaN thresh happens here
-    ROI2vecs, ROI2vecs_down = get_ROI_vecs(ROIs, ROI_nums, atlas, img,
-                                           ROI_regions,
-                                           vec_prod=region_vec_prod,
-                                           org_by_region=org_by_region)
+    ROI2vecs, ROI2vecs_down = get_ROI_vecs(sn, ROIs, ROI_nums, atlas, img,
+                                            ROI_regions, fp_fMRI_col,
+                                            vec_prod=region_vec_prod,
+                                            org_by_region=org_by_region)
 
     if org_by_region:
         ROIs = atlas['tick_labels']
@@ -281,7 +297,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, DNN_layer=2,
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
-        d_vecs = get_DNN_vecs(early=early, PCA=True)
+        d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True)
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
     if combine_regions:
         atlas = get_combined_BNA(combine_bilateral=bilateral)
@@ -362,20 +378,21 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, DNN_layer=2,
 def run_multi_settings():
     # semantic = False
     rxr = False
-    combine_regions = True
+    combine_regions = False
     bilateral = False # combines bilateral ROIs/regions
     vec_prod = False
     org_by_region = False
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
-    fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
+    fp_fMRI_col = 'scn_fMRI' # maps onto columns defined in get_trial_info
     # for cin in [None, 1, 2, 3]:
+    # fp_fMRI_col = 'scn_fMRI'
     cin = None
     if True:
         for age in [1, 2, ]:
             # for early, semantic in [(True, False), (False, False), (False, True)]:
-            for DNN_layer, semantic in [(2, False), (False, True), ]: # (True, False),
-
+            for DNN_layer, semantic in [(2, False), (6, False), (4, False),
+                                        (False, True), ]: # (True, False),
             # for early, semantic in [(True, False), (False, True), ]: # (True, False),
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'
@@ -383,30 +400,33 @@ def run_multi_settings():
                     '_Con' if cin == 1 else \
                         '_Inc' if cin == 2 else '_Neu'
                 sem_str = '_sem' if semantic else ''
-                el_str = '' if semantic else '_early' if early else '_late'
-
-
+                dnn_str = '' if semantic else \
+                    '_late' if DNN_layer == -1 else \
+                    '_early' if DNN_layer == 2 else \
+                    f'_dnn{DNN_layer}'
                 rxr_str = '_rxr' if rxr else ''
                 combine_str = '_comb' if combine_regions else ''
                 bilat_str = '_bil' if bilateral else ''
                 vecprod_str = '_vecprod' if vec_prod else ''
                 by_region_str = '_byR' if org_by_region else ''
-                fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
+                fp_in_str = fp_fMRI_col.replace('fMRI', '')
+                # fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
+                #          fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
+                #          fr'{rxr_str}.pkl'
+                fp_out = fr'cache/RSA/{fp_in_str}{age_str}{cin_str}{sem_str}{dnn_str}' \
                          fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
                          fr'{rxr_str}.pkl'
                 Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
-                d = pickle_wrap(fp_out,
-                                lambda: mass_RDM_x_RDM(age=age, cin=cin,
-                                                       early=early,
-                                                       do_rxr=rxr,
-                                                       semantic=semantic,
-                                                       bilateral=bilateral,
-                                               combine_regions=combine_regions,
-                                                       vec_prod=vec_prod,
-                                                   org_by_region=org_by_region,
-                                                       fp_fMRI_col=fp_fMRI_col
-                                                       ),
-                                easy_override=True, verbose=True)
+                f = lambda: mass_RDM_x_RDM(age=age, cin=cin,
+                                           DNN_layer=DNN_layer, do_rxr=rxr,
+                                           semantic=semantic,
+                                           bilateral=bilateral,
+                                           combine_regions=combine_regions,
+                                           vec_prod=vec_prod,
+                                           org_by_region=org_by_region,
+                                           fp_fMRI_col=fp_fMRI_col
+                                           )
+                d = pickle_wrap(fp_out, f, easy_override=True, verbose=True)
 
 
 if __name__ == '__main__':

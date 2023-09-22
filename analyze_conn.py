@@ -29,14 +29,21 @@ def replace_w_nan_if_needed(vals):
 def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False):
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                          fp_fMRI_col='obj_fMRI',
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,
                           rxr=rxr)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 
-
+    fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                          fp_fMRI_col='scn_fMRI',
+                          bilateral=bilateral, combine_regions=combine_regions,
+                          vec_prod=vec_prod, org_by_region=org_by_region,
+                          rxr=rxr)
+    with open(fp2, 'rb') as file:
+        d2 = pickle.load(file)
 
     # print(np.array(d['bhv']['hit_bool']).shape)
     # print(d['IRAFs_ROI']['dif']['SFG_L'].shape)
@@ -57,6 +64,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
 
     IRAFs = [np.array(d['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
     # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
+    # IRAFs = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
 
     IRAFs = replace_w_nan_if_needed(IRAFs)
     # print(f'{IRAFs.shape=}')
@@ -64,8 +72,9 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # IRAFs = np.array(list(filter(lambda x: x.shape[0] == 33, IRAFs)))
     # activity = [np.array(d['IRAFs_ROI']['scn'][roi1]) for roi1 in atlas['ROIs']]
     activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
+    # activity = [np.array(d2['IRAFs_ROI']['dif'][roi0]) for roi0 in atlas['ROIs']]
+
     activity = replace_w_nan_if_needed(activity)
-    print(activity.shape)
 
     activity = activity - np.nanmean(activity[0], axis=0)
 
@@ -74,8 +83,10 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # print(IRAFs.shape)
     # quit()
     # activity = np.array(list(filter(lambda x: x.shape[0] == 33, activity)))
-    r_Ms, r_SDs, t = bulk_correlate(IRAFs, activity, nans=True)
-
+    # print(np.array(IRAFs).shape)
+    r_Ms, r_SDs, t, _ = bulk_correlate(IRAFs, activity, nans=True)
+    # print(t.shape)
+    # quit()
     title = make_title_str('Activity x IRAF', key, age, early, semantic, cin)
     # title = 'YA. Activity x Difference-IRAF, 1st-layer DNN.'
     plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
@@ -84,6 +95,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
                       cbar_label='t-value', vmin=-3)
 
 def bulk_correlate(vals0, vals1, nans=False):
+    # Weird, takes in ar.shape = (n_ROIs, n_subjs, n_timepoints)
 
     vals0 = np.expand_dims(vals0, axis=1)
     vals1 = np.expand_dims(vals1, axis=0)
@@ -100,13 +112,14 @@ def bulk_correlate(vals0, vals1, nans=False):
 
     rs = vals0_ * vals1_
     rs = m(rs, axis=-1)
+    print('test', rs.shape)
     r_Ms = np.nanmean(rs, axis=-1)
     # r_Ms[np.diag_indices_from(r_Ms)] = np.nan
     r_SDs = np.nanstd(rs, axis=-1)
     # r_SDs[np.diag_indices_from(r_Ms)] = np.nan
     t = r_Ms / r_SDs * np.sqrt(rs.shape[-1]) # fix to account for different # nans per edge
     print(f'{t.shape=}')
-    return r_Ms, r_SDs, t
+    return r_Ms, r_SDs, t, rs
     # print(rs.shape)
     # quit()
     # pass

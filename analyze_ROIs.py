@@ -20,7 +20,8 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
 
-    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                           fp_fMRI_col='scn_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)
@@ -28,7 +29,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
 
-    key = 'prod'
+    key = 'scn'
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
@@ -132,7 +133,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
 
 if __name__ == '__main__':
     # Test connectivity within region between ROIs as nodes
-    analyze_ROIs(early=True, semantic=True, cin=None,
+    analyze_ROIs(early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False)
 

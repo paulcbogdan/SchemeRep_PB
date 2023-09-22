@@ -158,7 +158,7 @@ def get_trial_info(sn):
                  'run': run,
                  'fp_fMRI': fp_obj,
                  'obj_fMRI': fp_obj,
-                 'scene_fMRI': fp_scn,
+                 'scn_fMRI': fp_scn,
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
