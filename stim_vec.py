@@ -30,5 +30,6 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
         raise ValueError('How?? This error should\'ve been caught by assert.')
     all_vecs = np.abs(all_vecs) if take_abs else all_vecs
     RDM_stim = np.corrcoef(all_vecs)
+
     pd.DataFrame(RDM_stim).to_csv('RDM_stim_mine.csv')
     return RDM_stim

@@ -21,7 +21,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     cmap = plt.get_cmap('turbo')
 
     fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='scn_fMRI',
+                           fp_fMRI_col='obj_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)
@@ -29,7 +29,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
 
-    key = 'scn'
+    key = 'dif_abs_'
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
@@ -53,16 +53,16 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     ps = []
     # if org_by_region:
     #     atlas['ROIs'] = atlas['ROI_regions'] = atlas['tick_labels']
-    d_hit = deepcopy(d)
-    d_miss = deepcopy(d)
-    # prune_to_only_hits(d_hit, key1, misses=False)
-    # prune_to_only_hits(d_miss, key1, misses=True)
-    # prune_to_only_hits(d1, key1, misses=False)
+    # d_hit = deepcopy(d)
+    # d_miss = deepcopy(d)
+    # prune_to_only_hits(d_hit, key, misses=False)
+    # prune_to_only_hits(d_miss, key, misses=True)
+    # prune_to_only_hits(d, key, misses=False)
     # for ROI in atlas['ROIs']:
-    #     d_hit['z'][key1][ROI] = np.nanmean(d_hit['IRAFs_ROI'][key1][ROI], axis=1)
-    #     d_miss['z'][key1][ROI] = np.nanmean(d_miss['IRAFs_ROI'][key1][ROI], axis=1)
-    #     d1['z'][key1][ROI] = d_hit['z'][key1][ROI] - d_miss['z'][key1][ROI]
-        # d1['z'][key1][ROI] = np.nanmean(d1['IRAFs_ROI'][key1][ROI], axis=1)
+        # d_hit['z'][key][ROI] = np.nanmean(d_hit['IRAFs_ROI'][key][ROI], axis=1)
+        # d_miss['z'][key][ROI] = np.nanmean(d_miss['IRAFs_ROI'][key][ROI], axis=1)
+        # d['z'][key][ROI] = d_hit['z'][key][ROI] - d_miss['z'][key][ROI]
+        # d['z'][key][ROI] = np.nanmean(d['IRAFs_ROI'][key][ROI], axis=1)
 
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         # ROI_num, ROI_str = ROI.split(' ')

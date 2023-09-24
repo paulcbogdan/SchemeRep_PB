@@ -183,6 +183,7 @@ def process_conc_retrieval(df_sn, sn):
         objs = []
         for stim in mat_enc['pdata'][0][0][6][0]:
             objs.append(str(stim[0]))
+
         otypes = [] # 0 = old, 1 = new
         for otype in mat_enc['pdata'][0][0][8][0]:
             otypes.append(int(otype[0]))
@@ -199,6 +200,8 @@ def process_conc_retrieval(df_sn, sn):
     else:
         df_sn['ON'] = df_sn['obj'].map(obj2resp)
         df_sn['hit_bool'] = df_sn['ON'] >= 3 # Old is 3 or 4
+    print(obj2resp)
+    quit()
     return df_sn
 
 

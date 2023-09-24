@@ -1,3 +1,5 @@
+
+
 3:40, arrive 20 minutes before. 1301 Fayetteville 
 
 TODO: 
@@ -19,6 +21,20 @@ As a sanity check, I made sure that average cell in both the stimulus and fMRI R
 - Maybe can do a trial-by-trial correlation between PFC activity during scene presentation and the degre of change. This would be a form of connectivity?
 - The difference vector could come in handy if the scene is "pulling" the object representation
 
+Here is a picture of the IRAF across all 246 regions for each stimulus. You can see how there is a "global" effect, wherein every region's IRAF is correlated with every other region's IRAF.
+
+Why is this the case? For a given trial, the IRAF for region a for a given trial i is the correlation between vector A (fMRI) and vector Xi (stimulus). Calculating the correlation is mathematically equivalent to (1) standardizing vector A, such that the values are centered at zero and have a unit standard deviation, and (2) calculating the weighted average of A, with each scalar weighed by its corresponding value in Xi. 
+
+The IRAF of region b for a given trial x can be thought of as the same way. Now, hopefully you can see how 
+
+Suppose region a shows a similar 
+
+
+
+
+It can alternatively be thought as a weighted average of vector
+
+the correlation between similarity of fMRI data within trial a with fMRI 
 
 
 

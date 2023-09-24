@@ -32,10 +32,16 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, flipper=0):
     IRAFs = []
     for i in range(fMRI_RDM.shape[0]):
         fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
+        # print(fMRI_RDM[i, :])
         stim_vec_std = np.delete(stim_RDM[i, :], i)
-        fMRI_vec_std = stdize(fMRI_vec_std) # exclude correlation w itself
-        stim_vec_std = stdize(stim_vec_std)
-        r = (fMRI_vec_std @ stim_vec_std) / len(fMRI_vec_std)
+        # print(stim_RDM[i, :])
+        # print()
+        # fMRI_vec_std = stdize(fMRI_vec_std) # exclude correlation w itself
+        # stim_vec_std = stdize(stim_vec_std)
+        # TODO: maybe use spearna?
+        # r = (fMRI_vec_std @ stim_vec_std) / len(fMRI_vec_std)
+        # r, _ = stats.pearsonr(fMRI_vec_std, stim_vec_std)
+        r, _ = stats.spearmanr(fMRI_vec_std, stim_vec_std)
         IRAFs.append(r)
     IRAFs = [IRAF for (IRAF, _) in sorted(zip(IRAFs, df_sn['obj']),
                                           key=lambda x: x[1])]
@@ -105,28 +111,37 @@ def get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
     ROI2vecs = {}
     ROI2vecs_down = {}
     region2vecs = defaultdict(list)
+    idxs = np.arange(114)
+    # np.random.shuffle(idxs)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
-        atlas_roi_downsample = np.copy(atlas_roi)
-        atlas_roi_downsample[::3, :, :] = False
-        atlas_roi_downsample[:, ::3, :] = False
-        atlas_roi_downsample[:, :, ::3] = False
+        # atlas_roi_downsample = np.copy(atlas_roi)
+        # atlas_roi_downsample[::3, :, :] = False
+        # atlas_roi_downsample[:, ::3, :] = False
+        # atlas_roi_downsample[:, :, ::3] = False
 
         region_vecs = img[atlas_roi]
-        region_vecs_down = img[atlas_roi_downsample]
+        region_vecs = region_vecs[:, idxs]
+        # print(region_vecs.shape)
+        region_vecs = np.random.normal(size=region_vecs.shape)
+        # print(region_vecs.shape)
+
+        # print(region_vecs)
+        # quit()
+        # region_vecs_down = img[atlas_roi_downsample]
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
         n_nans_ROI = np.sum(voxels_w_nan)
         if n_nans_ROI / len(voxels_w_nan) > nan_thresh:  # more than 10%
             continue
         region_vecs = region_vecs[~voxels_w_nan, :]
-        down_voxels_w_nan = np.isnan(region_vecs_down).any(axis=1)
-        region_vecs_down = region_vecs_down[~down_voxels_w_nan, :]
+        # down_voxels_w_nan = np.isnan(region_vecs_down).any(axis=1)
+        # region_vecs_down = region_vecs_down[~down_voxels_w_nan, :]
         region_vecs = region_vecs.T
         ROI2vecs[ROI] = region_vecs
-        region_vecs_down = (region_vecs_down.T -
-                            np.mean(region_vecs_down, axis=1)) / \
-                           np.std(region_vecs_down, axis=1)
-        ROI2vecs_down[ROI] = region_vecs_down
+        # region_vecs_down = (region_vecs_down.T -
+        #                     np.mean(region_vecs_down, axis=1)) / \
+        #                    np.std(region_vecs_down, axis=1)
+        # ROI2vecs_down[ROI] = region_vecs_down
         if org_by_region:
             # print(f'{region} | {ROI}')
             region2vecs[region].append(np.nanmean(region_vecs, axis=1))
@@ -384,49 +399,50 @@ def run_multi_settings():
     org_by_region = False
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
-    fp_fMRI_col = 'scn_fMRI' # maps onto columns defined in get_trial_info
+    fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
     # for cin in [None, 1, 2, 3]:
     # fp_fMRI_col = 'scn_fMRI'
     cin = None
     if True:
-        for age in [1, 2, ]:
-            # for early, semantic in [(True, False), (False, False), (False, True)]:
-            for DNN_layer, semantic in [(2, False), (6, False), (4, False),
-                                        (False, True), ]: # (True, False),
-            # for early, semantic in [(True, False), (False, True), ]: # (True, False),
-                age_str = 'healthy' if age == 'healthy' else \
-                    'YA' if age == 1 else 'OA'
-                cin_str = '' if cin is None else \
-                    '_Con' if cin == 1 else \
-                        '_Inc' if cin == 2 else '_Neu'
-                sem_str = '_sem' if semantic else ''
-                dnn_str = '' if semantic else \
-                    '_late' if DNN_layer == -1 else \
-                    '_early' if DNN_layer == 2 else \
-                    f'_dnn{DNN_layer}'
-                rxr_str = '_rxr' if rxr else ''
-                combine_str = '_comb' if combine_regions else ''
-                bilat_str = '_bil' if bilateral else ''
-                vecprod_str = '_vecprod' if vec_prod else ''
-                by_region_str = '_byR' if org_by_region else ''
-                fp_in_str = fp_fMRI_col.replace('fMRI', '')
-                # fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
-                #          fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
-                #          fr'{rxr_str}.pkl'
-                fp_out = fr'cache/RSA/{fp_in_str}{age_str}{cin_str}{sem_str}{dnn_str}' \
-                         fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
-                         fr'{rxr_str}.pkl'
-                Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
-                f = lambda: mass_RDM_x_RDM(age=age, cin=cin,
-                                           DNN_layer=DNN_layer, do_rxr=rxr,
-                                           semantic=semantic,
-                                           bilateral=bilateral,
-                                           combine_regions=combine_regions,
-                                           vec_prod=vec_prod,
-                                           org_by_region=org_by_region,
-                                           fp_fMRI_col=fp_fMRI_col
-                                           )
-                d = pickle_wrap(fp_out, f, easy_override=True, verbose=True)
+        if ['obj_fMRI', 'scn_fMRI', ]:
+            for age in [1, 2, ]:
+                # for early, semantic in [(True, False), (False, False), (False, True)]:
+                for DNN_layer, semantic in [(2, False), (6, False), (4, False),
+                                            (False, True), ]: # (True, False),
+                # for early, semantic in [(True, False), (False, True), ]: # (True, False),
+                    age_str = 'healthy' if age == 'healthy' else \
+                        'YA' if age == 1 else 'OA'
+                    cin_str = '' if cin is None else \
+                        '_Con' if cin == 1 else \
+                            '_Inc' if cin == 2 else '_Neu'
+                    sem_str = '_sem' if semantic else ''
+                    dnn_str = '' if semantic else \
+                        '_late' if DNN_layer == -1 else \
+                        '_early' if DNN_layer == 2 else \
+                        f'_dnn{DNN_layer}'
+                    rxr_str = '_rxr' if rxr else ''
+                    combine_str = '_comb' if combine_regions else ''
+                    bilat_str = '_bil' if bilateral else ''
+                    vecprod_str = '_vecprod' if vec_prod else ''
+                    by_region_str = '_byR' if org_by_region else ''
+                    fp_in_str = fp_fMRI_col.replace('fMRI', '')
+                    # fp_out = fr'cache/RSA/{age_str}{cin_str}{sem_str}{el_str}' \
+                    #          fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
+                    #          fr'{rxr_str}.pkl'
+                    fp_out = fr'cache/RSA/{fp_in_str}{age_str}{cin_str}{sem_str}{dnn_str}' \
+                             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}' \
+                             fr'{rxr_str}.pkl'
+                    Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
+                    f = lambda: mass_RDM_x_RDM(age=age, cin=cin,
+                                               DNN_layer=DNN_layer, do_rxr=rxr,
+                                               semantic=semantic,
+                                               bilateral=bilateral,
+                                               combine_regions=combine_regions,
+                                               vec_prod=vec_prod,
+                                               org_by_region=org_by_region,
+                                               fp_fMRI_col=fp_fMRI_col
+                                               )
+                    d = pickle_wrap(fp_out, f, easy_override=True, verbose=True)
 
 
 if __name__ == '__main__':
