@@ -39,13 +39,16 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
 
 def load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='scn_fMRI',
                           vec_prod=False, nan_thresh=.25,
-                          org_by_region=False):
+                          org_by_region=False, combine_regions=False):
     # # img = image.load_img(df_sn['fp_fMRI']).get_fdata()
     # img = image.load_img(df_sn['fp_fMRI']).get_fdata()
     #
     # ROI2vecs, _ = get_ROI_vecs(atlas['ROIs'], atlas['ROI_nums'], atlas, img,
     #                             atlas['ROI_regions'],
     #                             vec_prod=vec_prod)
+    # if combine_regions:
+    #     n_ROIs = len(atlas['ROI_regions'])
+    # else:
     n_ROIs = len(atlas['ROIs'])
     n_regions = len(np.unique(atlas['ROI_regions']))
     vec_prod_str = '_vp' if vec_prod else ''
