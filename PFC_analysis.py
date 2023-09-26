@@ -135,6 +135,20 @@ def analyze_all_sn(age=1):
         p = stats.t.sf(np.abs(t), len(l)-1) # one-sided
         print(f'{key}: M={M:.3f}, SD={SD:.3f}, SE={SE:.3f}, t={t:.3f}, p={p:.3f}')
 
+def find_temporal_correlation(ar):
+    rs = []
+    for i in tqdm(range(len(ar))):
+        for j in range(i):
+            l0 = ar[i]
+            l1 = ar[j]
+            r, _ = stats.pearsonr(l0, l1)
+            rs.append(r)
+    M = np.nanmean(rs)
+    med = np.nanmedian(rs)
+    print(f'M={M:.4f}, med={med:.4f}')
+    quit()
+
+
 def sanity_test(sn='102'):
     atlas = get_BN_and_resample(combine_bilateral=False)
     df_sn = get_trial_info(sn)
@@ -147,44 +161,48 @@ def sanity_test(sn='102'):
     RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
     RDM_stim = RDM_stims['obj']
     # RDM_stim = get_stim_RDM_lifu(df_sn)
-    RDM_stim = np.random.normal(size=RDM_stim.shape)
+    # RDM_stim = np.random.normal(size=RDM_stim.shape)
     # RDM_stim_flat = RDM_stim[np.tril_indices_from(RDM_stim, k=-1)]
 
     all_data = []
     for ROI, vecs in tqdm(ROI2vecs.items(), desc='looping ROIs'):
-        r_mat = np.corrcoef(vecs)
+        fMRI_RDM = np.corrcoef(vecs)
+
+
+        trial_per_run = fMRI_RDM.shape[0] // 3
+        for run in range(3):
+            low = run * trial_per_run
+            high = (run + 1) * trial_per_run
+            fMRI_RDM[low:high, low:high] = np.nan
+        print(fMRI_RDM)
+        quit()
         trial_rs = []
-        for i in range(r_mat.shape[0]):
-            fMRI_vec_std = np.delete(r_mat[i, :], i)
+        for i in range(fMRI_RDM.shape[0]):
+            fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
             stim_vec_std = np.delete(RDM_stim[i, :], i)
-            fMRI_vec_std = stdize(fMRI_vec_std)
-            stim_vec_std = stdize(stim_vec_std)
-            # if np.sum(np.isnan(fMRI_vec_std)):
-            #     print('HITTT')
-            #     quit()
-            # print(np.sum(np.isnan(stim_vec_std)))
-            # r, _ = stats.pearsonr(fMRI_vec_std, stim_vec_std)
-            # r, _ = stats.spearmanr(fMRI_vec_std, stim_vec_std)
+            fMRI_vec_std = stdize(fMRI_vec_std, nans=True)
+            stim_vec_std = stdize(stim_vec_std, nans=True)
+
+            fMRI_nans = np.isnan(fMRI_vec_std)
+            stim_nans = np.isnan(stim_vec_std)
+            either_nan = fMRI_nans | stim_nans
+            fMRI_vec_std = fMRI_vec_std[~either_nan]
+            stim_vec_std = stim_vec_std[~either_nan]
             r = (fMRI_vec_std @ stim_vec_std) / len(fMRI_vec_std)
             trial_rs.append(r)
         all_data.append(trial_rs)
     all_data = np.vstack(all_data)
     plt.imshow(all_data)
+    # find_temporal_correlation(all_data)
     plt.xlabel('Item')
     plt.ylabel('ROI')
-    plt.title('Randomized fMRI data\nIRAF for 2nd layer DNN, participant 102')
+    plt.title('IRAF based on only within-run\nIRAF for 2nd layer DNN, participant 102')
     # plt.title('Shuffled trials\nIRAF for 2nd layer DNN, participant 102')
-
     plt.colorbar()
     plt.show()
     quit()
 
-        # r_flat = r_mat[np.tril_indices_from(r_mat, k=-1)]
-        # r, _ = stats.spearmanr(r_flat, RDM_stim_flat)
-
-        # print(r_mat.shape)
-        # print(RDM_stim.shape)
-
 if __name__ == '__main__':
     # analyze_all_sn()
+
     sanity_test()

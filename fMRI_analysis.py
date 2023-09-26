@@ -17,6 +17,7 @@ import scipy.stats as stats
 from tqdm import tqdm
 from pathlib import Path
 from time import time
+import matplotlib.pyplot as plt
 
 def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
@@ -28,45 +29,35 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
     z = np.arctanh(r)
     return z
 
-def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, flipper=0):
+def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
     '''
     matmul all took 0.001 seconds
     matmul semi (one loop, inner matmul) took 0.008 seconds
     scipy pearsonr took 0.013 seconds
     scipy spearmanr took 0.055 seconds
+
     :param fMRI_RDM:
     :param stim_RDM:
     :param df_sn:
     :param flipper:
     :return:
     '''
-    # st = time()
-    fMRI_RDM[np.diag_indices_from(fMRI_RDM)] = np.nan
+    fMRI_RDM_ = fMRI_RDM.copy()
+    if ignore_within_run:
+        trial_per_run = fMRI_RDM.shape[0] // 3
+        for run in range(3):
+            low = run * trial_per_run
+            high = (run + 1) * trial_per_run
+            fMRI_RDM_[low:high, low:high] = np.nan
+
+    fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
-    fMRI_RDM_ = stdize(fMRI_RDM, axis=0, nans=True)
-    stim_RDM_ = stdize(stim_RDM, axis=0, nans=True)
-    IRAFs = fMRI_RDM_ * stim_RDM_
+    fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)
+    stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
+    IRAFs = fMRI_RDM_std * stim_RDM_std
     IRAFs = np.nanmean(IRAFs, axis=0)
     IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
-    # st = time()
-    # for i in range(fMRI_RDM.shape[0]):
-    #     fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
-    #     stim_vec_std = np.delete(stim_RDM[i, :], i)
-    #     fMRI_vec_std = stdize(fMRI_vec_std)  # exclude correlation w itself
-    #     stim_vec_std = stdize(stim_vec_std)
-    #     r, _ = stats.spearmanr(fMRI_vec_std, stim_vec_std)
-    #     IRAFs.append(r)
-    #
-    # time_elapsed = time() - st
-    # print(f'scipy spearmanr took {time_elapsed:.4f} seconds')
-    # quit()
-    #
-    # # print(IRAFs)
-    # # quit()
-    # IRAFs = [IRAF for (IRAF, _) in sorted(zip(IRAFs, df_sn['obj']),
-    #                                       key=lambda x: x[1])]
-    # return np.array(IRAFs)
 
 
 def get_IRAF_connectivity_matrix(ROI_to_IRAF, n_ROIs, ROIs):
@@ -123,7 +114,8 @@ def get_ROI_vecs(sn, ROIs, ROI_nums, atlas, img, ROI_regions,
     f = lambda: get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
                   nan_thresh=nan_thresh, vec_prod=vec_prod,
                   org_by_region=org_by_region)
-    r2vecs, r2vecs_down = pickle_wrap(fp_cache, f, verbose=True)
+    r2vecs, r2vecs_down = pickle_wrap(fp_cache, f, verbose=True,
+                                      easy_override=False)
     return r2vecs, r2vecs_down
 
 
@@ -132,7 +124,7 @@ def get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
     ROI2vecs = {}
     ROI2vecs_down = {}
     region2vecs = defaultdict(list)
-    idxs = np.arange(114)
+    # idxs = np.arange(114)
     # np.random.shuffle(idxs)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
@@ -142,9 +134,9 @@ def get_ROI_vecs_(ROIs, ROI_nums, atlas, img, ROI_regions,
         # atlas_roi_downsample[:, :, ::3] = False
 
         region_vecs = img[atlas_roi]
-        region_vecs = region_vecs[:, idxs]
+        # region_vecs = region_vecs[:, idxs]
         # print(region_vecs.shape)
-        region_vecs = np.random.normal(size=region_vecs.shape)
+        # region_vecs = np.random.normal(size=region_vecs.shape)
         # print(region_vecs.shape)
 
         # print(region_vecs)
@@ -185,9 +177,6 @@ def get_ROI_vecs_prod(ROI2vecs):
         ROI2vec_prods[ROI] = utils.pb_outer(vecs_, vecs_, flat=False)
         idxs = np.tril_indices_from(ROI2vec_prods[ROI][0, :], k=-1)
         ROI2vec_prods[ROI] = ROI2vec_prods[ROI][:, idxs[0], idxs[1]]
-        # print('n nans = ', np.sum(np.isnan(ROI2vec_prods[ROI])),
-        #       '| prev = ', np.sum(np.isnan(vecs)),
-        #       'total = ', ROI2vec_prods[ROI].size)
     return ROI2vec_prods, None
 
 
@@ -313,7 +302,10 @@ def analyze_subj(sn, cin, d_vecs, n_ROIs, ROIs, ROI_nums, atlas, n_trials,
                     ROI_vec_down_ar[j:j + inc], ROI_vec_down_ar, flat=True)
             run_rxr(ROIs, ROI_nums, ROI2vecs_down, j, inc, rxr_all_products,
                     RDM_stims, rxr_mats)
-
+    # ar = np.array([ROI_to_IRAF['obj'][ROI][0, :] for ROI in ROIs])
+    # plt.imshow(ar)
+    # plt.show()
+    # quit()
     if do_rxr:
         del rxr_all_products
         for key in stim_keys:
@@ -375,8 +367,6 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, DNN_layer=2,
                      )
         sns.append(sn)
 
-
-
     ROIs = atlas['tick_labels'] if org_by_region else atlas['ROIs']
     keys_sans_obj_scn = [key for key in stim_keys if
                          'obj' != key and 'scn' != key]
@@ -426,8 +416,8 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     cin = None
     # if True:
-        # for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI', ]:
-    for fp_fMRI_col in ['con_fMRI', 'vis_fMRI']:
+    for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI', ]:
+    # for fp_fMRI_col in ['con_fMRI', 'vis_fMRI']:
         for age in [1, 2]:
             # for early, semantic in [(True, False), (False, False), (False, True)]:
             for DNN_layer, semantic in [(2, False), (6, False), (4, False),

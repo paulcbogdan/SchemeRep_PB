@@ -59,48 +59,46 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
-    key = 'obj'
+    key = 'dif_abs'
     # prune_to_only_hits(d, key, misses=False)
-
     IRAFs = [np.array(d['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
 
 
     # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
     # IRAFs = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
 
-    IRAFs = replace_w_nan_if_needed(IRAFs)
-
-    # for i in range(IRAFs.shape[1]):
-    #     np.random.shuffle(IRAFs[:, i, :])
-        # if i % 2 == 0:
-        # IRAFs[:, i, :] = np.hstack([IRAFs[:, i, ::2], IRAFs[:, i, ::2]])
-        # else:
-        # IRAFs[:, i, :] = np.hstack([IRAFs[:, i, 1::2], IRAFs[:, i, 1::2]])
-    # test = IRAFs[:, 2, :]
-    test = np.nanmedian(IRAFs, axis=1)
-    import matplotlib.pyplot as plt
-    plt.imshow(test)
-    plt.ylabel('ROI')
-    plt.xlabel('Item')
-    plt.title('Object, DNN Layer 2 (PCA)')
-    plt.colorbar()
-    plt.show()
-
-    print(IRAFs.shape)
-
-
-    quit()
+    # IRAFs = replace_w_nan_if_needed(IRAFs)
+    #
+    # # for i in range(IRAFs.shape[1]):
+    # #     np.random.shuffle(IRAFs[:, i, :])
+    #     # if i % 2 == 0:
+    #     # IRAFs[:, i, :] = np.hstack([IRAFs[:, i, ::2], IRAFs[:, i, ::2]])
+    #     # else:
+    #     # IRAFs[:, i, :] = np.hstack([IRAFs[:, i, 1::2], IRAFs[:, i, 1::2]])
+    # # test = IRAFs[:, 2, :]
+    # test = np.nanmedian(IRAFs, axis=1)
+    # import matplotlib.pyplot as plt
+    # plt.imshow(test)
+    # plt.ylabel('ROI')
+    # plt.xlabel('Item')
+    # plt.title('Object, DNN Layer 2 (PCA)')
+    # plt.colorbar()
+    # plt.show()
+    #
+    # print(IRAFs.shape)
+    #
+    #
+    # quit()
     # print(f'{IRAFs.shape=}')
     # quit()
     # IRAFs = np.array(list(filter(lambda x: x.shape[0] == 33, IRAFs)))
-    # activity = [np.array(d['IRAFs_ROI']['scn'][roi1]) for roi1 in atlas['ROIs']]
-    activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
+    activity = [np.array(d['IRAFs_ROI']['dif_abs'][roi1]) for roi1 in atlas['ROIs']]
+    # activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
     # activity = [np.array(d2['IRAFs_ROI']['dif'][roi0]) for roi0 in atlas['ROIs']]
 
     activity = replace_w_nan_if_needed(activity)
 
-    activity = activity - np.nanmean(activity[0], axis=0)
-
+    # activity = activity - np.nanmean(activity[0], axis=0)
 
     # print(activity.shape)
     # print(IRAFs.shape)
@@ -108,6 +106,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # activity = np.array(list(filter(lambda x: x.shape[0] == 33, activity)))
     # print(np.array(IRAFs).shape)
     r_Ms, r_SDs, t, _ = bulk_correlate(IRAFs, activity, nans=True)
+    t[np.diag_indices_from(t)] = np.nan
     # print(t.shape)
     # quit()
     title = make_title_str('Activity x IRAF', key, age, early, semantic, cin)
