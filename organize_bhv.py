@@ -6,6 +6,7 @@ from glob import glob
 from pprint import pprint
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 # TODO: measure where congruent is more correlated object x scene
 
@@ -61,7 +62,6 @@ def get_trial_info(sn, ret=False):
         mat_enc = io.loadmat(fp_bhv)
         for i in range(38):
             trial = i + 1
-            # print(f'{}')
             glob_obj = fr'{obj_root}/Day2_Run{run}_Trial{trial}_*.nii'
             glob_obj = glob(glob_obj)
             assert len(glob_obj) == 1
@@ -219,9 +219,11 @@ def get_all_sns(ret=False):
         bad_sns.add('215')
     for age in range(1, 4):
         bhv_root = fr'behavFiles/ENC/S{age}*_run1.mat'
-        fns = glob(bhv_root)
-        for fn in fns:
-            sn = fn.replace('behavFiles/ENC\\S', '').replace('_run1.mat', '')
+        fps = glob(bhv_root)
+        for fp in fps:
+            sn = Path(fp).stem
+            sn_no_S = sn[1:]
+            sn = sn_no_S.replace('_run1', '')
             # sn = fn.replace(r'behavFiles/ENC/S', '').replace('_run1.mat', '')
             if sn in bad_sns:
                 continue
@@ -231,6 +233,6 @@ def get_all_sns(ret=False):
 
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=True)
-    for sn in age2sn[2]:
+    for sn in age2sn[1]:
         print(sn)
         get_trial_info(sn)

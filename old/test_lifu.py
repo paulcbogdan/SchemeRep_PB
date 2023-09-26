@@ -17,7 +17,7 @@ def get_stim_RDM_lifu(df_sn):
     tblStim = pd.read_csv(r"SchemRep_tasks\PTBtasks\fullStimList.csv")
     tblStim.head()
     filelist = tblStim['ObjectFile'].to_list()
-    name2fps = get_img_fns(get_dict=True)
+    name2fps, _ = get_img_fns(get_dict=True)
 
     for obj0 in tqdm(df_sn['obj'], desc='prepping Lifu RDM'):
         obj0 = name2fps[obj0].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]

@@ -3,14 +3,15 @@ from pickle_wrap import pickle_wrap
 from organize_bhv import get_trial_info, NAME_RENAMER
 import pandas as pd
 from PIL import Image
+from pathlib import Path
 
 import os
-import torch
-import torch.nn
-import torchvision.models as models
-import torchvision.transforms as transforms
-import torch.nn.functional as F
-import torchvision.utils as utils
+# import torch
+# import torch.nn
+# import torchvision.models as models
+# import torchvision.transforms as transforms
+# import torch.nn.functional as F
+# import torchvision.utils as utils
 # import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -89,16 +90,21 @@ def get_DNN_vecs(PCA=False, DNN_layer=2):
                        easy_override=False)
 
 def get_img_fns(get_dict=False):
-    dir_obj = r'SchemRep_tasks\PTBtasks\updatedObjectsResampled'
-    dir_scene = r'SchemRep_tasks\PTBtasks\updatedScenesResampled'
-    df_stim = pd.read_csv(r'SchemRep_tasks\PTBtasks/fullStimList.csv')
+    dir_obj = r'SchemRep_tasks/PTBtasks/updatedObjectsResampled'
+    dir_obj = Path(dir_obj)
+    dir_scene = r'SchemRep_tasks/PTBtasks/updatedScenesResampled'
+    dir_scene = Path(dir_scene)
+    fp_stim = r'SchemRep_tasks/PTBtasks/fullStimList.csv'
+    fp_stim = Path(fp_stim)
+    df_stim = pd.read_csv(fp_stim)
 
     names = list(df_stim['Object'].values) + list(df_stim['SceneCongruent'].values)
     fps_obj = [f'{dir_obj}/{fn}' for fn in df_stim['ObjectFile'].values]
     fps_scene = [f'{dir_scene}/{fn}' for fn in df_stim['SceneConFilename'].values]
     fps = fps_obj + fps_scene
+    img2cat = dict(zip(names, ['obj']*len(fps_obj) + ['scene']*len(fps_scene)))
     if get_dict:
-        return dict(zip(names, fps))
+        return dict(zip(names, fps)), img2cat
     else:
         return names, fps
 
