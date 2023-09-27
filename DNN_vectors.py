@@ -6,13 +6,13 @@ from PIL import Image
 from pathlib import Path
 
 import os
-# import torch
-# import torch.nn
-# import torchvision.models as models
-# import torchvision.transforms as transforms
-# import torch.nn.functional as F
-# import torchvision.utils as utils
-# import cv2
+import torch
+import torch.nn
+import torchvision.models as models
+import torchvision.transforms as transforms
+import torch.nn.functional as F
+import torchvision.utils as utils
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -107,6 +107,3 @@ def get_img_fns(get_dict=False):
         return dict(zip(names, fps)), img2cat
     else:
         return names, fps
-
-if __name__ == '__main__':
-    get_DNN_vecs(early=True, PCA=True)

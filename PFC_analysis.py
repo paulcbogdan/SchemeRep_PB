@@ -8,7 +8,7 @@ import numpy as np
 
 from DNN_vectors import get_DNN_vecs
 from ROIs import get_BN_and_resample, get_combined_BNA
-from fMRI_analysis import get_ROI_vecs, get_ROI_vecs_
+from fMRI_analysis import get_ROI_vecs, get_ROI_vecs_, within_run_to_nan, regress_out_within_across
 from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info, get_all_sns
 from nilearn import image
@@ -32,16 +32,20 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
     RDM_stims = {'obj': get_stim_RDM(df_sn, d_vecs, obj_only=True),
                  'obj_abs': get_stim_RDM(df_sn, d_vecs, obj_only=True, take_abs=True),
                  'scn': get_stim_RDM(df_sn, d_vecs, scene_only=True),
+                 'scn_abs': get_stim_RDM(df_sn, d_vecs, scene_only=True, take_abs=True),
                  'dif': get_stim_RDM(df_sn, d_vecs, dif=True),
                  'dif_abs': get_stim_RDM(df_sn, d_vecs, dif=True, take_abs=True),
                  'prod': get_stim_RDM(df_sn, d_vecs, prod=True),}
+
+
+
     return RDM_stims
 
 def load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='scn_fMRI',
                           vec_prod=False, nan_thresh=.25,
                           org_by_region=False, combine_regions=False):
     # # img = image.load_img(df_sn['fp_fMRI']).get_fdata()
-    # img = image.load_img(df_sn['fp_fMRI']).get_fdata()
+    # img = image.load_img(df_sn['fp_f MRI']).get_fdata()
     #
     # ROI2vecs, _ = get_ROI_vecs(atlas['ROIs'], atlas['ROI_nums'], atlas, img,
     #                             atlas['ROI_regions'],
@@ -58,7 +62,7 @@ def load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='scn_fMRI',
                fr'{vec_prod_str}{org_by_region_str}{nan_str}.pkl'
     if not os.path.isfile(fp_cache):
         print(f'ROI2vecs cache not found: {fp_cache}')
-        quit()
+        return None, None
     with open(fp_cache, 'rb') as f:
         ROI2vecs, _ = pickle.load(f)
 
@@ -68,7 +72,9 @@ def analyze_sn(sn, atlas):
     df_sn = get_trial_info(sn)
     # n_ROIs = len(atlas['ROIs'])
     # vec_prod_str = '_vec_prod' if False else ''
-    ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='scn_fMRI')
+    ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='vis_fMRI')
+    if ROI2vecs is None:
+        return None
     # fp_cache = fr'cache\ROI2vecs\sn{sn}_nROI{n_ROIs}{vec_prod_str}.pkl'
     # ROI2vecs, _ = pickle_wrap(fp_cache,
     #                           lambda: load_and_get_ROI_vecs(df_sn,
@@ -88,16 +94,17 @@ def analyze_sn(sn, atlas):
     for ROI, vecs in ROI2vecs.items():
         # print(ROI)
         if ROI in vmPFC or ROI in dmPFC:
-            PFC_vecs.append(vecs)
+            # PFC_vecs.append(vecs)
+            continue
 
         # if ROI in dmPFC:
         #     continue
         # if 'SFG' in ROI:
         #     PFC_vecs.append(vecs)
 
-        # if  'MFG' in ROI or 'IFG' in ROI or 'SFG' in ROI:
+        if 'IFG' in ROI or 'MFG' in ROI:
             # PFC_vecs.append(np.nanmean(vecs, axis=1)[:, None])
-            # PFC_vecs.append(vecs)
+            PFC_vecs.append(vecs)
         # if 'Hipp' in ROI:
         #     PFC_vecs.append(vecs)
     PFC_vecs = np.hstack(PFC_vecs)
@@ -109,11 +116,14 @@ def analyze_sn(sn, atlas):
     RDM_fMRI = np.corrcoef(PFC_vecs)
     RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
     key2z = {}
+    # RDM_fMRI = within_run_to_nan(RDM_fMRI)
+    RDM_fMRI = regress_out_within_across(RDM_fMRI)
+
     for key, RDM_stim in RDM_stims.items():
         tril_idx = np.tril_indices_from(RDM_fMRI, k=-1)
         fMRI_vec = RDM_fMRI[tril_idx]
         stim_vec = RDM_stim[tril_idx]
-        r, _ = stats.spearmanr(fMRI_vec, stim_vec)
+        r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
         z = np.arctanh(r)
         key2z[key] = z
     return key2z
@@ -124,8 +134,23 @@ def analyze_all_sn(age=1):
     key2z_all = defaultdict(list)
     for i, sn in tqdm(enumerate(age2sn[age]), desc='PFC looping sn'):
         key2z = analyze_sn(sn, atlas)
+        if key2z is None:
+            continue
         for key, z in key2z.items():
             key2z_all[key].append(z)
+
+    key2z_all['dif_abs_'] = utils.regress_out_multi([key2z_all['obj_abs'],
+                                                     key2z_all['scn_abs'],
+                                                     key2z_all['obj'],
+                                                     key2z_all['scn']],
+                                                     key2z_all['dif_abs'])
+    key2z_all['obj_abs_'] = utils.regress_out_multi([key2z_all['scn_abs'],
+                                                     key2z_all['dif_abs']],
+                                                     key2z_all['obj_abs'])
+    key2z_all['scn_abs_'] = utils.regress_out_multi([key2z_all['obj_abs'],
+                                                     key2z_all['dif_abs'],],
+                                                     key2z_all['scn_abs'])
+
 
     for key, l in key2z_all.items():
         M = np.nanmean(l)
@@ -153,7 +178,6 @@ def sanity_test(sn='102'):
     atlas = get_BN_and_resample(combine_bilateral=False)
     df_sn = get_trial_info(sn)
     # ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='obj_fMRI')
-
     img = image.load_img(df_sn['obj_fMRI']).get_fdata()
     ROI2vecs, _ = get_ROI_vecs_(atlas['ROIs'], atlas['ROI_nums'], atlas,
                                 img, atlas['ROI_regions'])
@@ -163,7 +187,6 @@ def sanity_test(sn='102'):
     # RDM_stim = get_stim_RDM_lifu(df_sn)
     # RDM_stim = np.random.normal(size=RDM_stim.shape)
     # RDM_stim_flat = RDM_stim[np.tril_indices_from(RDM_stim, k=-1)]
-
     all_data = []
     for ROI, vecs in tqdm(ROI2vecs.items(), desc='looping ROIs'):
         fMRI_RDM = np.corrcoef(vecs)
@@ -174,8 +197,7 @@ def sanity_test(sn='102'):
             low = run * trial_per_run
             high = (run + 1) * trial_per_run
             fMRI_RDM[low:high, low:high] = np.nan
-        print(fMRI_RDM)
-        quit()
+
         trial_rs = []
         for i in range(fMRI_RDM.shape[0]):
             fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
@@ -203,6 +225,6 @@ def sanity_test(sn='102'):
     quit()
 
 if __name__ == '__main__':
-    # analyze_all_sn()
+    analyze_all_sn()
 
-    sanity_test()
+    # sanity_test()

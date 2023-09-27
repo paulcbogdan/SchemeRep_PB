@@ -7,12 +7,15 @@ from single_trial_conn import corr_last_dim
 import numpy as np
 import scipy.stats as stats
 
+from utils import stdize
+
+
 def ERS_sn(sn, atlas):
     df_sn = get_trial_info(sn)
     ROI2vecs_enc, _ = load_and_get_ROI_vecs(sn, atlas,
-                                            fp_fMRI_col='con_fMRI')
+                                            fp_fMRI_col='obj_fMRI')
     ROI2vecs_ret, _ = load_and_get_ROI_vecs(sn, atlas,
-                                            fp_fMRI_col='scn_fMRI')
+                                            fp_fMRI_col='con_fMRI')
     ers_l = []
     hits = df_sn['hit_bool'].fillna(False).values
     for ROI in atlas['ROIs']:
@@ -25,10 +28,26 @@ def ERS_sn(sn, atlas):
         if vecs_enc.shape != vecs_ret.shape:
             ers_l.append(np.nan)
             continue
+
         ers = corr_last_dim(vecs_enc, vecs_ret)
-        # print(f'{hits=}')
-        # print(len(ers))
-        # print()
+        # print(ers.shape)
+        # quit()
+        # print(vecs_ret[:, 0])
+        # quit()
+        vecs_enc_std = stdize(vecs_enc, axis=1)
+        vecs_ret_std = stdize(vecs_ret, axis=1)
+        ers_else = np.full(ers.shape, np.nan)
+        for i, vec_enc in enumerate(vecs_enc_std):
+            vecs_ret_std_ = np.vstack([vecs_ret_std[:i, :],
+                                       vecs_ret_std[i+1:, :]])
+            prods = vec_enc * vecs_ret_std_
+            assert np.sum(np.isnan(prods)) == 0, f'NaNs in prods: {ROI=}, ' \
+                                                 f'{np.sum(np.isnan(prods))=}'
+            corrs = np.mean(prods, axis=1)
+            ers_else[i] = np.mean(corrs)
+        ers = ers - ers_else
+        # print(ers_else.shape)
+        # quit()
         ers_l.append(np.nanmean(ers[hits]))
     ers_sn = np.array(ers_l)
     return ers_sn
@@ -40,7 +59,7 @@ def ERS_all_sn():
     # quit()
     age2sn = get_all_sns(ret=True)
     ers_l_all = []
-    for i, sn in tqdm(enumerate(age2sn[1]), desc='ERS'):
+    for i, sn in tqdm(enumerate(age2sn[1]), desc='ERS, looping subjects'):
         ers_l_all.append(ERS_sn(sn, atlas))
     ers_all = np.array(ers_l_all)
     print(ers_all.shape)

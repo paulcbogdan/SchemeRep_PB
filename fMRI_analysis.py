@@ -19,14 +19,45 @@ from pathlib import Path
 from time import time
 import matplotlib.pyplot as plt
 
+def within_run_to_nan(RDM):
+    RDM_ = RDM.copy()
+    trial_per_run = RDM.shape[0] // 3
+    for run in range(3):
+        low = run * trial_per_run
+        high = (run + 1) * trial_per_run
+        RDM_[low:high, low:high] = np.nan
+    return RDM_
+
+def regress_out_within_across(RDM):
+    RDM_ = RDM.copy()
+    trial_per_run = RDM.shape[0] // 3
+    for run in range(3):
+        low = run * trial_per_run
+        high = (run + 1) * trial_per_run
+        for i in range(low, high):
+            RDM_[i, low:high] = RDM_[i, low:high] - np.nanmean(RDM_[i, low:high])
+            RDM_else = 1/2*(np.nanmean(RDM_[i, low:high] + np.nanmean(RDM_[low:high, i])))
+            RDM_[i, :low] = RDM_[i, :low] - RDM_else
+            RDM_[i, high:] = RDM_[i, high:] - RDM_else
+    return RDM_
+
 def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
-    fMRI_vec = fMRI_RDM[tril_idx]
+    fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    # fMRI_RDM_ = regress_out_within_across(fMRI_RDM)
+    fMRI_vec = fMRI_RDM_[tril_idx]
     stim_vec = stim_RDM[tril_idx]
-    r, _ = stats.spearmanr(fMRI_vec, stim_vec)
+    # fMRI_nans = np.isnan(fMRI_vec)
+    # stim_nans = np.isnan(stim_vec)
+    # either_nan = fMRI_nans | stim_nans
+    # fMRI_vec = fMRI_vec[~either_nan]
+    # stim_vec = stim_vec[~either_nan]
+    r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
     z = np.arctanh(r)
+    # print(f'{z=}')
+    # quit()
     return z
 
 def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
@@ -42,13 +73,11 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
     :param flipper:
     :return:
     '''
-    fMRI_RDM_ = fMRI_RDM.copy()
-    if ignore_within_run:
-        trial_per_run = fMRI_RDM.shape[0] // 3
-        for run in range(3):
-            low = run * trial_per_run
-            high = (run + 1) * trial_per_run
-            fMRI_RDM_[low:high, low:high] = np.nan
+    fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    # fMRI_RDM_ = regress_out_within_across(fMRI_RDM)
+
+    # fMRI_RDM_ = fMRI_RDM.copy()
+    # if ignore_within_run:
 
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
@@ -405,7 +434,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, early=False, DNN_layer=2,
 def run_multi_settings():
     # semantic = False
     rxr = False
-    combine_regions = True
+    combine_regions = False
     bilateral = False # combines bilateral ROIs/regions
     vec_prod = False
     org_by_region = False
@@ -416,12 +445,14 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     cin = None
     # if True:
-    for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI', ]:
-    # for fp_fMRI_col in ['con_fMRI', 'vis_fMRI']:
-        for age in [1, 2]:
+    for age in [1, 2]:
+        for fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'obj_fMRI', 'scn_fMRI', ]:
+        # for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI', ]:
             # for early, semantic in [(True, False), (False, False), (False, True)]:
-            for DNN_layer, semantic in [(2, False), (6, False), (4, False),
-                                        (-1, False), (False, True), ]: # (True, False),
+            for DNN_layer, semantic in [(2, False),
+                                        #(6, False), (4, False),
+                                        #(-1, False),
+                                        (False, True), ]: # (True, False),
             # for early, semantic in [(True, False), (False, True), ]: # (True, False),
                 age_str = 'healthy' if age == 'healthy' else \
                     'YA' if age == 1 else 'OA'

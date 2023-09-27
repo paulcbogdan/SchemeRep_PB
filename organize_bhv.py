@@ -178,8 +178,10 @@ def process_vis_retrieval(df_sn, sn):
             glob_vic = fr'{vis_root}/Day3Visual_Run{run}_Trial{trial}_*.nii'
             glob_vic = glob(glob_vic)
             if len(glob_vic) < 1:
-                print(f'No visual glob for {obj=}, {old_similar_new=}')
-                break
+                obj2vis[obj] = None
+                # print(f'No visual glob for {obj=}, {old_similar_new=}')
+                # break
+                continue
             assert len(glob_vic) == 1
             obj2vis[obj] = glob_vic[0]
     else:

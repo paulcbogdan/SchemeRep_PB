@@ -11,7 +11,7 @@ def regress_out(x, y):
     nans = np.isnan(x) | np.isnan(y)
     n_goods = np.sum(~nans)
     if n_goods < 3:
-        print(f'Warning: not enough non-nan values to regress out: {n_goods=}')
+        # print(f'Warning: not enough non-nan values to regress out: {n_goods=}')
         return y
     b, m, r, p, er = stats.linregress(x[~nans], y[~nans])
     return y - x*b

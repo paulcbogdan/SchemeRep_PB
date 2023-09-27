@@ -20,8 +20,8 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     matplotlib.rc('font', **font)
     cmap = plt.get_cmap('turbo')
 
-    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=-1,
-                           fp_fMRI_col='obj_fMRI',
+    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                           fp_fMRI_col='con_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)
@@ -29,7 +29,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
 
-    key = 'obj'
+    key = 'dif_abs_'
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
@@ -73,6 +73,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
 
         color = region2color[region]
         colors.append(color)
+        # print(f'{ROI}, {region}:', d['z'][key][ROI])
         M0 = np.nanmean(d['z'][key][ROI])
         SD = np.nanstd(d['z'][key][ROI])
         N = len(d['z'][key][ROI])
