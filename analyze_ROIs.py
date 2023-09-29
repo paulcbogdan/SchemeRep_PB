@@ -21,7 +21,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     cmap = plt.get_cmap('turbo')
 
     fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='con_fMRI',
+                           fp_fMRI_col='vis_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)

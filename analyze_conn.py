@@ -37,32 +37,36 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 
-    fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='obj_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          rxr=rxr)
-    with open(fp2, 'rb') as file:
-        d2 = pickle.load(file)
+    # fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    #                       fp_fMRI_col='obj_fMRI',
+    #                       bilateral=bilateral, combine_regions=combine_regions,
+    #                       vec_prod=vec_prod, org_by_region=org_by_region,
+    #                       rxr=rxr)
+    # with open(fp2, 'rb') as file:
+    #     d2 = pickle.load(file)
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
-    key = 'dif_abs'
+    key = 'dif_abs_'
     IRAFs = [np.array(d['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
+    # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
+
     # activity = [np.array(d['IRAFs_ROI']['dif_abs'][roi1]) for roi1 in atlas['ROIs']]
     activity = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
     # activity = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    # activity = [np.array(d2['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
+    # activity = [np.array(d2['IRAFs_ROI']['dif_abs'][roi0]) for roi0 in atlas['ROIs']]
 
     activity = replace_w_nan_if_needed(activity)
 
     r_Ms, r_SDs, t, _ = bulk_correlate(IRAFs, activity, nans=True)
-    t[np.diag_indices_from(t)] = np.nan
+    # print(r_Ms.shape)
+    # quit()
+    # t[np.diag_indices_from(t)] = np.nan
     title = make_title_str('Activity x IRAF', key, age, early, semantic, cin)
     plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title, no_avg=True,
-                      cbar_label='t-value', vmin=-3)
+                      cbar_label='t-value')
     # vmin=-3
 
 def bulk_correlate(vals0, vals1, nans=False):
@@ -83,10 +87,14 @@ def bulk_correlate(vals0, vals1, nans=False):
 
     rs = vals0_ * vals1_
     rs = m(rs, axis=-1)
+    rs = np.arctanh(rs)
     r_Ms = np.nanmean(rs, axis=-1)
     # r_Ms[np.diag_indices_from(r_Ms)] = np.nan
     r_SDs = np.nanstd(rs, axis=-1)
     # r_SDs[np.diag_indices_from(r_Ms)] = np.nan
+    # print(rs.shape[-1])
+    # print(r_Ms.shape)
+    # quit()
     t = r_Ms / r_SDs * np.sqrt(rs.shape[-1]) # fix to account for different # nans per edge
     return r_Ms, r_SDs, t, rs
     # print(rs.shape)
@@ -117,9 +125,10 @@ def test_triple_z(age=1, early=True, semantic=False,
 
 
 def test_rxr(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=False, vec_prod=False,
-                 org_by_region=True, rxr=True):
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, early=early,
+                 bilateral=False, combine_regions=True, vec_prod=False,
+                 org_by_region=False, rxr=False):
+    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                          fp_fMRI_col='obj_fMRI',
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,
                           rxr=rxr)
@@ -155,6 +164,8 @@ def test_rxr(age=1, early=True, semantic=False, cin=None,
 
 
 if __name__ == '__main__':
-    test_IRAF_x_activity(early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=True, vec_prod=False,
+  test_IRAF_x_activity(early=True, semantic=False, cin=None,
+                 bilateral=False, combine_regions=False, vec_prod=False,
                  org_by_region=False, rxr=False)
+
+    # test_rxr()

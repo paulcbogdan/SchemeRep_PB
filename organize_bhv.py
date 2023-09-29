@@ -1,12 +1,14 @@
 import os.path
 from collections import defaultdict
 
+from pickle_wrap import pickle_wrap
 from scipy import io
 from glob import glob
 from pprint import pprint
 import pandas as pd
 import numpy as np
 from pathlib import Path
+
 
 # TODO: measure where congruent is more correlated object x scene
 
@@ -50,8 +52,12 @@ NAME_RENAMER = {'inside of a car': 'car',
                }
 
 
+def get_trial_info(sn, easy_override=False):
+    fp = fr'cache/trial_info/{sn}.pkl'
+    df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn))
+    return df_sn
 
-def get_trial_info(sn, ret=False):
+def get_trial_info_(sn, ret=False):
     renamer = NAME_RENAMER
 
     obj_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
@@ -100,16 +106,17 @@ def get_trial_info(sn, ret=False):
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
-    df_sn = process_conc_retrieval(df_sn, sn)
-    df_sn = process_vis_retrieval(df_sn, sn)
+    df_sn = include_BL(df_sn, sn)
+    df_sn = include_conceptual(df_sn, sn)
+    df_sn = include_vis(df_sn, sn)
     return df_sn
 
-def process_conc_retrieval(df_sn, sn):
+def include_conceptual(df_sn, sn):
     conc_root = fr'Day2EncSingleTrialModellingLSS_sorted\{sn}\all_CONruns_sorted'
     obj2resp = {}
     obj2old_new = {}
     obj2rt = {}
-    obj2conc = {}
+    obj2fp = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/RET_con/S{sn}_run{run}_RC.mat'
         try:
@@ -131,26 +138,30 @@ def process_conc_retrieval(df_sn, sn):
                 print(f'No glob_conc ({sn}): {glob_conc=}')
                 break
             # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
-            obj2conc[obj] = glob_conc[0]
+            obj2fp[obj] = glob_conc[0]
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['hit_bool'] = df_sn['con_resp'].apply(
             lambda x: np.nan if pd.isna(x) else x >= 3)
-        df_sn['con_fMRI'] = df_sn['obj'].map(obj2conc)
+        df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
+        if sn not in get_bad_sns(ret=True):
+            assert len(df_sn['con_fMRI'].value_counts()) == 114, \
+                'Missing con fMRI fp'
+
         # for x in df_sn['con_fMRI']:
         #     exists = os.path.isfile(x)
         #     if not exists:
         #         print(f'BAD: {x}')
     return df_sn
 
-def process_vis_retrieval(df_sn, sn):
+def include_vis(df_sn, sn):
     # TODO: investigate why 138 is missing run3 visual retrieval
     # Figure out the trial breakdown
     vis_root = fr'Day2EncSingleTrialModellingLSS_sorted\{sn}\all_VISruns_sorted'
 
     obj2resp = {}
     obj2type = {} # unused
-    obj2vis = {}
+    obj2fp = {}
     obj2rt = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/RET_vis/S{sn}_run{run}_RV.mat'
@@ -178,19 +189,23 @@ def process_vis_retrieval(df_sn, sn):
             glob_vic = fr'{vis_root}/Day3Visual_Run{run}_Trial{trial}_*.nii'
             glob_vic = glob(glob_vic)
             if len(glob_vic) < 1:
-                obj2vis[obj] = None
+                obj2fp[obj] = None
                 # print(f'No visual glob for {obj=}, {old_similar_new=}')
                 # break
                 continue
             assert len(glob_vic) == 1
-            obj2vis[obj] = glob_vic[0]
+            obj2fp[obj] = glob_vic[0]
     else:
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
         f = lambda row: np.nan if pd.isna(row['vis_resp']) else \
             row['vis_resp'] == row['vis_type']
         df_sn['hit_bool'] = df_sn.apply(f, axis=1)
-        df_sn['vis_fMRI'] = df_sn['obj'].map(obj2vis)
+        df_sn['vis_fMRI'] = df_sn['obj'].map(obj2fp)
+        if sn not in get_bad_sns(ret=True):
+            assert len(df_sn['vis_fMRI'].value_counts()) == 114, \
+                'Missing vis fMRI fp'
+
         # goods = 1
         # for x in df_sn['vis_fMRI']:
         #     if pd.isna(x):
@@ -207,8 +222,48 @@ def process_vis_retrieval(df_sn, sn):
     # quit()
     return df_sn
 
-def get_all_sns(ret=False):
-    age2sn = defaultdict(list)
+def do_BL_move(bl_root, run, trial):
+    glob_BL_pre = fr'{bl_root}/Day1_Run{run}_Trial{trial}_*.nii'
+    glob_BL_pre = glob(glob_BL_pre)
+    if len(glob_BL_pre) > 1:
+        print(f'Bad more than one pre: {glob_BL_pre=}')
+        quit()
+    elif len(glob_BL_pre) == 1:
+        import shutil
+        fp_BL_pre = Path(glob_BL_pre[0])
+        dir_BL_post = fp_BL_pre.parent.joinpath('all_BLruns_sorted')
+        dir_BL_post.mkdir(exist_ok=True)
+        fp_BL_post = dir_BL_post.joinpath(fp_BL_pre.name)
+        shutil.move(fp_BL_pre, fp_BL_post)
+
+def include_BL(df_sn, sn):
+    bl_root = fr'Day2EncSingleTrialModellingLSS_sorted\{sn}'
+    obj2resp = {}
+    obj2fp = {}
+    for run in range(1, 4):
+        fp_bhv = fr'behavFiles/BL/S{sn}_run{run}.mat'
+        try:
+            mat_enc = io.loadmat(fp_bhv)
+        except FileNotFoundError:
+            continue
+        for i in range(38):
+            trial = i + 1
+            obj = mat_enc['pdata'][0][0][6][0][i][0]
+            resp = mat_enc['pdata'][0][0][8][0][i][0]
+            obj2resp[obj] = resp
+            do_BL_move(bl_root, run, trial)
+            glob_BL = fr'{bl_root}/all_BLruns_sorted/Day1_Run{run}_Trial{trial}_*.nii'
+            glob_BL = glob(glob_BL)
+            assert len(glob_BL) == 1, f'Bad more than one post: {glob_BL=}'
+            obj2fp[obj] = glob_BL[0]
+    else:
+        df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
+        df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
+        assert pd.isna(df_sn['bl_fMRI']).sum() == 0, 'Missing BL fMRI fp unneeded'
+        # assert len(df_sn['bl_fMRI'].value_counts()) == 114, 'Missing BL fMRI fp'
+    return df_sn
+
+def get_bad_sns(ret=False):
     bad_sns = {'126', '131',
                '201', '224', '231', '232', '233', '234', '235'}
     if ret:
@@ -219,6 +274,12 @@ def get_all_sns(ret=False):
 
         bad_sns.add('213')
         bad_sns.add('215')
+    return bad_sns
+
+def get_all_sns(ret=False):
+    age2sn = defaultdict(list)
+    bad_sns = get_bad_sns(ret=True)
+
     for age in range(1, 4):
         bhv_root = fr'behavFiles/ENC/S{age}*_run1.mat'
         fps = glob(bhv_root)
@@ -232,6 +293,8 @@ def get_all_sns(ret=False):
             age2sn[age].append(sn)
     age2sn['healthy'] = age2sn[1] + age2sn[2]
     return age2sn
+
+
 
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=True)

@@ -47,14 +47,19 @@ def defaultdict_to_dict(d):
     return d
 
 
-def pb_outer(a, b, flat=False):
+def pb_outer(a, b, flat=False, tril=False, nan_diag=False):
     # Multiply matrix of vector a (size n) and vector b (size m) to get n x m
     a = np.array(a)
     b = np.array(b)
     a = np.expand_dims(a, axis=2)
     b = np.expand_dims(b, axis=1)
     c = a * b
-    if flat:
+    if nan_diag:
+        assert c.shape[-1] == c.shape[-2], f'c must be square: {c.shape=}'
+        c[:, np.arange(c.shape[-1]), np.arange(c.shape[-1])] = np.nan
+    if tril:
+        c = ndim_tril_flatten(c)
+    elif flat:
         c = c.reshape(-1, c.shape[1]*c.shape[2])
     return c
 
@@ -186,3 +191,11 @@ def prune_to_only_hits(d, key, misses=False):
         d['activity'][ROI] = np.array(d['activity'][ROI])
         d['activity'][ROI][~mask] = np.nan
     return d
+
+
+def ndim_tril_flatten(ar):
+    tril = np.tril_indices(ar.shape[-1], k=-1)
+    slicer = tuple([slice(None)] * (ar.ndim - 2) + [tril[0], tril[1]])
+    # print(slicer)
+    ar_flat = ar[slicer]
+    return ar_flat

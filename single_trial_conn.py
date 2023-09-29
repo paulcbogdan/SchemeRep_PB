@@ -3,13 +3,17 @@ import numpy as np
 
 from DNN_vectors import get_DNN_vecs
 from ROIs import get_atlas
-from analyze_conn import bulk_correlate
 from organize_bhv import get_trial_info
 from plotting import plot_connectivity
 from stim_vec import get_stim_RDM
-from utils import get_cache_RSA_fp
-from wordvec_get_vectors import get_semantic_vectors
+from utils import get_cache_RSA_fp, ndim_tril_flatten
 import scipy.stats as stats
+
+import warnings
+
+warnings.filterwarnings('ignore', message='Mean of empty slice')
+warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
+
 
 def roimap2np(ROI2ar, only_some=None):
     l = []
@@ -27,6 +31,7 @@ def roimap2np(ROI2ar, only_some=None):
     return l
 
 def corr_matrix_last_two_dim(ar, nans=True):
+
     # Second-to-last dim should be your variable
     # Last dim should be a time series
     m = np.nanmean if nans else np.mean
@@ -39,10 +44,15 @@ def corr_matrix_last_two_dim(ar, nans=True):
     ar_std1 = np.expand_dims(ar_std, axis=-3)
     rs = ar_std0 * ar_std1
     rs = m(rs, axis=-1)
-    tril = np.tril_indices(rs.shape[-1], k=-1)
-    slicer = [slice(None)] * (rs.ndim - 2) + [tril[0], tril[1]]
-    rs_flat = rs[slicer]
+    # if nan_diag:
+    #     diag = np.diag_indices(rs.shape[-1])
+    #     rs[diag] = np.nan
+        # np.fill_diagonal(rs, np.nan)
+    # print(rs.shape)
+    # quit()
+    rs_flat = ndim_tril_flatten(rs)
     return rs, rs_flat
+
 
 def corr_last_dim(ar0, ar1, nans=True):
     # Last dim of both should be a time series
@@ -62,6 +72,8 @@ def corr_last_dim(ar0, ar1, nans=True):
 def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=False, vec_prod=False,
                  org_by_region=False, rxr=False):
+
+    # Binary connectivity
 
     fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
                           fp_fMRI_col='obj_fMRI',
@@ -85,14 +97,22 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
     both_a = np.stack([obj_a, scn_a], axis=-1)
     both_a = both_a.transpose((1, 2, 0, 3))
+    # print(both_a.shape)
+    # quit()
     _, rs_flat = corr_matrix_last_two_dim(both_a)
+    # print(rs_flat.shape)
+    # quit()
     _, RDMs_flat = corr_matrix_last_two_dim(rs_flat)
 
     df_sn = get_trial_info('102')
     df_sn.sort_values(by='obj', inplace=True)
     # d_vecs = get_semantic_vectors()
-    d_vecs = get_DNN_vecs(DNN_layer=-1, PCA=True)
-    RDM_stim = get_stim_RDM(df_sn, d_vecs, add=True)
+    d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True)
+    RDM_stim = get_stim_RDM(df_sn, d_vecs, add=True, take_abs=False)
+    # RDM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True)
+    # RDM_stim = get_stim_RDM(df_sn, d_vecs, dif=True, take_abs=True)
+
+
     print(f'stim: {np.sum(np.isnan(RDM_stim))}')
     RDM_stim_flat = RDM_stim[np.tril_indices(RDM_stim.shape[0], k=-1)]
 

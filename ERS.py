@@ -7,18 +7,23 @@ from single_trial_conn import corr_last_dim
 import numpy as np
 import scipy.stats as stats
 
-from utils import stdize
-
+from utils import stdize, pb_outer
+import matplotlib.pyplot as plt
+from time import time
 
 def ERS_sn(sn, atlas):
     df_sn = get_trial_info(sn)
+    keeps = df_sn['vis_type'] == 'old'
+
     ROI2vecs_enc, _ = load_and_get_ROI_vecs(sn, atlas,
-                                            fp_fMRI_col='obj_fMRI')
+                                            fp_fMRI_col='vis_fMRI')
     ROI2vecs_ret, _ = load_and_get_ROI_vecs(sn, atlas,
-                                            fp_fMRI_col='con_fMRI')
+                                            fp_fMRI_col='obj_fMRI')
     ers_l = []
     hits = df_sn['hit_bool'].fillna(False).values
-    for ROI in atlas['ROIs']:
+    for ROI in atlas['ROIs']:#, desc=f'ERS {sn} by ROI'):
+        # if 'LOC' not in ROI and 'EVC' not in ROI:
+        #     continue
         try:
             vecs_enc = ROI2vecs_enc[ROI]
             vecs_ret = ROI2vecs_ret[ROI]
@@ -28,27 +33,33 @@ def ERS_sn(sn, atlas):
         if vecs_enc.shape != vecs_ret.shape:
             ers_l.append(np.nan)
             continue
+        vecs_enc = vecs_enc[keeps, :]
+        vecs_ret = vecs_ret[keeps, :]
+        idxs = np.arange(vecs_enc.shape[1])
+        np.random.shuffle(idxs)
+        n_idx = 100
+        vecs_enc = vecs_enc[:, idxs[:n_idx]]
+        vecs_ret = vecs_ret[:, idxs[:n_idx]]
 
+        vecs_enc = stdize(vecs_enc, axis=1)
+        vecs_ret = stdize(vecs_ret, axis=1)
+        vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
+        vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
+
+        # subtract the mean of ers with other trials
         ers = corr_last_dim(vecs_enc, vecs_ret)
-        # print(ers.shape)
-        # quit()
-        # print(vecs_ret[:, 0])
-        # quit()
-        vecs_enc_std = stdize(vecs_enc, axis=1)
-        vecs_ret_std = stdize(vecs_ret, axis=1)
-        ers_else = np.full(ers.shape, np.nan)
-        for i, vec_enc in enumerate(vecs_enc_std):
-            vecs_ret_std_ = np.vstack([vecs_ret_std[:i, :],
-                                       vecs_ret_std[i+1:, :]])
-            prods = vec_enc * vecs_ret_std_
-            assert np.sum(np.isnan(prods)) == 0, f'NaNs in prods: {ROI=}, ' \
-                                                 f'{np.sum(np.isnan(prods))=}'
-            corrs = np.mean(prods, axis=1)
-            ers_else[i] = np.mean(corrs)
+        vecs_enc_ = stdize(vecs_enc, axis=1)
+        vecs_ret_ = stdize(vecs_ret, axis=1)
+        vecs_enc_ = vecs_enc_[:, None, :]
+        vecs_ret_ = vecs_ret_[None, :, :]
+        vecs_prod = vecs_enc_ * vecs_ret_
+        diag = np.diag_indices_from(vecs_prod[:, :, 0])
+        vecs_prod[diag[0], diag[1], :] = 0
+        corrmat = np.mean(vecs_prod, axis=2)
+        # ers_else is a matrix, where i, j is enc[i] x ret[j]
+        ers_else = np.sum(corrmat, axis=1) / (corrmat.shape[1] - 1)
         ers = ers - ers_else
-        # print(ers_else.shape)
-        # quit()
-        ers_l.append(np.nanmean(ers[hits]))
+        ers_l.append(np.nanmean(ers))
     ers_sn = np.array(ers_l)
     return ers_sn
 
