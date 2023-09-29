@@ -47,7 +47,7 @@ for p in model.parameters():
 model.eval()
 
 # %%
-tblStim=pd.read_csv(r"C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks/fullStimList.csv")
+tblStim=pd.read_csv(r"/SchemRep_tasks/PTBtasks/fullStimList.csv")
 tblStim.head()
 
 filelist=tblStim['ObjectFile'].to_list()

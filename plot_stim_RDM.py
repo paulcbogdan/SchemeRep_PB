@@ -5,9 +5,8 @@ import numpy as np
 from PIL import Image, ImageOps
 import os
 
-from DNN_vectors import get_DNN_vecs, get_img_fns
 from organize_bhv import get_trial_info, get_all_sns
-from wordvec_get_vectors import get_semantic_vectors
+from stim import get_semantic_vectors, get_DNN_vecs, get_img_fns
 import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path

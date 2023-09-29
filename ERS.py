@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from PFC_analysis import load_and_get_ROI_vecs
-from ROIs import get_BN_and_resample, get_atlas
+from atlas_utils import get_BN_and_resample, get_atlas
 from organize_bhv import get_all_sns, get_trial_info
 from single_trial_conn import corr_last_dim
 import numpy as np
@@ -13,7 +13,7 @@ from time import time
 
 def ERS_sn(sn, atlas):
     df_sn = get_trial_info(sn)
-    keeps = df_sn['vis_type'] == 'old'
+    # keeps = df_sn['vis_type'] == 'old'
 
     ROI2vecs_enc, _ = load_and_get_ROI_vecs(sn, atlas,
                                             fp_fMRI_col='vis_fMRI')
@@ -32,19 +32,21 @@ def ERS_sn(sn, atlas):
             continue
         if vecs_enc.shape != vecs_ret.shape:
             ers_l.append(np.nan)
+            print(f'ROI {ROI} has different shapes for enc ({vecs_enc.shape}) '
+                  f'and ret ({vecs_ret.shape})')
             continue
-        vecs_enc = vecs_enc[keeps, :]
-        vecs_ret = vecs_ret[keeps, :]
-        idxs = np.arange(vecs_enc.shape[1])
-        np.random.shuffle(idxs)
-        n_idx = 100
-        vecs_enc = vecs_enc[:, idxs[:n_idx]]
-        vecs_ret = vecs_ret[:, idxs[:n_idx]]
-
-        vecs_enc = stdize(vecs_enc, axis=1)
-        vecs_ret = stdize(vecs_ret, axis=1)
-        vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
-        vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
+        # vecs_enc = vecs_enc[keeps, :]
+        # vecs_ret = vecs_ret[keeps, :]
+        # idxs = np.arange(vecs_enc.shape[1])
+        # np.random.shuffle(idxs)
+        # n_idx = 100
+        # vecs_enc = vecs_enc[:, idxs[:n_idx]]
+        # vecs_ret = vecs_ret[:, idxs[:n_idx]]
+        #
+        # vecs_enc = stdize(vecs_enc, axis=1)
+        # vecs_ret = stdize(vecs_ret, axis=1)
+        # vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
+        # vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
 
         # subtract the mean of ers with other trials
         ers = corr_last_dim(vecs_enc, vecs_ret)
@@ -58,8 +60,10 @@ def ERS_sn(sn, atlas):
         corrmat = np.mean(vecs_prod, axis=2)
         # ers_else is a matrix, where i, j is enc[i] x ret[j]
         ers_else = np.sum(corrmat, axis=1) / (corrmat.shape[1] - 1)
-        ers = ers - ers_else
-        ers_l.append(np.nanmean(ers))
+        ers_dif = ers - ers_else
+        print('test', ers_dif.shape)
+        # ers_l.append(np.nanmean(ers_dif))
+        ers_l.append(ers_dif)
     ers_sn = np.array(ers_l)
     return ers_sn
 

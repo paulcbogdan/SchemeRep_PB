@@ -7,7 +7,7 @@ from scipy import stats as stats
 from statsmodels.stats.multitest import multipletests
 
 import utils
-from ROIs import get_atlas
+from atlas_utils import get_atlas
 from utils import get_cache_RSA_fp, make_title_str, prune_to_only_hits
 
 from connsearch.report.plots import plot_ROI_scores
@@ -29,7 +29,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
 
-    key = 'dif_abs_'
+    key = 'obj'
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)

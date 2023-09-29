@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm import tqdm
 import scipy.io as io
 
-from DNN_vectors import get_img_fns
+from stim import get_img_fns
 
 
 def get_stim_RDM_lifu(df_sn):

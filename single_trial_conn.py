@@ -1,11 +1,10 @@
 import pickle
 import numpy as np
 
-from DNN_vectors import get_DNN_vecs
-from ROIs import get_atlas
+from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
-from plotting import plot_connectivity
-from stim_vec import get_stim_RDM
+from plot_gen import plot_connectivity
+from stim import get_stim_RDM, get_DNN_vecs
 from utils import get_cache_RSA_fp, ndim_tril_flatten
 import scipy.stats as stats
 

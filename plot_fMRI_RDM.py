@@ -3,14 +3,12 @@ from collections import defaultdict
 
 import numpy as np
 
-from DNN_vectors import get_DNN_vecs
-from ROIs import get_BN_and_resample, get_combined_BNA
+from atlas_utils import get_BN_and_resample, get_combined_BNA
 from organize_bhv import get_trial_info, get_all_sns
 from nilearn import image
 
-from stim_vec import get_stim_RDM
+from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from utils import stdize, nan_ar, defaultdict_to_dict, pb_outer_double_multi
-from wordvec_get_vectors import get_semantic_vectors
 import utils
 import scipy.stats as stats
 

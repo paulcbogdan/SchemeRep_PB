@@ -1,8 +1,8 @@
 import numpy as np
 
-from plotting import plot_connectivity
+from plot_gen import plot_connectivity
 from utils import make_title_str, get_cache_RSA_fp, stdize
-from ROIs import get_atlas
+from atlas_utils import get_atlas
 
 import pickle
 
@@ -37,13 +37,13 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 
-    # fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-    #                       fp_fMRI_col='obj_fMRI',
-    #                       bilateral=bilateral, combine_regions=combine_regions,
-    #                       vec_prod=vec_prod, org_by_region=org_by_region,
-    #                       rxr=rxr)
-    # with open(fp2, 'rb') as file:
-    #     d2 = pickle.load(file)
+    fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+                          fp_fMRI_col='obj_fMRI',
+                          bilateral=bilateral, combine_regions=combine_regions,
+                          vec_prod=vec_prod, org_by_region=org_by_region,
+                          rxr=rxr)
+    with open(fp2, 'rb') as file:
+        d2 = pickle.load(file)
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)

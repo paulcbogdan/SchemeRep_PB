@@ -6,8 +6,8 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from ROIs import get_atlas
-from plotting import plot_connectivity
+from atlas_utils import get_atlas
+from plot_gen import plot_connectivity
 from single_trial_conn import corr_matrix_last_two_dim, corr_last_dim
 from utils import get_cache_RSA_fp, stdize, ndim_tril_flatten
 from communities.algorithms import louvain_method
