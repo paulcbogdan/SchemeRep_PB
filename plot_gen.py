@@ -4,6 +4,7 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 from nilearn import image
+from nilearn import plotting
 
 from atlas_utils import get_combined_BNA, get_atlas
 
@@ -63,38 +64,11 @@ def my_plot_surf(Ms, atlas):
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     for i, val in enumerate(Ms):
-        # val = -val
         i += 1
         img_data[atlas_data == i] = val
     img = image.new_img_like(atlas['maps'], img_data)
-
-
-
-    from nilearn.datasets import fetch_surf_fsaverage
-    from nilearn import surface
-    from nilearn import plotting
-    import matplotlib as mpl
-    from matplotlib.colors import LinearSegmentedColormap, ListedColormap
-
-    # fsaverage = fetch_surf_fsaverage(mesh='fsaverage5')
-    # texture = surface.vol_to_surf(atlas['maps'], fsaverage.pial_right)
-    # curv_right = surface.load_surf_data(fsaverage.curv_right)
-    # curv_right_sign = np.sign(curv_right)
-
-    cmap = plt.cm.get_cmap('turbo')
-    # cmap = ListedColormap(list(cmap(np.linspace(0, 1.0, 128))) +
-    #                       list(cmap(np.linspace(0, 1.0, 128))))
-    fig = plotting.plot_img_on_surf(img,
+    plotting.plot_img_on_surf(img,
                               threshold=2.,
                               cmap='turbo',
                               )
-    # print(fig[1][4].colorbar())
-    # quit()
-    # fig[1][4].set_ticks([0, 1, 2])
-    # quit()
-    # plt.clim(0, 1)
-    # plt.colorbar(vmin=0, vmax=1)
     plotting.show()
-
-# if __name__ == '__main__':
-    # my_plot_surf()

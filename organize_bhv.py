@@ -285,8 +285,7 @@ def get_bad_sns(ret=False):
 
 def get_all_sns(ret=False):
     age2sn = defaultdict(list)
-    bad_sns = get_bad_sns(ret=True)
-
+    bad_sns = get_bad_sns(ret=ret)
     for age in range(1, 4):
         bhv_root = fr'behavFiles/ENC/S{age}*_run1.mat'
         fps = glob(bhv_root)
@@ -331,7 +330,11 @@ def prep_dif(df, sn):
 
 
 if __name__ == '__main__':
-    age2sn = get_all_sns(ret=True)
+    age2sn = get_all_sns(ret=False)
+    # print(age2sn[1])
+    # n_subj = len(age2sn[1])
+    # print(f'{n_subj=}')
+    # quit()
     for SN in age2sn[1]:
         print(f'Testing: {SN}')
         get_trial_info(SN, easy_override=True)

@@ -2,6 +2,7 @@ import pickle
 
 import matplotlib
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from scipy import stats as stats
 from statsmodels.stats.multitest import multipletests
@@ -13,6 +14,20 @@ from utils import get_cache_RSA_fp, make_title_str, prune_to_only_hits
 
 from connsearch.report.plots import plot_ROI_scores
 from copy import deepcopy
+from time import time
+
+def do_lmer(df):
+    t = time()
+    from pymer4.models import Lmer
+    print(f'Importing pymer4 took {time() - t} seconds')
+    t = time()
+    formula = f'IRAF ~ 1 + cin + (1 | sn)'
+    model = Lmer(formula, data=df)
+    summary = model.fit(REML=False)
+    print(f'Fitting model took {time() - t} seconds')
+    t = summary['T-stat'].loc['(Intercept)']
+    p = summary['P-val'].loc['(Intercept)']
+    return t, p
 
 def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
@@ -58,29 +73,52 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     # d_miss = deepcopy(d)
     # prune_to_only_hits(d_hit, key, misses=False)
     # prune_to_only_hits(d_miss, key, misses=True)
+
+    # print(np.array(d['IRAFs_ROI']['obj'][atlas['ROIs'][0]]).shape)
+    # quit()
+
     # prune_to_only_hits(d, key, misses=False)
+    # quit()
     # for ROI in atlas['ROIs']:
-        # d_hit['z'][key][ROI] = np.nanmean(d_hit['IRAFs_ROI'][key][ROI], axis=1)
-        # d_miss['z'][key][ROI] = np.nanmean(d_miss['IRAFs_ROI'][key][ROI], axis=1)
-        # d['z'][key][ROI] = d_hit['z'][key][ROI] - d_miss['z'][key][ROI]
-        # d['z'][key][ROI] = np.nanmean(d['IRAFs_ROI'][key][ROI], axis=1)
+    #     # print()
+    #
+    #
+    #     # d_hit['z'][key][ROI] = np.nanmean(d_hit['IRAFs_ROI'][key][ROI], axis=1)
+    #     # d_miss['z'][key][ROI] = np.nanmean(d_miss['IRAFs_ROI'][key][ROI], axis=1)
+    #     # d['z'][key][ROI] = d_hit['z'][key][ROI] - d_miss['z'][key][ROI]
+    #     d['z'][key][ROI] = np.nanmean(d['IRAFs_ROI'][key][ROI], axis=1)
+    #     print(d['z'][key][ROI])
 
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
-        # ROI_num, ROI_str = ROI.split(' ')
-        # region = ROI_str.split('_')[0]
-
-        # d['z'][key][ROI] = utils.regress_out_multi([d['z']['obj_abs'][ROI]],
-        #                                             d['z'][key][ROI])
-
-        color = region2color[region]
-        colors.append(color)
-        # print(f'{ROI}, {region}:', d['z'][key][ROI])
-        M0 = np.nanmean(d['z'][key][ROI])
-        SD = np.nanstd(d['z'][key][ROI])
-        N = len(d['z'][key][ROI])
-        SE = SD / np.sqrt(N)
-        t = M0 / SE
-        p = stats.t.sf(np.abs(t), N-1)*2
+        IRAFs = d['IRAFs_ROI'][key][ROI]
+        n_trials = IRAFs.shape[-1]
+        sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
+        cins = d['bhv']['CIN']
+        IRAFs = np.reshape(IRAFs, -1)
+        sns = np.reshape(sns, -1)
+        cins = np.reshape(cins, -1)
+        cins = map(lambda x: 'C' if x == 1 else 'I' if x == 2 else 'N', cins)
+        df_ROI = pd.DataFrame({'IRAF': IRAFs, 'sn': sns, 'cin': cins})
+        t, p = do_lmer(df_ROI)
+        # continue
+        # # quit()
+        #
+        #
+        # # ROI_num, ROI_str = ROI.split(' ')
+        # # region = ROI_str.split('_')[0]
+        #
+        # # d['z'][key][ROI] = utils.regress_out_multi([d['z']['obj_abs'][ROI]],
+        # #                                             d['z'][key][ROI])
+        #
+        # color = region2color[region]
+        # colors.append(color)
+        # # print(f'{ROI}, {region}:', d['z'][key][ROI])
+        # M0 = np.nanmean(d['z'][key][ROI])
+        # SD = np.nanstd(d['z'][key][ROI])
+        # N = len(d['z'][key][ROI])
+        # SE = SD / np.sqrt(N)
+        # t = M0 / SE
+        # p = stats.t.sf(np.abs(t), N-1)*2
         ps.append(p)
         Ms.append(t)
         print(f'{ROI}, {t=}')

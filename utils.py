@@ -179,10 +179,11 @@ def get_cache_RSA_fp(cin, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
 def prune_to_only_hits(d, key, misses=False):
     d['bhv']['hit_bool'] = np.nan_to_num(d['bhv']['hit_bool'], True).astype(bool)
     for ROI in d['IRAFs_ROI'][key]:
-        if d['IRAFs_ROI'][key][ROI].shape[0] != 33:
+        if d['IRAFs_ROI'][key][ROI].shape[0] != 29:
             mask = np.full(d['IRAFs_ROI'][key][ROI].shape, False)
-            print('BAH')
+            # print('bad')
         else:
+            # print('good')
             if misses:
                 mask = ~d['bhv']['hit_bool']
             else:

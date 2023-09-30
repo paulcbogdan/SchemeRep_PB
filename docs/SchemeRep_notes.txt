@@ -1,4 +1,6 @@
-
+Participant exclusion questions:
+* Missing retrieval data: 116, 125, 133, 138 (missing visual run 3)
+* Are you using 116 for the encoding analysis? They don't have visual fMRI data and BL fMRI data has high motion (per the Box spreadsheet), but the praticipant has behavioral data for all tasks
 
 3:40, arrive 20 minutes before. 1301 Fayetteville 
 
