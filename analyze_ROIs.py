@@ -8,6 +8,7 @@ from statsmodels.stats.multitest import multipletests
 
 import utils
 from atlas_utils import get_atlas
+from plot_gen import my_plot_surf
 from utils import get_cache_RSA_fp, make_title_str, prune_to_only_hits
 
 from connsearch.report.plots import plot_ROI_scores
@@ -21,7 +22,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     cmap = plt.get_cmap('turbo')
 
     fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='vis_fMRI',
+                           fp_fMRI_col='obj_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
                            rxr=rxr)
@@ -29,7 +30,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
 
-    key = 'obj'
+    key = 'dif_abs'
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
@@ -84,8 +85,11 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
         Ms.append(t)
         print(f'{ROI}, {t=}')
     if max(Ms) > 1.6:
-        plot_ROI_scores(Ms, atlas['coords'], show=True, fp_out='meh.png',
-                    vmin=1.6)
+        print(np.array(Ms).shape)
+        my_plot_surf(np.array(Ms), atlas)
+
+        # plot_ROI_scores(Ms, atlas['coords'], show=True, fp_out='meh.png',
+        #             vmin=1.6)
 
     alpha = .10
 
@@ -112,11 +116,12 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
         # plt.plot([roi_num, roi_num], [0, M], color=colors[roi_num], zorder=1)
 
     max_val = np.nanmax(Ms)*1.05
-    plt.ylim([0, max_val])
+    min_val = min(0, np.nanmin(Ms)*1.05)
+    plt.ylim([min_val, max_val])
     # for i in range(len(tick_lows)):
     #     plt.plot([tick_lows[i], tick_lows[i]], [min_val, max_val], 'k--',
     #              zorder=-10)
-    plt.plot([0, len(Ms)], [0, 0], color='k', zorder=-1, linewidth=1)
+    plt.plot([min_val, len(Ms)], [0, 0], color='k', zorder=-1, linewidth=1)
     plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=90, fontsize=12,
                )
     plt.ylabel('t-value', labelpad=5)
@@ -135,7 +140,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, cin=None,
 if __name__ == '__main__':
     # Test connectivity within region between ROIs as nodes
     analyze_ROIs(early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=True, vec_prod=False,
+                 bilateral=False, combine_regions=False, vec_prod=False,
                  org_by_region=False, rxr=False)
 
     # analyze_ROIs(early=True, semantic=False, cin=None,

@@ -36,41 +36,13 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
                  'prod': get_stim_RDM(df_sn, d_vecs, prod=True),}
 
 
-
     return RDM_stims
 
-def load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='scn_fMRI',
-                          vec_prod=False, nan_thresh=.25,
-                          org_by_region=False, combine_regions=False):
-    # # img = image.load_img(df_sn['fp_fMRI']).get_fdata()
-    # img = image.load_img(df_sn['fp_f MRI']).get_fdata()
-    #
-    # ROI2vecs, _ = get_ROI_vecs(atlas['ROIs'], atlas['ROI_nums'], atlas, img,
-    #                             atlas['ROI_regions'],
-    #                             vec_prod=vec_prod)
-    # if combine_regions:
-    #     n_ROIs = len(atlas['ROI_regions'])
-    # else:
-    n_ROIs = len(atlas['ROIs'])
-    n_regions = len(np.unique(atlas['ROI_regions']))
-    vec_prod_str = '_vp' if vec_prod else ''
-    nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
-    org_by_region_str = '_oByR' if org_by_region else ''
-    fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}_nROI{n_ROIs}_reg{n_regions}' \
-               fr'{vec_prod_str}{org_by_region_str}{nan_str}.pkl'
-    if not os.path.isfile(fp_cache):
-        print(f'ROI2vecs cache not found: {fp_cache}')
-        return None, None
-    with open(fp_cache, 'rb') as f:
-        ROI2vecs, _ = pickle.load(f)
 
-    return ROI2vecs, _
-
-def analyze_sn(sn, atlas):
+def analyze_sn(sn, atlas, fp_fMRI_col='vis_fMRI'):
     df_sn = get_trial_info(sn)
-    # n_ROIs = len(atlas['ROIs'])
-    # vec_prod_str = '_vec_prod' if False else ''
-    ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='vis_fMRI')
+    ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn,
+                            nan_thresh=.25, org_by_region=False, cin=None)
     if ROI2vecs is None:
         return None
     # fp_cache = fr'cache\ROI2vecs\sn{sn}_nROI{n_ROIs}{vec_prod_str}.pkl'

@@ -13,7 +13,6 @@ from organize_bhv import get_trial_info
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
                  dif=False, prod=False, take_abs=False, add=False):
-    # return get_stim_RDM_lifu(df_sn)
     assert obj_only or scene_only or dif or prod or add, \
         'Must specify one of obj_only, scene_only, dif, prod, add'
     vec_size = len(d_vecs[df_sn['obj'].iloc[0]])

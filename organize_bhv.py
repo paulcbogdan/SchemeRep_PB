@@ -1,6 +1,8 @@
 import os.path
 from collections import defaultdict
+from time import time
 
+from nilearn import image
 from pickle_wrap import pickle_wrap
 from scipy import io
 from glob import glob
@@ -54,7 +56,8 @@ NAME_RENAMER = {'inside of a car': 'car',
 
 def get_trial_info(sn, easy_override=False):
     fp = fr'cache/trial_info/{sn}.pkl'
-    df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn))
+    df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn),
+                        easy_override=easy_override)
     return df_sn
 
 def get_trial_info_(sn, ret=False):
@@ -92,7 +95,7 @@ def get_trial_info_(sn, ret=False):
             else:
                 scene_rename = scene
 
-            d = {'trial': trial,
+            d = {'enc_trial': trial,
                  'run': run,
                  #'fp_fMRI': fp_obj,
                  'obj_fMRI': fp_obj,
@@ -109,6 +112,7 @@ def get_trial_info_(sn, ret=False):
     df_sn = include_BL(df_sn, sn)
     df_sn = include_conceptual(df_sn, sn)
     df_sn = include_vis(df_sn, sn)
+    df_sn = prep_dif(df_sn, sn)
     return df_sn
 
 def include_conceptual(df_sn, sn):
@@ -117,6 +121,8 @@ def include_conceptual(df_sn, sn):
     obj2old_new = {}
     obj2rt = {}
     obj2fp = {}
+    # obj2trial = {}
+    # obj2run = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/RET_con/S{sn}_run{run}_RC.mat'
         try:
@@ -139,6 +145,7 @@ def include_conceptual(df_sn, sn):
                 break
             # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
             obj2fp[obj] = glob_conc[0]
+            # obj2trial
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['hit_bool'] = df_sn['con_resp'].apply(
@@ -294,10 +301,37 @@ def get_all_sns(ret=False):
     age2sn['healthy'] = age2sn[1] + age2sn[2]
     return age2sn
 
+def prep_dif(df, sn):
+    t = time()
+    dif_root = Path(fr'Day2EncSingleTrialModellingLSS_sorted\{sn}')
+    key_pairs = [('bl', 'obj'), ('bl', 'vis'), ('obj', 'vis')]
+    for key0, key1 in key_pairs:
+        fp_key0 = f'{key0}_fMRI'
+        fp_key1 = f'{key1}_fMRI'
+        dif_fps = []
+        for trial, run, fp0, fp1 in zip(df['enc_trial'], df['run'],
+                                        df[fp_key0], df[fp_key1]):
+            dir_out = dif_root.joinpath(fr'dif_{key0}_{key1}')
+            dir_out.mkdir(exist_ok=True)
+            # fp_out = dir_out.joinpath(f'EncTrial{trial}.nii')
+            fp_out = dir_out.joinpath(f'Trial{trial}_Run{run}.nii')
+            dif_fps.append(str(fp_out))
+            if fp_out.is_file():
+                continue
+                # os.remove(fp_out)
+                # continue
+            fp_out = str(fp_out) # nilearn errors with pathlib Paths
+            img0 = image.load_img(fp0)
+            img1 = image.load_img(fp1)
+            dif_img = image.math_img('img0 - img1', img0=img0, img1=img1)
+            dif_img.to_filename(str(fp_out))
+        df[f'dif_{key0}-{key1}'] = dif_fps
+    print(f'Prepped difs for {sn} in {time() - t:.2f}s')
+    return df
 
 
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=True)
-    for sn in age2sn[1]:
-        print(sn)
-        get_trial_info(sn)
+    for SN in age2sn[1]:
+        print(f'Testing: {SN}')
+        get_trial_info(SN, easy_override=True)
