@@ -17,27 +17,67 @@ from tqdm import tqdm
 from pathlib import Path
 from time import time
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def within_run_to_nan(RDM):
+
     RDM_ = RDM.copy()
     trial_per_run = RDM.shape[0] // 3
     for run in range(3):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
         RDM_[low:high, low:high] = np.nan
+    # plt.imshow(RDM_)
+    # plt.show()
+    # quit()
     return RDM_
 
 def regress_out_within_across(RDM):
     RDM_ = RDM.copy()
     trial_per_run = RDM.shape[0] // 3
+    # for run in range(3):
+    #     low = run * trial_per_run
+    #     high = (run + 1) * trial_per_run
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #     for i in range(low, high):
+    #         within_idxs = np.arange(low, high)
+    #         between_idxs = np.concatenate((np.arange(0, low), np.arange(high, RDM.shape[0])))
+    #         # RDM_[i, within_idxs] = stats.zscore(RDM[i, within_idxs])
+    #         RDM_[i, within_idxs] = RDM_[i, within_idxs] - \
+    #                                np.nanmean(RDM_[i, within_idxs])
+    #         RDM_[i, between_idxs] = RDM_[i, between_idxs] - \
+    #                                 np.nanmean(RDM_[i, between_idxs])
+            # RDM_[i, between_idxs] = stats.zscore(RDM[i, between_idxs])
+            #
+            # RDM_[i, low:high] = RDM_[i, low:high] - np.nanmean(RDM_[i, low:high])
+            #
+            #
+            # RDM_else = 1/2*(np.nanmean(RDM_[i, low:high] + np.nanmean(RDM_[low:high, i])))
+            # RDM_[i, :low] = RDM_[i, :low] - RDM_else
+            # RDM_[i, high:] = RDM_[i, high:] - RDM_else
+            # print(f'{RDM_else=}')
+            # print(RDM_[i, between_idxs])
+            # print(np.nanmean(RDM_[i, between_idxs]))
+            # quit()
+    within_zero = np.zeros(RDM.shape)
     for run in range(3):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
-        for i in range(low, high):
-            RDM_[i, low:high] = RDM_[i, low:high] - np.nanmean(RDM_[i, low:high])
-            RDM_else = 1/2*(np.nanmean(RDM_[i, low:high] + np.nanmean(RDM_[low:high, i])))
-            RDM_[i, :low] = RDM_[i, :low] - RDM_else
-            RDM_[i, high:] = RDM_[i, high:] - RDM_else
+        within_idxs = np.arange(low, high)
+        within_zero[np.ix_(within_idxs, within_idxs)] = 1
+    within_zero[np.diag_indices_from(within_zero)] = 0
+    M_within = np.nanmean(RDM_[within_zero == 1])
+    M_between = np.nanmean(RDM_[within_zero == 0])
+    RDM_[within_zero == 1] = RDM_[within_zero == 1] - M_within
+    RDM_[within_zero == 0] = RDM_[within_zero == 0] - M_between
+    # plt.imshow(RDM_)
+    # plt.show()
     return RDM_
 
 def RDM_x_RDM(fMRI_RDM, stim_RDM):
@@ -65,10 +105,6 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
     :return:
     '''
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
-    # fMRI_RDM_ = regress_out_within_across(fMRI_RDM)
-
-    # fMRI_RDM_ = fMRI_RDM.copy()
-    # if ignore_within_run:
 
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
@@ -139,12 +175,17 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
                   nan_thresh=nan_thresh,
                   org_by_region=org_by_region)
     r2vecs = pickle_wrap(fp_cache, f, verbose=True,
-                         easy_override=cin is not None)
+                         easy_override=False)
     return r2vecs
 
 
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False):
+    n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+    if n_nans:
+        raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
+
+
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans}')
@@ -198,8 +239,10 @@ def get_all_stim_RDMs(df_sn, d_vecs):
     return RDM_stims
 
 def include_bhv(bhv, df_sn_):
-    bhv_cols = ['trial', 'run', 'fp_fMRI', 'obj', 'scene', 'obj_rename',
-                'scene_rename', 'CIN', 'perceived_con', 'ON', 'hit_bool']
+    bhv_cols = ['enc_trial',
+                'run', 'obj', 'scene', 'obj_rename',
+                'scene_rename', 'CIN', 'perceived_con',
+                'hit_hit', 'vis_hit', 'con_hit']
     for key in bhv_cols:
         try:
             bhv[key].append(df_sn_[key].values)
@@ -207,7 +250,7 @@ def include_bhv(bhv, df_sn_):
             bhv[key].append(np.full(len(df_sn_), np.nan))
 
 def prep_variables(sn, cin, atlas, org_by_region):
-    df_sn = get_trial_info(sn)
+    df_sn = get_trial_info(sn, easy_override=True)
     if cin is not None:
         df_sn = df_sn[df_sn['CIN'] == cin]
         n_trials = 38
@@ -234,7 +277,6 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
         f'{len(RDM_stims)=} != {len(stim_keys)=}'
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, cin=cin,
                             nan_thresh=.25, org_by_region=org_by_region)
-
     for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
                                   desc='looping ROIs outer', total=len(ROIs),
                                   leave=True, ncols=80, position=0):
@@ -256,6 +298,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
                                              axis=0)
             RDM_fMRI = np.corrcoef(region_vecs)
+
             ROI_to_RDM_fMRI[ROI] = RDM_fMRI
             for key in stim_keys:
                 z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
@@ -290,6 +333,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
     #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis']
     age2sn = get_all_sns(ret=ret)
+
     n_trials = 114 if cin is None else 38
 
     ROI_to_z = defaultdict(lambda: defaultdict(list))
@@ -382,14 +426,16 @@ def run_multi_settings():
     cin = None
     # if True:
     for age in [1, 2]:
-        for cin in [1, 2, 3]:
-            for fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'obj_fMRI', 'scn_fMRI',
+        for cin in [None]:
+            for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI',
+                                'con_fMRI', 'vis_fMRI',
                                 'bl_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
                 for DNN_layer, semantic in [(2, False),
-                                            # (6, False), (4, False),
+                                            # (4, False),
+                                            # (6, False),
                                             # (-1, False),
-                                            #(False, True),
+                                            (False, True),
                                             ]: # (True, False),
                     age_str = 'healthy' if age == 'healthy' else \
                         'YA' if age == 1 else 'OA'

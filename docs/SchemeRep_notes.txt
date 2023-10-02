@@ -1,6 +1,9 @@
 Participant exclusion questions:
-* Missing retrieval data: 116, 125, 133, 138 (missing visual run 3)
+* I was missing data for 126 and 131. i need to look into why and double-check on the server
+* Missing retrieval data: 116, 125, 133, 138 (missing visual run 3), leaves us with N = 29
 * Are you using 116 for the encoding analysis? They don't have visual fMRI data and BL fMRI data has high motion (per the Box spreadsheet), but the praticipant has behavioral data for all tasks
+* Are you excluding 138, even though they are missing visual (behavior + fMRI) for run 3?
+* Who are you excluding for poor performance? Based on what is written, it seems like we could exclude up to four more?
 
 3:40, arrive 20 minutes before. 1301 Fayetteville 
 

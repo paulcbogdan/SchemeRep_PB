@@ -133,15 +133,19 @@ def get_RSA_name(key):
         key_str = ''
     return key_str
 
-def make_title_str(pre_str, key, age, early, semantic, cin):
+def make_title_str(pre_str, key, age, early, semantic, cin=None,
+                   short=False):
     key_str = get_RSA_name(key)
     age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
     if semantic:
         rsa_str = 'word2vec'
     else:
         rsa_str = '1st-layer DNN' if early else 'late-layer DNN'
-    cin_str = 'Con, Inc, & Neu' if cin is None \
-        else 'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
+    if short:
+        cin_str = ''
+    else:
+        cin_str = 'Con, Inc, & Neu' if cin is None else \
+            'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
     out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {cin_str}'
     return out_str
 

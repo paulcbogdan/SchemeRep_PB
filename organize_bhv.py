@@ -112,6 +112,7 @@ def get_trial_info_(sn, ret=False):
     df_sn = include_BL(df_sn, sn)
     df_sn = include_conceptual(df_sn, sn)
     df_sn = include_vis(df_sn, sn)
+    df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
     df_sn = prep_dif(df_sn, sn)
     return df_sn
 
@@ -148,13 +149,12 @@ def include_conceptual(df_sn, sn):
             # obj2trial
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
-        df_sn['hit_bool'] = df_sn['con_resp'].apply(
+        df_sn['con_hit'] = df_sn['con_resp'].apply(
             lambda x: np.nan if pd.isna(x) else x >= 3)
         df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
         if sn not in get_bad_sns(ret=True):
             assert len(df_sn['con_fMRI'].value_counts()) == 114, \
                 'Missing con fMRI fp'
-
         # for x in df_sn['con_fMRI']:
         #     exists = os.path.isfile(x)
         #     if not exists:
@@ -176,6 +176,8 @@ def include_vis(df_sn, sn):
             mat_enc = io.loadmat(fp_bhv)
         except FileNotFoundError:
             continue
+        if sn == '213' and run == 2: # not recorded
+            continue
         for i in range(42):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
@@ -183,22 +185,17 @@ def include_vis(df_sn, sn):
             resp = 'old' if resp == 3 else \
                    'similar' if resp == 2 else \
                    'new' if resp == 1 else np.nan
-            # print(resp)
             obj2resp[obj] = resp
-            # obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][9][0][i][0]
             old_similar_new = mat_enc['pdata'][0][0][11][0][i][0][0]
             # TODO: For visual retrieval, confirm that 0 = old, 1 = similar, 2 = new
             old_similar_new = 'old' if old_similar_new == 0 else \
                 'similar' if old_similar_new == 1 else 'new'
             obj2type[obj] = old_similar_new
-            # print(f'{obj=}, {old_similar_new=}')
             glob_vic = fr'{vis_root}/Day3Visual_Run{run}_Trial{trial}_*.nii'
             glob_vic = glob(glob_vic)
             if len(glob_vic) < 1:
                 obj2fp[obj] = None
-                # print(f'No visual glob for {obj=}, {old_similar_new=}')
-                # break
                 continue
             assert len(glob_vic) == 1
             obj2fp[obj] = glob_vic[0]
@@ -207,7 +204,7 @@ def include_vis(df_sn, sn):
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
         f = lambda row: np.nan if pd.isna(row['vis_resp']) else \
             row['vis_resp'] == row['vis_type']
-        df_sn['hit_bool'] = df_sn.apply(f, axis=1)
+        df_sn['vis_hit'] = df_sn.apply(f, axis=1)
         df_sn['vis_fMRI'] = df_sn['obj'].map(obj2fp)
         if sn not in get_bad_sns(ret=True):
             assert len(df_sn['vis_fMRI'].value_counts()) == 114, \
@@ -281,6 +278,7 @@ def get_bad_sns(ret=False):
 
         bad_sns.add('213')
         bad_sns.add('215')
+
     return bad_sns
 
 def get_all_sns(ret=False):
@@ -310,6 +308,9 @@ def prep_dif(df, sn):
         dif_fps = []
         for trial, run, fp0, fp1 in zip(df['enc_trial'], df['run'],
                                         df[fp_key0], df[fp_key1]):
+            if pd.isna(fp0) or pd.isna(fp1):
+                dif_fps.append(None)
+                continue
             dir_out = dif_root.joinpath(fr'dif_{key0}_{key1}')
             dir_out.mkdir(exist_ok=True)
             # fp_out = dir_out.joinpath(f'EncTrial{trial}.nii')
@@ -329,12 +330,18 @@ def prep_dif(df, sn):
     return df
 
 
+# print(pd.isna(None))
+# print(np.isnan(None))
+# quit()
+
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=False)
+    # test = get_trial_info_('213')
+    # quit()
     # print(age2sn[1])
     # n_subj = len(age2sn[1])
     # print(f'{n_subj=}')
     # quit()
-    for SN in age2sn[1]:
+    for SN in age2sn[2]:
         print(f'Testing: {SN}')
         get_trial_info(SN, easy_override=True)

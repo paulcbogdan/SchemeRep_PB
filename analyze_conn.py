@@ -47,7 +47,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
-    key = 'dif_abs_'
+    key = 'dif_abs'
     IRAFs = [np.array(d['IRAFs_ROI'][key][roi0]) for roi0 in atlas['ROIs']]
     # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
 
@@ -66,7 +66,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title, no_avg=True,
-                      cbar_label='t-value')
+                      cbar_label='t-value', vmin=-4, vmax=4)
     # vmin=-3
 
 def bulk_correlate(vals0, vals1, nans=False):
@@ -87,13 +87,16 @@ def bulk_correlate(vals0, vals1, nans=False):
 
     rs = vals0_ * vals1_
     rs = m(rs, axis=-1)
-    rs = np.arctanh(rs)
+    # rs = np.arctanh(rs)
     r_Ms = np.nanmean(rs, axis=-1)
     # r_Ms[np.diag_indices_from(r_Ms)] = np.nan
     r_SDs = np.nanstd(rs, axis=-1)
     # r_SDs[np.diag_indices_from(r_Ms)] = np.nan
     # print(rs.shape[-1])
     # print(r_Ms.shape)
+    # quit()
+    # print(r_Ms.shape)
+    # print(rs[5, 48])
     # quit()
     t = r_Ms / r_SDs * np.sqrt(rs.shape[-1]) # fix to account for different # nans per edge
     return r_Ms, r_SDs, t, rs
@@ -165,7 +168,7 @@ def test_rxr(age=1, early=True, semantic=False, cin=None,
 
 if __name__ == '__main__':
   test_IRAF_x_activity(early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=False, vec_prod=False,
+                 bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False)
 
     # test_rxr()

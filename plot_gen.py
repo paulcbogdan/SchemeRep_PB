@@ -3,6 +3,7 @@ from pathlib import Path
 import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
 from nilearn import image
 from nilearn import plotting
 
@@ -23,10 +24,11 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         M_connect = conn
     # M_connect = np.nanmedian(conn, axis=0)
     if vmin is None:
-        vmin = np.nanquantile(M_connect, .01)
-        # vmin = min(vmin, -4)
-        vmax = np.nanquantile(M_connect, .99)
+        # vmin = np.nanquantile(M_connect, .001)
+        vmin = np.nanmin(M_connect)
+        # vmax = np.nanquantile(M_connect, .999)
         # vmax = max(vmax, 4)
+        vmax = np.nanmax(M_connect)
 
     print(f'vmin: {vmin}, vmax: {vmax}')
     # vmin = .2
@@ -60,15 +62,59 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
 # def plot_surf(combine_regions=True, bilateral=False):
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
-def my_plot_surf(Ms, atlas):
+def get_split_cmap(vabs, thresh, cmap):
+    if isinstance(cmap, str):
+        cmap = plt.cm.get_cmap(cmap)
+
+    n = 256
+    vals = cmap(np.linspace(0., 1., n))
+    vals_st = vals[:int(n/2)]
+    vals_end = vals[int(n/2):]
+
+    vabs_minus_thresh = (vabs - thresh)
+    size_mid = int(vabs_minus_thresh / thresh * n / 2)
+    print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
+    print()
+
+
+    vals_mid = np.repeat(np.array([0, 0, 0, 1])[:, None], size_mid, axis=1).T
+    vals = np.concatenate([vals_st, vals_mid, vals_end])
+    # print(vals_mid.shape)
+
+    # print(vals.shape)
+    # quit()
+
+    cmap = ListedColormap(vals)
+
+    # print(vals)
+    return cmap
+
+    # quit()
+    cmap = ListedColormap(cmap(np.linspace(-vabs, vabs, 128)))
+
+
+    print(cmap)
+    quit()
+
+
+def my_plot_surf(Ms, atlas, title):
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     for i, val in enumerate(Ms):
         i += 1
         img_data[atlas_data == i] = val
+
+    vabs = np.nanmax(np.abs(Ms))
+    print(f'{vabs=}')
+    thresh = 2
+    cmap = get_split_cmap(vabs, thresh, 'cold_hot')
+
     img = image.new_img_like(atlas['maps'], img_data)
-    plotting.plot_img_on_surf(img,
-                              threshold=2.,
-                              cmap='turbo',
-                              )
+    fig = plotting.plot_img_on_surf(img, threshold=thresh,
+                                    cmap=cmap, title=title)
+
+    fig[1][4].set_xticklabels([-2.5, None, 2.5])
     plotting.show()
+
+if __name__ == '__main__':
+    pass

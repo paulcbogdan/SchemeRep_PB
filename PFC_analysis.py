@@ -20,6 +20,7 @@ import scipy.stats as stats
 from tqdm import tqdm
 from pathlib import Path
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
     if semantic:
@@ -34,22 +35,17 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
                  'dif': get_stim_RDM(df_sn, d_vecs, dif=True),
                  'dif_abs': get_stim_RDM(df_sn, d_vecs, dif=True, take_abs=True),
                  'prod': get_stim_RDM(df_sn, d_vecs, prod=True),}
-
-
     return RDM_stims
 
 
-def analyze_sn(sn, atlas, fp_fMRI_col='vis_fMRI'):
+def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn,
                             nan_thresh=.25, org_by_region=False, cin=None)
     if ROI2vecs is None:
+        print('None subject')
         return None
-    # fp_cache = fr'cache\ROI2vecs\sn{sn}_nROI{n_ROIs}{vec_prod_str}.pkl'
-    # ROI2vecs, _ = pickle_wrap(fp_cache,
-    #                           lambda: load_and_get_ROI_vecs(df_sn,
-    #                                                         atlas),
-    #                           easy_override=False, verbose=True)
+
     PFC_vecs = []
     dmPFC = {'1 SFG_L_7_1', '2 SFG_R_7_1',
              '5 SFG_L_7_3', '6 SFG_R_7_3',
@@ -71,10 +67,9 @@ def analyze_sn(sn, atlas, fp_fMRI_col='vis_fMRI'):
         #     continue
         # if 'SFG' in ROI:
         #     PFC_vecs.append(vecs)
-
         if 'IFG' in ROI or 'MFG' in ROI:
-            # PFC_vecs.append(np.nanmean(vecs, axis=1)[:, None])
-            PFC_vecs.append(vecs)
+            PFC_vecs.append(np.nanmean(vecs, axis=1)[:, None])
+            # PFC_vecs.append(vecs)
         # if 'Hipp' in ROI:
         #     PFC_vecs.append(vecs)
     PFC_vecs = np.hstack(PFC_vecs)
@@ -98,7 +93,7 @@ def analyze_sn(sn, atlas, fp_fMRI_col='vis_fMRI'):
         key2z[key] = z
     return key2z
 
-def analyze_all_sn(age=1):
+def analyze_all_sn(age=2):
     atlas = get_BN_and_resample(combine_bilateral=False)
     age2sn = get_all_sns()
     key2z_all = defaultdict(list)
@@ -109,8 +104,8 @@ def analyze_all_sn(age=1):
         for key, z in key2z.items():
             key2z_all[key].append(z)
 
-    key2z_all['dif_abs_'] = utils.regress_out_multi([key2z_all['obj_abs'],
-                                                     key2z_all['scn_abs'],
+    key2z_all['dif_abs_'] = utils.regress_out_multi([#key2z_all['obj_abs'],
+                                                     #key2z_all['scn_abs'],
                                                      key2z_all['obj'],
                                                      key2z_all['scn']],
                                                      key2z_all['dif_abs'])
@@ -123,9 +118,10 @@ def analyze_all_sn(age=1):
 
 
     for key, l in key2z_all.items():
+        n = (~pd.isna(l)).sum()
         M = np.nanmean(l)
         SD = np.nanstd(l)
-        SE = SD / np.sqrt(len(l))
+        SE = SD / np.sqrt(n)
         t = M / SE
         p = stats.t.sf(np.abs(t), len(l)-1) # one-sided
         print(f'{key}: M={M:.3f}, SD={SD:.3f}, SE={SE:.3f}, t={t:.3f}, p={p:.3f}')
@@ -148,9 +144,12 @@ def sanity_test(sn='102'):
     atlas = get_BN_and_resample(combine_bilateral=False)
     df_sn = get_trial_info(sn)
     # ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='obj_fMRI')
-    img = image.load_img(df_sn['obj_fMRI']).get_fdata()
-    ROI2vecs, _ = get_ROI_vecs_(atlas['ROIs'], atlas['ROI_nums'], atlas,
-                                img, atlas['ROI_regions'])
+    # img = image.load_img(df_sn['obj_fMRI']).get_fdata()
+    # ROI2vecs, _ = get_ROI_vecs_(atlas['ROIs'], atlas['ROI_nums'], atlas,
+    #                             img, atlas['ROI_regions'])
+
+    ROI2vecs = get_ROI_vecs(sn, atlas, 'obj_fMRI', df_sn,
+                            nan_thresh=.25, org_by_region=False, cin=None)
 
     RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
     RDM_stim = RDM_stims['obj']
@@ -160,13 +159,28 @@ def sanity_test(sn='102'):
     all_data = []
     for ROI, vecs in tqdm(ROI2vecs.items(), desc='looping ROIs'):
         fMRI_RDM = np.corrcoef(vecs)
+        fMRI_RDM = within_run_to_nan(fMRI_RDM)
 
+        # if ROI == '199 LOC_L_4_1':
+        # fMRI_RDM = regress_out_within_across(fMRI_RDM)
+        #     title = f'fMRI RDM, subject: {sn}, ROI: {ROI}\n' \
+        #             f'Only examine between-run'
+        #     plt.title(title)
+        #     plt.imshow(fMRI_RDM)
+        #     plt.xlabel('trial x')
+        #     plt.ylabel('trial y')
+        #     plt.colorbar()
+        #     plt.tight_layout()
+        #     plt.show()
+        #     quit()
+        # else:
+        #     continue
 
-        trial_per_run = fMRI_RDM.shape[0] // 3
-        for run in range(3):
-            low = run * trial_per_run
-            high = (run + 1) * trial_per_run
-            fMRI_RDM[low:high, low:high] = np.nan
+        # trial_per_run = fMRI_RDM.shape[0] // 3
+        # for run in range(3):
+        #     low = run * trial_per_run
+        #     high = (run + 1) * trial_per_run
+        #     fMRI_RDM[low:high, low:high] = np.nan
 
         trial_rs = []
         for i in range(fMRI_RDM.shape[0]):
@@ -188,7 +202,11 @@ def sanity_test(sn='102'):
     # find_temporal_correlation(all_data)
     plt.xlabel('Item')
     plt.ylabel('ROI')
-    plt.title('IRAF based on only within-run\nIRAF for 2nd layer DNN, participant 102')
+    # plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nAnalysis of all trials')
+    # plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nRegress out within vs. between')
+    plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nOnly examine between-run')
+
+    # plt.title('IRAF based on only within-run\nIRAF for 2nd layer DNN, participant 102')
     # plt.title('Shuffled trials\nIRAF for 2nd layer DNN, participant 102')
     plt.colorbar()
     plt.show()
@@ -196,5 +214,4 @@ def sanity_test(sn='102'):
 
 if __name__ == '__main__':
     analyze_all_sn()
-
     # sanity_test()
