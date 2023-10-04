@@ -29,7 +29,7 @@ def replace_w_nan_if_needed(vals):
 def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False):
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
                           fp_fMRI_col='obj_fMRI',
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,
@@ -37,11 +37,11 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 
-    fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='obj_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          rxr=rxr)
+    fp2 = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                           fp_fMRI_col='obj_fMRI',
+                           bilateral=bilateral, combine_regions=combine_regions,
+                           vec_prod=vec_prod, org_by_region=org_by_region,
+                           rxr=rxr)
     with open(fp2, 'rb') as file:
         d2 = pickle.load(file)
 
@@ -106,7 +106,7 @@ def bulk_correlate(vals0, vals1, nans=False):
 
 def test_triple_z(age=1, early=True, semantic=False,
                          combine_regions=True, bilateral=False):
-    fp = get_cache_RSA_fp(cin=None, age=age, semantic=semantic, early=early,
+    fp = get_cache_RSA_fp(inc=None, age=age, semantic=semantic, early=early,
                           combine_regions=combine_regions, bilateral=bilateral)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
@@ -130,7 +130,7 @@ def test_triple_z(age=1, early=True, semantic=False,
 def test_rxr(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False):
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
                           fp_fMRI_col='obj_fMRI',
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,

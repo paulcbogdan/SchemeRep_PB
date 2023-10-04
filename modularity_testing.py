@@ -19,18 +19,18 @@ import warnings
 warnings.filterwarnings('ignore', message='Mean of empty slice')
 warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
 
-def org_activity_by_cin(ar_cin, activity):
-    assert len(ar_cin) == activity.shape[0], \
-        f'{ar_cin.shape=}, {activity.shape=}'
+def org_activity_by_cin(ar_inc, activity):
+    assert len(ar_inc) == activity.shape[0], \
+        f'{ar_inc.shape=}, {activity.shape=}'
     new_shapes = (activity.shape[0], activity.shape[1], activity.shape[2]  // 3)
-    cin2act = {1: np.full(new_shapes, np.nan),
+    inc2act = {1: np.full(new_shapes, np.nan),
                2: np.full(new_shapes, np.nan),
                3: np.full(new_shapes, np.nan)}
-    for i, cin in enumerate(ar_cin):
+    for i, inc in enumerate(ar_inc):
         for j in range(1, 4):
             # strange that this needs to be transposed
-            cin2act[j][i] = activity[i, :, cin == j].T
-    return cin2act
+            inc2act[j][i] = activity[i, :, inc == j].T
+    return inc2act
 
 # TODO: incorporate convert_matrix update to next version of nichord
 
@@ -86,11 +86,11 @@ def plot_nichord(corr, coords, fn, title, dir_out='nichord_plots'):
                      title=title, chord_kwargs={'alphas': .5})
 
 def get_conn_mat(atlas, fp_fMRI_col = 'obj_fMRI',
-                 age=1, early=True, semantic=False, cin=None,
+                 age=1, early=True, semantic=False, inc=None,
                  bilateral=False, combine_regions=False, vec_prod=False,
                  org_by_region=False, rxr=False):
 
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    fp = get_cache_RSA_fp(inc=inc, age=age, semantic=semantic, DNN_layer=2,
                           fp_fMRI_col=fp_fMRI_col,
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,
@@ -116,31 +116,31 @@ def get_conn_mat(atlas, fp_fMRI_col = 'obj_fMRI',
     # print(activity.shape)
     # quit()
 
-    ar_cin = np.array(d['bhv']['CIN'])
-    cin2act = org_activity_by_cin(ar_cin, activity)
-    cin2corr = {}
-    for cin, act in cin2act.items():
-        cin2corr[cin], _ = corr_matrix_last_two_dim(act)
+    ar_inc = np.array(d['bhv']['CIN'])
+    inc2act = org_activity_by_cin(ar_inc, activity)
+    inc2corr = {}
+    for inc, act in inc2act.items():
+        inc2corr[inc], _ = corr_matrix_last_two_dim(act)
 
     corr_all, _ = corr_matrix_last_two_dim(activity)
     # corr_all_M = np.nanmean(corr_all, axis=0)
-    return corr_all, cin2corr, atlas
+    return corr_all, inc2corr, atlas
 
 
 def stuff():
-    cin2corr_dif = {}
-    for cin0, corr0 in cin2corr.items():
-        for cin1, corr1 in cin2corr.items():
-            if cin0 >= cin1:
+    inc2corr_dif = {}
+    for inc0, corr0 in inc2corr.items():
+        for inc1, corr1 in inc2corr.items():
+            if inc0 >= inc1:
                 continue
-            cin2corr_dif[(cin0, cin1)] = corr0 - corr1
+            inc2corr_dif[(inc0, inc1)] = corr0 - corr1
 
-    cin2corr_dif_M = {}
-    cin2corr_t = {}
-    for comparison, corr_dif in cin2corr_dif.items():
-        cin2corr_dif_M[comparison] = np.mean(corr_dif, axis=0)
+    inc2corr_dif_M = {}
+    inc2corr_t = {}
+    for comparison, corr_dif in inc2corr_dif.items():
+        inc2corr_dif_M[comparison] = np.mean(corr_dif, axis=0)
         SE = np.nanstd(corr_dif, axis=0) / np.sqrt(corr_dif.shape[0])
-        cin2corr_t[comparison] = cin2corr_dif_M[comparison] / SE
+        inc2corr_t[comparison] = inc2corr_dif_M[comparison] / SE
 
     corr_all, _ = corr_matrix_last_two_dim(activity)
     corr_all_M = np.nanmean(corr_all, axis=0)
@@ -148,15 +148,15 @@ def stuff():
     partitions = get_modules(corr_all_M)
 
     for i, p in tqdm(enumerate(partitions), desc='looping partitions'):
-        tmat = cin2corr_t[(1, 2)]
+        tmat = inc2corr_t[(1, 2)]
         pmat_t = get_partition_matrix(tmat, p)
-        dir_out = fr'nichord_plots/cin12/{fp_fMRI_col}'
+        dir_out = fr'nichord_plots/inc12/{fp_fMRI_col}'
         fn = f'p{i}_tdif.png'
-        title = f't-map. Cin 12, {fp_fMRI_col}, partition: {i}'
+        title = f't-map. inc 12, {fp_fMRI_col}, partition: {i}'
         plot_nichord(pmat_t, atlas['coords'], fn, title, dir_out=dir_out)
 
         fn = f'p{i}_M.png'
-        title = f'mean. Cin 12, {fp_fMRI_col}, partition: {i}'
+        title = f'mean. inc 12, {fp_fMRI_col}, partition: {i}'
         pmat_M = get_partition_matrix(corr_all_M, p)
         plot_nichord(pmat_M, atlas['coords'], fn, title, dir_out=dir_out)
 
@@ -169,38 +169,38 @@ def compare_cross_corr(combine_regions=False, bilateral=False):
     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
     fp2corr_all = {}
-    fp2cin2corr = {}
+    fp2inc2corr = {}
     key0 = 'obj'
     key1 = 'vis'
     fps = [f'{key0}_fMRI', f'{key1}_fMRI']
     for fp in tqdm(fps, desc='prep conn'):
         name = fp.split('_')[0]
-        fp2corr_all[name], fp2cin2corr[name], _ = get_conn_mat(atlas,
+        fp2corr_all[name], fp2inc2corr[name], _ = get_conn_mat(atlas,
                                                                fp_fMRI_col=fp)
 
     corr_all_all = np.concatenate([fp2corr_all[key0], fp2corr_all[key1]], axis=0)
     corr_all_M = np.nanmean(corr_all_all, axis=0)
     partitions = get_modules(corr_all_M)
     for i, p in enumerate(partitions):
-        cin2rs = {}
+        inc2rs = {}
         if len(p) < 3:
             # print(f'Partition too small: {i}')
             continue
         # print(f'{len(p)=}')
-        for cin in [1, 2]:
-            # print(fp2cin2corr['obj'][cin].shape)
-            obj_corr = get_partition_matrix(fp2cin2corr[key0][cin], p)
+        for inc in [1, 2]:
+            # print(fp2inc2corr['obj'][inc].shape)
+            obj_corr = get_partition_matrix(fp2inc2corr[key0][inc], p)
             # print(obj_corr.shape)
             obj_flat = ndim_tril_flatten(obj_corr)
-            scn_corr = get_partition_matrix(fp2cin2corr[key1][cin], p)
+            scn_corr = get_partition_matrix(fp2inc2corr[key1][inc], p)
             scn_flat = ndim_tril_flatten(scn_corr)
             rs = corr_last_dim(obj_flat, scn_flat)
             r_m = np.mean(rs)
             r_se = np.std(rs) / np.sqrt(len(rs))
             print(f'Partition {i} [len = {len(p)}]: '
-                  f'{cin=}, {r_m=:.5f}, {r_se=:.5f}')
-            cin2rs[cin] = rs
-        t, p = stats.ttest_rel(cin2rs[1], cin2rs[2])
+                  f'{inc=}, {r_m=:.5f}, {r_se=:.5f}')
+            inc2rs[inc] = rs
+        t, p = stats.ttest_rel(inc2rs[1], inc2rs[2])
         print(f'\tDif ({i}) | {t=:.2f}, {p=:.3f}')
 
 def make_basic_corr_comparison(combine_regions=True, bilateral=False):
@@ -208,7 +208,7 @@ def make_basic_corr_comparison(combine_regions=True, bilateral=False):
                       bilateral=bilateral)
 
     fp2corr_all = {}
-    fp2cin2corr = {}
+    fp2inc2corr = {}
     keys = ['obj', 'scn', 'con', 'vis']
     # keys = ['con']
     fps = [f'{key}_fMRI' for key in keys]
@@ -217,15 +217,15 @@ def make_basic_corr_comparison(combine_regions=True, bilateral=False):
     # fps = [f'{key0}_fMRI', f'{key1}_fMRI']
     for fp in tqdm(fps, desc='prep conn'):
         name = fp.split('_')[0]
-        fp2corr_all[name], fp2cin2corr[name], _ = \
+        fp2corr_all[name], fp2inc2corr[name], _ = \
             get_conn_mat(atlas, combine_regions=combine_regions,
                          bilateral=bilateral, fp_fMRI_col=fp)
         fp2corr_all[name] = fp2corr_all[name][:3]
 
 
-    for name, cin2corr in fp2cin2corr.items():
-        corr_c = cin2corr[1]
-        corr_i = cin2corr[2]
+    for name, inc2corr in fp2inc2corr.items():
+        corr_c = inc2corr[1]
+        corr_i = inc2corr[2]
         corr_dif = corr_c - corr_i
         corr_dif_M = np.nanmean(corr_dif, axis=0)
         corr_dif_M[np.diag_indices_from(corr_dif_M)] = np.nan
@@ -235,7 +235,7 @@ def make_basic_corr_comparison(combine_regions=True, bilateral=False):
         t = corr_dif_M / corr_dif_SE
         # t = corr_c[1]
         # t = np.nanmean(corr_c, axis=0)
-        title = f'{name}, Cin 1 - Cin 2'
+        title = f'{name}, inc 1 - inc 2'
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'], title=title, no_avg=True,
                       cbar_label='t-value')

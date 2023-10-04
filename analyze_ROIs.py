@@ -23,7 +23,7 @@ def do_lmer(d, key, ROI, hits_only=True):
     IRAFs = d['IRAFs_ROI'][key][ROI]
     n_trials = IRAFs.shape[-1]
     sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
-    cins = d['bhv']['CIN']
+    incs = d['bhv']['inc']
     # print(list(d['bhv']))
     # for key in d['bhv']:
     #     print(key, ':', pd.isna(d['bhv'][key]).sum())
@@ -32,11 +32,11 @@ def do_lmer(d, key, ROI, hits_only=True):
     run = d['bhv']['run']
     IRAFs = np.reshape(IRAFs, -1)
     sns = np.reshape(sns, -1)
-    cins = np.reshape(cins, -1)
+    incs = np.reshape(incs, -1)
     hit_hit = np.reshape(hit_hit, -1)
     run = np.reshape(run, -1)
-    cins = map(lambda x: 'C' if x == 1 else 'I' if x == 2 else 'N', cins)
-    df = pd.DataFrame({'IRAF': IRAFs, 'sn': sns, 'cin': cins,
+    incs = map(lambda x: 'i' if x == 1 else 'n' if x == 2 else 'c', incs)
+    df = pd.DataFrame({'IRAF': IRAFs, 'sn': sns, 'inc': incs,
                        'hit_hit': hit_hit, 'run': run})
 
     # bad_sns = {'119', '115'}
@@ -121,13 +121,13 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     plt.show()
 
 
-def analyze_ROIs(age=2, early=True, semantic=False, cin=None,
+def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
-                 org_by_region=False, rxr=False, run_lmer=False):
+                 org_by_region=False, rxr=False, run_lmer=True):
     font = {'size': 14}
     matplotlib.rc('font', **font)
 
-    fp1 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    fp1 = get_cache_RSA_fp(inc=inc, age=age, semantic=semantic, DNN_layer=2,
                            fp_fMRI_col='obj_fMRI',
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
@@ -140,7 +140,7 @@ def analyze_ROIs(age=2, early=True, semantic=False, cin=None,
     # print(d['z']['obj'].keys())
     # print(d['z']['obj']['SFG_L'].shape)
     # quit()
-    key = 'dif_abs_'
+    key = 'dif_abs'
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
@@ -162,7 +162,7 @@ def analyze_ROIs(age=2, early=True, semantic=False, cin=None,
         print(f'{ROI}, {t=:.3f}, {p=:.3f}')
     title_short = make_title_str('', key, age, early, semantic, short=True)
     my_plot_surf(np.array(ts), atlas, title_short)
-    title = make_title_str('', key, age, early, semantic, cin)
+    title = make_title_str('', key, age, early, semantic, inc)
     do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
 
 

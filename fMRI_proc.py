@@ -158,17 +158,17 @@ def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
     return triple_prod_mat
 
 def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
-                 org_by_region=False, cin=None, easy_override=False):
+                 org_by_region=False, inc=None, easy_override=False):
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     n_ROIs = len(ROIs)
     n_regions = len(np.unique(ROI_regions))
     nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
     org_by_region_str = '_oByR' if org_by_region else ''
-    cin_str = '' if cin is None else \
-        '_Con' if cin == 1 else \
-            '_Inc' if cin == 2 else '_Neu'
-    fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{cin_str}_nROI{n_ROIs}' \
+    inc_str = '' if inc is None else \
+        '_Con' if inc == 1 else \
+            '_Inc' if inc == 2 else '_Neu'
+    fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
                fr'_reg{n_regions}{org_by_region_str}{nan_str}.pkl'
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=nan_thresh,
@@ -240,7 +240,7 @@ def get_all_stim_RDMs(df_sn, d_vecs):
 def include_bhv(bhv, df_sn_):
     bhv_cols = ['enc_trial',
                 'run', 'obj', 'scene', 'obj_rename',
-                'scene_rename', 'CIN', 'perceived_con',
+                'scene_rename', 'inc', 'perceived_con',
                 'hit_hit', 'vis_hit', 'con_hit']
     for key in bhv_cols:
         try:
@@ -251,7 +251,7 @@ def include_bhv(bhv, df_sn_):
 def prep_variables(sn, cin, atlas, org_by_region):
     df_sn = get_trial_info(sn, easy_override=True)
     if cin is not None:
-        df_sn = df_sn[df_sn['CIN'] == cin]
+        df_sn = df_sn[df_sn['inc'] == cin]
         n_trials = 38
     else:
         n_trials = 114
@@ -274,7 +274,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs)
     assert len(RDM_stims) == len(stim_keys), \
         f'{len(RDM_stims)=} != {len(stim_keys)=}'
-    ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, cin=cin,
+    ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
                             nan_thresh=.25, org_by_region=org_by_region)
     for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
                                   desc='looping ROIs outer', total=len(ROIs),
@@ -422,10 +422,10 @@ def run_multi_settings():
         'Cannot combine regions and organize by region'
     # fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
     # fp_fMRI_col = 'scn_fMRI'
-    cin = None
+    inc = None
     # if True:
     for age in [1, 2]:
-        for cin in [None]:
+        for inc in [None, 1, 2, 3]:
             for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI',
                                 'con_fMRI', 'vis_fMRI',
                                 'bl_fMRI']:
@@ -438,9 +438,9 @@ def run_multi_settings():
                                             ]: # (True, False),
                     age_str = 'healthy' if age == 'healthy' else \
                         'YA' if age == 1 else 'OA'
-                    cin_str = '' if cin is None else \
-                        '_Con' if cin == 1 else \
-                            '_Inc' if cin == 2 else '_Neu'
+                    inc_str = '' if inc is None else \
+                        '_Con' if inc == 1 else \
+                            '_Inc' if inc == 2 else '_Neu'
                     sem_str = '_sem' if semantic else ''
                     dnn_str = '' if semantic else \
                         '_late' if DNN_layer == -1 else \
@@ -450,11 +450,11 @@ def run_multi_settings():
                     bilat_str = '_bil' if bilateral else ''
                     by_region_str = '_byR' if org_by_region else ''
                     fp_in_str = fp_fMRI_col.replace('fMRI', '')
-                    fp_out = fr'cache/RSA/{fp_in_str}{age_str}{cin_str}{sem_str}{dnn_str}' \
+                    fp_out = fr'cache/RSA/{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
                              fr'{combine_str}{bilat_str}{by_region_str}' \
                              fr'.pkl'
                     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
-                    f = lambda: mass_RDM_x_RDM(age=age, cin=cin,
+                    f = lambda: mass_RDM_x_RDM(age=age, cin=inc,
                                                DNN_layer=DNN_layer,
                                                semantic=semantic,
                                                bilateral=bilateral,
@@ -462,7 +462,8 @@ def run_multi_settings():
                                                org_by_region=org_by_region,
                                                fp_fMRI_col=fp_fMRI_col
                                                )
-                    d = pickle_wrap(fp_out, f, easy_override=True, verbose=True)
+                    d = pickle_wrap(fp_out, f, easy_override=True,
+                                    verbose=True)
 
 
 if __name__ == '__main__':

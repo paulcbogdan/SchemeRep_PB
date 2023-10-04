@@ -41,7 +41,7 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
 def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn,
-                            nan_thresh=.25, org_by_region=False, cin=None)
+                            nan_thresh=.25, org_by_region=False, inc=None)
     if ROI2vecs is None:
         print('None subject')
         return None
@@ -149,7 +149,7 @@ def sanity_test(sn='102'):
     #                             img, atlas['ROI_regions'])
 
     ROI2vecs = get_ROI_vecs(sn, atlas, 'obj_fMRI', df_sn,
-                            nan_thresh=.25, org_by_region=False, cin=None)
+                            nan_thresh=.25, org_by_region=False, inc=None)
 
     RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
     RDM_stim = RDM_stims['obj']

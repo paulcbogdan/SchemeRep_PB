@@ -74,7 +74,7 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
     # Binary connectivity
 
-    fp = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
+    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
                           fp_fMRI_col='obj_fMRI',
                           bilateral=bilateral, combine_regions=combine_regions,
                           vec_prod=vec_prod, org_by_region=org_by_region,
@@ -85,11 +85,11 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
     # ROI_focus = ['IFG', 'MFG']
     obj_a = roimap2np(d['activity'], only_some=ROI_focus)
 
-    fp2 = get_cache_RSA_fp(cin=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='scn_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          rxr=rxr)
+    fp2 = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                           fp_fMRI_col='scn_fMRI',
+                           bilateral=bilateral, combine_regions=combine_regions,
+                           vec_prod=vec_prod, org_by_region=org_by_region,
+                           rxr=rxr)
     with open(fp2, 'rb') as file:
         d2 = pickle.load(file)
     scn_a = roimap2np(d2['activity'], only_some=ROI_focus)

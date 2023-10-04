@@ -83,8 +83,17 @@ def get_trial_info_(sn, ret=False):
 
             obj = mat_enc['pdata'][0][0][7][0][i][0]
             scene = mat_enc['pdata'][0][0][8][0][i][0]
-            CIN = mat_enc['pdata'][0][0][9][0][i][0][0]
+            inc = mat_enc['pdata'][0][0][9][0][i][0][0]
             resp = mat_enc['pdata'][0][0][11][0][i][0][0]
+            if pd.isna(resp):
+                per_inc = np.nan
+            elif resp == 1:
+                per_inc = 1
+            elif resp == 4:
+                per_inc = 3
+            else:
+                per_inc = 2
+            # print(f'{resp} | {per_inc} | {inc}')
 
             if obj in renamer:
                 obj_rename = renamer[obj]
@@ -95,7 +104,8 @@ def get_trial_info_(sn, ret=False):
             else:
                 scene_rename = scene
 
-            d = {'enc_trial': trial,
+            d = {'sn': sn,
+                 'enc_trial': trial,
                  'run': run,
                  #'fp_fMRI': fp_obj,
                  'obj_fMRI': fp_obj,
@@ -104,8 +114,9 @@ def get_trial_info_(sn, ret=False):
                  'scene': scene,
                  'obj_rename': obj_rename,
                  'scene_rename': scene_rename,
-                 'CIN': CIN,
-                 'perceived_con': resp # higher (up to 4) = seen as congruent
+                 'inc': inc,
+                 'per_con': resp, # higher (up to 4) = seen as congruent
+                 'per_inc': per_inc
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
@@ -113,6 +124,12 @@ def get_trial_info_(sn, ret=False):
     df_sn = include_conceptual(df_sn, sn)
     df_sn = include_vis(df_sn, sn)
     df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
+    def f(row):
+        if pd.isna(row['con_hit']) or pd.isna(row['vis_hit']):
+            return np.nan
+        else:
+            return row['con_hit'] & row['vis_hit']
+    df_sn['hit_hit_nan'] = df_sn.apply(f, axis=1)
     df_sn = prep_dif(df_sn, sn)
     return df_sn
 
@@ -268,7 +285,9 @@ def include_BL(df_sn, sn):
     return df_sn
 
 def get_bad_sns(ret=False):
-    bad_sns = {'126', '131',
+    bad_sns = {
+               #'126',
+               #'131',
                '201', '224', '231', '232', '233', '234', '235'}
     if ret:
         bad_sns.add('116')
@@ -336,12 +355,12 @@ def prep_dif(df, sn):
 
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=False)
-    # test = get_trial_info_('213')
+    test = get_trial_info_('126')
     # quit()
     # print(age2sn[1])
     # n_subj = len(age2sn[1])
     # print(f'{n_subj=}')
     # quit()
-    for SN in age2sn[2]:
+    for SN in age2sn[1]:
         print(f'Testing: {SN}')
         get_trial_info(SN, easy_override=True)

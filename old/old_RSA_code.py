@@ -1,7 +1,7 @@
 def get_age_str(age):
     return 'healthy' if age == 'healthy' else 'YA' if age == 1 else 'OA'
 
-def get_cin_str(cin):
+def get_inc_str(cin):
     return '' if cin is None else \
         '_Con' if cin == 1 else \
         '_Inc' if cin == 2 else \
@@ -11,8 +11,8 @@ def get_cin_str(cin):
 def regress_out_normal_connectivity(mat, age, cin):
     mat = np.array(mat)
     age_str = get_age_str(age)
-    cin_str = get_cin_str(cin)
-    fp_FC = fr'cache/fCon_{age_str}{cin_str}.pkl'
+    inc_str = get_inc_str(cin)
+    fp_FC = fr'cache/fCon_{age_str}{inc_str}.pkl'
     FC = pickle_wrap(fp_FC, lambda: get_FC(age, cin),
                      easy_override=False)
     n_ROIs = FC.shape[1]
