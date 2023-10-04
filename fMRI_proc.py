@@ -105,7 +105,6 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
     :return:
     '''
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
-
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
     fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)
