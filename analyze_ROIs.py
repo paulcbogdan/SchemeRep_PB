@@ -121,9 +121,9 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     plt.show()
 
 
-def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
+def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
-                 org_by_region=False, rxr=False, run_lmer=True):
+                 org_by_region=False, rxr=False, run_lmer=False):
     font = {'size': 14}
     matplotlib.rc('font', **font)
 
@@ -140,7 +140,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
     # print(d['z']['obj'].keys())
     # print(d['z']['obj']['SFG_L'].shape)
     # quit()
-    key = 'dif_abs'
+    key = 'obj'
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
