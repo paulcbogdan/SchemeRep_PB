@@ -27,6 +27,6 @@ def get_stim_RDM_lifu(df_sn):
             idx1 = filelist.index(obj1)
             RDM_new[idx0, idx1] = RDM_stim[idx0, idx1]
             RDM_new[idx1, idx0] = RDM_stim[idx1, idx0]
-    pd.DataFrame(RDM_new).to_csv('RDM_stim_lifu.csv')
+    # pd.DataFrame(RDM_new).to_csv('RDM_stim_lifu.csv')
 
     return RDM_new

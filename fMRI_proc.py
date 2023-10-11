@@ -234,7 +234,7 @@ def get_all_stim_RDMs(df_sn, d_vecs):
                  'prd_abs': get_stim_RDM(df_sn, d_vecs, prod=True, take_abs=True),
                  'add': get_stim_RDM(df_sn, d_vecs, add=True),
                  'add_abs': get_stim_RDM(df_sn, d_vecs, add=True, take_abs=True),
-                 }
+                 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True)}
     return RDM_stims
 
 def include_bhv(bhv, df_sn_):
@@ -265,7 +265,8 @@ def prep_variables(sn, cin, atlas, org_by_region):
 
 def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                  ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
-                 fp_fMRI_col='fp_fMRI', org_by_region=False):
+                 fp_fMRI_col='fp_fMRI', org_by_region=False,
+                 lifu=False):
     print(f'Onto: {sn}')
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
@@ -318,12 +319,15 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
 
 def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
+                   PCA_obj=True,
                    bilateral=False, combine_regions=False,
-                   org_by_region=False, fp_fMRI_col='fp_fMRI'):
+                   org_by_region=False, fp_fMRI_col='fp_fMRI',
+                   ):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
-        d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True)
+        d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True,
+                              PCA_obj=PCA_obj)
 
     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
     # if combine_regions:
@@ -343,7 +347,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
                  'scn', 'scn_abs',
                  'dif', 'dif_abs',
                  'prd', 'prd_abs',
-                 'add', 'add_abs']
+                 'add', 'add_abs',
+                 'lifu']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -360,7 +365,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
                       desc=f'Looping subjects: age2sn[{age}]'):
         df_sn = analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                         ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
-                        fp_fMRI_col=fp_fMRI_col, org_by_region=org_by_region)
+                        fp_fMRI_col=fp_fMRI_col, org_by_region=org_by_region,
+                             )
         sns.append(sn)
         dfs_sn.append(df_sn)
 
@@ -418,6 +424,7 @@ def run_multi_settings():
     combine_regions = True
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
+    PCA_obj = False
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
     # fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
@@ -436,6 +443,9 @@ def run_multi_settings():
                                             # (-1, False),
                                             (False, True),
                                             ]: # (True, False),
+                    if semantic and PCA_obj:
+                        continue
+
                     age_str = 'healthy' if age == 'healthy' else \
                         'YA' if age == 1 else 'OA'
                     inc_str = '' if inc is None else \
@@ -449,9 +459,12 @@ def run_multi_settings():
                     combine_str = '_comb' if combine_regions else ''
                     bilat_str = '_bil' if bilateral else ''
                     by_region_str = '_byR' if org_by_region else ''
+                    PCA_obj_str = '' if PCA_obj else '_PCAallImg'
+                    lifu_RDM_str = ''
                     fp_in_str = fp_fMRI_col.replace('fMRI', '')
                     fp_out = fr'cache/RSA/{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
-                             fr'{combine_str}{bilat_str}{by_region_str}' \
+                             fr'{combine_str}{bilat_str}{by_region_str}{PCA_obj_str}' \
+                             fr'{lifu_RDM_str}' \
                              fr'.pkl'
                     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                     f = lambda: mass_RDM_x_RDM(age=age, cin=inc,
@@ -460,10 +473,12 @@ def run_multi_settings():
                                                bilateral=bilateral,
                                                combine_regions=combine_regions,
                                                org_by_region=org_by_region,
-                                               fp_fMRI_col=fp_fMRI_col
+                                               fp_fMRI_col=fp_fMRI_col,
+                                               PCA_obj=PCA_obj,
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
+
 
 
 if __name__ == '__main__':

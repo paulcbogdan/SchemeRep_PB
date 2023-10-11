@@ -48,7 +48,7 @@ def do_lmer(d, key, ROI, hits_only=True):
 
     # Load = 3.3 s, first run = 1.7 s, rest runs = 0.32 s
     from pymer4.models import Lmer
-    formula = f'IRAF ~ 1 + (1 | sn)'
+    formula = f'IRAF ~ 1 + inc + (1 | sn)'
     df.dropna(subset=['IRAF'], inplace=True)
     model = Lmer(formula, data=df)
     model.fit(REML=False, verbose=False, summary=False)
@@ -121,17 +121,18 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     plt.show()
 
 
-def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
-                 bilateral=False, combine_regions=True, vec_prod=False,
+def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
+                 bilateral=False, combine_regions=True,
+                 vec_prod=False, PCA_obj=False,
                  org_by_region=False, rxr=False, run_lmer=False):
     font = {'size': 14}
     matplotlib.rc('font', **font)
 
     fp1 = get_cache_RSA_fp(inc=inc, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='obj_fMRI',
+                           fp_fMRI_col='obj_fMRI', PCA_obj=PCA_obj,
                            bilateral=bilateral, combine_regions=combine_regions,
                            vec_prod=vec_prod, org_by_region=org_by_region,
-                           rxr=rxr)
+                           )
     # fp1 = r'C:\PycharmProjects_C\SchemeRep\cache\RSA\good_data_backups\YA_early.pkl'
 
     with open(fp1, 'rb') as file:
@@ -140,7 +141,7 @@ def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
     # print(d['z']['obj'].keys())
     # print(d['z']['obj']['SFG_L'].shape)
     # quit()
-    key = 'obj'
+    key = 'lifu'
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
@@ -150,7 +151,7 @@ def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
     for ROI, region in tqdm(zip(atlas['ROIs'], atlas['ROI_regions'])):
         # try:
         if run_lmer:
-            t, p = do_lmer(d, key, ROI, hits_only=True)
+            t, p = do_lmer(d, key, ROI, hits_only=False)
         else:
             t, p = do_ttest(d, key, ROI)
         # except KeyError:

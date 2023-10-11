@@ -151,7 +151,7 @@ def make_title_str(pre_str, key, age, early, semantic, cin=None,
 
 
 def get_cache_RSA_fp(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
-                     pre_str='', rxr=False,
+                     pre_str='', PCA_obj=False,
                      combine_regions=False, bilateral=False, vec_prod=False,
                      org_by_region=False):
     age_str = 'healthy' if age == 'healthy' else \
@@ -162,11 +162,12 @@ def get_cache_RSA_fp(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
         '_Neu' if inc == 3 else 'BAD_CIN'
     sem_str = '_sem' if semantic else ''
     # el_str = '' if semantic else '_early' if early else '_late'
-    rxr_str = '_rxr' if rxr else ''
     combine_str = '_comb' if combine_regions else ''
     bilat_str = '_bil' if bilateral else ''
     vecprod_str = '_vecprod' if vec_prod else ''
     by_region_str = '_byR' if org_by_region else ''
+    PCA_obj_str = '' if PCA_obj else '_PCAallImg'
+
     fp_in_str = fp_fMRI_col.replace('fMRI', '')
 
     dnn_str = '' if semantic else \
@@ -175,7 +176,7 @@ def get_cache_RSA_fp(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
         f'_dnn{DNN_layer}'
 
     fp_out = fr'cache/RSA/{pre_str}{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
-             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{rxr_str}.pkl'
+             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{PCA_obj_str}.pkl'
     print(f'{fp_out=}')
     return fp_out
 
