@@ -166,7 +166,6 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
     title = make_title_str('', key, age, early, semantic, inc)
     do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
 
-
 if __name__ == '__main__':
     # Test connectivity within region between ROIs as nodes
     analyze_ROIs()
