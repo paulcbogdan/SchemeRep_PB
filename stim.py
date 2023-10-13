@@ -11,13 +11,19 @@ from torchvision import models as models, transforms as transforms
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
 
-def get_stim_RDM_lifu(df_sn):
+# TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
+# Lifu used it, per analysis_v2_ENC_bars.m
+
+def get_stim_RDM_lifu(df_sn, per=True):
     from tqdm import tqdm
     import scipy.io as io
     print('Loading existing...')
-    fp_in = r'C:\PycharmProjects_C\SchemeRep\old\RSAmodels' \
-            r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
-            r'\RSM_VGG16_PCA.mat'
+    if per:
+        fp_in = r'C:\PycharmProjects_C\SchemeRep\old\RSAmodels' \
+                r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
+                r'\RSM_VGG16_PCA.mat'
+    else:
+        fp_in = r'C:\PycharmProjects_C\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
     mat = io.loadmat(fp_in)
     RDM_stim = mat['R']
     RDM_new = np.zeros((len(df_sn), len(df_sn)))
@@ -42,11 +48,11 @@ def get_stim_RDM_lifu(df_sn):
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
                  dif=False, prod=False, take_abs=False, add=False,
-                 lifu=False):
-    assert obj_only or scene_only or dif or prod or add or lifu, \
+                 lifu=False, lifu_sem=False):
+    assert obj_only or scene_only or dif or prod or add or lifu or lifu_sem, \
         'Must specify one of obj_only, scene_only, dif, prod, add, lifu'
-    if lifu:
-        return get_stim_RDM_lifu(df_sn)
+    if lifu or lifu_sem:
+        return get_stim_RDM_lifu(df_sn, per=not lifu_sem)
     vec_size = len(d_vecs[df_sn['obj'].iloc[0]])
     vecs_obj = np.empty((len(df_sn['obj']), vec_size))
     vecs_scene = np.empty((len(df_sn['obj']), vec_size))
@@ -86,7 +92,8 @@ def get_vec(stim, w2v):
 
 
 def get_semantic_vectors_():
-    w2vectors = gensim.downloader.load('word2vec-google-news-300')
+    from gensim import downloader
+    w2vectors = downloader.load('word2vec-google-news-300')
     print('Loaded word2vec')
     df = get_trial_info('138')
     d_all = {}
@@ -101,7 +108,7 @@ def get_semantic_vectors():
     # fit using python 3.11
     fp_vecs = f'cache/schemerep_sem_vecs.pkl'
     d_vecs = pickle_wrap(fp_vecs, get_semantic_vectors_,
-                         easy_override=False)
+                         easy_override=True)
     return d_vecs
 
 
@@ -110,15 +117,18 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
     for p in model.parameters():
         p.requires_grad = False
     model.eval()
+    print(model.features)
+
 
     data_transforms = transforms.Compose([transforms.ToTensor(),
                     transforms.Resize((224, 224)),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+                    # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                    #                      std=[0.229, 0.224, 0.225])
                     ])
 
     names, fps = get_img_fns()
     img_vecs = []
+    scn_vecs = []
     obj_vecs = []
     names_sanity = []
     for i, (name, fp) in enumerate(zip(names, fps)):
@@ -144,8 +154,11 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
         img_vecs.append(x)
         if not scene:
             obj_vecs.append(x)
+        else:
+            scn_vecs.append(x)
         names_sanity.append(name)
 
+    scn_vecs = np.array(scn_vecs)
     img_vecs = np.array(img_vecs)
     obj_vecs = np.array(obj_vecs)
 
@@ -154,6 +167,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
         if PCA_obj:
             pca.fit(obj_vecs)
         else:
+            # pca.fit(scn_vecs)
             pca.fit(img_vecs)
         img_vec_brief = pca.transform(img_vecs)
         img_vec_brief = img_vec_brief
@@ -166,7 +180,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
     return d_vecs
 
 
-def get_DNN_vecs(PCA=False, PCA_obj=True, DNN_layer=2):
+def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2):
     dnn_str = 'late' if DNN_layer == -1 else \
               'early' if DNN_layer == 2 else \
               f'dnn{DNN_layer}'
@@ -197,3 +211,7 @@ def get_img_fns(get_dict=False):
         return dict(zip(names, fps)), img2cat
     else:
         return names, fps
+
+if __name__ == '__main__':
+    d_vecs = get_DNN_vecs()
+    # d_vecs = get_semantic_vectors()

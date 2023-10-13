@@ -20,51 +20,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 def within_run_to_nan(RDM):
-
     RDM_ = RDM.copy()
     trial_per_run = RDM.shape[0] // 3
     for run in range(3):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
         RDM_[low:high, low:high] = np.nan
-    # plt.imshow(RDM_)
-    # plt.show()
-    # quit()
     return RDM_
 
 def regress_out_within_across(RDM):
     RDM_ = RDM.copy()
     trial_per_run = RDM.shape[0] // 3
-    # for run in range(3):
-    #     low = run * trial_per_run
-    #     high = (run + 1) * trial_per_run
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #     for i in range(low, high):
-    #         within_idxs = np.arange(low, high)
-    #         between_idxs = np.concatenate((np.arange(0, low), np.arange(high, RDM.shape[0])))
-    #         # RDM_[i, within_idxs] = stats.zscore(RDM[i, within_idxs])
-    #         RDM_[i, within_idxs] = RDM_[i, within_idxs] - \
-    #                                np.nanmean(RDM_[i, within_idxs])
-    #         RDM_[i, between_idxs] = RDM_[i, between_idxs] - \
-    #                                 np.nanmean(RDM_[i, between_idxs])
-            # RDM_[i, between_idxs] = stats.zscore(RDM[i, between_idxs])
-            #
-            # RDM_[i, low:high] = RDM_[i, low:high] - np.nanmean(RDM_[i, low:high])
-            #
-            #
-            # RDM_else = 1/2*(np.nanmean(RDM_[i, low:high] + np.nanmean(RDM_[low:high, i])))
-            # RDM_[i, :low] = RDM_[i, :low] - RDM_else
-            # RDM_[i, high:] = RDM_[i, high:] - RDM_else
-            # print(f'{RDM_else=}')
-            # print(RDM_[i, between_idxs])
-            # print(np.nanmean(RDM_[i, between_idxs]))
-            # quit()
     within_zero = np.zeros(RDM.shape)
     for run in range(3):
         low = run * trial_per_run
@@ -76,33 +42,29 @@ def regress_out_within_across(RDM):
     M_between = np.nanmean(RDM_[within_zero == 0])
     RDM_[within_zero == 1] = RDM_[within_zero == 1] - M_within
     RDM_[within_zero == 0] = RDM_[within_zero == 0] - M_between
-    # plt.imshow(RDM_)
-    # plt.show()
     return RDM_
 
 def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
+    # fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    # plt.imshow(fMRI_RDM_)
+    # plt.show()
+    # quit()
     fMRI_vec = fMRI_RDM_[tril_idx]
     stim_vec = stim_RDM[tril_idx]
     r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
     z = np.arctanh(r)
     return z
 
-def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
+def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
     '''
     matmul all took 0.001 seconds
     matmul semi (one loop, inner matmul) took 0.008 seconds
     scipy pearsonr took 0.013 seconds
     scipy spearmanr took 0.055 seconds
-
-    :param fMRI_RDM:
-    :param stim_RDM:
-    :param df_sn:
-    :param flipper:
-    :return:
     '''
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
@@ -111,7 +73,8 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, ignore_within_run=True):
     stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
     IRAFs = fMRI_RDM_std * stim_RDM_std
     IRAFs = np.nanmean(IRAFs, axis=0)
-    IRAFs = IRAFs[df_sn['obj'].argsort()]
+    # test = df_sn['obj'].argsort()
+    # IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
 
 
@@ -137,7 +100,6 @@ def get_IRAF_connectivity_matrix(ROI_to_IRAF, n_ROIs, ROIs):
         mat[mat < -.99] = -.99
         mat = np.arctanh(mat)
         all_matricies.append(mat)
-    # quit()
     return all_matricies
 
 def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
@@ -174,7 +136,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
                   nan_thresh=nan_thresh,
                   org_by_region=org_by_region)
     r2vecs = pickle_wrap(fp_cache, f, verbose=True,
-                         easy_override=False)
+                         easy_override=True)
     return r2vecs
 
 
@@ -183,7 +145,6 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
     if n_nans:
         raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
-
 
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     n_nans = np.isnan(img).sum()
@@ -197,10 +158,17 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         region_vecs = img[atlas_roi]
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
+        # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
+
         n_nans_ROI = np.sum(voxels_w_nan)
         if n_nans_ROI / len(voxels_w_nan) > nan_thresh:  # more than 10%
             continue
+        # print(f'{ROI}: {np.mean(voxels_w_nan):.4f}')
         region_vecs = region_vecs[~voxels_w_nan, :]
+        # print(f'{ROI}: {n_nans_ROI / len(voxels_w_nan)}')
+
+        # region_vecs[:, p_nans_per_trial > nan_thresh] = np.nan
+
         region_vecs = region_vecs.T
         ROI2vecs[ROI] = region_vecs
 
@@ -225,23 +193,31 @@ def get_mean_activity(region_vecs, sort_by):
 
 def get_all_stim_RDMs(df_sn, d_vecs):
     RDM_stims = {'obj': get_stim_RDM(df_sn, d_vecs, obj_only=True),
-                 'obj_abs': get_stim_RDM(df_sn, d_vecs, obj_only=True, take_abs=True),
+                 'obj_abs': get_stim_RDM(df_sn, d_vecs, obj_only=True,
+                                         take_abs=True),
                  'scn': get_stim_RDM(df_sn, d_vecs, scene_only=True),
-                 'scn_abs': get_stim_RDM(df_sn, d_vecs, scene_only=True, take_abs=True),
+                 'scn_abs': get_stim_RDM(df_sn, d_vecs, scene_only=True,
+                                         take_abs=True),
                  'dif': get_stim_RDM(df_sn, d_vecs, dif=True),
-                 'dif_abs': get_stim_RDM(df_sn, d_vecs, dif=True, take_abs=True),
+                 'dif_abs': get_stim_RDM(df_sn, d_vecs, dif=True,
+                                         take_abs=True),
                  'prd': get_stim_RDM(df_sn, d_vecs, prod=True),
-                 'prd_abs': get_stim_RDM(df_sn, d_vecs, prod=True, take_abs=True),
+                 'prd_abs': get_stim_RDM(df_sn, d_vecs, prod=True,
+                                         take_abs=True),
                  'add': get_stim_RDM(df_sn, d_vecs, add=True),
-                 'add_abs': get_stim_RDM(df_sn, d_vecs, add=True, take_abs=True),
-                 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True)}
+                 'add_abs': get_stim_RDM(df_sn, d_vecs, add=True,
+                                         take_abs=True),
+                 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True),
+                 'lifu_sem': get_stim_RDM(df_sn, d_vecs, lifu_sem=True)}
     return RDM_stims
 
 def include_bhv(bhv, df_sn_):
     bhv_cols = ['enc_trial',
                 'run', 'obj', 'scene', 'obj_rename',
                 'scene_rename', 'inc', 'perceived_con',
-                'hit_hit', 'vis_hit', 'con_hit']
+                'hit_hit', 'vis_hit', 'con_hit',
+                'vis_outlier', 'con_outlier', 'obj_outlier',
+                'scn_outlier', 'bl_outlier']
     for key in bhv_cols:
         try:
             bhv[key].append(df_sn_[key].values)
@@ -266,20 +242,21 @@ def prep_variables(sn, cin, atlas, org_by_region):
 def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                  ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
                  fp_fMRI_col='fp_fMRI', org_by_region=False,
-                 lifu=False):
+                 ):
     print(f'Onto: {sn}')
+
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
     df_sn = df_sn.sort_values(by='obj')
+
     include_bhv(bhv, df_sn)
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs)
-    assert len(RDM_stims) == len(stim_keys), \
-        f'{len(RDM_stims)=} != {len(stim_keys)=}'
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
-                            nan_thresh=.25, org_by_region=org_by_region)
+                            nan_thresh=.1, org_by_region=org_by_region)
     for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
                                   desc='looping ROIs outer', total=len(ROIs),
                                   leave=True, ncols=80, position=0):
+
         if ROI not in ROI2vecs:
             M_activity = np.full((1, n_trials), np.nan)
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
@@ -293,13 +270,55 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                 ROI_to_IRAF[key][ROI] = \
                     np.append(ROI_to_IRAF[key][ROI], IRAFs, axis=0)
         else:
-            region_vecs = ROI2vecs[ROI]
+            cond = fp_fMRI_col.split('_')[0]
+            outliers = np.array(bhv[f'{cond}_outlier'][-1])
+            ROI2vecs[ROI][outliers, :] = np.nan
+            region_vecs = np.copy(ROI2vecs[ROI])
             M_activity =  get_mean_activity(region_vecs, df_sn['obj'])[None, :]
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
                                              axis=0)
             RDM_fMRI = np.corrcoef(region_vecs)
+            # print(np.sum(np.isnan(region_vecs)))
+            # region_vecs = stdize(region_vecs, axis=1, nans=True)
+            # region_vecs_a = region_vecs[None, :, :]
+            # region_vecs_b = region_vecs[:, None, :]
+            # prod = region_vecs_a * region_vecs_b
+            # RDM_fMRI = np.nanmean(prod, axis=2)
+            # plt.imshow(RDM_fMRI)
+            # plt.show()
+            # quit()
+            # print(RDM_fMRI.shape)
+            # quit()
+            # RDM_fMRI = np.ma.corrcoef(np.ma.masked_invalid(region_vecs))
+            # print(np.sum(~np.isnan(RDM_fMRI)))
+            # quit()
 
-            ROI_to_RDM_fMRI[ROI] = RDM_fMRI
+            # plt.imshow(RDM_fMRI)
+            # plt.show()
+            # quit()
+            # plt.imshow(RDM_fMRI)
+            # plt.show()
+            # quit()
+            # IRAFs = np.full((1, n_trials), np.nan)
+            # for key in stim_keys:
+            #     zs = []
+            #     for inc_val in [1, 2, 3]:
+            #         region_vecs = np.copy(ROI2vecs[ROI])
+            #         inc_vals = bhv['inc'][-1]
+            #         inc_bools = inc_vals == inc_val
+            #         # inc_bools = np.full(len(inc_vals), True)
+            #         region_vecs[~inc_bools, :] = np.nan
+            #         RDM_fMRI = np.corrcoef(region_vecs)
+            #         z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
+            #         zs.append(z)
+            #         IRAFs_inc = get_IRAFs(RDM_fMRI, RDM_stims[key], df_sn)
+            #         IRAFs[0, inc_bools] = IRAFs_inc[inc_bools]
+            #     z = np.nanmean(zs)
+            #     # assert np.sum(np.isnan(zs)) == 0, f'nan in zs: {zs=}'
+            #     ROI_to_z[key][ROI].append(z)
+            #     ROI_to_IRAF[key][ROI] = \
+            #         np.append(ROI_to_IRAF[key][ROI], IRAFs, axis=0)
+
             for key in stim_keys:
                 z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
                 ROI_to_z[key][ROI].append(z)
@@ -307,12 +326,12 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                 ROI_to_IRAF[key][ROI] = \
                     np.append(ROI_to_IRAF[key][ROI], IRAFs[None, :], axis=0)
 
-    apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
-                            ROI_to_z, ROI_to_IRAF)
+    # apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
+    #                         ROI_to_z, ROI_to_IRAF)
 
-    for key in stim_keys:
-        triple_z[key].append(get_triple_connectivity(ROI_to_RDM_fMRI,
-                                                     RDM_stims[key], ROIs))
+    # for key in stim_keys:
+    #     triple_z[key].append(get_triple_connectivity(ROI_to_RDM_fMRI,
+    #                                                  RDM_stims[key], ROIs))
 
     return df_sn
 
@@ -348,7 +367,11 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
                  'dif', 'dif_abs',
                  'prd', 'prd_abs',
                  'add', 'add_abs',
-                 'lifu']
+                 'lifu', 'lifu_sem']
+    stim_keys = ['obj', 'obj_abs',
+                 'scn', 'scn_abs',
+                 'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
+    stim_keys = ['obj', 'scn', 'dif_abs']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -424,7 +447,7 @@ def run_multi_settings():
     combine_regions = True
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
-    PCA_obj = False
+    PCA_obj = True
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
     # fp_fMRI_col = 'obj_fMRI' # maps onto columns defined in get_trial_info
@@ -441,10 +464,10 @@ def run_multi_settings():
                                             # (4, False),
                                             # (6, False),
                                             # (-1, False),
-                                            (False, True),
+                                            # (False, True),
                                             ]: # (True, False),
-                    if semantic and PCA_obj:
-                        continue
+                    # if semantic and PCA_obj:
+                    #     continue
 
                     age_str = 'healthy' if age == 'healthy' else \
                         'YA' if age == 1 else 'OA'
@@ -478,8 +501,21 @@ def run_multi_settings():
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
+                quit()
 
 
+# a = [[1, 2, 3, np.nan], [4, 2, 8, 10], [1, 2, 3, 10]]
+# a = [[1, 2, 3, ], [4, 2, 8, ], [1, 2, 3, ]]
+#
+# a_m=ma.masked_invalid(a)
+# # print(a_m)
+# # print(a[a_m])
+# r = np.ma.corrcoef(ma.masked_invalid(a))
+# print(r)
+# quit()
+# r = np.corrcoef(a)
+# print(r)
+# quit()
 
 if __name__ == '__main__':
     # TODO: 3 way correlation, Region A RDM x Region B RDM x Stimulus RDM

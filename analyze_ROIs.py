@@ -35,9 +35,19 @@ def do_lmer(d, key, ROI, hits_only=True):
     incs = np.reshape(incs, -1)
     hit_hit = np.reshape(hit_hit, -1)
     run = np.reshape(run, -1)
-    incs = map(lambda x: 'i' if x == 1 else 'n' if x == 2 else 'c', incs)
-    df = pd.DataFrame({'IRAF': IRAFs, 'sn': sns, 'inc': incs,
-                       'hit_hit': hit_hit, 'run': run})
+    incs = list(map(lambda x: 'i' if x == 1 else 'n' if x == 2 else 'c', incs))
+    # sns = [sn for sn in sns if sn != '102']
+    d = {'IRAF': IRAFs, 'sn': sns, 'inc': incs, 'hit_hit': hit_hit, 'run': run}
+
+    # for key, l in d.items():
+    #     print(key, ':', len(l))
+    # quit()
+    df = pd.DataFrame(d)
+
+    # print(len(df['sn'].unique()))
+    # print(df['sn'].unique())
+    # print(df[df['sn'] == '104']['IRAF'])
+    # quit()
 
     # bad_sns = {'119', '115'}
     # df = df[df['sn'].isin(bad_sns) == False]
@@ -48,7 +58,7 @@ def do_lmer(d, key, ROI, hits_only=True):
 
     # Load = 3.3 s, first run = 1.7 s, rest runs = 0.32 s
     from pymer4.models import Lmer
-    formula = f'IRAF ~ 1 + inc + (1 | sn)'
+    formula = f'IRAF ~ 1 + (1 | sn)'
     df.dropna(subset=['IRAF'], inplace=True)
     model = Lmer(formula, data=df)
     model.fit(REML=False, verbose=False, summary=False)
@@ -60,21 +70,24 @@ def do_lmer(d, key, ROI, hits_only=True):
 
 def do_ttest(d, key, ROI, wilcox=False):
     if wilcox:
+        print(d['z'][key][ROI])
         res = stats.wilcoxon(d['z'][key][ROI], alternative='greater')
         N = np.sum(~np.isnan(d['z'][key][ROI]))
         p = res.pvalue
         t = stats.t.ppf(1 - p, N - 1)
         if t < -4:
             t = -4
-        return t, p
+        M0 = np.nanmean(d['z'][key][ROI] > 0.)
+        return M0, t, p, 0
     else:
+
         M0 = np.nanmean(d['z'][key][ROI])
         SD = np.nanstd(d['z'][key][ROI])
         N = np.sum(~np.isnan(d['z'][key][ROI]))
         SE = SD / np.sqrt(N)
         t = M0 / SE
         p = stats.t.sf(np.abs(t), N - 1) * 2
-        return t, p
+        return M0, t, p, N
 
 def setup_colors(atlas):
     cmap = plt.get_cmap('turbo')
@@ -120,10 +133,23 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
             region2color[atlas['tick_labels'][i]])
     plt.show()
 
+def prune_bad_sns(d):
+    # d['sns'] = d['sns'][1:]
+    bad_sns = {'104', '109', '115', '119'}
+    sns_bool = np.array([sn not in bad_sns for sn in d['sns']])
+    for key, d_sub in d['IRAFs_ROI'].items():
+        d_sub_z = d['z'][key]
+        for ROI, ar in d_sub.items():
+            d_sub[ROI] = ar[sns_bool]
+            d_sub_z[ROI] = d_sub_z[ROI][sns_bool]
+    for col in d['bhv']:
+        d['bhv'][col] = d['bhv'][col][sns_bool]
+    d['sns'] = d['sns'][sns_bool]
+    return d
 
 def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
                  bilateral=False, combine_regions=True,
-                 vec_prod=False, PCA_obj=False,
+                 vec_prod=False, PCA_obj=True,
                  org_by_region=False, rxr=False, run_lmer=False):
     font = {'size': 14}
     matplotlib.rc('font', **font)
@@ -137,11 +163,12 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
 
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
+    d = prune_bad_sns(d)
     # print(d['sns'])
     # print(d['z']['obj'].keys())
     # print(d['z']['obj']['SFG_L'].shape)
     # quit()
-    key = 'lifu'
+    key = 'obj'
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
@@ -151,16 +178,18 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
     for ROI, region in tqdm(zip(atlas['ROIs'], atlas['ROI_regions'])):
         # try:
         if run_lmer:
-            t, p = do_lmer(d, key, ROI, hits_only=False)
+            t, p = do_lmer(d, key, ROI, hits_only=True)
+            M0 = 0
+            N = 0
         else:
-            t, p = do_ttest(d, key, ROI)
+            M0, t, p, N = do_ttest(d, key, ROI, wilcox=False)
         # except KeyError:
         #     continue
         ts.append(t)
         ps.append(p)
         color = region2color[region]
         colors.append(color)
-        print(f'{ROI}, {t=:.3f}, {p=:.3f}')
+        print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
     title_short = make_title_str('', key, age, early, semantic, short=True)
     my_plot_surf(np.array(ts), atlas, title_short)
     title = make_title_str('', key, age, early, semantic, inc)

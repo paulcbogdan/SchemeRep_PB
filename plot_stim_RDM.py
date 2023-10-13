@@ -151,7 +151,7 @@ def get_d_vecs(pairs_all, semantic=False):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
-        d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True)
+        d_vecs = get_DNN_vecs(DNN_layer=4, PCA=True, PCA_obj=False)
     d_vec_pairs = {}
     for pair in pairs_all:
         d_vec_pairs[pair] = abs(d_vecs[pair[0]] + d_vecs[pair[1]])
@@ -244,8 +244,8 @@ if __name__ == '__main__':
     img2fp, img2cat = get_img_fns(get_dict=True)
     pairs_all = get_pairs_all()
     d_vecs, d_vec_pairs = get_d_vecs(pairs_all)
-    d_vecs = d_vec_pairs
-    img2fp = setup_pair_pics(pairs_all, img2fp, avg=AVG_PIC)
+    # d_vecs = d_vec_pairs
+    # img2fp = setup_pair_pics(pairs_all, img2fp, avg=AVG_PIC)
 
     # imgs = []
     imgs = sorted(d_vecs.keys())
@@ -267,11 +267,11 @@ if __name__ == '__main__':
     idxs_used = []
     for idx in idxs:
         img = imgs[idx]
-        # if img2cat[img] != 'scene': continue
+        if img2cat[img] != 'obj': continue
         idxs_used.append(idx)
         fp = img2fp[img]
-        # zoom = .08 if img2cat[img] == 'obj' else .02
-        zoom = .007
+        zoom = .08 if img2cat[img] == 'obj' else .02
+        # zoom = .007
         test = plt.imread(fp)
 
         imagebox = OffsetImage(plt.imread(fp), zoom=zoom, alpha=.75)

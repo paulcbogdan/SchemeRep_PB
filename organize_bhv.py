@@ -26,7 +26,7 @@ NAME_RENAMER = {'inside of a car': 'car',
                #'laundry hamper': 'laundry basket',
                'dumb bell': 'dumbbell',
                # 'rock-climbing shoe': 'climbing shoe',
-               'rock-climbing shoe': 'rock climbing shoe', # maybe not the best
+               'rock-climbing shoe': 'rockclimbing shoe', # maybe not the best
                # 'book bag': 'backpack',
                'sea gull': 'seagull', # object
                'hair salon': 'salon',
@@ -45,7 +45,7 @@ NAME_RENAMER = {'inside of a car': 'car',
                'Eiffel Tower': 'paris landmark',
                #'binder clip': 'binder clip',
                'office space': 'office',
-               'haircomb': 'hair comb', # object
+               'haircomb': 'comb', # object
                'soccerball': 'soccer ball', # object
                'McDonald\'s': 'fast food',
                #'ATM': 'ATM', # automatic teller machine
@@ -54,7 +54,7 @@ NAME_RENAMER = {'inside of a car': 'car',
                }
 
 
-def get_trial_info(sn, easy_override=False):
+def get_trial_info(sn, easy_override=True):
     fp = fr'cache/trial_info/{sn}.pkl'
     df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn),
                         easy_override=easy_override)
@@ -112,7 +112,7 @@ def get_trial_info_(sn, ret=False):
             else:
                 scene_rename = scene
 
-            outlier_bool = outliers[i][0]
+            outlier_bool = bool(outliers[i][0])
 
             d = {'sn': sn,
                  'enc_trial': trial,
@@ -128,6 +128,8 @@ def get_trial_info_(sn, ret=False):
                  'per_con': resp, # higher (up to 4) = seen as congruent
                  'per_inc': per_inc,
                  'enc_outlier': outlier_bool,
+                 'obj_outlier': outlier_bool,
+                 'scn_outlier': outlier_bool,
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
@@ -190,8 +192,7 @@ def include_conceptual(df_sn, sn):
                 obj2fp[obj] = glob_conc[0]
                 #break
             # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
-            outlier_bool = outliers[i][0]
-            obj2outlier[obj] = outlier_bool
+            obj2outlier[obj] = bool(outliers[i][0])
             # obj2trial
         if has_missing_fMRI:
             print(f'Missing fMRI data for {sn} run {run}')
@@ -200,6 +201,7 @@ def include_conceptual(df_sn, sn):
         df_sn['con_hit'] = df_sn['con_resp'].apply(
             lambda x: np.nan if pd.isna(x) else x >= 3)
         df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
+        df_sn['con_outlier'] = df_sn['obj'].map(obj2outlier)
         if sn not in get_bad_sns(ret=True):
             assert len(df_sn['con_fMRI'].value_counts()) == 114, \
                 'Missing con fMRI fp'
@@ -227,7 +229,7 @@ def include_vis(df_sn, sn):
             print('Missing trial data VIS')
             continue
         try:
-            fp_outliers = fr'{dir_outliers}/Day3run{run}outlier_trials.mat'
+            fp_outliers = fr'{dir_outliers}/Day3run{run + 3}outlier_trials.mat'
             mat_outliers = io.loadmat(fp_outliers)
             outliers = mat_outliers['outliertrials']
         except FileNotFoundError:
@@ -249,8 +251,7 @@ def include_vis(df_sn, sn):
             old_similar_new = 'old' if old_similar_new == 0 else \
                 'similar' if old_similar_new == 1 else 'new'
             obj2type[obj] = old_similar_new
-            outlier_bool = outliers[i][0]
-            obj2outlier[obj] = outlier_bool
+            obj2outlier[obj] = bool(outliers[i][0])
             glob_vic = fr'{vis_root}/Day3Visual_Run{run}_Trial{trial}_*.nii'
             glob_vic = glob(glob_vic)
             if len(glob_vic) < 1:
@@ -266,6 +267,7 @@ def include_vis(df_sn, sn):
             row['vis_resp'] == row['vis_type']
         df_sn['vis_hit'] = df_sn.apply(f, axis=1)
         df_sn['vis_fMRI'] = df_sn['obj'].map(obj2fp)
+        df_sn['vis_outlier'] = df_sn['obj'].map(obj2outlier)
         if sn not in get_bad_sns(ret=True):
             assert len(df_sn['vis_fMRI'].value_counts()) == 114, \
                 'Missing vis fMRI fp'
@@ -330,8 +332,7 @@ def include_BL(df_sn, sn):
             glob_BL = glob(glob_BL)
             assert len(glob_BL) == 1, f'Bad more than one post: {glob_BL=}'
             obj2fp[obj] = glob_BL[0]
-            outlier_bool = outliers[i][0]
-            obj2outlier[obj] = outlier_bool
+            obj2outlier[obj] = bool(outliers[i][0])
     else:
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
@@ -406,14 +407,35 @@ def prep_dif(df, sn):
 # print(np.isnan(None))
 # quit()
 
+def print_outlier_data(df):
+    col2outlier = {}
+    for col in df.columns:
+        if 'outlier' not in col:
+            continue
+        m = df[col].mean()
+        col2outlier[col] = m
+    print(col2outlier)
+
 if __name__ == '__main__':
     age2sn = get_all_sns(ret=False)
-    test = get_trial_info_('126')
+    # test = get_trial_info_('126')
     # quit()
     # print(age2sn[1])
     # n_subj = len(age2sn[1])
     # print(f'{n_subj=}')
     # quit()
+    df_all = []
     for SN in age2sn[1]:
         print(f'Testing: {SN}')
-        get_trial_info(SN, easy_override=True)
+        df_sn = get_trial_info(SN, easy_override=True)
+        for i in range(30):
+            print(dict(df_sn[['inc', 'vis_fMRI', 'vis_resp', 'vis_type',
+                              'obj_fMRI']].iloc[i]))
+        quit()
+        print_outlier_data(df_sn)
+        df_all.append(df_sn)
+    df_all = pd.concat(df_all)
+    print('All')
+    print_outlier_data(df_all)
+
+
