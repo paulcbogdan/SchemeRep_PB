@@ -1,25 +1,16 @@
-import os.path
-import pickle
-
-from pickle_wrap import pickle_wrap
 from collections import defaultdict
 
 import numpy as np
 
-from atlas_utils import get_BN_and_resample, get_combined_BNA
-from fMRI_proc import get_ROI_vecs, get_ROI_vecs_, within_run_to_nan, regress_out_within_across
-from old.test_lifu import get_stim_RDM_lifu
+from atlas_utils import get_BN_and_resample
+from fMRI_proc import get_ROI_vecs, regress_out_within_across, get_IRAFs, within_run_to_nan
 from organize_bhv import get_trial_info, get_all_sns
-from nilearn import image
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
-from utils import stdize, nan_ar, defaultdict_to_dict, pb_outer_double_multi
 import utils
 import scipy.stats as stats
 
 from tqdm import tqdm
-from pathlib import Path
-import matplotlib.pyplot as plt
 import pandas as pd
 
 def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
@@ -81,9 +72,10 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
     RDM_fMRI = np.corrcoef(PFC_vecs)
     RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
     key2z = {}
-    # RDM_fMRI = within_run_to_nan(RDM_fMRI)
-    RDM_fMRI = regress_out_within_across(RDM_fMRI)
+    RDM_fMRI = within_run_to_nan(RDM_fMRI)
+    # RDM_fMRI = regress_out_within_across(RDM_fMRI)
 
+    key2IRAF_df = {}
     for key, RDM_stim in RDM_stims.items():
         tril_idx = np.tril_indices_from(RDM_fMRI, k=-1)
         fMRI_vec = RDM_fMRI[tril_idx]
@@ -91,18 +83,24 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
         r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
         z = np.arctanh(r)
         key2z[key] = z
-    return key2z
+        IRAFs = get_IRAFs(RDM_fMRI, RDM_stim, df_sn)
+        key2IRAF_df[key] = pd.DataFrame({'IRAF': IRAFs,
+                                         'hit_hit': df_sn['hit_hit']}).dropna()
+        key2IRAF_df[key]['sn'] = sn
+    return key2z, key2IRAF_df
 
-def analyze_all_sn(age=2):
+def analyze_all_sn(age=1):
     atlas = get_BN_and_resample(combine_bilateral=False)
     age2sn = get_all_sns()
     key2z_all = defaultdict(list)
+    key2IRAF_df_all = defaultdict(lambda: pd.DataFrame())
     for i, sn in tqdm(enumerate(age2sn[age]), desc='PFC looping sn'):
-        key2z = analyze_sn(sn, atlas)
+        key2z, key2IRAF_df  = analyze_sn(sn, atlas)
         if key2z is None:
             continue
         for key, z in key2z.items():
             key2z_all[key].append(z)
+            key2IRAF_df_all[key] = pd.concat([key2IRAF_df_all[key], key2IRAF_df[key]])
 
     key2z_all['dif_abs_'] = utils.regress_out_multi([#key2z_all['obj_abs'],
                                                      #key2z_all['scn_abs'],
@@ -126,6 +124,22 @@ def analyze_all_sn(age=2):
         p = stats.t.sf(np.abs(t), len(l)-1) # one-sided
         print(f'{key}: M={M:.3f}, SD={SD:.3f}, SE={SE:.3f}, t={t:.3f}, p={p:.3f}')
 
+        from pymer4.models import Lmer
+        formula = f'IRAF ~ 1 + (1 | sn)'
+        if len(key2IRAF_df_all[key]) == 0:
+            continue
+        df = key2IRAF_df_all[key]
+        df = df[df['hit_hit'] > 0]
+        model = Lmer(formula, data=df)
+        model.fit(REML=True, verbose=False, summary=False)
+        summary = model.coefs
+        print(summary.round(3))
+        t = summary['T-stat'].loc['(Intercept)']
+        p = summary['P-val'].loc['(Intercept)']
+        print(f'\tlmer {key}: t={t:.3f}, p={p:.3f}')
+        print()
+
+
 def find_temporal_correlation(ar):
     rs = []
     for i in tqdm(range(len(ar))):
@@ -139,78 +153,6 @@ def find_temporal_correlation(ar):
     print(f'M={M:.4f}, med={med:.4f}')
     quit()
 
-
-def sanity_test(sn='102'):
-    atlas = get_BN_and_resample(combine_bilateral=False)
-    df_sn = get_trial_info(sn)
-    # ROI2vecs, _ = load_and_get_ROI_vecs(sn, atlas, fp_fMRI_col='obj_fMRI')
-    # img = image.load_img(df_sn['obj_fMRI']).get_fdata()
-    # ROI2vecs, _ = get_ROI_vecs_(atlas['ROIs'], atlas['ROI_nums'], atlas,
-    #                             img, atlas['ROI_regions'])
-
-    ROI2vecs = get_ROI_vecs(sn, atlas, 'obj_fMRI', df_sn,
-                            nan_thresh=.25, org_by_region=False, inc=None)
-
-    RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
-    RDM_stim = RDM_stims['obj']
-    # RDM_stim = get_stim_RDM_lifu(df_sn)
-    # RDM_stim = np.random.normal(size=RDM_stim.shape)
-    # RDM_stim_flat = RDM_stim[np.tril_indices_from(RDM_stim, k=-1)]
-    all_data = []
-    for ROI, vecs in tqdm(ROI2vecs.items(), desc='looping ROIs'):
-        fMRI_RDM = np.corrcoef(vecs)
-        fMRI_RDM = within_run_to_nan(fMRI_RDM)
-
-        # if ROI == '199 LOC_L_4_1':
-        # fMRI_RDM = regress_out_within_across(fMRI_RDM)
-        #     title = f'fMRI RDM, subject: {sn}, ROI: {ROI}\n' \
-        #             f'Only examine between-run'
-        #     plt.title(title)
-        #     plt.imshow(fMRI_RDM)
-        #     plt.xlabel('trial x')
-        #     plt.ylabel('trial y')
-        #     plt.colorbar()
-        #     plt.tight_layout()
-        #     plt.show()
-        #     quit()
-        # else:
-        #     continue
-
-        # trial_per_run = fMRI_RDM.shape[0] // 3
-        # for run in range(3):
-        #     low = run * trial_per_run
-        #     high = (run + 1) * trial_per_run
-        #     fMRI_RDM[low:high, low:high] = np.nan
-
-        trial_rs = []
-        for i in range(fMRI_RDM.shape[0]):
-            fMRI_vec_std = np.delete(fMRI_RDM[i, :], i)
-            stim_vec_std = np.delete(RDM_stim[i, :], i)
-            fMRI_vec_std = stdize(fMRI_vec_std, nans=True)
-            stim_vec_std = stdize(stim_vec_std, nans=True)
-
-            fMRI_nans = np.isnan(fMRI_vec_std)
-            stim_nans = np.isnan(stim_vec_std)
-            either_nan = fMRI_nans | stim_nans
-            fMRI_vec_std = fMRI_vec_std[~either_nan]
-            stim_vec_std = stim_vec_std[~either_nan]
-            r = (fMRI_vec_std @ stim_vec_std) / len(fMRI_vec_std)
-            trial_rs.append(r)
-        all_data.append(trial_rs)
-    all_data = np.vstack(all_data)
-    plt.imshow(all_data)
-    # find_temporal_correlation(all_data)
-    plt.xlabel('Item')
-    plt.ylabel('ROI')
-    # plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nAnalysis of all trials')
-    # plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nRegress out within vs. between')
-    plt.title(f'IRAF. subject: {sn}, 2nd layer DNN\nOnly examine between-run')
-
-    # plt.title('IRAF based on only within-run\nIRAF for 2nd layer DNN, participant 102')
-    # plt.title('Shuffled trials\nIRAF for 2nd layer DNN, participant 102')
-    plt.colorbar()
-    plt.show()
-    quit()
 
 if __name__ == '__main__':
     analyze_all_sn()

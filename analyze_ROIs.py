@@ -29,15 +29,15 @@ def do_lmer(d, key, ROI, hits_only=True):
     #     print(key, ':', pd.isna(d['bhv'][key]).sum())
     # quit()
     hit_hit = d['bhv']['hit_hit']
-    run = d['bhv']['run']
+    # run = d['bhv']['run']
     IRAFs = np.reshape(IRAFs, -1)
     sns = np.reshape(sns, -1)
     incs = np.reshape(incs, -1)
     hit_hit = np.reshape(hit_hit, -1)
-    run = np.reshape(run, -1)
+    # run = np.reshape(run, -1)
     incs = list(map(lambda x: 'i' if x == 1 else 'n' if x == 2 else 'c', incs))
     # sns = [sn for sn in sns if sn != '102']
-    d = {'IRAF': IRAFs, 'sn': sns, 'inc': incs, 'hit_hit': hit_hit, 'run': run}
+    d = {'IRAF': IRAFs, 'sn': sns, 'inc': incs, 'hit_hit': hit_hit}
 
     # for key, l in d.items():
     #     print(key, ':', len(l))
@@ -61,7 +61,7 @@ def do_lmer(d, key, ROI, hits_only=True):
     formula = f'IRAF ~ 1 + (1 | sn)'
     df.dropna(subset=['IRAF'], inplace=True)
     model = Lmer(formula, data=df)
-    model.fit(REML=False, verbose=False, summary=False)
+    model.fit(REML=True, verbose=False, summary=False)
     summary = model.coefs
     # print(summary.round(3))
     t = summary['T-stat'].loc['(Intercept)']
@@ -133,15 +133,20 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
             region2color[atlas['tick_labels'][i]])
     plt.show()
 
-def prune_bad_sns(d):
+def prune_bad_sns(d, drop_ret=False):
     # d['sns'] = d['sns'][1:]
-    bad_sns = {'104', '109', '115', '119'}
+    if drop_ret:
+        bad_sns = {'116', '125', '133', '138', '213', '215'}
+    else:
+        bad_sns = {'104', '109', '115', '119'}
     sns_bool = np.array([sn not in bad_sns for sn in d['sns']])
     for key, d_sub in d['IRAFs_ROI'].items():
         d_sub_z = d['z'][key]
         for ROI, ar in d_sub.items():
             d_sub[ROI] = ar[sns_bool]
             d_sub_z[ROI] = d_sub_z[ROI][sns_bool]
+    for roi, d_sub in d['activity'].items():
+        d['activity'][roi] = d_sub[sns_bool]
     for col in d['bhv']:
         d['bhv'][col] = d['bhv'][col][sns_bool]
     d['sns'] = d['sns'][sns_bool]
@@ -163,7 +168,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
 
     with open(fp1, 'rb') as file:
         d = pickle.load(file)
-    d = prune_bad_sns(d)
+    # d = prune_bad_sns(d)
     # print(d['sns'])
     # print(d['z']['obj'].keys())
     # print(d['z']['obj']['SFG_L'].shape)

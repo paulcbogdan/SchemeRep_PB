@@ -73,8 +73,7 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
     stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
     IRAFs = fMRI_RDM_std * stim_RDM_std
     IRAFs = np.nanmean(IRAFs, axis=0)
-    # test = df_sn['obj'].argsort()
-    # IRAFs = IRAFs[df_sn['obj'].argsort()]
+    IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
 
 
@@ -213,7 +212,8 @@ def get_all_stim_RDMs(df_sn, d_vecs):
 
 def include_bhv(bhv, df_sn_):
     bhv_cols = ['enc_trial',
-                'run', 'obj', 'scene', 'obj_rename',
+                'obj_run', 'scn_run',
+                'obj', 'scene', 'obj_rename',
                 'scene_rename', 'inc', 'perceived_con',
                 'hit_hit', 'vis_hit', 'con_hit',
                 'vis_outlier', 'con_outlier', 'obj_outlier',
@@ -247,7 +247,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
-    df_sn = df_sn.sort_values(by='obj')
+    # df_sn = df_sn.sort_values(by='obj')
 
     include_bhv(bhv, df_sn)
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs)
@@ -326,8 +326,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                 ROI_to_IRAF[key][ROI] = \
                     np.append(ROI_to_IRAF[key][ROI], IRAFs[None, :], axis=0)
 
-    # apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
-    #                         ROI_to_z, ROI_to_IRAF)
+    apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
+                            ROI_to_z, ROI_to_IRAF)
 
     # for key in stim_keys:
     #     triple_z[key].append(get_triple_connectivity(ROI_to_RDM_fMRI,
@@ -371,7 +371,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
     stim_keys = ['obj', 'obj_abs',
                  'scn', 'scn_abs',
                  'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
-    stim_keys = ['obj', 'scn', 'dif_abs']
+    stim_keys = ['obj', 'scn', 'dif_abs', 'lifu']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -415,7 +415,8 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                             ROI_to_z, ROI_to_IRAF):
     ROIs = atlas['tick_labels'] if org_by_region else atlas['ROIs']
     keys_sans_obj_scn = [key for key in stim_keys if
-                         'obj' != key and 'scn' != key]
+                         ('obj' not in key) and ('scn' not in key) and
+                         ('lifu' not in key)]
     for ROI in ROIs:
         for key in keys_sans_obj_scn:
             key_mod = f'{key}_'
@@ -429,17 +430,17 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                                                     ROI_to_IRAF[key][ROI][:, trial_i])
                 ROI_to_IRAF[key_mod][ROI][:, trial_i] = IRAF_dif_
 
-        for key in keys_sans_obj_scn:
-            key_mod = f'{key}__'
-            ROI_to_z[key_mod][ROI] = utils.regress_out_multi([ROI_to_z['obj_abs'][ROI],
-                                                             ROI_to_z['scn_abs'][ROI]],
-                                                            ROI_to_z[key][ROI])
-            ROI_to_IRAF[key_mod][ROI] = np.full(ROI_to_IRAF[key][ROI].shape, np.nan)
-            for trial_i in range(n_trials):
-                IRAF_dif_ = utils.regress_out_multi([ROI_to_IRAF['obj_abs'][ROI][:, trial_i],
-                                                     ROI_to_IRAF['scn_abs'][ROI][:, trial_i]],
-                                                    ROI_to_IRAF[key][ROI][:, trial_i])
-                ROI_to_IRAF[key_mod][ROI][:, trial_i] = IRAF_dif_
+        # for key in keys_sans_obj_scn:
+        #     key_mod = f'{key}__'
+        #     ROI_to_z[key_mod][ROI] = utils.regress_out_multi([ROI_to_z['obj_abs'][ROI],
+        #                                                      ROI_to_z['scn_abs'][ROI]],
+        #                                                     ROI_to_z[key][ROI])
+        #     ROI_to_IRAF[key_mod][ROI] = np.full(ROI_to_IRAF[key][ROI].shape, np.nan)
+        #     for trial_i in range(n_trials):
+        #         IRAF_dif_ = utils.regress_out_multi([ROI_to_IRAF['obj_abs'][ROI][:, trial_i],
+        #                                              ROI_to_IRAF['scn_abs'][ROI][:, trial_i]],
+        #                                             ROI_to_IRAF[key][ROI][:, trial_i])
+        #         ROI_to_IRAF[key_mod][ROI][:, trial_i] = IRAF_dif_
 
 
 def run_multi_settings():
@@ -455,16 +456,18 @@ def run_multi_settings():
     inc = None
     # if True:
     for age in [1, 2]:
-        for inc in [None, 1, 2, 3]:
+        for inc in [None]:
             for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI',
                                 'con_fMRI', 'vis_fMRI',
                                 'bl_fMRI']:
+            # for fp_fMRI_col in ['scn_fMRI',]:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
-                for DNN_layer, semantic in [(2, False),
+                for DNN_layer, semantic in [
+                                            (2, False),
                                             # (4, False),
                                             # (6, False),
                                             # (-1, False),
-                                            # (False, True),
+                                            (False, True),
                                             ]: # (True, False),
                     # if semantic and PCA_obj:
                     #     continue
@@ -501,7 +504,7 @@ def run_multi_settings():
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
-                quit()
+                # quit()
 
 
 # a = [[1, 2, 3, np.nan], [4, 2, 8, 10], [1, 2, 3, 10]]

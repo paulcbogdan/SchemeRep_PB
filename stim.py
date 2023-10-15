@@ -108,7 +108,7 @@ def get_semantic_vectors():
     # fit using python 3.11
     fp_vecs = f'cache/schemerep_sem_vecs.pkl'
     d_vecs = pickle_wrap(fp_vecs, get_semantic_vectors_,
-                         easy_override=True)
+                         easy_override=False)
     return d_vecs
 
 

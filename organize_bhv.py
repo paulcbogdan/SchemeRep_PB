@@ -116,7 +116,8 @@ def get_trial_info_(sn, ret=False):
 
             d = {'sn': sn,
                  'enc_trial': trial,
-                 'run': run,
+                 'obj_run': run,
+                 'scn_run': run,
                  #'fp_fMRI': fp_obj,
                  'obj_fMRI': fp_obj,
                  'scn_fMRI': fp_scn,
@@ -143,7 +144,7 @@ def get_trial_info_(sn, ret=False):
         else:
             return row['con_hit'] & row['vis_hit']
     df_sn['hit_hit_nan'] = df_sn.apply(f, axis=1)
-    df_sn = prep_dif(df_sn, sn)
+    # df_sn = prep_dif(df_sn, sn)
     return df_sn
 
 def include_conceptual(df_sn, sn):

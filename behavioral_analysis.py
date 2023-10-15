@@ -9,8 +9,20 @@ from pprint import pprint
 
 import matplotlib.pyplot as plt
 import matplotlib
+import scipy.stats as stats
 
-def test_vectors(semantic=True, DNN_layer=2):
+def stdize_vecs(d_vecs):
+    vecs_all = []
+    for img, vec in d_vecs.items():
+        vecs_all.append(vec)
+    vecs_all = np.array(vecs_all)
+    M = np.mean(vecs_all, axis=0)
+    SD = np.std(vecs_all, axis=0)
+    for img, vec in d_vecs.items():
+        d_vecs[img] = (vec - M) / SD
+
+
+def test_vectors(semantic=True, DNN_layer=4):
     age2sn = get_all_sns(ret=False)
     pairs_all = []
     inc2pairs = defaultdict(set)
@@ -34,10 +46,14 @@ def test_vectors(semantic=True, DNN_layer=2):
     else:
         d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True)
 
+    # stdize_vecs(d_vecs)
+
     inc2dif_l = defaultdict(list)
     Ms = []
     SDs = []
+    SEs = []
     # for inc, pairs in inc2pairs.items():
+    obj2inc2dif = defaultdict(dict)
     for inc in [1, 2, 3]:
         pairs = inc2pairs[inc]
         for pair in pairs:
@@ -46,20 +62,37 @@ def test_vectors(semantic=True, DNN_layer=2):
             dif = abs(vec_obj - vec_scn)
             m = np.mean(dif)
             inc2dif_l[inc].append(m)
+            obj2inc2dif[pair[0]][inc] = m
         M = np.mean(inc2dif_l[inc])
         SD = np.std(inc2dif_l[inc])
         SE = SD / np.sqrt(len(inc2dif_l[inc]))
         print(f'{inc}: {M=:.4f} [{SD=:.4f}, {SE=:.4f}]')
         Ms.append(M)
         SDs.append(SD)
+        SEs.append(SE)
+
+    difs = [d[3] - d[1] for obj, d in obj2inc2dif.items()]
+    M_dif = np.mean(difs)
+    SD_dif = np.std(difs)
+    SE_dif = SD_dif / np.sqrt(len(difs))
+    t = M_dif / SE_dif
+    p = stats.t.cdf(t, len(difs) - 1)
+    print(f'{M_dif=:.4f} [{SE_dif=:.4f}], {t=:.3f}, {p=:.3f}')
+    quit()
+
 
     font = {'size': 14}
     matplotlib.rc('font', **font)
     # plt.xticks([0, 1, 2], ['Incongruent', 'Neutral', 'Congruent'])
-    plt.bar(['Incongruent', 'Neutral', 'Congruent'], Ms, yerr=SDs,
+    plt.bar(['Incongruent', 'Neutral', 'Congruent'], Ms, yerr=SEs,
             color=['red', 'purple', 'blue'])
     plt.ylabel('Mean of abs(obj - scene) vector')
-    plt.yticks([0, 0.05, 0.1, 0.15, 0.2])
+    # plt.yticks([0, 0.05, 0.1, 0.15, 0.2])
+    # plt.ylim(104, 110)
+    # plt.title('Perceptual')
+    plt.ylim(0.14, 0.19)
+    plt.title('Semantic')
+
     plt.tight_layout()
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
@@ -142,7 +175,8 @@ def test_U_memory(DV='con_hit'):
     plt.show()
 
 if __name__ == '__main__':
-    # test_vectors()
+    test_vectors()
+    quit()
     for dv in ['con_hit', 'vis_hit', 'hit_hit']:
         test_U_memory(dv)
 

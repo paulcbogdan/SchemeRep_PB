@@ -38,8 +38,12 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     else:
         plt.sca(ax)
     plt.title(title)
-    plt.ylabel('Activity')
-    plt.xlabel('IRAF')
+    plt.xlabel('Conceptual retrieval IRAF (object)')
+    plt.ylabel('Baseline IRAF (object)')
+
+    plt.xlabel('Activity object presentation')
+    plt.ylabel('Encoding object presentation (abs-dif IRAF)')
+
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
     plt.yticks(ticks, tick_labels, fontsize=10)
     plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
