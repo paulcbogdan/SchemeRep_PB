@@ -134,9 +134,11 @@ def get_trial_info_(sn, ret=False):
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
-    df_sn = include_BL(df_sn, sn)
-    df_sn = include_conceptual(df_sn, sn)
-    df_sn = include_vis(df_sn, sn)
+
+    print(df_sn['perceived_con'].mean())
+    # df_sn = include_BL(df_sn, sn)
+    # df_sn = include_conceptual(df_sn, sn)
+    # df_sn = include_vis(df_sn, sn)
     df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
     def f(row):
         if pd.isna(row['con_hit']) or pd.isna(row['vis_hit']):
