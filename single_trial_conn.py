@@ -5,7 +5,7 @@ from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
 from plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_DNN_vecs
-from utils import get_cache_RSA_fp, ndim_tril_flatten
+from utils import get_RSA_fn, ndim_tril_flatten
 import scipy.stats as stats
 
 import warnings
@@ -74,22 +74,22 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
     # Binary connectivity
 
-    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='obj_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          rxr=rxr)
+    fp = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                    fp_fMRI_col='obj_fMRI',
+                    bilateral=bilateral, combine_regions=combine_regions,
+                    vec_prod=vec_prod, org_by_region=org_by_region,
+                    rxr=rxr)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     ROI_focus = ['EVC', 'LOC', 'sOcG']
     # ROI_focus = ['IFG', 'MFG']
     obj_a = roimap2np(d['activity'], only_some=ROI_focus)
 
-    fp2 = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='scn_fMRI',
-                           bilateral=bilateral, combine_regions=combine_regions,
-                           vec_prod=vec_prod, org_by_region=org_by_region,
-                           rxr=rxr)
+    fp2 = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                     fp_fMRI_col='scn_fMRI',
+                     bilateral=bilateral, combine_regions=combine_regions,
+                     vec_prod=vec_prod, org_by_region=org_by_region,
+                     rxr=rxr)
     with open(fp2, 'rb') as file:
         d2 = pickle.load(file)
     scn_a = roimap2np(d2['activity'], only_some=ROI_focus)

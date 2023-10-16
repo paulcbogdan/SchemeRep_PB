@@ -18,6 +18,10 @@ from pathlib import Path
 from time import time
 import matplotlib.pyplot as plt
 import pandas as pd
+from warnings import filterwarnings
+filterwarnings('ignore', category=RuntimeWarning, message='Mean of empty slice')
+filterwarnings('ignore', category=RuntimeWarning,
+               message='Degrees of freedom <= 0')
 
 def within_run_to_nan(RDM):
     RDM_ = RDM.copy()
@@ -48,11 +52,7 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
-    # fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
-    # plt.imshow(fMRI_RDM_)
-    # plt.show()
-    # quit()
     fMRI_vec = fMRI_RDM_[tril_idx]
     stim_vec = stim_RDM[tril_idx]
     r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
@@ -157,6 +157,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         region_vecs = img[atlas_roi]
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
+
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
@@ -239,24 +240,33 @@ def prep_variables(sn, cin, atlas, org_by_region):
         ROIs = atlas['ROIs']
     return df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums
 
+def shuffle_df_sn(df_sn, fp_fMRI_col):
+    cond = fp_fMRI_col.split('_')[0]
+    for run in range(1, 4):
+        df_run = df_sn.loc[df_sn[f'{cond}_run'] == run]
+        df_sn.loc[df_sn['obj_run'] == run, fp_fMRI_col] = \
+            np.random.permutation(df_run[fp_fMRI_col].values)
+
 def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                  ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
                  fp_fMRI_col='fp_fMRI', org_by_region=False,
-                 ):
+                 shuffle=False):
     print(f'Onto: {sn}')
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
-    # df_sn = df_sn.sort_values(by='obj')
+
+    if shuffle:
+        shuffle_df_sn(df_sn, fp_fMRI_col)
 
     include_bhv(bhv, df_sn)
-    RDM_stims = get_all_stim_RDMs(df_sn, d_vecs)
+    RDM_stims = get_all_stim_RDMs(df_sn, d_vecs) # TODO: don't repeat every sn
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
-                            nan_thresh=.1, org_by_region=org_by_region)
-    for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
-                                  desc='looping ROIs outer', total=len(ROIs),
-                                  leave=True, ncols=80, position=0):
-
+                            nan_thresh=.5, org_by_region=org_by_region)
+    # for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
+    #                               desc='looping ROIs outer', total=len(ROIs),
+    #                               leave=True, ncols=80, position=0):
+    for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
         if ROI not in ROI2vecs:
             M_activity = np.full((1, n_trials), np.nan)
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
@@ -278,6 +288,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
                                              axis=0)
             RDM_fMRI = np.corrcoef(region_vecs)
+
             # print(np.sum(np.isnan(region_vecs)))
             # region_vecs = stdize(region_vecs, axis=1, nans=True)
             # region_vecs_a = region_vecs[None, :, :]
@@ -321,6 +332,10 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
             for key in stim_keys:
                 z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
+                # print(f'[{sn}, {key}] {z=}')
+                # plt.imshow(RDM_fMRI)
+                # plt.show()
+                # quit()
                 ROI_to_z[key][ROI].append(z)
                 IRAFs = get_IRAFs(RDM_fMRI, RDM_stims[key], df_sn)
                 ROI_to_IRAF[key][ROI] = \
@@ -337,22 +352,15 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
 
 
-def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
-                   PCA_obj=True,
-                   bilateral=False, combine_regions=False,
-                   org_by_region=False, fp_fMRI_col='fp_fMRI',
-                   ):
+def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
+                   bilateral=False, combine_regions=False, org_by_region=False,
+                   fp_fMRI_col='fp_fMRI', shuffle=False):
     if semantic:
         d_vecs = get_semantic_vectors()
     else:
         d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True,
                               PCA_obj=PCA_obj)
-
     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
-    # if combine_regions:
-    #     atlas = get_combined_BNA(combine_bilateral=bilateral)
-    # else:
-    #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis']
     age2sn = get_all_sns(ret=ret)
 
@@ -370,8 +378,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
                  'lifu', 'lifu_sem']
     stim_keys = ['obj', 'obj_abs',
                  'scn', 'scn_abs',
-                 'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
-    stim_keys = ['obj', 'scn', 'dif_abs', 'lifu']
+                 'dif_abs']
+    stim_keys = ['obj', 'scn']#, 'dif_abs', 'lifu']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -386,10 +394,10 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
     dfs_sn = []
     for i, sn in tqdm(enumerate(age2sn[age]),
                       desc=f'Looping subjects: age2sn[{age}]'):
-        df_sn = analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
-                        ROI_to_z, ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
-                        fp_fMRI_col=fp_fMRI_col, org_by_region=org_by_region,
-                             )
+        df_sn = analyze_subj(sn, cin, d_vecs, atlas, stim_keys, ROI_to_z,
+                             ROI_to_IRAF, triple_z, ROI_to_activity, bhv,
+                             fp_fMRI_col=fp_fMRI_col,
+                             org_by_region=org_by_region, shuffle=shuffle)
         sns.append(sn)
         dfs_sn.append(df_sn)
 
@@ -472,26 +480,13 @@ def run_multi_settings():
                     # if semantic and PCA_obj:
                     #     continue
 
-                    age_str = 'healthy' if age == 'healthy' else \
-                        'YA' if age == 1 else 'OA'
-                    inc_str = '' if inc is None else \
-                        '_Con' if inc == 1 else \
-                            '_Inc' if inc == 2 else '_Neu'
-                    sem_str = '_sem' if semantic else ''
-                    dnn_str = '' if semantic else \
-                        '_late' if DNN_layer == -1 else \
-                        '_early' if DNN_layer == 2 else \
-                        f'_dnn{DNN_layer}'
-                    combine_str = '_comb' if combine_regions else ''
-                    bilat_str = '_bil' if bilateral else ''
-                    by_region_str = '_byR' if org_by_region else ''
-                    PCA_obj_str = '' if PCA_obj else '_PCAallImg'
-                    lifu_RDM_str = ''
-                    fp_in_str = fp_fMRI_col.replace('fMRI', '')
-                    fp_out = fr'cache/RSA/{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
-                             fr'{combine_str}{bilat_str}{by_region_str}{PCA_obj_str}' \
-                             fr'{lifu_RDM_str}' \
-                             fr'.pkl'
+                    RSA_fn = utils.get_RSA_fn(age, inc, semantic, DNN_layer,
+                                              fp_fMRI_col, PCA_obj=PCA_obj,
+                                              combine_regions=combine_regions,
+                                              bilateral=bilateral,
+                                              vec_prod=False,
+                                              org_by_region=org_by_region)
+                    fp_out = fr'cache/RSA/{RSA_fn}.pkl'
                     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                     f = lambda: mass_RDM_x_RDM(age=age, cin=inc,
                                                DNN_layer=DNN_layer,

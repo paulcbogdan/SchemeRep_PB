@@ -2,7 +2,7 @@ import numpy as np
 
 from analyze_ROIs import prune_bad_sns
 from plot_gen import plot_connectivity
-from utils import make_title_str, get_cache_RSA_fp, stdize
+from utils import make_title_str, get_RSA_fn, stdize
 from atlas_utils import get_atlas
 import matplotlib.pyplot as plt
 import pickle
@@ -49,19 +49,21 @@ def random_interaction_stuff(d, d2):
 def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, PCA_obj=True):
-    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='obj_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          PCA_obj=PCA_obj)
+    fn = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                    fp_fMRI_col='obj_fMRI',
+                    bilateral=bilateral, combine_regions=combine_regions,
+                    vec_prod=vec_prod, org_by_region=org_by_region,
+                    PCA_obj=PCA_obj)
+    fp = fr'cache/RSA/{fn}.pkl'
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 
-    fp2 = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='obj_fMRI',
-                           bilateral=bilateral, combine_regions=combine_regions,
-                           vec_prod=vec_prod, org_by_region=org_by_region,
-                           PCA_obj=PCA_obj)
+    fn2 = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                     fp_fMRI_col='obj_fMRI',
+                     bilateral=bilateral, combine_regions=combine_regions,
+                     vec_prod=vec_prod, org_by_region=org_by_region,
+                     PCA_obj=PCA_obj)
+    fp2 = fr'cache/RSA/{fn2}.pkl'
     with open(fp2, 'rb') as file:
         d2 = pickle.load(file)
     # d = prune_bad_sns(d, drop_ret=True)
@@ -163,8 +165,8 @@ def bulk_correlate(vals0, vals1, nans=False):
 
 def test_triple_z(age=1, early=True, semantic=False,
                          combine_regions=True, bilateral=False):
-    fp = get_cache_RSA_fp(inc=None, age=age, semantic=semantic, early=early,
-                          combine_regions=combine_regions, bilateral=bilateral)
+    fp = get_RSA_fn(inc=None, age=age, semantic=semantic, early=early,
+                    combine_regions=combine_regions, bilateral=bilateral)
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
@@ -196,11 +198,11 @@ def permutation_testing_threshold():
 def test_rxr(age=1, early=True, semantic=False, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, rxr=False):
-    fp = get_cache_RSA_fp(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                          fp_fMRI_col='obj_fMRI',
-                          bilateral=bilateral, combine_regions=combine_regions,
-                          vec_prod=vec_prod, org_by_region=org_by_region,
-                          )
+    fp = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
+                    fp_fMRI_col='obj_fMRI',
+                    bilateral=bilateral, combine_regions=combine_regions,
+                    vec_prod=vec_prod, org_by_region=org_by_region,
+                    )
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()

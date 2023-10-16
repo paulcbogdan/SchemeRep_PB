@@ -11,7 +11,7 @@ from tqdm import tqdm
 import utils
 from atlas_utils import get_atlas
 from plot_gen import my_plot_surf
-from utils import get_cache_RSA_fp, make_title_str, prune_to_only_hits
+from utils import get_RSA_fn, make_title_str, prune_to_only_hits
 
 from connsearch.report.plots import plot_ROI_scores
 from copy import deepcopy
@@ -24,10 +24,7 @@ def do_lmer(d, key, ROI, hits_only=True):
     n_trials = IRAFs.shape[-1]
     sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
     incs = d['bhv']['inc']
-    # print(list(d['bhv']))
-    # for key in d['bhv']:
-    #     print(key, ':', pd.isna(d['bhv'][key]).sum())
-    # quit()
+
     hit_hit = d['bhv']['hit_hit']
     # run = d['bhv']['run']
     IRAFs = np.reshape(IRAFs, -1)
@@ -39,15 +36,8 @@ def do_lmer(d, key, ROI, hits_only=True):
     # sns = [sn for sn in sns if sn != '102']
     d = {'IRAF': IRAFs, 'sn': sns, 'inc': incs, 'hit_hit': hit_hit}
 
-    # for key, l in d.items():
-    #     print(key, ':', len(l))
-    # quit()
-    df = pd.DataFrame(d)
 
-    # print(len(df['sn'].unique()))
-    # print(df['sn'].unique())
-    # print(df[df['sn'] == '104']['IRAF'])
-    # quit()
+    df = pd.DataFrame(d)
 
     # bad_sns = {'119', '115'}
     # df = df[df['sn'].isin(bad_sns) == False]
@@ -63,14 +53,12 @@ def do_lmer(d, key, ROI, hits_only=True):
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
     summary = model.coefs
-    # print(summary.round(3))
     t = summary['T-stat'].loc['(Intercept)']
     p = summary['P-val'].loc['(Intercept)']
     return t, p
 
 def do_ttest(d, key, ROI, wilcox=False):
     if wilcox:
-        print(d['z'][key][ROI])
         res = stats.wilcoxon(d['z'][key][ROI], alternative='greater')
         N = np.sum(~np.isnan(d['z'][key][ROI]))
         p = res.pvalue
@@ -80,7 +68,6 @@ def do_ttest(d, key, ROI, wilcox=False):
         M0 = np.nanmean(d['z'][key][ROI] > 0.)
         return M0, t, p, 0
     else:
-
         M0 = np.nanmean(d['z'][key][ROI])
         SD = np.nanstd(d['z'][key][ROI])
         N = np.sum(~np.isnan(d['z'][key][ROI]))
@@ -103,6 +90,8 @@ def setup_colors(atlas):
     return region2color
 
 def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
+    font = {'size': 14}
+    matplotlib.rc('font', **font)
     alpha = .10
     sigs, p_corr, alpha_sidak, alpha_bon = multipletests(ps, alpha=alpha,
                                                          method='fdr_bh')
@@ -152,53 +141,56 @@ def prune_bad_sns(d, drop_ret=False):
     d['sns'] = d['sns'][sns_bool]
     return d
 
+def flip_firstlevel(d):
+    pass
+
+
 def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
-                 org_by_region=False, rxr=False, run_lmer=False):
-    font = {'size': 14}
-    matplotlib.rc('font', **font)
-
-    fp1 = get_cache_RSA_fp(inc=inc, age=age, semantic=semantic, DNN_layer=2,
-                           fp_fMRI_col='obj_fMRI', PCA_obj=PCA_obj,
-                           bilateral=bilateral, combine_regions=combine_regions,
-                           vec_prod=vec_prod, org_by_region=org_by_region,
-                           )
-    # fp1 = r'C:\PycharmProjects_C\SchemeRep\cache\RSA\good_data_backups\YA_early.pkl'
-
-    with open(fp1, 'rb') as file:
+                 org_by_region=False, rxr=False, run_lmer=False,
+                 DNN_layer=2, fp_fMRI_col='obj_fMRI',
+                 verbose=True, fp=None, require_all_sns=True,
+                 req_all_N=False, key='obj'):
+    if fp is None:
+        fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
+                        DNN_layer=DNN_layer,
+                         fp_fMRI_col=fp_fMRI_col, PCA_obj=PCA_obj,
+                         bilateral=bilateral, combine_regions=combine_regions,
+                         vec_prod=vec_prod, org_by_region=org_by_region,
+                         )
+        fp = fr'cache/RSA/{fn}.pkl'
+    with open(fp, 'rb') as file:
         d = pickle.load(file)
-    # d = prune_bad_sns(d)
-    # print(d['sns'])
-    # print(d['z']['obj'].keys())
-    # print(d['z']['obj']['SFG_L'].shape)
-    # quit()
-    key = 'obj'
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
     colors = []
     ts = []
     ps = []
-    for ROI, region in tqdm(zip(atlas['ROIs'], atlas['ROI_regions'])):
-        # try:
+    d['sns'] = list(d['sns'])
+    d['sns'].remove('138')
+    num_sns = len(d['sns'])
+    for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         if run_lmer:
             t, p = do_lmer(d, key, ROI, hits_only=True)
             M0 = 0
             N = 0
         else:
             M0, t, p, N = do_ttest(d, key, ROI, wilcox=False)
-        # except KeyError:
-        #     continue
+        if req_all_N and N != num_sns:
+            continue
         ts.append(t)
         ps.append(p)
         color = region2color[region]
         colors.append(color)
-        print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
-    title_short = make_title_str('', key, age, early, semantic, short=True)
-    my_plot_surf(np.array(ts), atlas, title_short)
-    title = make_title_str('', key, age, early, semantic, inc)
-    do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
+        if verbose: print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
+    if verbose:
+        title_short = make_title_str('', key, age, early, semantic, short=True)
+        my_plot_surf(np.array(ts), atlas, title_short)
+        title = make_title_str('', key, age, early, semantic, inc)
+        do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
+    return ts, num_sns
 
 if __name__ == '__main__':
     # Test connectivity within region between ROIs as nodes

@@ -150,10 +150,10 @@ def make_title_str(pre_str, key, age, early, semantic, cin=None,
     return out_str
 
 
-def get_cache_RSA_fp(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
-                     pre_str='', PCA_obj=False,
-                     combine_regions=False, bilateral=False, vec_prod=False,
-                     org_by_region=False):
+def get_RSA_fn(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
+               pre_str='', PCA_obj=False,
+               combine_regions=False, bilateral=False, vec_prod=False,
+               org_by_region=False):
     age_str = 'healthy' if age == 'healthy' else \
         'YA' if age == 1 else 'OA'
     inc_str = '' if inc is None else \
@@ -175,8 +175,8 @@ def get_cache_RSA_fp(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
         '_early' if DNN_layer == 2 else \
         f'_dnn{DNN_layer}'
 
-    fp_out = fr'cache/RSA/{pre_str}{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
-             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{PCA_obj_str}.pkl'
+    fp_out = fr'{pre_str}{fp_in_str}{age_str}{inc_str}{sem_str}{dnn_str}' \
+             fr'{combine_str}{bilat_str}{vecprod_str}{by_region_str}{PCA_obj_str}'
     print(f'{fp_out=}')
     return fp_out
 
