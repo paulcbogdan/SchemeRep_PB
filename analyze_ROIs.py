@@ -123,9 +123,9 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     plt.show()
 
 def prune_bad_sns(d, drop_ret=False):
-    # d['sns'] = d['sns'][1:]
+    # d['sns'] = d['sns'][1:] '138',
     if drop_ret:
-        bad_sns = {'116', '125', '133', '138', '213', '215'}
+        bad_sns = {'116', '125', '133', '213', '215'}
     else:
         bad_sns = {'104', '109', '115', '119'}
     sns_bool = np.array([sn not in bad_sns for sn in d['sns']])
@@ -139,6 +139,7 @@ def prune_bad_sns(d, drop_ret=False):
     for col in d['bhv']:
         d['bhv'][col] = d['bhv'][col][sns_bool]
     d['sns'] = d['sns'][sns_bool]
+
     return d
 
 def flip_firstlevel(d):

@@ -161,6 +161,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
+        # print(f'{ROI}: {n_nans_ROI/len(voxels_w_nan):.4f}')
         if n_nans_ROI / len(voxels_w_nan) > nan_thresh:  # more than 10%
             continue
         # print(f'{ROI}: {np.mean(voxels_w_nan):.4f}')
@@ -266,6 +267,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     # for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
     #                               desc='looping ROIs outer', total=len(ROIs),
     #                               leave=True, ncols=80, position=0):
+
     for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
         if ROI not in ROI2vecs:
             M_activity = np.full((1, n_trials), np.nan)
@@ -287,7 +289,11 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
             M_activity =  get_mean_activity(region_vecs, df_sn['obj'])[None, :]
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
                                              axis=0)
+            # print(ROI_to_activity[ROI])
             RDM_fMRI = np.corrcoef(region_vecs)
+            # plt.imshow(RDM_fMRI)
+            # plt.show()
+            # quit()
 
             # print(np.sum(np.isnan(region_vecs)))
             # region_vecs = stdize(region_vecs, axis=1, nans=True)
@@ -453,7 +459,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 def run_multi_settings():
     # semantic = False
-    combine_regions = True
+    combine_regions = False
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
     PCA_obj = True
@@ -480,7 +486,7 @@ def run_multi_settings():
                     # if semantic and PCA_obj:
                     #     continue
 
-                    RSA_fn = utils.get_RSA_fn(age, inc, semantic, DNN_layer,
+                    RSA_fn = utils.get_RSA_fn(inc, age, semantic, DNN_layer,
                                               fp_fMRI_col, PCA_obj=PCA_obj,
                                               combine_regions=combine_regions,
                                               bilateral=bilateral,
@@ -496,6 +502,7 @@ def run_multi_settings():
                                                org_by_region=org_by_region,
                                                fp_fMRI_col=fp_fMRI_col,
                                                PCA_obj=PCA_obj,
+                                               shuffle=False
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)

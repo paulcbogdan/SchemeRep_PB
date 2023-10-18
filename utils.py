@@ -151,7 +151,7 @@ def make_title_str(pre_str, key, age, early, semantic, cin=None,
 
 
 def get_RSA_fn(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
-               pre_str='', PCA_obj=False,
+               pre_str='', PCA_obj=True,
                combine_regions=False, bilateral=False, vec_prod=False,
                org_by_region=False):
     age_str = 'healthy' if age == 'healthy' else \

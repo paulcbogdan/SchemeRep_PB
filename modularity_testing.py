@@ -10,8 +10,6 @@ from atlas_utils import get_atlas
 from plot_gen import plot_connectivity
 from single_trial_conn import corr_matrix_last_two_dim, corr_last_dim
 from utils import get_RSA_fn, stdize, ndim_tril_flatten
-from communities.algorithms import louvain_method
-import networkx as nx
 import scipy.stats as stats
 
 import warnings
@@ -73,6 +71,7 @@ def plot_nichord(corr, coords, fn, title, dir_out='nichord_plots'):
     edges, edge_weights = convert_matrix(corr)
     idx_to_label = get_idx_to_label(coords, atlas='yeo')
 
+
     network_colors = {'Uncertain': 'black', 'Visual': 'purple',
                       'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
                       'Limbic': 'burlywood', 'FPCN': 'orange', 'DMN': 'red'}
@@ -94,7 +93,7 @@ def get_conn_mat(atlas, fp_fMRI_col = 'obj_fMRI',
                     fp_fMRI_col=fp_fMRI_col,
                     bilateral=bilateral, combine_regions=combine_regions,
                     vec_prod=vec_prod, org_by_region=org_by_region,
-                    rxr=rxr)
+                    )
     with open(fp, 'rb') as file:
         d = pickle.load(file)
 

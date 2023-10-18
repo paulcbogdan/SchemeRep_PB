@@ -41,8 +41,8 @@ def run_one_shuffle(fp_out, semantic=False, DNN_layer=2, combine_regions=False,
         pickle.dump(d, f)
     print(f'Finished in {t.lap():.2f} seconds')
 
-def prep_first_level_results(semantic=False, DNN_layer=2, combine_regions=False,
-                             fp_fMRI_col='obj_fMRI', nsims=1000):
+def prep_first_level_results(semantic=False, DNN_layer=2, combine_regions=True,
+                             fp_fMRI_col='obj_fMRI', nsims=2000):
     fps_out = []
     for i in range(nsims):
         RSA_fn = utils.get_RSA_fn(None, 1, semantic, DNN_layer,
@@ -58,7 +58,7 @@ def prep_first_level_results(semantic=False, DNN_layer=2, combine_regions=False,
             continue
         fps_out.append(fp_out)
 
-    with Pool(processes=4) as pool:
+    with Pool(processes=7) as pool:
         f = partial(run_one_shuffle, semantic=semantic,
                     combine_regions=combine_regions, DNN_layer=DNN_layer,
                     fp_fMRI_col=fp_fMRI_col)
@@ -174,5 +174,5 @@ def run_statistics(semantic=False, DNN_layer=2, combine_regions=False,
 
 
 if __name__ == '__main__':
-    # prep_first_level_results()
-    run_statistics()
+    prep_first_level_results()
+    # run_statistics()
