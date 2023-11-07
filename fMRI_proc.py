@@ -147,7 +147,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
 
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     n_nans = np.isnan(img).sum()
-    print(f'Total number of NaNs: {n_nans}')
+    print(f'Total number of NaNs: {n_nans/114:.1f}')
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
@@ -161,14 +161,13 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
-        # print(f'{ROI}: {n_nans_ROI/len(voxels_w_nan):.4f}')
-        if n_nans_ROI / len(voxels_w_nan) > nan_thresh:  # more than 10%
+        p_nan_any = n_nans_ROI / len(voxels_w_nan)
+        p_nan_overall = np.mean(np.isnan(region_vecs))
+        if p_nan_any > nan_thresh:  # more than 10%
+            print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
             continue
-        # print(f'{ROI}: {np.mean(voxels_w_nan):.4f}')
         region_vecs = region_vecs[~voxels_w_nan, :]
-        # print(f'{ROI}: {n_nans_ROI / len(voxels_w_nan)}')
-
-        # region_vecs[:, p_nans_per_trial > nan_thresh] = np.nan
+        print(f'({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}. {region_vecs.shape}')
 
         region_vecs = region_vecs.T
         ROI2vecs[ROI] = region_vecs
@@ -208,18 +207,18 @@ def get_all_stim_RDMs(df_sn, d_vecs):
                  'add': get_stim_RDM(df_sn, d_vecs, add=True),
                  'add_abs': get_stim_RDM(df_sn, d_vecs, add=True,
                                          take_abs=True),
-                 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True),
-                 'lifu_sem': get_stim_RDM(df_sn, d_vecs, lifu_sem=True)}
+                 # 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True),
+                 # 'lifu_sem': get_stim_RDM(df_sn, d_vecs, lifu_sem=True)
+                 }
     return RDM_stims
 
 def include_bhv(bhv, df_sn_):
     bhv_cols = ['enc_trial',
-                'obj_run', 'scn_run',
-                'obj', 'scene', 'obj_rename',
+                'run', 'obj', 'scene', 'obj_rename',
                 'scene_rename', 'inc', 'perceived_con',
                 'hit_hit', 'vis_hit', 'con_hit',
                 'vis_outlier', 'con_outlier', 'obj_outlier',
-                'scn_outlier', 'bl_outlier']
+                'scn_outlier', 'bl_outlier', 'obj2_outlier']
     for key in bhv_cols:
         try:
             bhv[key].append(df_sn_[key].values)
@@ -283,8 +282,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                     np.append(ROI_to_IRAF[key][ROI], IRAFs, axis=0)
         else:
             cond = fp_fMRI_col.split('_')[0]
-            outliers = np.array(bhv[f'{cond}_outlier'][-1])
-            ROI2vecs[ROI][outliers, :] = np.nan
+            # outliers = np.array(bhv[f'{cond}_outlier'][-1])
+            # ROI2vecs[ROI][outliers, :] = np.nan
             region_vecs = np.copy(ROI2vecs[ROI])
             M_activity =  get_mean_activity(region_vecs, df_sn['obj'])[None, :]
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
@@ -338,10 +337,6 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
             for key in stim_keys:
                 z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
-                # print(f'[{sn}, {key}] {z=}')
-                # plt.imshow(RDM_fMRI)
-                # plt.show()
-                # quit()
                 ROI_to_z[key][ROI].append(z)
                 IRAFs = get_IRAFs(RDM_fMRI, RDM_stims[key], df_sn)
                 ROI_to_IRAF[key][ROI] = \
@@ -366,8 +361,16 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     else:
         d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True,
                               PCA_obj=PCA_obj)
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
-    ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis']
+
+    new_space = '2' in fp_fMRI_col
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral,
+                      new_space=new_space)
+    # if combine_regions:
+    #     atlas = get_combined_BNA(combine_bilateral=bilateral)
+    # else:
+    #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
+    ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
+                          'con2_fMRI', 'vis2_fMRI', ]
     age2sn = get_all_sns(ret=ret)
 
     n_trials = 114 if cin is None else 38
@@ -384,8 +387,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
                  'lifu', 'lifu_sem']
     stim_keys = ['obj', 'obj_abs',
                  'scn', 'scn_abs',
-                 'dif_abs']
-    stim_keys = ['obj', 'scn']#, 'dif_abs', 'lifu']
+                 'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
+    stim_keys = ['obj', 'scn', 'dif_abs']
     triple_z = {}
     rxr_all = {}
     for key in stim_keys:
@@ -429,8 +432,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                             ROI_to_z, ROI_to_IRAF):
     ROIs = atlas['tick_labels'] if org_by_region else atlas['ROIs']
     keys_sans_obj_scn = [key for key in stim_keys if
-                         ('obj' not in key) and ('scn' not in key) and
-                         ('lifu' not in key)]
+                         'obj' != key and 'scn' != key]
     for ROI in ROIs:
         for key in keys_sans_obj_scn:
             key_mod = f'{key}_'
@@ -459,7 +461,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 def run_multi_settings():
     # semantic = False
-    combine_regions = False
+    combine_regions = True
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
     PCA_obj = True
@@ -471,10 +473,14 @@ def run_multi_settings():
     # if True:
     for age in [1, 2]:
         for inc in [None]:
-            for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI',
-                                'con_fMRI', 'vis_fMRI',
-                                'bl_fMRI']:
-            # for fp_fMRI_col in ['scn_fMRI',]:
+            for fp_fMRI_col in [
+                                # 'obj2_fMRI',
+                                # 'scn2_fMRI',
+                                # 'con2_fMRI',
+                                'vis2_fMRI',
+                                # 'bl2_fMRI'
+            ]:
+            # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
                 for DNN_layer, semantic in [
                                             (2, False),
@@ -506,7 +512,6 @@ def run_multi_settings():
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
-                # quit()
 
 
 # a = [[1, 2, 3, np.nan], [4, 2, 8, 10], [1, 2, 3, 10]]

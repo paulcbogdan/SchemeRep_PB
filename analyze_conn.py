@@ -74,8 +74,8 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     key = 'obj'
     left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
     # bottom = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    bottom = [np.array(d2['activity'][roi0]) for roi0 in atlas['ROIs']]
-    # bottom = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
+    bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
+    # bottom = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
 
     #
     # left = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
