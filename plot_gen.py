@@ -74,11 +74,14 @@ def get_split_cmap(vabs, thresh, cmap):
     vals = cmap(np.linspace(0., 1., n))
     vals_st = vals[:int(n/2)]
     vals_end = vals[int(n/2):]
-
+    # vabs = np.min([vabs, 5.])
     vabs_minus_thresh = (vabs - thresh)
+    # print(f'{vabs_minus_thresh=}')
+    # print(f'{thresh=}')
+    # print(f'{n=}')
     size_mid = int(vabs_minus_thresh / thresh * n / 2)
-    print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
-    print()
+    # print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
+    # print()
 
 
     vals_mid = np.repeat(np.array([0, 0, 0, 1])[:, None], size_mid, axis=1).T
@@ -104,6 +107,7 @@ def get_split_cmap(vabs, thresh, cmap):
 def my_plot_surf(Ms, atlas, title):
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
+    Ms = [np.min([m, 5]) for m in Ms]
     for i, val in enumerate(Ms):
         i += 1
         img_data[atlas_data == i] = val
@@ -114,6 +118,7 @@ def my_plot_surf(Ms, atlas, title):
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
 
     img = image.new_img_like(atlas['maps'], img_data)
+    # print(f'{thresh=}')
     fig = plotting.plot_img_on_surf(img, threshold=thresh,
                                     cmap=cmap, title=title)
 

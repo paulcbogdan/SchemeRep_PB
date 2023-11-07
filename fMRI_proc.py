@@ -73,8 +73,8 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
     stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
     IRAFs = fMRI_RDM_std * stim_RDM_std
     IRAFs = np.nanmean(IRAFs, axis=0)
-    # test = df_sn['obj'].argsort()
-    # IRAFs = IRAFs[df_sn['obj'].argsort()]
+    test = df_sn['obj'].argsort()
+    IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
 
 
@@ -148,23 +148,47 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
 
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     n_nans = np.isnan(img).sum()
-    print(f'Total number of NaNs: {n_nans}')
+    print(f'Total number of NaNs: {n_nans/114:.1f}')
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
     ROI2vecs = {}
     region2vecs = defaultdict(list)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
+        # print(f'{ROI}, {ROI_num=}')
+        # print(img.shape)
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
+
+        # from nilearn import plotting
+        # plotting.plot_img(image.index_img(image.load_img(df_sn[fp_fMRI_col]), 2), threshold=.01)
+        # plotting.show()
+        # quit()
+
+        # print(atlas_roi.shape)
+        # print(img.shape)
         region_vecs = img[atlas_roi]
+
+        # print(region_vecs[0])
+        # print(region_vecs[0].shape)
+        # quit()
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
-        if n_nans_ROI / len(voxels_w_nan) > nan_thresh:  # more than 10%
+        p_nan_any = n_nans_ROI / len(voxels_w_nan)
+        p_nan_overall = np.mean(np.isnan(region_vecs))
+        # plt.imshow(region_vecs)
+        # plt.show()
+        # quit()
+        if p_nan_any > nan_thresh:  # more than 10%
+            print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
             continue
+
+        # quit()
         # print(f'{ROI}: {np.mean(voxels_w_nan):.4f}')
         region_vecs = region_vecs[~voxels_w_nan, :]
+        print(f'({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}. {region_vecs.shape}')
+
         # print(f'{ROI}: {n_nans_ROI / len(voxels_w_nan)}')
 
         # region_vecs[:, p_nans_per_trial > nan_thresh] = np.nan
@@ -207,8 +231,9 @@ def get_all_stim_RDMs(df_sn, d_vecs):
                  'add': get_stim_RDM(df_sn, d_vecs, add=True),
                  'add_abs': get_stim_RDM(df_sn, d_vecs, add=True,
                                          take_abs=True),
-                 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True),
-                 'lifu_sem': get_stim_RDM(df_sn, d_vecs, lifu_sem=True)}
+                 # 'lifu': get_stim_RDM(df_sn, d_vecs, lifu=True),
+                 # 'lifu_sem': get_stim_RDM(df_sn, d_vecs, lifu_sem=True)
+                 }
     return RDM_stims
 
 def include_bhv(bhv, df_sn_):
@@ -217,7 +242,7 @@ def include_bhv(bhv, df_sn_):
                 'scene_rename', 'inc', 'perceived_con',
                 'hit_hit', 'vis_hit', 'con_hit',
                 'vis_outlier', 'con_outlier', 'obj_outlier',
-                'scn_outlier', 'bl_outlier']
+                'scn_outlier', 'bl_outlier', 'obj2_outlier']
     for key in bhv_cols:
         try:
             bhv[key].append(df_sn_[key].values)
@@ -247,16 +272,16 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
-    df_sn = df_sn.sort_values(by='obj')
-
+    # df_sn = df_sn.sort_values(by='obj')
+    # print('TOAST')
+    # print(df_sn['obj2_outlier'])
     include_bhv(bhv, df_sn)
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs)
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
-                            nan_thresh=.1, org_by_region=org_by_region)
+                            nan_thresh=.995, org_by_region=org_by_region)
     for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
                                   desc='looping ROIs outer', total=len(ROIs),
                                   leave=True, ncols=80, position=0):
-
         if ROI not in ROI2vecs:
             M_activity = np.full((1, n_trials), np.nan)
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
@@ -271,8 +296,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                     np.append(ROI_to_IRAF[key][ROI], IRAFs, axis=0)
         else:
             cond = fp_fMRI_col.split('_')[0]
-            outliers = np.array(bhv[f'{cond}_outlier'][-1])
-            ROI2vecs[ROI][outliers, :] = np.nan
+            # outliers = np.array(bhv[f'{cond}_outlier'][-1])
+            # ROI2vecs[ROI][outliers, :] = np.nan
             region_vecs = np.copy(ROI2vecs[ROI])
             M_activity =  get_mean_activity(region_vecs, df_sn['obj'])[None, :]
             ROI_to_activity[ROI] = np.append(ROI_to_activity[ROI], M_activity,
@@ -326,8 +351,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
                 ROI_to_IRAF[key][ROI] = \
                     np.append(ROI_to_IRAF[key][ROI], IRAFs[None, :], axis=0)
 
-    # apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
-    #                         ROI_to_z, ROI_to_IRAF)
+    apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
+                            ROI_to_z, ROI_to_IRAF)
 
     # for key in stim_keys:
     #     triple_z[key].append(get_triple_connectivity(ROI_to_RDM_fMRI,
@@ -348,12 +373,15 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2,
         d_vecs = get_DNN_vecs(DNN_layer=DNN_layer, PCA=True,
                               PCA_obj=PCA_obj)
 
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    new_space = '2' in fp_fMRI_col
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral,
+                      new_space=new_space)
     # if combine_regions:
     #     atlas = get_combined_BNA(combine_bilateral=bilateral)
     # else:
     #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
-    ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis']
+    ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
+                          'con2_fMRI', 'vis2_fMRI', ]
     age2sn = get_all_sns(ret=ret)
 
     n_trials = 114 if cin is None else 38
@@ -428,7 +456,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                                                      ROI_to_IRAF['scn'][ROI][:, trial_i]],
                                                     ROI_to_IRAF[key][ROI][:, trial_i])
                 ROI_to_IRAF[key_mod][ROI][:, trial_i] = IRAF_dif_
-
+        continue
         for key in keys_sans_obj_scn:
             key_mod = f'{key}__'
             ROI_to_z[key_mod][ROI] = utils.regress_out_multi([ROI_to_z['obj_abs'][ROI],
@@ -454,11 +482,16 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     inc = None
     # if True:
-    for age in [1, 2]:
-        for inc in [None, 1, 2, 3]:
-            for fp_fMRI_col in ['obj_fMRI', 'scn_fMRI',
-                                'con_fMRI', 'vis_fMRI',
-                                'bl_fMRI']:
+    for age in [1]:
+        for inc in [None]:
+            for fp_fMRI_col in [
+                                # 'obj2_fMRI',
+                                # 'scn2_fMRI',
+                                # 'con2_fMRI',
+                                'vis2_fMRI',
+                                # 'bl2_fMRI'
+            ]:
+            # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
                 for DNN_layer, semantic in [(2, False),
                                             # (4, False),
@@ -501,7 +534,6 @@ def run_multi_settings():
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
-                quit()
 
 
 # a = [[1, 2, 3, np.nan], [4, 2, 8, 10], [1, 2, 3, 10]]

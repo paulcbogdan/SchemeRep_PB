@@ -73,17 +73,28 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True):
     return atlas
 
 
-def get_BN_and_resample(combine_bilateral=False):
-    fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
-             r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
+def get_BN_and_resample(combine_bilateral=False, new_space=True):
+    if new_space:
+        fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+                 r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+    else:
+        fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
+                 r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
     img = image.load_img(fp_ref)
     atlas = get_BN_atlas(combine_bilaterally=combine_bilateral)
     atlas['maps'] = image.resample_to_img(atlas['maps'], img,
                                           interpolation='nearest')
+    # atlas['maps'].to_filename('test.nii')
+    # print(atlas['maps'].shape)
+    # from nilearn import plotting
+    # plotting.plot_roi(atlas['maps'])
+    # plotting.show()
+    # quit()
     return atlas
 
-def get_combined_BNA(combine_bilateral=False):
-    atlas = get_BN_and_resample(combine_bilateral=combine_bilateral)
+def get_combined_BNA(combine_bilateral=False, new_space=True):
+    atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
+                                new_space=new_space)
     region_to_new_number = {}
     cnt = 1
     atlas_data = atlas['maps'].get_fdata()
@@ -109,11 +120,13 @@ def get_combined_BNA(combine_bilateral=False):
     add_ROI_info(atlas)
     return atlas
 
-def get_atlas(combine_regions, bilateral):
+def get_atlas(combine_regions, bilateral, new_space=True):
     if combine_regions:
-        atlas = get_combined_BNA(combine_bilateral=bilateral)
+        atlas = get_combined_BNA(combine_bilateral=bilateral,
+                                 new_space=new_space)
     else:
-        atlas = get_BN_and_resample(combine_bilateral=bilateral)
+        atlas = get_BN_and_resample(combine_bilateral=bilateral,
+                                    new_space=new_space)
     return atlas
 
 def org_BNA_coords():

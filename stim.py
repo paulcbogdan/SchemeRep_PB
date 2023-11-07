@@ -6,7 +6,7 @@ import pandas as pd
 from PIL import Image
 from pickle_wrap import pickle_wrap
 from sklearn import decomposition
-from torchvision import models as models, transforms as transforms
+# from torchvision import models as models, transforms as transforms
 
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info

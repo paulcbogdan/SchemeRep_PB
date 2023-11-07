@@ -13,7 +13,7 @@ from atlas_utils import get_atlas
 from plot_gen import my_plot_surf
 from utils import get_RSA_fn, make_title_str, prune_to_only_hits
 
-from connsearch.report.plots import plot_ROI_scores
+# from connsearch.report.plots import plot_ROI_scores
 from copy import deepcopy
 from time import time
 import scipy.stats as stats
@@ -21,6 +21,7 @@ import scipy.stats as stats
 def do_lmer(d, key, ROI, hits_only=True):
 
     IRAFs = d['IRAFs_ROI'][key][ROI]
+    # print(IRAFs.shape)
     n_trials = IRAFs.shape[-1]
     sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
     incs = d['bhv']['inc']
@@ -35,7 +36,8 @@ def do_lmer(d, key, ROI, hits_only=True):
     incs = list(map(lambda x: 'i' if x == 1 else 'n' if x == 2 else 'c', incs))
     # sns = [sn for sn in sns if sn != '102']
     d = {'IRAF': IRAFs, 'sn': sns, 'inc': incs, 'hit_hit': hit_hit}
-
+    # for key, l in d.items():
+    #     print(f'{key}, {len(l)}')
 
     df = pd.DataFrame(d)
 
@@ -49,7 +51,9 @@ def do_lmer(d, key, ROI, hits_only=True):
     # Load = 3.3 s, first run = 1.7 s, rest runs = 0.32 s
     from pymer4.models import Lmer
     formula = f'IRAF ~ 1 + (1 | sn)'
-    df.dropna(subset=['IRAF'], inplace=True)
+    df.dropna(subset=['IRAF', 'sn'], inplace=True)
+    # df = df[['IRAF', 'sn']]
+    # print(df)
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
     summary = model.coefs
@@ -95,6 +99,7 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     alpha = .10
     sigs, p_corr, alpha_sidak, alpha_bon = multipletests(ps, alpha=alpha,
                                                          method='fdr_bh')
+    ts = [min(t, 5) for t in ts]
     if np.min(p_corr) < alpha:
         p_corr_ = p_corr.copy()
         p_corr_[p_corr_ > alpha] = 0
@@ -148,10 +153,11 @@ def flip_firstlevel(d):
 def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
-                 org_by_region=False, rxr=False, run_lmer=False,
-                 DNN_layer=2, fp_fMRI_col='obj_fMRI',
+                 org_by_region=False, rxr=False,
+                 run_lmer=False,
+                 DNN_layer=2, fp_fMRI_col='obj2_fMRI',
                  verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='obj'):
+                 req_all_N=False, key='dif_abs'):
     if fp is None:
         fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
                         DNN_layer=DNN_layer,
@@ -169,7 +175,7 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
     ts = []
     ps = []
     d['sns'] = list(d['sns'])
-    d['sns'].remove('138')
+    # d['sns'].remove('138')
     num_sns = len(d['sns'])
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         if run_lmer:
