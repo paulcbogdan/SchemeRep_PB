@@ -135,8 +135,12 @@ def do():
     # plt.imshow(M_corr_age)
     # plt.show()
 
+def FC_RSA():
+    pass
+
 
 
 if __name__ == '__main__':
-    do()
+    FC_RSA()
+    # do()
 

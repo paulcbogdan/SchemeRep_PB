@@ -9,7 +9,7 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from plot_gen import plot_connectivity
 from single_trial_conn import corr_matrix_last_two_dim, corr_last_dim
-from utils import get_RSA_fn, stdize, ndim_tril_flatten
+from utils import get_RSA_fn, stdize, tril_flat
 import scipy.stats as stats
 
 import warnings
@@ -58,12 +58,10 @@ def get_partition_matrix(mat, idx, w_zeros=False):
         return mat_new
     else:
         meshy = np.ix_(idx, idx)
-        slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
-        # print(meshy)
-        # quit()
-        return mat[slicer]
-        # slicer = tuple([slice(None)] * (ar.ndim - 2) + [tril[0], tril[1]])
-        # return mat[np.ix_(idx, idx)]
+        return mat[..., meshy[0], meshy[1]]
+        # slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
+        # return mat[slicer]
+
 def plot_nichord(corr, coords, fn, title, dir_out='nichord_plots'):
     from nichord.convert import convert_matrix
     from nichord.coord_labeler import get_idx_to_label
@@ -190,9 +188,9 @@ def compare_cross_corr(combine_regions=False, bilateral=False):
             # print(fp2inc2corr['obj'][inc].shape)
             obj_corr = get_partition_matrix(fp2inc2corr[key0][inc], p)
             # print(obj_corr.shape)
-            obj_flat = ndim_tril_flatten(obj_corr)
+            obj_flat = tril_flat(obj_corr)
             scn_corr = get_partition_matrix(fp2inc2corr[key1][inc], p)
-            scn_flat = ndim_tril_flatten(scn_corr)
+            scn_flat = tril_flat(scn_corr)
             rs = corr_last_dim(obj_flat, scn_flat)
             r_m = np.mean(rs)
             r_se = np.std(rs) / np.sqrt(len(rs))

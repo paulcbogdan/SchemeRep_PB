@@ -17,7 +17,7 @@ if __name__ == '__main__':
              'RVIS__full__regBPtrue',
              ]#'ENC__full__regBPtrue__scene_obj_separate',]
 
-    details = [('b_Object.nii', 'BL_rerun', 'BL'),
+    details = [('b_Object.nii', 'BL_rerun', 'bl'),
                ('b_Object.nii', 'CON_rerun', 'CON'),
                ('b_Object.nii', 'VIS_rerun', 'VIS'),]
     # details = [

@@ -35,7 +35,7 @@ def run_one_shuffle(fp_out, semantic=False, DNN_layer=2, combine_regions=False,
                                org_by_region=False,
                                fp_fMRI_col=fp_fMRI_col,
                                PCA_obj=True,
-                               shuffle=True # I included a few lines of code to do the shuffling
+                               shuffle=True
                                )
     with open(fp_out, 'wb') as f:
         pickle.dump(d, f)

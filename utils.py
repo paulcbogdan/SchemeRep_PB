@@ -58,7 +58,7 @@ def pb_outer(a, b, flat=False, tril=False, nan_diag=False):
         assert c.shape[-1] == c.shape[-2], f'c must be square: {c.shape=}'
         c[:, np.arange(c.shape[-1]), np.arange(c.shape[-1])] = np.nan
     if tril:
-        c = ndim_tril_flatten(c)
+        c = tril_flat(c)
     elif flat:
         c = c.reshape(-1, c.shape[1]*c.shape[2])
     return c
@@ -199,9 +199,10 @@ def prune_to_only_hits(d, key, misses=False):
     return d
 
 
-def ndim_tril_flatten(ar):
+def tril_flat(ar):
     tril = np.tril_indices(ar.shape[-1], k=-1)
-    slicer = tuple([slice(None)] * (ar.ndim - 2) + [tril[0], tril[1]])
+    # slicer = tuple([slice(None)] * (ar.ndim - 2) + [tril[0], tril[1]])
     # print(slicer)
-    ar_flat = ar[slicer]
+    # ar_flat = ar[slicer]
+    ar_flat = ar[..., tril[0], tril[1]]
     return ar_flat
