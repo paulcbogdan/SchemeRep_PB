@@ -52,7 +52,11 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
+    # fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    # plt.imshow(fMRI_RDM_)
+    # plt.show()
+    # quit()
     fMRI_vec = fMRI_RDM_[tril_idx]
     stim_vec = stim_RDM[tril_idx]
     r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
@@ -214,7 +218,8 @@ def get_all_stim_RDMs(df_sn, d_vecs):
 
 def include_bhv(bhv, df_sn_):
     bhv_cols = ['enc_trial',
-                'run', 'obj', 'scene', 'obj_rename',
+                'obj_run', 'scn_run',
+                'obj', 'scene', 'obj_rename',
                 'scene_rename', 'inc', 'perceived_con',
                 'hit_hit', 'vis_hit', 'con_hit',
                 'vis_outlier', 'con_outlier', 'obj_outlier',
@@ -337,6 +342,10 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
             for key in stim_keys:
                 z = RDM_x_RDM(RDM_fMRI, RDM_stims[key])
+                # print(f'[{sn}, {key}] {z=}')
+                # plt.imshow(RDM_fMRI)
+                # plt.show()
+                # quit()
                 ROI_to_z[key][ROI].append(z)
                 IRAFs = get_IRAFs(RDM_fMRI, RDM_stims[key], df_sn)
                 ROI_to_IRAF[key][ROI] = \
@@ -371,6 +380,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', ]
+    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis']
     age2sn = get_all_sns(ret=ret)
 
     n_trials = 114 if cin is None else 38
@@ -432,7 +443,8 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                             ROI_to_z, ROI_to_IRAF):
     ROIs = atlas['tick_labels'] if org_by_region else atlas['ROIs']
     keys_sans_obj_scn = [key for key in stim_keys if
-                         'obj' != key and 'scn' != key]
+                         ('obj' not in key) and ('scn' not in key) and
+                         ('lifu' not in key)]
     for ROI in ROIs:
         for key in keys_sans_obj_scn:
             key_mod = f'{key}_'
