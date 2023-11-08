@@ -5,7 +5,7 @@ from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
 from plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_DNN_vecs
-from utils import get_RSA_fn, ndim_tril_flatten
+from utils import get_RSA_fn, tril_flat
 import scipy.stats as stats
 
 import warnings
@@ -49,7 +49,7 @@ def corr_matrix_last_two_dim(ar, nans=True):
         # np.fill_diagonal(rs, np.nan)
     # print(rs.shape)
     # quit()
-    rs_flat = ndim_tril_flatten(rs)
+    rs_flat = tril_flat(rs)
     return rs, rs_flat
 
 
