@@ -3,6 +3,7 @@ import os
 import numpy as np
 from nilearn import image
 import pandas as pd
+from nilearn.glm.first_level import compute_regressor
 from nilearn.maskers import NiftiLabelsMasker
 from pickle_wrap import pickle_wrap
 
@@ -22,39 +23,42 @@ from stim import get_DNN_vecs, get_stim_RDM
 from utils import tril_flat, stdize
 import scipy.stats as stats
 
+import matplotlib.pyplot as plt
+
+def get_hrf():
+    onset, amplitude, duration = 0.0, 1.0, 1.0
+    exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
+    time_length = 20
+    frame_times = np.linspace(0, time_length, 10)
+    signal, _labels = compute_regressor(
+        exp_condition,
+        'spm',
+        frame_times,
+        con_id="main",
+        oversampling=16,
+    )
+    return signal
+    # plt.plot(range(len(signal)), signal)
+    # print(len(signal))
+    # plt.show()
+# get_hrf()
+
 
 def decompress(in_fp, out_fp):
     print(f'Decompressing: {in_fp}')
     with gzip.open(in_fp, 'r') as f_in, open(out_fp, 'wb') as f_out:
         shutil.copyfileobj(f_in, f_out)
 
-def get_FC_trial(img_data, row, name, TRs, atlas):
-    # img_trial = img.slicer[..., trial_slice]
-    # time_series = masker.fit_transform(img_trial)
-    # mtx = corr_measure.fit_transform([time_series])[0]
+def get_FC_trial(regions_signal, row, name, TRs, atlas):
     onset_TR = row[f'{name}_onset_TR']
     trial_slice = slice(onset_TR, onset_TR + TRs)
-    # t = Timer()
-    img_trial_data = img_data[..., trial_slice]
-    # print(f'Time slice: {t.lap():.3f}')
-    ROIs = atlas['ROIs']
-    ROI_nums = atlas['ROI_nums']
-    ROI_regions = atlas['ROI_regions']
-    time_series = []
-    region_vecs_all = []
-    for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
-        atlas_roi = atlas['maps'].get_fdata() == ROI_num
-        region_vecs = img_trial_data[atlas_roi]
-        time_series.append(region_vecs.mean(axis=0))
-        region_vecs_all.append(region_vecs)
-    time_series = np.array(time_series)
-    time_series = stdize(time_series, axis=0)
+    regions_trial_signal = regions_signal[:, trial_slice]
 
     # Could regress out across ROI (e.g., axis=0 here), although that
     #   would be most meaningful if regions are isolated (e.g., only occipital)
 
-    mtx = np.corrcoef(time_series)
-    return mtx, region_vecs_all
+    mtx = np.corrcoef(regions_trial_signal)
+    return mtx, regions_trial_signal
 
 def get_mtx_sn_(sn='102', name='bl', combine_regions=False, TRs=3):
     atlas = get_atlas(combine_regions=combine_regions, bilateral=False)
@@ -64,7 +68,7 @@ def get_mtx_sn_(sn='102', name='bl', combine_regions=False, TRs=3):
 
     dir_in = fr'dir_preproc/{sn}/{name.lower()}'
     mtx_all = []
-    bolds = []
+    regions_trials_signal = []
     for run in range(1, 4):
         df_run = df_sn[df_sn[f'{name}_run'] == run]
 
@@ -76,16 +80,31 @@ def get_mtx_sn_(sn='102', name='bl', combine_regions=False, TRs=3):
 
         img = image.load_img(fp_in)
         # print(f'Load: {t.lap():.3f}')
+
         img_data = img.get_fdata()
+        ROIs = atlas['ROIs']
+        ROI_nums = atlas['ROI_nums']
+        ROI_regions = atlas['ROI_regions']
+        regions_signal = []
+        for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
+            atlas_roi = atlas['maps'].get_fdata() == ROI_num
+            region_vecs = img_data[atlas_roi]
+            region_signal = np.mean(region_vecs, axis=0)
+            regions_signal.append(region_signal)
+
+        regions_signal = np.array(regions_signal)
+
+
         # print(f'Get data: {t.lap():.3f}')
         for idx, row in tqdm(df_run.iterrows()):
-            mtx, bold = get_FC_trial(img_data, row, name, TRs, atlas)
+            mtx, regions_trial_signal = get_FC_trial(regions_signal, row, name, TRs, atlas)
             mtx_all.append(mtx)
-            bolds.append(bold)
+            regions_trials_signal.append(regions_trial_signal)
 
     mtx_all = np.array(mtx_all)
-    bolds = list(np.array(x) for x in zip(*bolds)) # (ROI, trial, voxel, TR)
-    return mtx_all, bolds
+    regions_trials_signal = list(np.array(x) for x in
+                                 zip(*regions_trials_signal)) # (ROI, trial, voxel, TR)
+    return mtx_all, regions_trials_signal
 
 def get_mtx_sn(sn='102', name='bl', combine_regions=False, TRs=4,
                easy_override=False):
@@ -182,10 +201,9 @@ if __name__ == '__main__':
     # print(lambda: get_mtx_sn())
     # quit()
     # get_mtx_sn()
-    do_connectivity_RSA_all()
-    # do_connectivity_RSA('135')
+    # do_connectivity_RSA_all()
+    do_connectivity_RSA('102')
     # do_TR_by_TR_RSA()
     # need to get TRs
     # load atlas
     # try visual RSA
-    pass
