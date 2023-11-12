@@ -29,7 +29,7 @@ def roimap2np(ROI2ar, only_some=None):
     print(f'Data shape: {l.shape}')
     return l
 
-def corr_matrix_last_two_dim(ar, nans=True):
+def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False):
 
     # Second-to-last dim should be your variable
     # Last dim should be a time series
@@ -41,19 +41,16 @@ def corr_matrix_last_two_dim(ar, nans=True):
     ar_std = (ar - M) / SD
     ar_std0 = np.expand_dims(ar_std, axis=-2)
     ar_std1 = np.expand_dims(ar_std, axis=-3)
-    rs = ar_std0 * ar_std1
+    if euc_dist:
+        rs = abs(ar_std0 - ar_std1)
+    else:
+        rs = ar_std0 * ar_std1
     rs = m(rs, axis=-1)
-    # if nan_diag:
-    #     diag = np.diag_indices(rs.shape[-1])
-    #     rs[diag] = np.nan
-        # np.fill_diagonal(rs, np.nan)
-    # print(rs.shape)
-    # quit()
     rs_flat = tril_flat(rs)
     return rs, rs_flat
 
 
-def corr_last_dim(ar0, ar1, nans=True):
+def corr_last_dim(ar0, ar1, nans=True, euc_dist=False):
     # Last dim of both should be a time series
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
@@ -63,7 +60,10 @@ def corr_last_dim(ar0, ar1, nans=True):
     M1 = np.expand_dims(m(ar1, axis=-1), axis=-1)
     SD1 = np.expand_dims(s(ar1, axis=-1), axis=-1)
     ar1_ = (ar1 - M1) / SD1
-    rs = ar0_ * ar1_
+    if euc_dist:
+        rs = abs(ar0_ - ar1_)
+    else:
+        rs = ar0_ * ar1_
     rs = m(rs, axis=-1)
     return rs
 

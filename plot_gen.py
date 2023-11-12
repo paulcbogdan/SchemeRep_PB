@@ -12,7 +12,9 @@ from atlas_utils import get_combined_BNA, get_atlas
 
 def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
                       ax=None, t=False, no_avg=False, cbar_label='',
-                      vmin=None, vmax=None):
+                      vmin=None, vmax=None, xlabel=None, ylabel=None):
+
+
     font = {'size': 14}
     matplotlib.rc('font', **font)
 
@@ -38,11 +40,15 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     else:
         plt.sca(ax)
     plt.title(title)
-    plt.xlabel('Conceptual retrieval IRAF (object)')
-    plt.ylabel('Baseline IRAF (object)')
+    if xlabel is None:
+        plt.xlabel('Conceptual retrieval IRAF (object)')
+        plt.xlabel('Activity object presentation')
+        plt.xlabel(xlabel)
 
-    plt.xlabel('Activity object presentation')
-    plt.ylabel('Encoding object presentation (abs-dif IRAF)')
+    if ylabel is None:
+        plt.ylabel('Baseline IRAF (object)')
+        plt.ylabel('Encoding object presentation (abs-dif IRAF)')
+        plt.ylabel(ylabel)
 
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
     plt.yticks(ticks, tick_labels, fontsize=10)

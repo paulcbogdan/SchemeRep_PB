@@ -129,6 +129,7 @@ def get_trial_info_(sn, ret=False):
 
             d = {'sn': sn,
                  'enc_trial': trial,
+                 'enc_run': run,
                  'obj_run': run,
                  'scn_run': run,
                  #'fp_fMRI': fp_obj,
@@ -150,6 +151,7 @@ def get_trial_info_(sn, ret=False):
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
+    add_onset_time(df_sn, sn)
 
     df_sn = include_BL(df_sn, sn)
     df_sn = include_conceptual(df_sn, sn)
@@ -164,10 +166,9 @@ def get_trial_info_(sn, ret=False):
         df_sn['hit_hit_nan'] = df_sn.apply(f, axis=1)
     except KeyError as e:
         pass
-    add_onset_time(df_sn, sn)
-    df_sn = include_BL(df_sn, sn)
-    df_sn = include_conceptual(df_sn, sn)
-    df_sn = include_vis(df_sn, sn)
+    # df_sn = include_BL(df_sn, sn)
+    # df_sn = include_conceptual(df_sn, sn)
+    # df_sn = include_vis(df_sn, sn)
     df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
     def f(row):
         if pd.isna(row['con_hit']) or pd.isna(row['vis_hit']):
@@ -195,12 +196,15 @@ def add_onset_time(df_sn, sn):
         onsets = df_info_sn[onset_col].values
         obj2onsets = dict(zip(obj_l, onsets))
         df_sn[f'{key}_onset'] = df_sn['obj'].map(obj2onsets)
-        df_sn[f'{key}_onset_TR'] = 4 + df_sn[f'{key}_onset'] // 2 + 1
+        df_sn[f'{key}_onset_TR'] = 4 + df_sn[f'{key}_onset'] // 2# + 1
         # print(df_sn[f'{key}_onset_TR'].min())
         # print(df_sn[f'{key}_onset'].min())
         # quit()
         # add 1 at end to be ceil for int rounding
-        df_sn[f'{key}_onset_TR'] = df_sn[f'{key}_onset_TR'].astype(int)
+        try:
+            df_sn[f'{key}_onset_TR'] = df_sn[f'{key}_onset_TR'].astype(int)
+        except pd.errors.IntCastingNaNError:
+            assert sn == '133' or sn == '138'
 
 
 def include_conceptual(df_sn, sn):
@@ -521,7 +525,9 @@ if __name__ == '__main__':
     # print(f'{n_subj=}')
     # quit()
     df_all = []
-    for SN in age2sn[1]:
+    SNS = age2sn[1]
+    SNS = ['138']
+    for SN in SNS:
         if SN == '135': continue
         print(f'Testing: {SN}')
         df_sn = get_trial_info(SN, easy_override=True)
