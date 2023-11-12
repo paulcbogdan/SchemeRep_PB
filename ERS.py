@@ -11,16 +11,25 @@ from utils import stdize, pb_outer
 import matplotlib.pyplot as plt
 from time import time
 
-def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI'):
+def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
+           org_by_region=True):
     df_sn = get_trial_info(sn)
 
     ROI2vecs_enc = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False, org_by_region=True)
+                                drop_nan_voxels=False, org_by_region=True,
+                                easy_override=False)
     ROI2vecs_ret = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False, org_by_region=True)
+                                drop_nan_voxels=False, org_by_region=True,
+                                easy_override=False)
     ers_l = []
     # hits = df_sn['hit_bool'].fillna(False).values
-    for ROI in atlas['ROI_regions']:#, desc=f'ERS {sn} by ROI'):
+    # print(atlas['tick_labels'])
+    # quit()
+    if org_by_region:
+        keys = atlas['tick_labels']
+    else:
+        keys = atlas['ROIs']
+    for ROI in keys:#, desc=f'ERS {sn} by ROI'):
         # if 'LOC' not in ROI and 'EVC' not in ROI:
         #     continue
         # print(ROI)
@@ -47,7 +56,7 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI'):
         vecs_ret = vecs_ret[:, keeps]
         # vecs_ret = np.mean(vecs_ret, axis=1)[:, None]
 
-        # # TODO: divide in random groups of 100 voxels as grid
+        # # TODO: divide ROIs into 8ths
 
         # idxs = np.arange(vecs_enc.shape[1])
         # np.random.shuffle(idxs)
@@ -55,8 +64,8 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI'):
         # vecs_enc = vecs_enc[:, idxs[:n_idx]]
         # vecs_ret = vecs_ret[:, idxs[:n_idx]]
         #
-        # vecs_enc = stdize(vecs_enc, axis=1)
-        # vecs_ret = stdize(vecs_ret, axis=1)
+        vecs_enc = stdize(vecs_enc, axis=0)
+        vecs_ret = stdize(vecs_ret, axis=0)
         vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
         vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
 
@@ -81,7 +90,8 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI'):
         # ers_l.append(ers_dif)
 
     ers_sn = np.array(ers_l)
-    return ers_sn
+
+    return ers_sn, keys
 
 
 def ERS_all_sn():
@@ -93,14 +103,25 @@ def ERS_all_sn():
     sns = age2sn[1]
     print(f'{len(sns)=}')
     fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
+    fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+    print(f'{fps=}')
     for i, sn in tqdm(enumerate(sns), desc='ERS, looping subjects'):
-
-
-        ers_l_all.append(ERS_sn(sn, atlas))
+        ers_sn_by_comparison = []
+        keys = None
+        for fp0 in fps:
+            for fp1 in fps:
+                if fp0 >= fp1:
+                    continue
+                ers_sn, keys = ERS_sn(sn, atlas, fp0, fp1)
+                ers_sn_by_comparison.append(ers_sn)
+        ers_sn_by_comparison = np.array(ers_sn_by_comparison)
+        ers_sn = np.nanmean(ers_sn_by_comparison, axis=0)
+        # ers_sn, keys = ERS_sn(sn, atlas)
+        ers_l_all.append(ers_sn)
         ers_all = np.array(ers_l_all)
         if i < 3:
             continue
-        for j, ROI in enumerate(atlas['ROIs']):
+        for j, ROI in enumerate(keys):
             ers = ers_all[:, j]
             M = np.nanmean(ers)
             SD = np.nanstd(ers)

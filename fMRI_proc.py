@@ -122,7 +122,8 @@ def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
     return triple_prod_mat
 
 def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
-                 org_by_region=False, inc=None, drop_nan_voxels=True):
+                 org_by_region=False, inc=None, drop_nan_voxels=True,
+                 easy_override=True):
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     n_ROIs = len(ROIs)
@@ -138,7 +139,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
     r2vecs = pickle_wrap(fp_cache, f, verbose=True,
-                         easy_override=True)
+                         easy_override=easy_override)
     return r2vecs
 
 

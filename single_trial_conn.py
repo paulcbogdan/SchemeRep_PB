@@ -36,11 +36,16 @@ def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False):
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
     # Creates nan in rs and rs_flat if every value in time series is identical
-    M = np.expand_dims(m(ar, axis=-1), axis=-1)
-    SD = np.expand_dims(s(ar, axis=-1), axis=-1)
-    ar_std = (ar - M) / SD
-    ar_std0 = np.expand_dims(ar_std, axis=-2)
-    ar_std1 = np.expand_dims(ar_std, axis=-3)
+    if ar.shape[-1] > 1:
+        M = np.expand_dims(m(ar, axis=-1), axis=-1)
+        SD = np.expand_dims(s(ar, axis=-1), axis=-1)
+        ar_std = (ar - M) / SD
+        ar_std0 = np.expand_dims(ar_std, axis=-2)
+        ar_std1 = np.expand_dims(ar_std, axis=-3)
+    else:
+        ar_std0 = np.expand_dims(ar, axis=-2)
+        ar_std1 = np.expand_dims(ar, axis=-3)
+
     if euc_dist:
         rs = abs(ar_std0 - ar_std1)
     else:
