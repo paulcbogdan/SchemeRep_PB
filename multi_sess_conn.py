@@ -11,6 +11,18 @@ from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from modularity_testing import get_partition_matrix
 from utils import tril_flat, stdize
 
+def RSA_trials():
+    # trials_re = trials_matrices.reshape(trials_matrices.shape[0], -1)
+    # trials_re = trials_re.T
+    # trials_re_ = trials_re[:, None, :]
+    # trials_re = trials_re[:, :, None]
+    #
+    # RSM_trials_re = abs(trials_re - trials_re_)
+    # RSM_trials_re_flat = RSM_trials_re[:, trils[0], trils[1]]
+    # RSM_trials_re_flat = stdize(RSM_trials_re_flat, axis=1)
+    # trials_r_RSA = np.nanmean(RSM_trials_re_flat * RSM_stim_flat, axis=1)
+    # trials_r_RSA = trials_r_RSA.reshape(len(atlas['ROIs']), len(atlas['ROIs']))
+    pass
 
 def do_multi_sess_conn_sn(sn, atlas, d_vecs):
     df_sn = get_trial_info(sn, easy_override=True)
@@ -36,7 +48,7 @@ def do_multi_sess_conn_sn(sn, atlas, d_vecs):
     ar_all_sess = np.transpose(ar_all_sess, (2, 1, 0))
     ar_all_sess = stdize(ar_all_sess, axis=0)
 
-    RSM_stim = get_stim_RDM(df_sn, d_vecs, add=True, take_abs=False)
+    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, take_abs=False) # was previously add=True?!?!
     trils = np.tril_indices(114, k=-1)
     RSM_stim_flat = RSM_stim[trils]
     RSM_stim_flat = stdize(RSM_stim_flat)
@@ -44,16 +56,6 @@ def do_multi_sess_conn_sn(sn, atlas, d_vecs):
     trials_matrices, trials_flats = corr_matrix_last_two_dim(ar_all_sess,
                                                              euc_dist=True,
                                                              )
-    # trials_re = trials_matrices.reshape(trials_matrices.shape[0], -1)
-    # trials_re = trials_re.T
-    # trials_re_ = trials_re[:, None, :]
-    # trials_re = trials_re[:, :, None]
-    #
-    # RSM_trials_re = abs(trials_re - trials_re_)
-    # RSM_trials_re_flat = RSM_trials_re[:, trils[0], trils[1]]
-    # RSM_trials_re_flat = stdize(RSM_trials_re_flat, axis=1)
-    # trials_r_RSA = np.nanmean(RSM_trials_re_flat * RSM_stim_flat, axis=1)
-    # trials_r_RSA = trials_r_RSA.reshape(len(atlas['ROIs']), len(atlas['ROIs']))
 
     ROI_regions = atlas['ROI_regions']
     idxs_occ = [i for i, region in enumerate(ROI_regions) if
@@ -82,7 +84,7 @@ def do_multi_sess_conn(semantic=True):
            '112', '113', '114', '115', '117', '118', '119', '120', '123', '124',
            '126', '127', '128', '129', '130', '131', '132', '134', '135', '136',
            '137']
-    atlas = get_atlas(combine_regions=False, bilateral=False)
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False)
     if semantic:
         d_vecs = get_semantic_vectors()
     else:

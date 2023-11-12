@@ -106,7 +106,7 @@ def calculate_within_between(age2corrs, p):
 
 
 def do():
-    atlas = get_atlas(combine_regions=False, bilateral=False)
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False)
     d_YA = load_data(age=1)
     d_YA = prune_bad_sns(d_YA, drop_ret=False)
     d_OA = load_data(age=2)

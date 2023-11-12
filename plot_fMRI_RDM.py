@@ -1,4 +1,4 @@
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 from collections import defaultdict
 
 import numpy as np

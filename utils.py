@@ -206,3 +206,74 @@ def tril_flat(ar):
     # ar_flat = ar[slicer]
     ar_flat = ar[..., tril[0], tril[1]]
     return ar_flat
+
+
+import pickle
+import os
+from time import time
+
+def getVariableName(variable, globalVariables):
+    # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string
+    """ Get Variable Name as String by comparing its ID to globals() Variables' IDs
+        args:
+            variable(var): Variable to find name for (Obviously this variable has to exist)
+        kwargs:
+            globalVariables(dict): Copy of the globals() dict (Adding to Kwargs allows this function to work properly when imported from another .py)
+    """
+    for globalVariable in globalVariables:
+        if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
+            return globalVariable # Return its name from the Globals() dict
+
+def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
+                verbose=0, cache_dir=None):
+    '''
+    :param filepath: File to which the callback output should be loaded (if already created)
+                     or where the callback output should be saved
+    :param callback: Function to be pickle_wrapped
+    :param args: Arguments passed to function (often not necessary)
+    :param kwargs: Kwargs passed to the function (often not necessary)
+    :param easy_override: If true, then the callback will be performed and the previous .pkl
+                          save will be overwritten (if it exists)
+    :param verbose: If true, then some additional details will be printed (the name of the callback,
+                    and the time needed to perform the function or load the .pkl)
+    :return: Returns the output of the callback or the output saved in filepath
+    '''
+    if filepath is None:
+        if args is not None:
+            args_str = '_'.join(args)
+        else:
+            args_str = ''
+        if kwargs is not None:
+            kwargs_str = '_'.join(str(s) for s in kwargs.values())
+        else:
+            kwargs_str = ''
+        name = callback.__name__
+        filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
+
+    if verbose:
+        print('Filepath:', filepath)
+        print('\tFunction:', getVariableName(callback, globalVariables=globals().copy()))
+    if os.path.isfile(filepath) and not easy_override:
+        # if verbose: print(f'Loading...')
+        start = time()
+        with open(filepath, "rb") as file:
+            pk = pickle.load(file)
+            if verbose: print(f'\tLoad time: {time()-start:.3f} s')
+            return pk
+    else:
+        if verbose: print('Callback:', getVariableName(callback, globalVariables=globals().copy()))
+        start = time()
+        if args:
+            output = callback(*args)
+        elif kwargs:
+            output = callback(**kwargs)
+        else:
+            output = callback()
+        if verbose:
+            print(f'\tFunction time: {time()-start:.3f} s')
+            # print('\tDumping to file name:', filepath)
+        start = time()
+        with open(filepath, "wb") as new_file:
+            pickle.dump(output, new_file)
+        if verbose: print(f'\tDump time: {time()-start:.3f} s')
+        return output

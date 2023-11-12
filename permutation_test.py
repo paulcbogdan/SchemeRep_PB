@@ -1,4 +1,4 @@
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 
 import utils
 from analyze_ROIs import analyze_ROIs

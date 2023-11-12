@@ -3,7 +3,9 @@ from collections import defaultdict
 import numpy as np
 import pandas as pd
 from nilearn import image
-
+from scipy import ndimage
+from nilearn import plotting
+import random
 
 def add_ROI_info(atlas):
     ROIs = atlas['labels']
@@ -39,9 +41,9 @@ def add_ROI_info(atlas):
     atlas['ROIs'] = ROIs
     atlas['ROI_nums'] = ROI_nums
     atlas['n_ROIs'] = n_ROIs
-    atlas['ROI_regions'] = ROI_regions
+    atlas['ROI_regions'] = ROI_regions # repeats, length = # ROI
     atlas['ticks'] = ticks
-    atlas['tick_labels'] = tick_labels
+    atlas['tick_labels'] = tick_labels # no repeat, length = # regions
     atlas['tick_lows'] = tick_lows
     atlas['ROI_regions_laterality'] = ROI_regions_laterality
     atlas['ROI2coord'] = dict(zip(ROIs, atlas['coords']))
@@ -120,12 +122,98 @@ def get_combined_BNA(combine_bilateral=False, new_space=True):
     add_ROI_info(atlas)
     return atlas
 
-def get_atlas(combine_regions, bilateral, new_space=True):
-    if combine_regions:
-        atlas = get_combined_BNA(combine_bilateral=bilateral,
+def split_BNA(new_space=True, split_code='xyz'):
+    atlas = get_BN_and_resample(combine_bilateral=False,
+                                new_space=new_space)
+
+    atlas_data = atlas['maps'].get_fdata()
+    atlas_data_new = np.zeros_like(atlas_data)
+    coords_new = []
+    ROIs_new = []
+    ROI_nums_new = []
+    ROI_regions_new = []
+    ROI_regions_LR_new = []
+
+    # cnt = 0
+    # nums = list(range(1969))
+    # random.shuffle(nums)
+
+    for ROI, region, region_LR, ROI_num, coord in zip(atlas['ROIs'],
+                                           atlas['ROI_regions'],
+                                           atlas['ROI_regions_laterality'],
+                                           atlas['ROI_nums'],
+                                           atlas['coords']):
+        idxs = np.argwhere(atlas_data == ROI_num)
+        region_bool = np.zeros_like(atlas_data, dtype=int)
+        region_bool[idxs[:, 0], idxs[:, 1], idxs[:, 2]] = 1
+        mass_center = ndimage.center_of_mass(region_bool)
+
+        x_options = [False, True] if 'x' in split_code else [False]
+        y_options = [False, True] if 'y' in split_code else [False]
+        z_options = [False, True] if 'z' in split_code else [False]
+
+        for x_choice in x_options:
+            for y_choice in y_options:
+                for z_choice in z_options:
+                    idxs_choice = idxs.copy()
+                    # if 'x' in split_code:
+                    if x_choice:
+                        idxs_choice = idxs_choice[idxs_choice[:, 0] > mass_center[0]]
+                    else:
+                        idxs_choice = idxs_choice[idxs_choice[:, 0] < mass_center[0]]
+                    # if 'y' in split_code:
+                    if y_choice:
+                        idxs_choice = idxs_choice[idxs_choice[:, 1] > mass_center[1]]
+                    else:
+                        idxs_choice = idxs_choice[idxs_choice[:, 1] < mass_center[1]]
+                    # if 'z' in split_code:
+                    if z_choice:
+                        idxs_choice = idxs_choice[idxs_choice[:, 2] > mass_center[2]]
+                    else:
+                        idxs_choice = idxs_choice[idxs_choice[:, 2] < mass_center[2]]
+                    adder = x_choice * 4 + y_choice * 2 + z_choice
+                    x_str = 'h' if x_choice else 'l'
+                    y_str = 'h' if y_choice else 'l'
+                    z_str = 'h' if z_choice else 'l'
+                    adder_str = f'{x_str}{y_str}{z_str}'
+                    new_num = 1 + (ROI_num - 1) * 8 + adder
+                    # new_num = nums[cnt]
+                    # cnt += 1
+
+                    atlas_data_new[idxs_choice[:, 0], idxs_choice[:, 1],
+                                   idxs_choice[:, 2]] = new_num
+                    ROI_new = f'{ROI}_{adder_str}'
+                    ROIs_new.append(ROI_new)
+                    ROI_regions_new.append(region)
+                    ROI_regions_LR_new.append(region_LR)
+                    ROI_nums_new.append(new_num)
+                    coords_new.append(coord) # TODO
+
+    atlas_new = {}
+    atlas_new['coords'] = coords_new
+    atlas_new['ROIs'] = ROIs_new
+    atlas_new['ROI_nums'] = ROI_nums_new
+    atlas_new['n_ROIs'] = atlas['n_ROIs'] * 8
+    atlas_new['ROI_regions'] = ROI_regions_new
+    atlas_new['ticks'] = atlas['ticks']*8
+    atlas_new['tick_labels'] = atlas['tick_labels']
+    atlas_new['tick_lows'] = atlas['tick_lows']*8
+    atlas_new['ROI_regions_laterality'] = ROI_regions_LR_new
+    atlas_new['ROI2coord'] = dict(zip(ROIs_new, atlas['coords']))
+    atlas_new['maps'] = image.new_img_like(atlas['maps'], atlas_data_new)
+    return atlas_new
+
+
+def get_atlas(combine_regions, combine_bilateral, split=False, new_space=True,
+              split_code='xyz'):
+    if split:
+        assert not combine_regions, 'split and combine_regions are mutually exclusive'
+        atlas = split_BNA(new_space=new_space, split_code=split_code)
+    elif combine_regions:
+        atlas = get_combined_BNA(combine_bilateral=combine_bilateral,
                                  new_space=new_space)
     else:
-        atlas = get_BN_and_resample(combine_bilateral=bilateral,
+        atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space)
     return atlas
 
@@ -139,6 +227,7 @@ def org_BNA_coords():
     return coords
 
 if __name__ == '__main__':
-    get_atlas(combine_regions=True, bilateral=False)
+    # split_BNA()
+    get_atlas(combine_regions=True, combine_bilateral=False)
     # get_BN_atlas()
     # get_combined_BNA(combine_bilateral=True)

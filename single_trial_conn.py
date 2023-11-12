@@ -29,14 +29,15 @@ def roimap2np(ROI2ar, only_some=None):
     print(f'Data shape: {l.shape}')
     return l
 
-def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False):
+def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False,
+                             stdize=True):
 
     # Second-to-last dim should be your variable
     # Last dim should be a time series
     m = np.nanmean if nans else np.mean
-    s = np.nanstd if nans else np.std
     # Creates nan in rs and rs_flat if every value in time series is identical
-    if ar.shape[-1] > 1:
+    if ar.shape[-1] > 1 and stdize:
+        s = np.nanstd if nans else np.std
         M = np.expand_dims(m(ar, axis=-1), axis=-1)
         SD = np.expand_dims(s(ar, axis=-1), axis=-1)
         ar_std = (ar - M) / SD
@@ -47,7 +48,9 @@ def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False):
         ar_std1 = np.expand_dims(ar, axis=-3)
 
     if euc_dist:
-        rs = abs(ar_std0 - ar_std1)
+        # stdize can't actually make a difference because it applies to both
+        #   ar_std0 and ar_std1
+        rs = -abs(ar_std0 - ar_std1)
     else:
         rs = ar_std0 * ar_std1
     rs = m(rs, axis=-1)
@@ -55,18 +58,23 @@ def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False):
     return rs, rs_flat
 
 
-def corr_last_dim(ar0, ar1, nans=True, euc_dist=False):
+def corr_last_dim(ar0, ar1, nans=True, euc_dist=False, stdize=True):
     # Last dim of both should be a time series
+    # stdize by last dim for correlation
     m = np.nanmean if nans else np.mean
-    s = np.nanstd if nans else np.std
-    M0 = np.expand_dims(m(ar0, axis=-1), axis=-1)
-    SD0 = np.expand_dims(s(ar0, axis=-1), axis=-1)
-    ar0_ = (ar0 - M0) / SD0
-    M1 = np.expand_dims(m(ar1, axis=-1), axis=-1)
-    SD1 = np.expand_dims(s(ar1, axis=-1), axis=-1)
-    ar1_ = (ar1 - M1) / SD1
+    if stdize:
+        s = np.nanstd if nans else np.std
+        M0 = np.expand_dims(m(ar0, axis=-1), axis=-1)
+        SD0 = np.expand_dims(s(ar0, axis=-1), axis=-1)
+        ar0_ = (ar0 - M0) / SD0
+        M1 = np.expand_dims(m(ar1, axis=-1), axis=-1)
+        SD1 = np.expand_dims(s(ar1, axis=-1), axis=-1)
+        ar1_ = (ar1 - M1) / SD1
+    else:
+        ar0_ = ar0
+        ar1_ = ar1
     if euc_dist:
-        rs = abs(ar0_ - ar1_)
+        rs = -abs(ar0_ - ar1_)
     else:
         rs = ar0_ * ar1_
     rs = m(rs, axis=-1)
@@ -136,7 +144,7 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
-                      bilateral=bilateral or org_by_region)
+                      combine_bilateral=bilateral or org_by_region)
     title = 'sleepy'
     plot_connectivity(np.mean(rs, axis=0),
                       atlas['ticks'], atlas['tick_labels'],

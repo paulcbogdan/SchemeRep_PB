@@ -3,7 +3,7 @@ import os
 import numpy as np
 from nilearn import image
 from nilearn.glm.first_level import compute_regressor
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 
 from atlas_utils import get_atlas
 from fMRI_proc import within_run_to_nan
@@ -124,7 +124,7 @@ def get_FC_trial(regions_signal, row, name, TRs, atlas):
     return mtx, regions_trial_signal
 
 def get_mtx_sn_(sn='102', name='bl', combine_regions=False, TRs=3):
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=False)
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=False)
     # masker = NiftiLabelsMasker(labels_img=atlas['maps'], standardize=True)
     # corr_measure = ConnectivityMeasure(kind="correlation")
     df_sn = get_trial_info(sn)
@@ -206,7 +206,7 @@ def do_connectivity_RSA(sn='102', name='bl', combine_regions=False, TRs=4,
     #                   xlabel='', ylabel='',
     #                   title=f'Subject: {sn}, deconvolved trial TRs')
 
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=False)
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=False)
     ROI_regions = atlas['ROI_regions']
     idxs_occ = [i for i, region in enumerate(ROI_regions) if
                 ('EVC' in region) or ('LOC' in region) or ('sOcG' in region) or
@@ -235,7 +235,7 @@ def do_connectivity_RSA(sn='102', name='bl', combine_regions=False, TRs=4,
     return r
 
 def do_TR_by_TR_RSA(sn='102', name='bl', combine_regions=False, TRs=4):
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=False)
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=False)
     ROI_regions = atlas['ROI_regions']
     idxs_occ = [i for i, region in enumerate(ROI_regions) if
                 'EVC' in region or 'LOC' in region]
@@ -300,7 +300,7 @@ def test_ERS(sn, TRs=3, easy_override=False):
                                 'combine_regions': False, 'TRs': TRs},
                           cache_dir='cache/mtx', easy_override=easy_override)
 
-    atlas = get_atlas(combine_regions=False, bilateral=False)
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False)
     ROI_regions = atlas['ROI_regions']
     # idxs_occ = [i for i, region in enumerate(ROI_regions) if
     #             'EVC' in region or 'LOC' in region]

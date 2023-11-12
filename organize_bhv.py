@@ -3,7 +3,7 @@ from collections import defaultdict
 from time import time
 
 from nilearn import image
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 from scipy import io
 from glob import glob
 from pprint import pprint

@@ -1,4 +1,4 @@
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 from collections import defaultdict
 
 import numpy as np
@@ -356,7 +356,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
                               PCA_obj=PCA_obj)
 
     new_space = '2' in fp_fMRI_col
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral,
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral,
                       new_space=new_space)
     # if combine_regions:
     #     atlas = get_combined_BNA(combine_bilateral=bilateral)
@@ -364,7 +364,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', ]
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
     age2sn = get_all_sns(ret=ret)
 
     n_trials = 114 if cin is None else 38

@@ -163,7 +163,7 @@ def stuff():
 
 
 def compare_cross_corr(combine_regions=False, bilateral=False):
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
+    atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
 
     fp2corr_all = {}
     fp2inc2corr = {}
@@ -202,7 +202,7 @@ def compare_cross_corr(combine_regions=False, bilateral=False):
 
 def make_basic_corr_comparison(combine_regions=True, bilateral=False):
     atlas = get_atlas(combine_regions=combine_regions,
-                      bilateral=bilateral)
+                      combine_bilateral=bilateral)
 
     fp2corr_all = {}
     fp2inc2corr = {}

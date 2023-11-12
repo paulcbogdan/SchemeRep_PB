@@ -4,7 +4,7 @@ import gensim
 import numpy as np
 import pandas as pd
 from PIL import Image
-from pickle_wrap import pickle_wrap
+from utils import pickle_wrap
 from sklearn import decomposition
 # from torchvision import models as models, transforms as transforms
 
