@@ -20,11 +20,12 @@ def cluster_regions(ROI2vecs):
                 'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
                 'dPFC': ['IFG', 'MFG', 'SFG'],
                 'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
+                'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
                 }
     # networks['Perception'] = networks['Occipital'] + \
     #                          networks['Ventral'] + \
     #                          networks['Dorsal']
-    networks['all'] = list(ROI2vecs.keys())
+    # networks['all'] = list(ROI2vecs.keys())
     ROI2vecs_new = {}
     for network, ROIs in networks.items():
         vecs_l = [ROI2vecs[ROI] for ROI in ROIs]
@@ -33,22 +34,40 @@ def cluster_regions(ROI2vecs):
     keys = list(networks)
     return ROI2vecs_new, keys
 
+def make_connectivity_vecs():
+    pass
 
-def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
-              networks=True):
-    df_sn = get_trial_info(sn)
-    # Org by region overrides combine bilateral?
-    ROI2vecs = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
+def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=True):
+    ROI2vecs = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                             drop_nan_voxels=False, org_by_region=True,
                             easy_override=False)
+    if fp1 is not None:
+        ROI2vecs1 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
+                                drop_nan_voxels=False, org_by_region=True,
+                                easy_override=False)
 
     n_regions = len(atlas['ROIs'])
     if networks:
         ROI2vecs, keys = cluster_regions(ROI2vecs)
-    elif org_by_region:
-        keys = atlas['tick_labels']
+        if fp1 is not None:
+            ROI2vecs1, _ = cluster_regions(ROI2vecs1)
     else:
-        keys = atlas['ROIs']
+        keys = atlas['tick_labels']
+
+    if fp1 is not None:
+        return keys, ROI2vecs, ROI2vecs1
+    else:
+        return keys, ROI2vecs
+
+
+
+def RSA_sn_fp(sn, atlas, d_vecs, fp, debug=False,
+              networks=True):
+    df_sn = get_trial_info(sn)
+    # Org by region overrides combine bilateral?
+    keys, ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
+                                       networks=networks)
+
     RSA_l = []
     sizes = []
     rs_by_edge_ar = np.nan
@@ -60,14 +79,15 @@ def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
         vecs = ROI2vecs[ROI]
         keeps = ~np.isnan(vecs).any(axis=0)
         sizes.append(np.sum(keeps))
-        # vecs = vecs[:, keeps] # TODO: double check this doesn't break stuff
         vecs = stdize(vecs, axis=0, nans=True)
         vecs = pb_outer_euc(vecs, vecs, tril=True, nan_diag=True)
         vecs = stdize(vecs, axis=1, nans=True)
 
         vecs0 = vecs[None, :, :]
         vecs1 = vecs[:, None, :]
-        RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1) # could be a Pearson
+
+        # RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1) # could be a Pearson
+        RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1) # Pearson
 
         trils = np.tril_indices_from(RSM_fMRI, k=-1)
         RSM_fMRI_flat = RSM_fMRI[trils]
@@ -77,24 +97,12 @@ def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
         RSA_l.append(r)
 
         if ROI == 'all':
-
             RSM_fMRI_by_edge = -abs(vecs0 - vecs1)
-            # print(RSM_fMRI_by_edge.shape)
             RSM_fMRI_by_edge = np.transpose(RSM_fMRI_by_edge, (2, 0, 1))
-            # print(RSM_fMRI_by_edge.shape)
             RSM_flat_fMRI_by_edge = RSM_fMRI_by_edge[:, trils[0], trils[1]]
-            # print(RSM_flat_fMRI_by_edge.shape)
-            # print(RSM_fMRI_by_edge.shape)
-            # print(f'{len(trils)=}')
-            # print(f'{RSM_flat_fMRI_by_edge.shape=}')
-            # print(f'{RSM_stim_flat.shape=}')
             rs_by_edge = corr_last_dim(RSM_flat_fMRI_by_edge, RSM_stim_flat)
-            # print(rs_by_edge)
-            # quit()
-            # print(f'{rs_by_edge.shape=}')
             rs_by_edge_ar = np.zeros((n_regions, n_regions))
             trils_c = np.tril_indices_from(rs_by_edge_ar, k=-1)
-
             rs_by_edge_ar[trils_c[0], trils_c[1]] = rs_by_edge
             rs_by_edge_ar[trils_c[1], trils_c[0]] = rs_by_edge
 
@@ -107,24 +115,12 @@ M_sns_all = []
 
 
 def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
-           org_by_region=True, networks=True):
+           networks=True):
     df_sn = get_trial_info(sn)
-    ROI2vecs_enc = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False, org_by_region=True,
-                                easy_override=False)
-    ROI2vecs_ret = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False, org_by_region=True,
-                                easy_override=False)
-    ers_l = []
+    keys, ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
+                                                         fp1=fp1, networks=networks)
 
-    n_regions = len(atlas['ROIs'])
-    if networks:
-        ROI2vecs_enc, keys = cluster_regions(ROI2vecs_enc)
-        ROI2vecs_ret, keys = cluster_regions(ROI2vecs_ret)
-    elif org_by_region:
-        keys = atlas['tick_labels']
-    else:
-        keys = atlas['ROIs']
+    ers_l = []
 
     sizes = []
     ers_dif_by_edge_ar = np.nan
@@ -138,8 +134,6 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         # quit()
         try:
             vecs_enc = ROI2vecs_enc[ROI]
-            # print(f'{vecs_enc.shape=}')
-            # quit()
             vecs_ret = ROI2vecs_ret[ROI]
         except KeyError:
             ers_l.append(np.nan)
@@ -244,7 +238,7 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
     return ers_sn, keys, sizes, ers_dif_by_edge_ar
 
 
-def ERS_all_sn(RSA=False, semantic=True):
+def ERS_all_sn(RSA=True, semantic=False, networks=False):
     if RSA:
         if semantic:
             d_vecs = get_semantic_vectors()
@@ -253,8 +247,8 @@ def ERS_all_sn(RSA=False, semantic=True):
     else:
         d_vecs = None
 
-    atlas = get_atlas(combine_regions=True, combine_bilateral=False,
-                      split=False, split_code='xyz')
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False,
+                      split=True, split_code='xyz')
     age2sn = get_all_sns(ret=True)
     ers_l_all = []
     sns = age2sn[1]
@@ -274,7 +268,8 @@ def ERS_all_sn(RSA=False, semantic=True):
         if RSA:
             for fp0 in fps:
                 ers_sn, keys, sizes, rs_by_edge_ar = \
-                    RSA_sn_fp(sn, atlas, d_vecs, fp0)
+                    RSA_sn_fp(sn, atlas, d_vecs, fp0,
+                              networks=True)
                 ers_sn_by_comparison.append(ers_sn)
                 rs_by_edge_ar_l.append(rs_by_edge_ar)
         else:
