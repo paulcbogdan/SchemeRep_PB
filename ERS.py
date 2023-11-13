@@ -9,17 +9,17 @@ import numpy as np
 import scipy.stats as stats
 
 from stim import get_semantic_vectors, get_DNN_vecs, get_stim_RDM
-from utils import stdize, pb_outer
+from utils import stdize, pb_outer, pb_outer_euc
 import matplotlib.pyplot as plt
 from time import time
 
 def cluster_regions(ROI2vecs):
     networks = {
-                # 'Occipital': ['EVC', 'LOC', 'sOcG'],
-                # 'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
-                # 'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
-                # 'dPFC': ['IFG', 'MFG', 'SFG'],
-                # 'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
+                'Occipital': ['EVC', 'LOC', 'sOcG'],
+                'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
+                'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
+                'dPFC': ['IFG', 'MFG', 'SFG'],
+                'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
                 }
     # networks['Perception'] = networks['Occipital'] + \
     #                          networks['Ventral'] + \
@@ -51,7 +51,7 @@ def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
         keys = atlas['ROIs']
     RSA_l = []
     sizes = []
-    rs_by_edge_ar = None
+    rs_by_edge_ar = np.nan
     for ROI in keys:
         if debug and ('LOC' not in ROI):
             RSA_l.append(np.nan)
@@ -62,7 +62,7 @@ def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
         sizes.append(np.sum(keeps))
         # vecs = vecs[:, keeps] # TODO: double check this doesn't break stuff
         vecs = stdize(vecs, axis=0, nans=True)
-        vecs = pb_outer(vecs, vecs, tril=True, nan_diag=True)
+        vecs = pb_outer_euc(vecs, vecs, tril=True, nan_diag=True)
         vecs = stdize(vecs, axis=1, nans=True)
 
         vecs0 = vecs[None, :, :]
@@ -103,11 +103,11 @@ def RSA_sn_fp(sn, atlas, d_vecs, fp, org_by_region=True, debug=False,
     # TODO: look at cross region? e.g., SFG x LOC
     return RSA_l, keys, sizes, rs_by_edge_ar
 
-
+M_sns_all = []
 
 
 def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
-           org_by_region=True):
+           org_by_region=True, networks=True):
     df_sn = get_trial_info(sn)
     ROI2vecs_enc = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                                 drop_nan_voxels=False, org_by_region=True,
@@ -116,16 +116,18 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
                                 drop_nan_voxels=False, org_by_region=True,
                                 easy_override=False)
     ers_l = []
-    # hits = df_sn['hit_bool'].fillna(False).values
-    # print(atlas['tick_labels'])
-    # quit()
-    if org_by_region:
+
+    n_regions = len(atlas['ROIs'])
+    if networks:
+        ROI2vecs_enc, keys = cluster_regions(ROI2vecs_enc)
+        ROI2vecs_ret, keys = cluster_regions(ROI2vecs_ret)
+    elif org_by_region:
         keys = atlas['tick_labels']
     else:
         keys = atlas['ROIs']
-    # print(f'{atlas["ROIs"]}')
-    # quit()
+
     sizes = []
+    ers_dif_by_edge_ar = np.nan
     for ROI in keys:
         # if 'LOC' not in ROI:
         #     ers_l.append(0)
@@ -150,37 +152,99 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
             continue
         keeps = np.logical_and(~np.isnan(vecs_enc).any(axis=0),
                                ~np.isnan(vecs_ret).any(axis=0))
+
         sizes.append(keeps.sum())
-        vecs_enc = vecs_enc[:, keeps]
-        vecs_ret = vecs_ret[:, keeps]
 
-        vecs_enc = stdize(vecs_enc, axis=0)
-        vecs_ret = stdize(vecs_ret, axis=0)
-        vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
-        vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
+        # vecs_enc = vecs_enc[:, keeps]
+        # vecs_ret = vecs_ret[:, keeps]
+        vecs_enc = stdize(vecs_enc, axis=0, nans=True)
+        vecs_ret = stdize(vecs_ret, axis=0, nans=True)
+        if ROI == 'all':
+            global M_sns_all
+            vecs_enc_ar = pb_outer(vecs_enc, vecs_enc, tril=False, nan_diag=True)
+            M_sn = np.nanmean(vecs_enc_ar, axis=0)
+            M_sns_all.append(M_sn)
+            M_sn_all_avg = np.nanmean(M_sns_all, axis=0)
+            N = len(M_sns_all) // 3
+            if len(M_sns_all) % 3 == 0:
+                plot_connectivity(M_sn_all_avg, atlas['ticks'], atlas['tick_labels'],
+                                  atlas['tick_lows'],
+                                  no_avg=True,
+                                  title=f'Euclidean Connectivity, '
+                                        f'n = {N}',
+                                  cbar_label='Distance')
 
+        vecs_enc = pb_outer_euc(vecs_enc, vecs_enc, tril=True, nan_diag=True)
+        vecs_ret = pb_outer_euc(vecs_ret, vecs_ret, tril=True, nan_diag=True)
+
+        # vecs_enc0 = vecs_enc[:, :, None]
+        # vecs_enc1 = vecs_enc[:, None, :]
+        # vecs_enc = -abs(vecs_enc0 - vecs_enc1)
+        # tril_edges = np.tril_indices_from(vecs_enc[0], k=-1)
+        # vecs_enc = vecs_enc[:, tril_edges[0], tril_edges[1]]
+        #
+        # print(vecs_enc.shape)
+        # quit()
+
+        # vecs_enc = pb_outer(vecs_enc, vecs_enc, tril=True, nan_diag=True)
+        # vecs_ret = pb_outer(vecs_ret, vecs_ret, tril=True, nan_diag=True)
         # stdizing along axis=1 here leads to all edges within a given trial
         #   having mean = 0. This makes it more similar to a Pearson correlation
         #   but isn't obviously necessary
-        vecs_enc = stdize(vecs_enc, axis=1)
-        vecs_ret = stdize(vecs_ret, axis=1)
+        vecs_enc = stdize(vecs_enc, axis=1, nans=True)
+        vecs_ret = stdize(vecs_ret, axis=1, nans=True)
         ers = np.nanmean(-abs(vecs_enc - vecs_ret), axis=1)
-
         vecs_enc_ = vecs_enc[:, None, :]
         vecs_ret_ = vecs_ret[None, :, :]
+        # measuring similarity as distance too???
         ers_else = np.nanmean(-abs(vecs_enc_ - vecs_ret_), axis=2)
-        ers_else[np.diag_indices_from(ers_else)] = 0
+        diag_trials = np.diag_indices_from(ers_else)
+        ers_else[diag_trials] = 0
         ers_else = np.sum(ers_else, axis=1) / (ers_else.shape[1] - 1)
-
         ers_dif = ers - ers_else
         ers_l.append(np.nanmean(ers_dif))
 
+        if ROI == 'all':
+            ers_by_edge = -abs(vecs_enc - vecs_ret)
+            ers_by_edge = np.nanmean(ers_by_edge, axis=0)
+            # print(f'{n_regions=}')
+            ers_by_edge_ar = np.zeros((n_regions, n_regions))
+            # print(ers_by_edge_ar.shape)
+            # print(f'{ers_by_edge.shape=}')
+            # print(tril_trials[0].shape)
+            tril_edges = np.tril_indices_from(ers_by_edge_ar, k=-1)
+            ers_by_edge_ar[tril_edges] = ers_by_edge
+            ers_by_edge_ar[tril_edges[::-1]] = ers_by_edge
+
+            # print(ers_by_edge.shape)
+            # GM = np.nanmean(ers_by_edge)
+
+            ers_else_by_edge = -abs(vecs_enc_ - vecs_ret_)
+            # tril_trials = np.tril_indices_from(ers_else_by_edge[:, :, 0], k=-1)
+
+            ers_else_by_edge[diag_trials[0], diag_trials[1], :] = 0
+
+            ers_else_by_edge = np.sum(ers_else_by_edge, axis=1) / \
+                               (ers_else_by_edge.shape[1] - 1)
+            ers_else_by_edge = np.nanmean(ers_else_by_edge, axis=0)
+            ers_else_by_edge_ar = np.zeros((n_regions, n_regions))
+            ers_else_by_edge_ar[tril_edges] = ers_else_by_edge
+            ers_else_by_edge_ar[tril_edges[::-1]] = ers_else_by_edge
+            # print(f'{GM=:.3f}')
+
+
+            ers_dif_by_edge_ar = ers_by_edge_ar - ers_else_by_edge_ar
+            # plt.imshow(ers_dif_by_edge_ar)
+            # plt.colorbar()
+            # plt.show()
+            # quit()
+
     ers_sn = np.array(ers_l)
 
-    return ers_sn, keys, sizes
+    return ers_sn, keys, sizes, ers_dif_by_edge_ar
 
 
-def ERS_all_sn(RSA=True, semantic=False):
+def ERS_all_sn(RSA=False, semantic=True):
     if RSA:
         if semantic:
             d_vecs = get_semantic_vectors()
@@ -189,21 +253,21 @@ def ERS_all_sn(RSA=True, semantic=False):
     else:
         d_vecs = None
 
-    atlas = get_atlas(combine_regions=False, combine_bilateral=False,
-                      split=False, split_code='z')
+    atlas = get_atlas(combine_regions=True, combine_bilateral=False,
+                      split=False, split_code='xyz')
     age2sn = get_all_sns(ret=True)
     ers_l_all = []
     sns = age2sn[1]
     print(f'{len(sns)=}')
-    # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
-    fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+    fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']#, 'con2_fMRI']
+    # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
     RSA_str = 'RSA (semantic)' if (RSA and semantic) else \
               'RSA (perceptual)' if (RSA and not semantic) else \
               'ERS'
     print(f'{fps=}')
     rs_by_edge_ar_l = []
 
-    for i, sn in tqdm(enumerate(sns[::-1]), desc='ERS, looping subjects'):
+    for i, sn in tqdm(enumerate(sns), desc='ERS, looping subjects'):
         ers_sn_by_comparison = []
         keys = None
         sizes = None
@@ -218,8 +282,10 @@ def ERS_all_sn(RSA=True, semantic=False):
                 for fp1 in fps:
                     if fp0 >= fp1:
                         continue
-                    ers_sn, keys, sizes = ERS_sn(sn, atlas, fp0, fp1)
+                    ers_sn, keys, sizes, ers_by_edge_ar = \
+                        ERS_sn(sn, atlas, fp0, fp1)
                     ers_sn_by_comparison.append(ers_sn)
+                    rs_by_edge_ar_l.append(ers_by_edge_ar)
         ers_sn_by_comparison = np.array(ers_sn_by_comparison)
         ers_sn = np.nanmean(ers_sn_by_comparison, axis=0)
         # ers_sn, keys = ERS_sn(sn, atlas)
@@ -229,6 +295,7 @@ def ERS_all_sn(RSA=True, semantic=False):
         print()
         if i < 2:
             continue
+        prt_all = None
         for j, ROI in enumerate(keys):
             ers = ers_all[:, j]
             M = np.nanmean(ers)
@@ -237,7 +304,13 @@ def ERS_all_sn(RSA=True, semantic=False):
             SE = SD / np.sqrt(N)
             t = M / SE
             p = stats.t.sf(np.abs(t), N-1)
-            print(f'{RSA_str} | {ROI} ({sizes[j]}), t[{N-1}]={t:.2f}, p={p:.3f}')
+            prt = f'{RSA_str} | {ROI} ({sizes[j]}), t[{N-1}]={t:.2f}, p={p:.3f}'
+            print(prt)
+            if ROI == 'all':
+                prt_all = prt
+
+        if prt_all is None:
+            continue
 
         M_mat = np.nanmean(rs_by_edge_ar_all, axis=0)
         SD_mat = np.nanstd(rs_by_edge_ar_all, axis=0)
@@ -246,7 +319,8 @@ def ERS_all_sn(RSA=True, semantic=False):
         t_mat = M_mat / SE_mat
         plot_connectivity(t_mat, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'],
-                          vmin=-3, vmax=3, no_avg=True)
+                          vmin=-4, vmax=4, no_avg=True,
+                          title=prt_all, cbar_label='t-value')
 
 
 

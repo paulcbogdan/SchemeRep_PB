@@ -46,6 +46,20 @@ def defaultdict_to_dict(d):
         d = np.array(d)
     return d
 
+def pb_outer_euc(a, b, flat=False, tril=False, nan_diag=False):
+    a = np.array(a)
+    b = np.array(b)
+    a = np.expand_dims(a, axis=2)
+    b = np.expand_dims(b, axis=1)
+    c = -abs(a - b)
+    if nan_diag:
+        assert c.shape[-1] == c.shape[-2], f'c must be square: {c.shape=}'
+        c[:, np.arange(c.shape[-1]), np.arange(c.shape[-1])] = np.nan
+    if tril:
+        c = tril_flat(c)
+    elif flat:
+        c = c.reshape(-1, c.shape[1]*c.shape[2])
+    return c
 
 def pb_outer(a, b, flat=False, tril=False, nan_diag=False):
     # Multiply matrix of vector a (size n) and vector b (size m) to get n x m
