@@ -1,11 +1,8 @@
-from utils import pickle_wrap
-
 import utils
-from analyze_ROIs import analyze_ROIs
+from old.analyze_ROIs import analyze_ROIs
 from fMRI_proc import mass_RDM_x_RDM
 import numpy as np
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time
 import matplotlib.pyplot as plt
 from scipy import stats

@@ -72,8 +72,12 @@ def do_ttest(d, key, ROI, wilcox=False):
         M0 = np.nanmean(d['z'][key][ROI] > 0.)
         return M0, t, p, 0
     else:
-        M0 = np.nanmean(d['z'][key][ROI])
-        SD = np.nanstd(d['z'][key][ROI])
+        # M0 = np.nanmean(d['z'][key][ROI])
+        # SD = np.nanstd(d['z'][key][ROI])
+
+        M0 = np.nanmean(d['rxr'][key][ROI])
+        SD = np.nanstd(d['rxr'][key][ROI])
+
         N = np.sum(~np.isnan(d['z'][key][ROI]))
         SE = SD / np.sqrt(N)
         t = M0 / SE
@@ -147,18 +151,14 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def flip_firstlevel(d):
-    pass
-
-
-def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
-                 bilateral=False, combine_regions=True,
+def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
+                 bilateral=False, combine_regions=False,
                  vec_prod=False, PCA_obj=True,
-                 org_by_region=False, rxr=False,
+                 org_by_region=True, rxr=False,
                  run_lmer=False,
                  DNN_layer=2, fp_fMRI_col='obj2_fMRI',
                  verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='dif_abs'):
+                 req_all_N=False, key='obj'):
     if fp is None:
         fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
                         DNN_layer=DNN_layer,
@@ -167,10 +167,11 @@ def analyze_ROIs(age=1, early=True, semantic=False, inc=None,
                          vec_prod=vec_prod, org_by_region=org_by_region,
                          )
         fp = fr'cache/RSA/{fn}.pkl'
+
     with open(fp, 'rb') as file:
         d = pickle.load(file)
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
-                      bilateral=bilateral or org_by_region)
+                      combine_bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
     colors = []
     ts = []

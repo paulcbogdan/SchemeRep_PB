@@ -1,12 +1,12 @@
 import pickle
 import numpy as np
 
-from analyze_ROIs import prune_bad_sns
+from old.analyze_ROIs import prune_bad_sns
 from atlas_utils import get_atlas
 from modularity_testing import get_modules, get_partition_matrix, plot_nichord
 from single_trial_conn import corr_matrix_last_two_dim
-from utils import get_RSA_fn, stdize
-import matplotlib.pyplot as plt
+from utils import get_RSA_fn
+
 
 def load_data(fp_fMRI_col = 'obj_fMRI', age=1, semantic=False, inc=None,
               bilateral=False, combine_regions=False, vec_prod=False,

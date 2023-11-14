@@ -101,11 +101,14 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
             # print(f'{z=}')
     return np.nanmean(zs)
 
-def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear'):
+def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear', within_to_nan=True):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
-    fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    if within_to_nan:
+        fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    else:
+        fMRI_RDM_ = fMRI_RDM
     # plt.imshow(fMRI_RDM_)
     # plt.show()
     fMRI_flat = fMRI_RDM_[tril_idx]
@@ -127,14 +130,17 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear'):
 
     return z
 
-def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
+def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True):
     '''
     matmul all took 0.001 seconds
     matmul semi (one loop, inner matmul) took 0.008 seconds
     scipy pearsonr took 0.013 seconds
     scipy spearmanr took 0.055 seconds
     '''
-    fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    if within_to_nan:
+        fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    else:
+        fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
     fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)

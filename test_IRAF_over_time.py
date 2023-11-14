@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from PFC_analysis import get_stim_RDMs
+from prediction_error.PFC_analysis import get_stim_RDMs
 from atlas_utils import get_BN_and_resample
 from fMRI_proc import get_ROI_vecs, within_run_to_nan
 from organize_bhv import get_trial_info

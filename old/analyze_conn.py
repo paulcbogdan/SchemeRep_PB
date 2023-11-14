@@ -47,7 +47,7 @@ def random_interaction_stuff(d, d2):
     quit()
 
 def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=True, vec_prod=False,
+                 bilateral=False, combine_regions=False, vec_prod=False,
                  org_by_region=False, PCA_obj=True):
     fn = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
                     fp_fMRI_col='obj_fMRI',
@@ -69,10 +69,12 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # d = prune_bad_sns(d, drop_ret=True)
 
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
-                      bilateral=bilateral or org_by_region)
+                      combine_bilateral=bilateral or org_by_region)
     # Can correlated dif_abs IRAF x obj IRAF, both for obj_fMRI?
     key = 'obj'
-    left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
+    # left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
+    left = [np.array(d2['activity'][roi0]) for roi0 in atlas['ROIs']]
+
     # bottom = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
     bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
     # bottom = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
@@ -120,10 +122,10 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     # quit()
     # t[np.diag_indices_from(t)] = np.nan
     title = make_title_str('', key, age, early, semantic, cin)
-    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+    plot_connectivity(r_Ms, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title, no_avg=True,
-                      cbar_label='t-value', vmin=-4, vmax=4)
+                      cbar_label='t-value', vmin=-0.3, vmax=1)
     # vmin=-3
 
 def bulk_correlate(vals0, vals1, nans=False):
@@ -162,76 +164,6 @@ def bulk_correlate(vals0, vals1, nans=False):
     # print(rs.shape)
     # quit()
     # pass
-
-def test_triple_z(age=1, early=True, semantic=False,
-                         combine_regions=True, bilateral=False):
-    fp = get_RSA_fn(inc=None, age=age, semantic=semantic, early=early,
-                    combine_regions=combine_regions, bilateral=bilateral)
-    with open(fp, 'rb') as file:
-        d = pickle.load(file)
-    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
-    atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
-    data = d['triple_z']['obj']
-    data = np.array(data)
-    M = np.nanmean(data, axis=0)
-    SD = np.nanstd(data, axis=0)
-    t = M / SD * np.sqrt(len(data))
-    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
-                      # title='YA, 1st-layer DNN RSA for objects. '
-                      #       'triple-correlation',
-                      title='YA, 1st-layer DNN object RSA, '
-                            'voxel x voxel connectivity ',
-                      cbar_label='t-value')
-
-def permutation_testing_threshold():
-    # TODO
-    # Compare basic permutation testing (permute 1st level results) vs.
-    #   detailed permutation testing (permute underlying data)
-    # Mixed (efficient)
-    # * Make 10-20 shuffled datasets per participant
-    # * Get first-level results
-    # * Sample from first-level results
-    pass
-
-def test_rxr(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=True, vec_prod=False,
-                 org_by_region=False, rxr=False):
-    fp = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                    fp_fMRI_col='obj_fMRI',
-                    bilateral=bilateral, combine_regions=combine_regions,
-                    vec_prod=vec_prod, org_by_region=org_by_region,
-                    )
-    with open(fp, 'rb') as file:
-        d = pickle.load(file)
-    # ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs = add_ROI_info()
-    atlas = get_atlas(combine_regions=combine_regions or org_by_region,
-                      bilateral=bilateral or org_by_region)
-    data = d['triple_z']['obj']
-    data = np.array(data)
-    # for val in data[:, 41, 45]:
-    #     print(val > 0)
-
-    # print(data[:, 41, 45])
-    # quit()
-
-    M = np.nanmean(data, axis=0)
-    SD = np.nanstd(data, axis=0)
-    # t = M
-    t = M / SD * np.sqrt(len(data))
-
-
-    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
-                      # title='YA, 1st-layer DNN RSA for objects. '
-                      #       'triple-correlation',
-                      title='YA, 1st-layer DNN object RSA, '
-                            'voxel x voxel connectivity ',
-                      cbar_label='t-value')
-
-    quit()
 
 
 if __name__ == '__main__':
