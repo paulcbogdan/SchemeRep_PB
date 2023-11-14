@@ -72,7 +72,7 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
     trial_per_run = RSM_stim.shape[0] // 3
     for run0 in range(3):
         for run1 in range(3):
-            if run1 <= run0:
+            if run1 < run0:
                 continue
             low0 = run0 * trial_per_run
             high0 = (run0 + 1) * trial_per_run
@@ -82,8 +82,12 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
             fMRI_flat = fMRI_RDM[low0:high0, low1:high1].flatten()
             nans = np.isnan(stim_flat) | np.isnan(fMRI_flat)
             n_nans = np.sum(nans)
-            assert n_nans == 0 or n_nans == 38, f'RDM x RDM bad nans: {n_nans=}'
+            assert n_nans == 0 or n_nans == 10, f'RDM x RDM bad nans: {n_nans=}'
+            stim_flat = stim_flat[~nans]
+            fMRI_flat = fMRI_flat[~nans]
             if corr == 'spear':
+                # print(f'{fMRI_flat}')
+                # print(f'{stim_flat}')
                 r, _ = stats.spearmanr(fMRI_flat, stim_flat)
                 z = np.arctanh(r)
             elif corr == 'corr':
@@ -94,7 +98,8 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
             else:
                 raise KeyError(f'conn must be \"spear\", \"corr\", or \"euc\", not {corr}')
             zs.append(z)
-    return np.mean(zs)
+            # print(f'{z=}')
+    return np.nanmean(zs)
 
 def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear'):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
