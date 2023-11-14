@@ -66,6 +66,8 @@ def regress_out_within_across(RDM):
     return RDM_
 
 def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
+    RSM_stim[np.diag_indices_from(RSM_stim)] = np.nan
+    fMRI_RDM[np.diag_indices_from(fMRI_RDM)] = np.nan
     zs = []
     trial_per_run = RSM_stim.shape[0] // 3
     for run0 in range(3):

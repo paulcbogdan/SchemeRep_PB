@@ -13,7 +13,7 @@ from stim import get_semantic_vectors, get_DNN_vecs, get_stim_RDM
 from utils import stdize, pb_outer, pb_outer_euc, get_default_fp, pickle_wrap
 import matplotlib.pyplot as plt
 from time import time
-
+import random
 
 def get_conn_vecs(vecs, conn='euc'):
     vecs = stdize(vecs, axis=0, nans=True)
@@ -81,61 +81,26 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks)
     scores = []
+    scores_alt = []
     sizes = []
     for ROI, vecs in ROI2vecs.items():
-        # if ('LOC' not in ROI):
-        #     scores.append(np.nan)
-        #     sizes.append(np.nan)
-        #     continue
         vecs = ROI2vecs[ROI]
         keeps = ~np.isnan(vecs).any(axis=0)
         sizes.append(np.sum(keeps))
         vecs = stdize(vecs, axis=0, nans=True)
         vecs = get_conn_vecs(vecs, conn=conn)
-
-        # vecs = pb_outer_euc(vecs, vecs, tril=True, nan_diag=True)
-        # vecs = stdize(vecs, axis=1, nans=True)
-        #
-        # vecs0 = vecs[None, :, :]
-        # vecs1 = vecs[:, None, :]
-        #
-        # # RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1) # could be a Pearson
-        # RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1) # Pearson
-        # if 'LOC' not in ROI:
-        #     continue
         RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
-        # RSM_fMRI[:, :] = 0
-        # RSM_fMRI[0:38, 0:38] = 1
-        # RSM_fMRI[38:76, 38:76] = 1
-        # RSM_fMRI[76:114, 76:114] = 1
-
-        # plt.imshow(RSM_fMRI)
-        # plt.colorbar()
-        # plt.show()
-        # RSM_fMRI = within_run_to_nan(RSM_fMRI)
-        # RSM_fMRI = regress_out_within_across(RSM_fMRI)
-        # plt.imshow(RSM_fMRI)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
-
-
-
-        # within_run_to_nan(RDM)
-
-        # trils = np.tril_indices_from(RSM_fMRI, k=-1)
-        # RSM_fMRI_flat = RSM_fMRI[trils]
         RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True)
-        RSM_stim[np.diag_indices_from(RSM_stim)] = np.nan
-        RSM_fMRI[np.diag_indices_from(RSM_fMRI)] = np.nan
+        # z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr='spear')
 
         # RSM_stim_flat = RSM_stim[trils]
 
         z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr='spear')
-        print(f'\n({ROI}) RDM x RDM: {fp} | {z=:.3f}')
+        scores_alt.append(z)
+        # print(f'\n({ROI}) RDM x RDM: {fp} | {z=:.3f}')
 
         z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr='spear')
-        print(f'\t({ROI}) By run: {fp} | {z=:.3f}')
+        # print(f'\t({ROI}) By run: {fp} | {z=:.3f}')
         # r, p = stats.spearmanr(RSM_fMRI_flat, RSM_stim_flat, nan_policy='omit')
         scores.append(z)
         continue
@@ -232,6 +197,10 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         # print(f'{ROI}, {score=:.3f}')
         scores.append(score)
     scores = np.array(scores)
+    scores_alt = np.array(scores_alt)
+    scores_bigger = np.nanmean(scores > scores_alt) - 0.5
+    print(f'{scores_bigger=:.3f}')
+
     return scores, sizes
 
 
@@ -323,7 +292,11 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, verbose=1):
     settings = locals().copy()
-    d_vecs = prep_vecs(RSA, semantic)
+    # d_vecs = prep_vecs(RSA, semantic)
+    # vecs_l = list(d_vecs.values())
+    # random.shuffle(vecs_l)
+    # d_vecs = dict(zip(d_vecs.keys(), vecs_l))
+
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False,
                       split=split, split_code='xyz')
@@ -349,6 +322,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         if verbose and i > 1:
+            # print('Shuffled')
             report_results(results)
     return results
 
@@ -385,7 +359,7 @@ def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
 
 def run_analysis(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='corr', second_order='spear',
-                 four_tasks=False, combine_regions=False, split=True):
+                 four_tasks=False, combine_regions=False, split=False):
     settings = locals().copy()
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
