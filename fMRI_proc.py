@@ -18,17 +18,35 @@ from pathlib import Path
 import pandas as pd
 from warnings import filterwarnings
 
+import matplotlib.pyplot as plt
+
 filterwarnings('ignore', category=RuntimeWarning, message='Mean of empty slice')
 filterwarnings('ignore', category=RuntimeWarning,
                message='Degrees of freedom <= 0')
 
 def within_run_to_nan(RDM):
+    # RDM_ = np.zeros_like(RDM)
+    # trial_per_run = RDM.shape[0] // 3
+    # for run in range(3):
+    #     low = run * trial_per_run
+    #     high = (run + 1) * trial_per_run
+    #     RDM_[low:high, low:high] = 1
+    # return RDM_
+
+    # RDM_ = np.zeros_like(RDM)
+    # trial_per_run = RDM.shape[0] // 3
+    # for run in range(3):
+    #     low = run * trial_per_run
+    #     high = (run + 1) * trial_per_run
+    #     RDM_[low:high, low:high] = RDM[low:high, low:high]
+    # return RDM_
     RDM_ = RDM.copy()
     trial_per_run = RDM.shape[0] // 3
     for run in range(3):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
         RDM_[low:high, low:high] = np.nan
+    # TODO: Fix, this won't work properly except for on encoding!!
     return RDM_
 
 def regress_out_within_across(RDM):
@@ -47,19 +65,52 @@ def regress_out_within_across(RDM):
     RDM_[within_zero == 0] = RDM_[within_zero == 0] - M_between
     return RDM_
 
-def RDM_x_RDM(fMRI_RDM, stim_RDM):
+def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
+    zs = []
+    trial_per_run = RSM_stim.shape[0] // 3
+    for run0 in range(3):
+        for run1 in range(3):
+            if run1 < run0:
+                continue
+            low0 = run0 * trial_per_run
+            high0 = (run0 + 1) * trial_per_run
+            low1 = run1 * trial_per_run
+            high1 = (run1 + 1) * trial_per_run
+            RSM_stim_flat = RSM_stim[low0:high0, low1:high1].flatten()
+            RSM_fMRI_flat = fMRI_RDM[low0:high0, low1:high1].flatten()
+            nans = np.isnan(RSM_stim_flat) | np.isnan(RSM_fMRI_flat)
+            n_nans = np.sum(nans)
+            assert n_nans == 0 or n_nans == 38, f'RDM x RDM bad nans: {n_nans=}'
+            # print(f'{np.sum(nans)=}')
+            r, p = stats.spearmanr(RSM_fMRI_flat, RSM_stim_flat, nan_policy='omit')
+            z = np.arctanh(r)
+            zs.append(z)
+    return np.mean(zs)
+
+def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear'):
     assert fMRI_RDM.shape == stim_RDM.shape, 'RDMs must be the same shape: ' \
        f'fMRI_RDM.shape = {fMRI_RDM.shape}, stim_RDM.shape = {stim_RDM.shape}'
     tril_idx = np.tril_indices_from(fMRI_RDM, k=-1)
-    # fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
     # plt.imshow(fMRI_RDM_)
     # plt.show()
-    # quit()
-    fMRI_vec = fMRI_RDM_[tril_idx]
-    stim_vec = stim_RDM[tril_idx]
-    r, _ = stats.spearmanr(fMRI_vec, stim_vec, nan_policy='omit')
-    z = np.arctanh(r)
+    fMRI_flat = fMRI_RDM_[tril_idx]
+    stim_flat = stim_RDM[tril_idx]
+    nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
+    fMRI_flat = fMRI_flat[~nans]
+    stim_flat = stim_flat[~nans]
+    if corr == 'spear':
+        r, _ = stats.spearmanr(fMRI_flat, stim_flat)
+        z = np.arctanh(r)
+    elif corr == 'corr':
+        r, _ = stats.pearsonr(fMRI_flat, stim_flat)
+        # print(f'{r=:.3f}')
+        z = np.arctanh(r)
+    elif corr == 'euc':
+        z = -np.mean(fMRI_flat - stim_flat)
+    else:
+        raise KeyError(f'conn must be \"spear\", \"corr\", or \"euc\", not {corr}')
+
     return z
 
 def get_IRAFs(fMRI_RDM, stim_RDM, df_sn):
@@ -151,6 +202,8 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
 
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+    # for idx, row in df_sn.iterrows():
+    #     print(row[fp_fMRI_col])
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
     ROIs = atlas['ROIs']
@@ -162,12 +215,15 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         region_vecs = img[atlas_roi]
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
+        if len(voxels_w_nan) < 5: # sometimes even zero
+            continue
 
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
         p_nan_any = n_nans_ROI / len(voxels_w_nan)
-        p_nan_overall = np.mean(np.isnan(region_vecs))
+        # print(f'{ROI} | {len(voxels_w_nan)=} | {n_nans_ROI=}')
+        # p_nan_overall = np.mean(np.isnan(region_vecs))
         # the thalamus is entirely dropped basically
         if p_nan_any > nan_thresh:  # more than 10%
             # print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
@@ -264,6 +320,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
+    sess = fp_fMRI_col.split('_')[0].replace('2', '')
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     if shuffle:
         shuffle_df_sn(df_sn, fp_fMRI_col)

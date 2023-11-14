@@ -126,9 +126,12 @@ def get_trial_info_(sn, ret=False):
                 scene_rename = scene
 
             outlier_bool = bool(outliers[i][0])
+            trial_full = trial + 38 * (run - 1)
 
             d = {'sn': sn,
-                 'enc_trial': trial,
+                 'enc_trial': trial_full,
+                 'obj_trial': trial_full,
+                 'scn_trial': trial_full,
                  'enc_run': run,
                  'obj_run': run,
                  'scn_run': run,
@@ -216,8 +219,7 @@ def include_conceptual(df_sn, sn):
     obj2fp = {}
     obj2fp2 = {}
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
-
-    # obj2trial = {}
+    obj2trial = {}
     # obj2run = {}
     obj2outlier = {}
     for run in range(1, 4):
@@ -240,6 +242,7 @@ def include_conceptual(df_sn, sn):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
             obj2run[obj] = run
+            obj2trial[obj] = trial + (run - 1) * 48
             old_new = mat_enc['pdata'][0][0][8][0][i][0][0]
             assert old_new in [0, 1], f'Old new not 0 or 1: {old_new=}'
             obj2old_new[obj] =' new' if old_new else 'old'
@@ -276,6 +279,7 @@ def include_conceptual(df_sn, sn):
         df_sn['con2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['con_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
+        df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
 
         if sn not in get_bad_sns(ret=True):
             assert len(df_sn['con2_fMRI'].value_counts()) == 114, \
@@ -296,6 +300,7 @@ def include_vis(df_sn, sn):
     obj2fp2 = {}
     obj2rt = {}
     obj2run = {}
+    obj2trial = {}
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
     obj2outlier = {}
     for run in range(1, 4):
@@ -318,6 +323,7 @@ def include_vis(df_sn, sn):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
             obj2run[obj] = run
+            obj2trial[obj] = trial + 42 * (run - 1)
             resp = mat_enc['pdata'][0][0][8][0][i][0]
             resp = 'old' if resp == 3 else \
                    'similar' if resp == 2 else \
@@ -357,6 +363,7 @@ def include_vis(df_sn, sn):
         df_sn['vis2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['vis_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
+        df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
         # if sn not in get_bad_sns(ret=True):
         #     assert len(df_sn['vis2_fMRI'].value_counts()) == 114, \
         #         f'Missing vis fMRI fp: {len(df_sn["vis2_fMRI"].value_counts())}'
@@ -385,6 +392,7 @@ def include_BL(df_sn, sn):
     obj2fp = {}
     obj2fp2 = {}
     obj2outlier = {}
+    obj2trial = {}
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/bl/S{sn}_run{run}.mat'
@@ -407,6 +415,7 @@ def include_BL(df_sn, sn):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
             obj2run[obj] = run
+            obj2trial[obj] = trial + 38 * (run - 1)
             resp = mat_enc['pdata'][0][0][8][0][i][0]
             obj2resp[obj] = resp
             do_BL_move(bl_root, run, trial)
@@ -434,6 +443,8 @@ def include_BL(df_sn, sn):
         df_sn['bl2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['bl_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
+        df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
+
 
         assert pd.isna(df_sn['bl2_fMRI']).sum() == 0 or sn == '135', 'Missing bl fMRI fp unneeded'
         # assert len(df_sn['bl_fMRI'].value_counts()) == 114, 'Missing bl fMRI fp'

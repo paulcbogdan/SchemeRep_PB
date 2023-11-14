@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 
 import numpy as np
 from scipy import stats as stats
@@ -238,6 +239,25 @@ def getVariableName(variable, globalVariables):
         if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
             return globalVariable # Return its name from the Globals() dict
 
+def get_default_fp(args, kwargs, callback, cache_dir):
+    if args is not None:
+        args_str = '_'.join(args)
+    else:
+        args_str = ''
+    if kwargs is not None:
+        kwargs_str = ''
+        for key in sorted(kwargs.keys()):
+            val = kwargs[key]
+            kwargs_str += f'{val}_'
+        kwargs_str = kwargs_str[:-1]  # remove last underscore
+    else:
+        kwargs_str = ''
+    name = callback.__name__
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
+    print(f'Default filepath: {filepath}')
+    return filepath
+
 def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
                 verbose=0, cache_dir=None):
     '''
@@ -253,16 +273,8 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
     :return: Returns the output of the callback or the output saved in filepath
     '''
     if filepath is None:
-        if args is not None:
-            args_str = '_'.join(args)
-        else:
-            args_str = ''
-        if kwargs is not None:
-            kwargs_str = '_'.join(str(s) for s in kwargs.values())
-        else:
-            kwargs_str = ''
-        name = callback.__name__
-        filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
+        filepath = get_default_fp(args, kwargs, callback, cache_dir)
+
 
     if verbose:
         print('Filepath:', filepath)
