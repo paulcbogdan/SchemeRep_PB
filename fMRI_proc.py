@@ -72,20 +72,27 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
     trial_per_run = RSM_stim.shape[0] // 3
     for run0 in range(3):
         for run1 in range(3):
-            if run1 < run0:
+            if run1 <= run0:
                 continue
             low0 = run0 * trial_per_run
             high0 = (run0 + 1) * trial_per_run
             low1 = run1 * trial_per_run
             high1 = (run1 + 1) * trial_per_run
-            RSM_stim_flat = RSM_stim[low0:high0, low1:high1].flatten()
-            RSM_fMRI_flat = fMRI_RDM[low0:high0, low1:high1].flatten()
-            nans = np.isnan(RSM_stim_flat) | np.isnan(RSM_fMRI_flat)
+            stim_flat = RSM_stim[low0:high0, low1:high1].flatten()
+            fMRI_flat = fMRI_RDM[low0:high0, low1:high1].flatten()
+            nans = np.isnan(stim_flat) | np.isnan(fMRI_flat)
             n_nans = np.sum(nans)
             assert n_nans == 0 or n_nans == 38, f'RDM x RDM bad nans: {n_nans=}'
-            # print(f'{np.sum(nans)=}')
-            r, p = stats.spearmanr(RSM_fMRI_flat, RSM_stim_flat, nan_policy='omit')
-            z = np.arctanh(r)
+            if corr == 'spear':
+                r, _ = stats.spearmanr(fMRI_flat, stim_flat)
+                z = np.arctanh(r)
+            elif corr == 'corr':
+                r, _ = stats.pearsonr(fMRI_flat, stim_flat)
+                z = np.arctanh(r)
+            elif corr == 'euc':
+                z = -np.mean(fMRI_flat - stim_flat)
+            else:
+                raise KeyError(f'conn must be \"spear\", \"corr\", or \"euc\", not {corr}')
             zs.append(z)
     return np.mean(zs)
 
@@ -203,9 +210,11 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     if n_nans:
         raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
 
+
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     # for idx, row in df_sn.iterrows():
     #     print(row[fp_fMRI_col])
+    # quit()
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
     ROIs = atlas['ROIs']

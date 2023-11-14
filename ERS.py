@@ -14,12 +14,13 @@ from utils import stdize, pb_outer, pb_outer_euc, get_default_fp, pickle_wrap
 import matplotlib.pyplot as plt
 from time import time
 import random
+from collections import defaultdict
 
 def get_conn_vecs(vecs, conn='euc'):
     vecs = stdize(vecs, axis=0, nans=True)
     if conn == 'euc':
         vecs = pb_outer_euc(vecs, vecs, tril=True, nan_diag=True)
-    elif conn == 'corr':
+    elif conn == 'prod':
         vecs = pb_outer(vecs, vecs, tril=True, nan_diag=True)
     else:
         raise ValueError(f'conn={conn} not recognized')
@@ -36,11 +37,13 @@ def cluster_regions(ROI2vecs, networks):
 
 def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None):
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
-                            drop_nan_voxels=False, org_by_region=True,
+                            drop_nan_voxels=False,
+                            org_by_region=False,
                             easy_override=True)
     if fp1 is not None:
         ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False, org_by_region=True,
+                                drop_nan_voxels=False,
+                                 org_by_region=True,
                                 easy_override=True)
     else:
         ROI2vecs1 = None
@@ -56,11 +59,10 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None):
         return ROI2vecs0
 
 def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
-    if vecs1:
-        vecs1 = stdize(vecs1, axis=1, nans=True)  # Is this needed?
     vecs = stdize(vecs, axis=1, nans=True) # Is this needed?
     vecs0 = vecs[None, :, :]
-    if vecs1:
+    if vecs1 is not None:
+        vecs1 = stdize(vecs1, axis=1, nans=True)  # Is this needed?
         vecs1 = vecs1[:, None, :]
     else:
         vecs1 = vecs[:, None, :]
@@ -68,20 +70,122 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
     elif trial_similarity == 'euc':
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
+    # elif trial_similarity == 'spear':
+    #     pass
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI
 
+def conn_autocorrelation(combine_regions=False, split=False, four_tasks=False,
+                         conn='euc'):
+    # Autocorrelation is very small, like .08
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=False,
+                      split=split, split_code='xyz')
+    fps = prep_fps(four_tasks)
+
+    fp = fps[0]
+    sess = fp.split('_')[0].replace('2', '')
+    age2sn = get_all_sns(ret=True)
+    sns = age2sn[1]
+    corr_by_sn = []
+    corr_by_ROI = defaultdict(list)
+    for i, sn in tqdm(enumerate(sns), desc='ERS, looping subjects'):
+        df_sn = get_trial_info(sn)
+        df_sn.sort_values(by=f'{sess}_trial', inplace=True)
+        # for idx, row in df_sn.iterrows():
+        #     print(row[fp])
+        # print(df_sn[fp])
+        # quit()
+        ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
+                                     networks=False)
+        sn_corr = []
+        for ROI, vecs in ROI2vecs.items():
+            vecs = ROI2vecs[ROI]
+
+            keeps = ~np.isnan(vecs).any(axis=0)
+            vecs = vecs[:, keeps]
+            if vecs.shape[-1] < 10: continue
+            # print(f'{vecs.shape=}')
+            # quit()
+            # print(vecs.shape)
+            # quit()
+            vecs = stdize(vecs, axis=0, nans=True)
+            # vecs = stdize(vecs, axis=1, nans=True)
+            # vecs = get_conn_vecs(vecs, conn=conn)
+            trial_per_run = vecs.shape[0] // 3
+            ROI_corr = []
+
+            for run in range(3):
+                # TODO: NORM WITHIN RUN
+                for trial in range(trial_per_run):
+                    if trial == trial_per_run - 1: continue
+                    data0 = vecs[run * trial_per_run + trial, :]
+                    data1 = vecs[run * trial_per_run + trial + 1, :]
+                    # try:
+                    # except IndexError:
+                    #     continue
+                    r_order = stats.pearsonr(data0, data1)[0]
+
+                    alts = []
+                    for trial_alt in range(trial_per_run):
+                        if trial_alt == trial: continue
+                        data1 = vecs[run * trial_per_run + trial_alt, :]
+                        r = stats.pearsonr(data0, data1)[0]
+                        alts.append(r)
+
+                    r_dif = r_order - np.mean(alts)
+                    ROI_corr.append(r_dif)
+                    sn_corr.append(r_dif)
+
+            # n_edges = vecs.shape[1]
+            # for j in range(n_edges):
+            #     rs = []
+            #     for run in range(3):
+            #         low = run * trial_per_run
+            #         high = (run + 1) * trial_per_run
+            #         time_series = vecs[low:high, j]
+            #         # print(f'{vecs.shape=}, {run=},{time_series.shape=}')
+            #         time_series0 = time_series[:-1]
+            #         time_series1 = time_series[1:]
+            #         # plt.scatter(range(len(time_series0)), time_series0)
+            #         # plt.show()
+            #         r = stats.pearsonr(time_series0, time_series1)[0]
+            #         rs.append(r)
+            #     sn_corr.append(np.mean(rs))
+            #     ROI_corr.append(np.mean(rs))
+            corr_by_ROI[ROI].append(np.mean(ROI_corr))
+
+        for ROI, l in corr_by_ROI.items():
+            print(f'{ROI}, {np.mean(l)=:.3f} ({np.std(l)=:.3f})')
+
+
+        sn_corr = np.array(sn_corr)
+        plt.title(f'{sn=}')
+        plt.hist(sn_corr)
+        # corr_sn_region_val.append(corr_by_sn)
+        # print(f'{corr_by_sn.shape=}')
+        # plt.imshow(corr_by_sn)
+        # plt.colorbar()
+        plt.show()
+        continue
+        M = np.mean(autocorrelation_all_sn)
+        SD = np.std(autocorrelation_all_sn)
+        print(f'N = {i + 1} ({len(autocorrelation_all_sn)}): '
+              f'{M=:.5f} ({SD=:.5f})')
+        #     print(f'{ROI}, {autocorrelation=:.3f}')
+        # quit()
+
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
-           conn='euc', trial_similarity='corr', second_order='spear'):
+           conn='euc', trial_similarity='corr', second_order='spear',
+           RDM_method='by_run'):
     df_sn = get_trial_info(sn)
     sess = fp.split('_')[0].replace('2', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks)
     scores = []
-    scores_alt = []
     sizes = []
     for ROI, vecs in ROI2vecs.items():
         vecs = ROI2vecs[ROI]
@@ -91,115 +195,14 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         vecs = get_conn_vecs(vecs, conn=conn)
         RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
         RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True)
-        # z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr='spear')
-
-        # RSM_stim_flat = RSM_stim[trils]
-
-        z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr='spear')
-        scores_alt.append(z)
-        # print(f'\n({ROI}) RDM x RDM: {fp} | {z=:.3f}')
-
-        z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr='spear')
-        # print(f'\t({ROI}) By run: {fp} | {z=:.3f}')
-        # r, p = stats.spearmanr(RSM_fMRI_flat, RSM_stim_flat, nan_policy='omit')
+        if RDM_method == 'by_run':
+            z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr=second_order)
+        else:
+            raise ValueError(f'{RDM_method=} not supported')
         scores.append(z)
         continue
 
-        # trial_per_run = RSM_stim.shape[0] // 3
-        # for run0 in range(3):
-        #     for run1 in range(3):
-        #         if run1 < run0:
-        #             continue
-        #         low0 = run0 * trial_per_run
-        #         high0 = (run0 + 1) * trial_per_run
-        #         low1 = run1 * trial_per_run
-        #         high1 = (run1 + 1) * trial_per_run
-        #         M = np.nanmean(RSM_stim[low0:high0, low1:high1])
-        #         SD = np.nanstd(RSM_stim[low0:high0, low1:high1])
-        #         print(f'{fp} | {run0}, {run1} | {M=:.3f} ({SD:.3f})')
-
-
-        # fMRI_l = []
-        # stim_l = []
-        # trial_per_run = RSM_stim.shape[0] // 3
-        # for run0 in range(3):
-        #     for run1 in range(3):
-        #         if run1 <= run0:
-        #             continue
-        #         low0 = run0 * trial_per_run
-        #         high0 = (run0 + 1) * trial_per_run
-        #         low1 = run1 * trial_per_run
-        #         high1 = (run1 + 1) * trial_per_run
-        #         fMRI_data = RSM_fMRI[low0:high0, low1:high1].flatten()
-        #         fMRI_l.extend(fMRI_data)
-        #         stim_data = RSM_stim[low0:high0, low1:high1].flatten()
-        #         stim_l.extend(stim_data)
-        #
-        #         # M = np.nanmean(RSM_stim[low0:high0, low1:high1])
-        #         # SD = np.nanstd(RSM_stim[low0:high0, low1:high1])
-        #         # print(f'{fp} | {run0}, {run1} | {M=:.3f} ({SD:.3f})')
-        #
-        # RSM_fMRI_flat = np.array(fMRI_l)
-        # RSM_stim_flat = np.array(stim_l)
-
-
-        # print(f'{fMRI_l.shape}')
-        # quit()
-
-        # RSM_stim[np.diag_indices_from(RSM_stim)] = np.nan
-        # RSM_stim = within_run_to_nan(RSM_stim)
-
-        # RSM_zeros = within_run_to_nan(RSM_fMRI)
-        # RSM_zeros_flat = RSM_zeros[trils].astype(bool)
-        # plt.imshow(RSM_fMRI)
-        # plt.title(f'{fp=}')
-        # plt.scatter(RSM_stim_flat[RSM_zeros_flat], RSM_fMRI_flat[RSM_zeros_flat],
-        #             color='r', label='diagonal', alpha=.4)
-        # plt.scatter(RSM_stim_flat[~RSM_zeros_flat], RSM_fMRI_flat[~RSM_zeros_flat],
-        #             color='b', label='else', alpha=.4)
-        # plt.legend()
-        # plt.show()
-        # # quit()
-
-
-        # plt.imshow(RSM_stim)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
-
-        # nans = np.isnan(RSM_fMRI_flat)
-        # withins = RS
-
-        # plt.scatter(RSM_fMRI_flat, RSM_stim_flat)
-        # plt.show()
-
-        # r, p = stats.spearmanr(RSM_fMRI_flat, RSM_stim_flat, nan_policy='omit')
-        # z = np.arctanh(r)
-        # print(f'{fp} | {z=:.3f} ({p:.3f})')
-        # scores.append(r)
-        continue
-
-
-        # if ROI != 'LOC':
-        #     scores.append(np.nan)
-        #     sizes.append(np.nan)
-        #     continue
-        keeps = ~np.isnan(vecs).any(axis=0)
-        sizes.append(np.sum(keeps))
-        # print(f'{vecs.shape=}')
-        vecs = get_conn_vecs(vecs, conn=conn)
-        # print(f'{trial_similarity=}')
-        RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
-        # print(RSM_fMRI.shape)
-        RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True)
-        score = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order)
-        # print(f'{ROI} | {score=:.3f}')
-        # print(f'{ROI}, {score=:.3f}')
-        scores.append(score)
     scores = np.array(scores)
-    scores_alt = np.array(scores_alt)
-    scores_bigger = np.nanmean(scores > scores_alt) - 0.5
-    print(f'{scores_bigger=:.3f}')
 
     return scores, sizes
 
@@ -235,7 +238,8 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
     return scores, sizes
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
-           conn='euc', trial_similarity='euc', second_order='spear'):
+           conn='euc', trial_similarity='euc', second_order='spear',
+           RDM_method='by_run'):
     scores_all = []
     sizes_all = []
     for fp0 in fps:
@@ -243,7 +247,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
             scores, sizes = \
                 RSA_sn(sn, atlas, d_vecs, fp0, networks=networks,
                        conn=conn, trial_similarity=trial_similarity,
-                       second_order=second_order)
+                       second_order=second_order, RDM_method=RDM_method)
             scores_all.append(scores)
             sizes_all.append(sizes)
         else:
@@ -290,13 +294,13 @@ def prep_networks():
 def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
-                 combine_regions=False, split=False, verbose=1):
+                 combine_regions=False, split=False, RDM_method='by_run',
+                 verbose=1):
     settings = locals().copy()
-    # d_vecs = prep_vecs(RSA, semantic)
+    d_vecs = prep_vecs(RSA, semantic)
     # vecs_l = list(d_vecs.values())
     # random.shuffle(vecs_l)
     # d_vecs = dict(zip(d_vecs.keys(), vecs_l))
-
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False,
                       split=split, split_code='xyz')
@@ -318,7 +322,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         ers_sn_by_comparison = []
         scores, sizes = run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
                                conn=conn, trial_similarity=trial_similarity,
-                               second_order=second_order)
+                               second_order=second_order, RDM_method=RDM_method)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         if verbose and i > 1:
@@ -357,18 +361,43 @@ def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
                       vmin=-4, vmax=4, no_avg=True,
                       title=prt_all, cbar_label='t-value')
 
-def run_analysis(RSA=True, semantic=False, do_networks=False,
+def run_analysis(RSA=False, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='corr', second_order='spear',
-                 four_tasks=False, combine_regions=False, split=False):
+                 four_tasks=False, combine_regions=False, split=False,
+                 RDM_method='by_run'):
     settings = locals().copy()
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
     assert (not combine_regions) or do_networks
+    assert RSA or second_order == 'spear', 'Leave second_order as \"spear\" for ERS'
     dir_results = r'cache/conn_RSA'
     results = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=True)
     report_results(results)
 
+def run_analysis_toggles():
+    RSA = False
+    semantic = False
+    do_networks = False
+
+    conn_toggle = ['euc', 'prod']
+    trial_similarity_toggle = ['euc', 'corr']
+    four_tasks_toggle = [False, True]
+    split_toggle = [False, True]
+
+    for four_tasks in four_tasks_toggle:
+        for conn in conn_toggle:
+            for trial_similarity in trial_similarity_toggle:
+                for split in split_toggle:
+                    try:
+                        run_analysis(conn=conn,
+                                     trial_similarity=trial_similarity,
+                                     four_tasks=four_tasks, split=split,
+                                     RSA=RSA, semantic=semantic,
+                                     do_networks=do_networks)
+                    except AssertionError:
+                        pass
 
 if __name__ == '__main__':
-    run_analysis()
+    conn_autocorrelation()
+    # run_analysis_toggles()
