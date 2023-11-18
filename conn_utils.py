@@ -157,12 +157,13 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
 
 def get_conn_vecs(vecs, vecs1=None, conn='euc'):
-
     vecs = stdize(vecs, axis=0, nans=True)
     if vecs1 is None:
         vecs1 = vecs
         cross = False
     else:
+        # TODO: redo all cross, there may be an error
+        vecs = stdize(vecs, axis=1, nans=True)
         cross = True
     if conn == 'euc':
         vecs = pb_outer_euc(vecs, vecs1, tril=not cross,
@@ -177,16 +178,31 @@ def get_conn_vecs(vecs, vecs1=None, conn='euc'):
 def calculate_cross_region_vecs(ROI2vecs, networks, conn='euc'):
     ROI2vecs_new = {}
     for network, ROIs in networks.items():
-        vecs_l = []
-        for ROI0 in ROIs:
-            vecs0 = ROI2vecs[ROI0]
-            for ROI1 in ROIs:
-                if ROI0 == ROI1:
-                    continue
-                vecs1 = ROI2vecs[ROI1]
-                vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
-                vecs_l.append(vecs)
-        vecs = np.concatenate(vecs_l, axis=1)
+        if isinstance(ROIs, tuple):
+            ROIs0 = ROIs[0]
+            ROIs1 = ROIs[1]
+            vecs0_l = []
+            for ROI0_0 in ROIs0:
+                vecs0_l.append(ROI2vecs[ROI0_0])
+            vecs0 = np.concatenate(vecs0_l, axis=1)
+            vecs1_l = []
+            for ROI1_1 in ROIs1:
+                vecs1_l.append(ROI2vecs[ROI1_1])
+            vecs1 = np.concatenate(vecs1_l, axis=1)
+            vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+            # print(f'{vecs0.shape=}, {vecs1.shape=}, {vecs.shape=}')
+            # quit()
+        else:
+            vecs_l = []
+            for ROI0 in ROIs:
+                vecs0 = ROI2vecs[ROI0]
+                for ROI1 in ROIs:
+                    if ROI0 == ROI1:
+                        continue
+                    vecs1 = ROI2vecs[ROI1]
+                    vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+                    vecs_l.append(vecs)
+            vecs = np.concatenate(vecs_l, axis=1)
         assert vecs.shape[0] == 114, f'{vecs.shape=}'
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new

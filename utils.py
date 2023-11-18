@@ -4,7 +4,8 @@ from pathlib import Path
 import numpy as np
 from scipy import stats as stats
 
-
+from datetime import datetime
+from time import time
 
 def regress_out(x, y):
     x = np.array(x)
@@ -279,6 +280,22 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
     if verbose:
         print('Filepath:', filepath)
         print('\tFunction:', getVariableName(callback, globalVariables=globals().copy()))
+
+    if os.path.isfile(filepath):
+        made = os.path.getmtime(filepath)
+        print(f'File was made: {made}')
+        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+        dt = datetime.fromtimestamp(made)
+        if dt < dt_max:
+            easy_override = True
+            print('\tFile is old, overriding')
+        # print(dt > dt_max)
+        # now = datetime.now()
+        # print(f'{made=}')
+        # print(f'{dt=}')
+        # print(f'{now=}')
+        # quit()
+
     if os.path.isfile(filepath) and not easy_override:
         # if verbose: print(f'Loading...')
         start = time()

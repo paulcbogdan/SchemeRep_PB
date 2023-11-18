@@ -53,7 +53,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         else:
             raise ValueError(f'{RDM_method=} not supported')
         scores.append(z)
-        IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn)
+        IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn, within_to_nan=False,
+                          by_run=RDM_method == 'by_run')
         IRAFs_all_ROI.append(IRAFs)
         # print(f'{z=}')
     scores = np.array(scores)

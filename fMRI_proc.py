@@ -127,7 +127,8 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear', within_to_nan=True):
 
     return z
 
-def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True):
+def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
+              by_run=False):
     '''
     matmul all took 0.001 seconds
     matmul semi (one loop, inner matmul) took 0.008 seconds
@@ -136,6 +137,9 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True):
     '''
     if within_to_nan:
         fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
+    elif by_run:
+        raise NotImplementedError
+        fMRI_RDM_ = between_run_to_nan(fMRI_RDM)
     else:
         fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan

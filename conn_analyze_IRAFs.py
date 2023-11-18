@@ -27,22 +27,44 @@ def get_BNA_ROIs():
 
 def run_lmer():
     dir_results = r'cache/conn_RSA'
-    settings = {'RSA': True, 'semantic': False, 'do_networks': True,
-                'conn': 'euc',
+    settings = {'RSA': True, 'semantic': False, 'do_networks': 3,
+                # 'conn': 'cross_euc',
+                'conn': 'cross_euc',
                 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': False,
-                'combine_regions': False, 'split': True,
+                'combine_regions': False, 'split': False,
                 'RDM_method': 'clever_std', 'verbose': 1}
+
+    RSA = True
+    semantic = False
+    split = False
+    four_tasks = True
+
+    # TODO: watch out for putting in verbose
+
+
+    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': 3,
+                'conn': 'cross_euc', 'trial_similarity': 'corr',
+                'second_order': 'spear', 'four_tasks': four_tasks,
+                'combine_regions': False, 'split': split,
+                'RDM_method': 'clever_std', 'verbose': 1}
+
+    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': 1,
+                'conn': 'euc', 'trial_similarity': 'corr',
+                'second_order': 'spear', 'four_tasks': four_tasks,
+                'combine_regions': False, 'split': split,
+                'RDM_method': 'clever_std'}
+
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
     scores_conn = results_conn['scores_by_ROI']
     scores_conn = np.array(scores_conn)
     report_results(results_conn)
-    # quit()
+    quit()
 
-    settings = {'RSA': True, 'semantic': False, 'do_networks': False,
+    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
                 'conn': 'BOLD', 'trial_similarity': 'corr',
-                'second_order': 'spear', 'four_tasks': False,
+                'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
                 'RDM_method': 'clever_std', 'verbose': 1}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
@@ -62,11 +84,15 @@ def run_lmer():
     # df_as_ d = {'ROI': [], 'sn': [], 'conn_score': [], 'hit_hit': []}
     df_as_d = defaultdict(list)
     all_ROI_names = results_conn['keys']
-    network2ROI = prep_networks()
+    network2ROI = prep_networks(setting=1)
+    for key, l in network2ROI.items():
+        if isinstance(l, tuple):
+            network2ROI[key] = l[0] + l[1]
 
     # TODO: network bold
 
     ROI_to_bold_keys = {}
+    # target_ROI = 'Ventral'
     target_ROI = 'PFC_Occ'
     print('Org df')
     for sn_i, sn in enumerate(results_conn['sns']):
@@ -112,6 +138,14 @@ def run_lmer():
 
     df = pd.DataFrame(df_as_d)
 
+    df_M = df.groupby('sn').mean()
+    M_score = df_M['conn_score'].mean()
+    SD_score = df_M['conn_score'].std()
+    SE_score = SD_score / np.sqrt(df_M.shape[0])
+    t_score = M_score / SE_score
+    print(f'{M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, {t_score=:.3f}')
+    quit()
+
     print(list(ROI_to_bold_keys))
     target_bold_keys = ROI_to_bold_keys[target_ROI]
     print(f'{len(target_bold_keys)=}')
@@ -121,7 +155,7 @@ def run_lmer():
     df.dropna(inplace=True)
 
     from pymer4.models import Lmer
-    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + ' +  (1|sn)'
+    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + ' (1|sn)'
     # formula = 'conn_score ~ 1 + (1|sn)'
 
     print(f'{formula=}')
@@ -131,6 +165,14 @@ def run_lmer():
     print(model.summary())
     
 def search_for_PFC_significant_result():
+    # Model free Frontal with Euc,
+    #   Not the strongest sadly...
+    # settings = {'RSA': False, 'semantic': False, 'do_networks': 2, 'conn': 'euc', 'trial_similarity': 'corr',
+    #             'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False,
+    #             'RDM_method': 'clever_std', 'verbose': 1}
+    # Frontal(64.0), t[29] = 2.36, p = 0.013
+
+
     pass
 
             
