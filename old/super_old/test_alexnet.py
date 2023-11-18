@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # print(alexnet)
     # quit()
 
-    dir_objs = r'../SchemRep_tasks/PTBtasks/updatedObjectsResampled'
+    dir_objs = r'../../SchemRep_tasks/PTBtasks/updatedObjectsResampled'
     fns_objs = os.listdir(dir_objs)
     fps_objs = [os.path.join(dir_objs, fn) for fn in fns_objs if '.jpg' in fn]
 

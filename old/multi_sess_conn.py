@@ -1,14 +1,13 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
-from plot_gen import plot_connectivity
+from old.plot_gen import plot_connectivity
 from single_trial_conn import corr_matrix_last_two_dim
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
-from modularity_testing import get_partition_matrix
+from old.modularity_testing import get_partition_matrix
 from utils import tril_flat, stdize
 
 def RSA_trials():

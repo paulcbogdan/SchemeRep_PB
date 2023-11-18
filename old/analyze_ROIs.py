@@ -4,18 +4,13 @@ import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy import stats as stats
 from statsmodels.stats.multitest import multipletests
-from tqdm import tqdm
 
-import utils
 from atlas_utils import get_atlas
-from plot_gen import my_plot_surf
-from utils import get_RSA_fn, make_title_str, prune_to_only_hits
+from old.plot_gen import my_plot_surf
+from utils import get_RSA_fn, make_title_str
 
 # from connsearch.report.plots import plot_ROI_scores
-from copy import deepcopy
-from time import time
 import scipy.stats as stats
 
 def do_lmer(d, key, ROI, hits_only=True):

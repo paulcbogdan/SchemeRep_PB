@@ -3,11 +3,10 @@ from collections import defaultdict
 
 import numpy as np
 
-from atlas_utils import get_BN_and_resample, get_combined_BNA, get_atlas
+from atlas_utils import get_atlas
 from organize_bhv import get_trial_info, get_all_sns
 from nilearn import image
 
-from plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from utils import stdize, nan_ar, defaultdict_to_dict
 import utils
@@ -17,8 +16,6 @@ from tqdm import tqdm
 from pathlib import Path
 import pandas as pd
 from warnings import filterwarnings
-
-import matplotlib.pyplot as plt
 
 filterwarnings('ignore', category=RuntimeWarning, message='Mean of empty slice')
 filterwarnings('ignore', category=RuntimeWarning,

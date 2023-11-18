@@ -1,10 +1,8 @@
 import numpy as np
 
-from analyze_ROIs import prune_bad_sns
-from plot_gen import plot_connectivity
+from old.plot_gen import plot_connectivity
 from utils import make_title_str, get_RSA_fn, stdize
 from atlas_utils import get_atlas
-import matplotlib.pyplot as plt
 import pickle
 import pandas as pd
 

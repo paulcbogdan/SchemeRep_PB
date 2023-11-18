@@ -2,10 +2,11 @@ import pickle
 import numpy as np
 
 from atlas_utils import get_atlas
+from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
-from plot_gen import plot_connectivity
+from old.plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_DNN_vecs
-from utils import get_RSA_fn, tril_flat
+from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer
 import scipy.stats as stats
 
 import warnings
@@ -154,5 +155,109 @@ def do_single_trial_conn(age=1, early=True, semantic=False, cin=None,
 
 
 
-if __name__ == '__main__':
-    do_single_trial_conn()
+
+def get_conn_vecs(vecs, vecs1=None, conn='euc'):
+
+    vecs = stdize(vecs, axis=0, nans=True)
+    if vecs1 is None:
+        vecs1 = vecs
+        cross = False
+    else:
+        cross = True
+    if conn == 'euc':
+        vecs = pb_outer_euc(vecs, vecs1, tril=not cross,
+                            flat=cross, nan_diag=not cross)
+    elif conn == 'prod':
+        vecs = pb_outer(vecs, vecs1,  tril=not cross,
+                            flat=cross, nan_diag=not cross)
+    else:
+        raise ValueError(f'conn={conn} not recognized')
+    return vecs
+
+def calculate_cross_region_vecs(ROI2vecs, networks, conn='euc'):
+    ROI2vecs_new = {}
+    for network, ROIs in networks.items():
+        vecs_l = []
+        for ROI0 in ROIs:
+            vecs0 = ROI2vecs[ROI0]
+            for ROI1 in ROIs:
+                if ROI0 == ROI1:
+                    continue
+                vecs1 = ROI2vecs[ROI1]
+                vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+                vecs_l.append(vecs)
+        vecs = np.concatenate(vecs_l, axis=1)
+        assert vecs.shape[0] == 114, f'{vecs.shape=}'
+        ROI2vecs_new[network] = vecs
+    return ROI2vecs_new
+
+
+def cluster_regions(ROI2vecs, networks):
+    ROI2vecs_new = {}
+    for network, ROIs in networks.items():
+        vecs_l = []
+        for ROI in ROIs:
+            if ROI in ROI2vecs:
+                vecs_l.append(ROI2vecs[ROI])
+            elif f'{ROI}_L' in ROI2vecs:
+                vecs_l.append(ROI2vecs[f'{ROI}_L'])
+                vecs_l.append(ROI2vecs[f'{ROI}_R'])
+            else:
+                raise ValueError(f'ROI={ROI} not found')
+        vecs = np.concatenate(vecs_l, axis=1)
+        ROI2vecs_new[network] = vecs
+    return ROI2vecs_new
+
+
+def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
+                      org_by_region=True, cross_region=False,
+                      conn=None):
+    ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
+                            drop_nan_voxels=False,
+                            org_by_region=org_by_region,
+                            easy_override=False)
+    if fp1 is not None:
+        ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
+                                drop_nan_voxels=False,
+                                org_by_region=org_by_region,
+                                easy_override=False)
+    else:
+        ROI2vecs1 = None
+
+    if networks:
+        if cross_region:
+            ROI2vecs0 = calculate_cross_region_vecs(ROI2vecs0, networks,
+                                                    conn=conn)
+        else:
+            ROI2vecs0 = cluster_regions(ROI2vecs0, networks)
+
+        if fp1 is not None:
+            if cross_region:
+                ROI2vecs1 = calculate_cross_region_vecs(ROI2vecs1, networks,
+                                                        conn=conn)
+            else:
+                ROI2vecs1 = cluster_regions(ROI2vecs1, networks)
+
+    if fp1 is not None:
+        return ROI2vecs0, ROI2vecs1
+    else:
+        return ROI2vecs0
+
+
+def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
+    vecs = stdize(vecs, axis=1, nans=True) # Is this needed?
+    vecs0 = vecs[None, :, :]
+    if vecs1 is not None:
+        vecs1 = stdize(vecs1, axis=1, nans=True)  # Is this needed?
+        vecs1 = vecs1[:, None, :]
+    else:
+        vecs1 = vecs[:, None, :]
+    if trial_similarity == 'corr':
+        RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
+    elif trial_similarity == 'euc':
+        RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
+    # elif trial_similarity == 'spear':
+    #     pass
+    else:
+        raise ValueError(f'{trial_similarity=} not supported')
+    return RSM_fMRI

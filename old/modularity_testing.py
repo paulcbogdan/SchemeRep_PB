@@ -1,15 +1,14 @@
 import pickle
 import numpy as np
-from nichord import plot_chord
 from nichord.combine import plot_and_combine
 from pathlib import Path
 
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from plot_gen import plot_connectivity
+from old.plot_gen import plot_connectivity
 from single_trial_conn import corr_matrix_last_two_dim, corr_last_dim
-from utils import get_RSA_fn, stdize, tril_flat
+from utils import get_RSA_fn, tril_flat
 import scipy.stats as stats
 
 import warnings

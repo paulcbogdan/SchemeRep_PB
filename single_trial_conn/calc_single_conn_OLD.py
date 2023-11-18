@@ -7,11 +7,11 @@ from utils import pickle_wrap
 
 from atlas_utils import get_atlas
 from fMRI_proc import within_run_to_nan
-from modularity_testing import get_partition_matrix
+from old.modularity_testing import get_partition_matrix
 from organize_bhv import get_trial_info, get_all_sns
 from tqdm import tqdm
 
-from permutation_test import Timer
+from old.permutation_test import Timer
 from pathlib import Path
 import gzip
 import shutil

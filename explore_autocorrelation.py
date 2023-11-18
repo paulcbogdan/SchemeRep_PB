@@ -4,7 +4,9 @@ import numpy as np
 from scipy import stats as stats
 from tqdm import tqdm
 
-from single_trial_conn import prep_fps, get_ROI_vecs_wrap, get_trial_x_trial_RSM
+from single_trial_conn import prep_fps
+from conn_utils import get_ROI_vecs_wrap
+from conn_RSA import get_trial_x_trial_RSM
 from atlas_utils import get_atlas
 from organize_bhv import get_all_sns, get_trial_info
 
