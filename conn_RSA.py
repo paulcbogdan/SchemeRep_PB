@@ -1,11 +1,13 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats as stats
 
 from fMRI_proc import RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
 from organize_bhv import get_trial_info
 from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
-from stim import get_stim_RDM
+from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
+from scipy.spatial import distance
 
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
@@ -35,6 +37,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             scores.append(np.nan)
             IRAFs_all_ROI.append(np.full(len(df_sn), np.nan))
             continue
+        vecs_BOLD = vecs_BOLD[:, keeps]
         sizes.append(np.sum(keeps))
 
         vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
@@ -42,12 +45,13 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn)
-        RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True)
+        RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist=trial_similarity)
         if RDM_method == 'by_run':
             RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
             z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr=second_order)
         elif RDM_method == 'clever_std':
-            RSM_fMRI = get_trial_x_trial_RSM(vecs, simple_mean=True)
+            RSM_fMRI = get_trial_x_trial_RSM(vecs, simple_mean=True,
+                                             trial_similarity=trial_similarity)
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
         else:
@@ -61,7 +65,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     return scores, sizes, IRAFs_all_ROI
 
 
-def get_trial_x_trial_RSM(vecs, simple_mean=False):
+def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
     RSM = np.zeros((vecs.shape[0], vecs.shape[0]))
 
     trial_per_run = vecs.shape[0] // 3
@@ -77,6 +81,25 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False):
             trial2run[trial + low] = run
 
     between_run_vecs = {}
+    if trial_similarity == 'mahalanobis' and vecs.shape[1] > 1000:
+        raise ValueError(f'Too many features ({vecs.shape[1]}) for '
+                         f'Mahalanobis distance')
+    elif trial_similarity == 'mahalanobis':
+        V = np.cov(vecs.T)
+        IV = np.linalg.inv(V)
+        arg = IV
+    elif trial_similarity == 'seuclidean':
+        V_by_edge = np.nanvar(vecs, axis=0)
+        arg = V_by_edge
+    else:
+        arg = None
+
+
+    # cov = np.cov(vecs.T)
+    # IV = np.linalg.inv(cov)
+    # print(f'{cov.shape=}')
+    # print(f'{IV.shape=}')
+    # quit()
 
     n_sn = vecs.shape[0]
     for i in range(vecs.shape[0]):
@@ -123,8 +146,10 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False):
                     nans = np.isnan(vecs_i) | np.isnan(vecs_j)
                     vecs_i = vecs_i[~nans]
                     vecs_j = vecs_j[~nans]
-                r, p = stats.pearsonr(vecs_i, vecs_j)
+                # r, p = stats.pearsonr(vecs_i, vecs_j)
+                r = pdist(vecs_i, vecs_j, trial_similarity, arg)
                 RSM[i, j] = r
+                RSM[j, i] = r # This was missing as of 11/20/2023 at 4:17 PM
             else:
                 if simple_mean:
                     M_by_edge_ij = run2M[run_i]
@@ -137,11 +162,43 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False):
                     nans = np.isnan(vecs_i) | np.isnan(vecs_j)
                     vecs_i = vecs_i[~nans]
                     vecs_j = vecs_j[~nans]
-                r, p = stats.pearsonr(vecs_i, vecs_j)
+                    if trial_similarity in ['mahalanobis', 'seuclidean']:
+                        raise ValueError(f'{trial_similarity=} not supported with NaNs')
+                    # print('Has NaN: ', nans.sum())
+                r = pdist(vecs_i, vecs_j, trial_similarity, arg)
+                # if trial_similarity == 'mahalanobis':
+                #     r = -distance.mahalanobis(vecs_i, vecs_j, IV)
+                # elif trial_similarity == 'seuclidean':
+                #     # r = -distance.seuclidean(vecs_i, vecs_j, V_by_edge)
+                #     r = -distance.euclidean(vecs_i, vecs_j)
+                # else:
+                #     r, p = stats.pearsonr(vecs_i, vecs_j)
                 RSM[i, j] = r
                 RSM[j, i] = r
+
+    if trial_similarity == 'mahalanobis' or trial_similarity == 'seuclidean':
+        RSM = prune_RSM_outliers(RSM)
+    # quit()
+    # flat = RSM[np.triu_indices_from(RSM, k=1)]
+    # flat_std = flat.std()
+
+    # quit()
+    # plt.imshow(RSM)
+    # plt.colorbar()
+    # plt.show()
+    # quit()
     # plt.imshow(RSM)
     # plt.colorbar()
     # plt.show()
     # quit()
     return RSM
+
+def pdist(vec_i, vec_j, measure, arg=None):
+    if measure == 'mahalanobis':
+        r = -distance.mahalanobis(vec_i, vec_j, arg)
+    elif measure == 'seuclidean':
+        r = -distance.seuclidean(vec_i, vec_j, arg)
+        # r = -distance.euclidean(vec_i, vec_j)
+    else:
+        r, p = stats.pearsonr(vec_i, vec_j)
+    return r

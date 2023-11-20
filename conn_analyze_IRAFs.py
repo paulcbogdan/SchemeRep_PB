@@ -26,20 +26,24 @@ def get_BNA_ROIs():
     return ROIs
 
 def run_lmer():
-    dir_results = r'cache/conn_RSA/old'
+    dir_results = r'cache/conn_RSA'
 
 
     RSA = False
     semantic = False
     split = False
-    four_tasks = False
-    do_networks = True
-    target_ROI = 'Ventral'
+    four_tasks = True
+    do_networks = 6
+    target_ROI = 'Frontal_CG'
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': split,
                 'RDM_method': 'clever_std'}
+
+    # settings = {'RSA': False, 'semantic': False, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'corr',
+    #             'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False,
+    #             'RDM_method': 'clever_std'}
 
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
@@ -95,13 +99,23 @@ def run_lmer():
             # scores_conn_fp = scores_conn[sn_i, fp_k, ROI_j, :]
             # scores_conn_fp = scores_conn[sn_i, :, ROI_j, :]
             # print(scores_conn_fp.shape)
+            # con_idxer = [2, 4, 5]
+            # con_idxer = [2, 4]
+            # con_idxer = [5]
+
+
+            # print(scores_conn.shape)
+            # quit()
             scores_conn_fp = scores_conn[sn_i, :, ROI_j, :].mean(axis=0)
+            # scores_conn_fp = scores_conn[sn_i, 3, ROI_j, :]
+            # scores_conn_fp = scores_conn[sn_i, con_idxer, ROI_j, :].mean(axis=0)
+
             # print(scores_conn_fp.shape)
             # quit()
 
             n = scores_conn_fp.shape[0]
             df_as_d['ROI'].extend([ROI_name]*n)
-            df_as_d['sn'].extend([sn]*n)
+            # df_as_d['sn'].extend([sn]*n)
             df_as_d['conn_score'].extend(scores_conn_fp)
             if do_networks and ROI_name in network2ROI:
                 idxs = []
@@ -125,16 +139,22 @@ def run_lmer():
             for idx, key_short in zip(idxs, ROI_bold_keys_short):
                 # df_as_d[f'{key_short}'].extend(scores_bold[sn_i, fp_k, idx, :])
                 scores_bold_fp = scores_bold[sn_i, :, idx, :].mean(axis=0)
+                # scores_bold_fp = scores_bold[sn_i, con_idxer, idx, :].mean(axis=0)
+
                 df_as_d[f'{key_short}'].extend(scores_bold_fp)
 
-
-            df_as_d['hit_hit'].extend(df_sn['hit_hit'].values)
-            df_as_d['inc'].extend(df_sn['inc'].values)
+            for col in df_sn.columns:
+                df_as_d[col].extend(df_sn[col].values)
+            # df_as_d['hit_hit'].extend(df_sn['hit_hit'].values)
+            # df_as_d['inc'].extend(df_sn['inc'].values)
             # scores_bold_fp = results_bold['scores_by_ROI'][fp_i, bold_idxs, :, sn]
+
     # for key, l in df_as_d.items():
     #     print(f'{key}: {len(l)}')
 
     df = pd.DataFrame(df_as_d)
+    # print(list(df.columns))
+    # quit()
 
     df_M = df.groupby('sn').mean()
     M_score = df_M['conn_score'].mean()
@@ -147,17 +167,21 @@ def run_lmer():
     print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, {t_score=:.3f}')
     # quit()
 
-    print(list(ROI_to_bold_keys))
+    # print(f'{list(ROI_to_bold_keys)=}')
     target_bold_keys = ROI_to_bold_keys[target_ROI]
+    print(f'{target_bold_keys=}')
     print(f'{len(target_bold_keys)=}')
     print()
-    cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc'] + target_bold_keys
+    cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit'] + \
+           target_bold_keys
     df = df[cols]
     df.dropna(inplace=True)
+    df['vis_hit'] = df['vis_hit'].astype(int)
+    df['con_hit'] = df['con_hit'].astype(int)
 
     from pymer4.models import Lmer
-    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
-    # formula = 'conn_score ~ 1 + (1|sn)'
+    formula = 'conn_score ~ 1 + hit_hit + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
+    # formula = 'conn_score ~ 1 +  (1|sn)'
 
     print(f'{formula=}')
     model = Lmer(formula, data=df)

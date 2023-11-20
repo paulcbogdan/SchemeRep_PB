@@ -1,3 +1,21 @@
+
+Implement within_to_nan
+
+There may be an issue with ERS? Maybe with get_ROI_vecs?
+singgle_trial_conn changes its results after I ran single_trial_conn_Nov14 It changes
+- Must be updating the ROI2vecs somehow
+
+In the Old code, Ventral works for ERS:
+	settings={'RSA': False, 'semantic': False, 'do_networks': True, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': False, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std', 'verbose': 1}
+		Occipital (22.0), t[29]=3.75, p=0.000
+		Ventral (45.2), t[29]=2.91, p=0.003
+		Dorsal (34.0), t[29]=-0.38, p=0.354
+		dPFC (40.0), t[29]=0.90, p=0.189
+		PFC_Occ (62.0), t[29]=1.27, p=0.107
+		FPCN (66.0), t[29]=0.59, p=0.279
+	(combine regions=False)
+	
+
 Could combine regions be the key?
 
 

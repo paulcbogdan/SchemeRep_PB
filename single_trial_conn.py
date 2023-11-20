@@ -41,6 +41,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     M_score_by_ROI = np.nanmean(scores_all, axis=0)
     M_size_by_ROI = np.nanmean(sizes_all, axis=0)
     scores_by_ROI = np.array(scores_by_ROI)
+    # print(f'{scores_by_ROI.shape=}')
+    # quit()
     return M_score_by_ROI, M_size_by_ROI, scores_by_ROI
 
 def prep_vecs(RSA, semantic):
@@ -230,13 +232,15 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 def run_analysis_toggles():
     # RSA = False
     # semantic = False
-    do_networks = 1
+    # do_networks = 1
     RDM_method = 'clever_std'
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
-    trial_similarity_toggle = ['corr']
-    four_tasks_toggle = [True]
+    trial_similarity_toggle = ['seuclidean']
+    # trial_similarity_toggle = ['corr']
+
+    four_tasks_toggle = [True, False]
     # conn_toggle = ['cross_euc', 'cross_prod']
     conn_toggle = ['euc', ]
     # conn_toggle = ['BOLD']
@@ -245,9 +249,10 @@ def run_analysis_toggles():
 
 
     analyses = [(True, False), (False, False)]
+    # analyses = [(True, True)]
     # analyses = [(False, False)]
 
-    for do_networks in [2, 3, 4, 5, 6]:
+    for do_networks in [2, 3, 4, 5, 6, 7]:
         for conn in conn_toggle:
             for split in split_toggle:
                 for (RSA, semantic) in analyses:

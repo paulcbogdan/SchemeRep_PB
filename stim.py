@@ -10,6 +10,7 @@ from sklearn import decomposition
 
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
+import matplotlib.pyplot as plt
 
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
@@ -48,7 +49,7 @@ def get_stim_RDM_lifu(df_sn, per=True):
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
                  dif=False, prod=False, take_abs=False, add=False,
-                 lifu=False, lifu_sem=False):
+                 lifu=False, lifu_sem=False, dist='corr'):
     assert obj_only or scene_only or dif or prod or add or lifu or lifu_sem, \
         'Must specify one of obj_only, scene_only, dif, prod, add, lifu'
     if lifu or lifu_sem:
@@ -75,9 +76,59 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
     else:
         raise ValueError('How?? This error should\'ve been caught by assert.')
     all_vecs = np.abs(all_vecs) if take_abs else all_vecs
-    RDM_stim = np.corrcoef(all_vecs)
+    # print(f'{all_vecs.shape=}')
+    # quit()
+    if dist == 'corr':
+        RDM_stim = np.corrcoef(all_vecs)
+    elif dist == 'mahalanobis' or dist == 'seuclidean':
+        RDM_stim = scipy_dist(all_vecs, dist)
+    else:
+        raise ValueError('dist must be corr or mahalanobis')
     return RDM_stim
 
+def scipy_dist(all_vecs, metric):
+    from scipy.spatial import distance
+    all_vecs = np.array(all_vecs)
+    # V_by_edge = np.nanvar(all_vecs, axis=0)
+    # RSM = np.zeros((all_vecs.shape[0], all_vecs.shape[0]))
+    # for i in range(all_vecs.shape[0]):
+    #     for j in range(all_vecs.shape[1]):
+    #         vec_i = all_vecs[i]
+    #         vec_j = all_vecs[j]
+    #         r = distance.seuclidean(vec_i, vec_j, V_by_edge)
+    #         RSM[i, j] = r
+    # RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
+    # plt.imshow(RSM)
+    # plt.colorbar()
+    # plt.show()
+    RSM_triangle = distance.pdist(all_vecs, metric)
+    RSM = distance.squareform(RSM_triangle)
+    RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
+    RSM = prune_RSM_outliers(RSM)
+    # plt.imshow(RSM)
+    # plt.colorbar()
+    # plt.show()
+    # quit()
+    # impute mean for nan
+    return RSM
+
+def prune_RSM_outliers(RSM, z=3):
+    prune_outliers = True
+    while prune_outliers:
+        M_dis = np.nanmean(RSM, axis=0)
+        Z_M_dis = (M_dis - np.nanmean(M_dis)) / np.nanstd(M_dis)
+        # plt.hist(Z_M_dis, bins=100)
+        # plt.show()
+        # plt.imshow(RSM)
+        # plt.show()
+        if np.nanmax(np.abs(Z_M_dis)) > z:
+            print('Pruning outliers')
+            outliers = np.argwhere(np.abs(Z_M_dis) > z)
+            RSM[outliers, :] = np.nan
+            RSM[:, outliers] = np.nan
+        else:
+            prune_outliers = False
+    return RSM
 
 def get_vec(stim, w2v):
     parts = stim.split(' ')
@@ -213,5 +264,24 @@ def get_img_fns(get_dict=False):
         return names, fps
 
 if __name__ == '__main__':
-    d_vecs = get_DNN_vecs()
+    # all_vecs =  [(35.0456, -85.2672),
+    #       (35.1174, np.nan),
+    #       (np.nan, -83.9422),
+    #       (36.1667, -86.7833)]
+    all_vecs = [(35.0456, -85.2672),
+          (35.1174, -89.9711),
+          (35.9728, -83.9422),
+          (36.1667, -86.7833)]
+
+    # all_vecs = [(35.0456, -85.2672),
+    #       (35.1174, -89.9711),
+    #       (35.9728, -83.9422),
+    #       (36.1667, -86.7833),
+    #      (35.0456, -85.2672),
+    #      (35.1174, -89.9711),
+    #      (35.9728, -83.9422),
+    #      (36.1667, -86.7833)
+    #      ]
+    scipy_dist(all_vecs, 'seuclidean')
+    # d_vecs = get_DNN_vecs()
     # d_vecs = get_semantic_vectors()
