@@ -79,7 +79,7 @@ def RDM_x_RDM_by_run(fMRI_RDM, RSM_stim, corr='spear'):
             fMRI_flat = fMRI_RDM[low0:high0, low1:high1].flatten()
             nans = np.isnan(stim_flat) | np.isnan(fMRI_flat)
             n_nans = np.sum(nans)
-            assert n_nans == 0 or n_nans == 10, f'RDM x RDM bad nans: {n_nans=}'
+            assert n_nans == 0 or n_nans == 38, f'RDM x RDM bad nans: {n_nans=}'
             stim_flat = stim_flat[~nans]
             fMRI_flat = fMRI_flat[~nans]
             if corr == 'spear':

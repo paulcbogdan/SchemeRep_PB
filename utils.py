@@ -283,11 +283,14 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
 
     if os.path.isfile(filepath):
         made = os.path.getmtime(filepath)
-        print(f'File was made: {made}')
+        fn = os.path.basename(filepath)
         dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+        dt_min = datetime(2023, 11, 1, 14, 0, 0, 0)
+
         dt = datetime.fromtimestamp(made)
-        if dt < dt_max:
-            easy_override = True
+        if dt < dt_max and dt > dt_min:
+            # easy_override = True
+            print(f'File ({fn}) was made: {made}')
             print('\tFile is old, overriding')
         # print(dt > dt_max)
         # now = datetime.now()

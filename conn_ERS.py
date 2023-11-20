@@ -17,7 +17,7 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
                                                    fp1=fp1, networks=networks,
                                                    org_by_region=not BOLD,
                                                    cross_region=cross_region,
-                                                   conn=conn)
+                                                   conn=conn,)
     scores = []
     sizes = []
     scores_by_trial = []
@@ -51,5 +51,7 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         score = np.nanmean(ERS_dif)
         scores.append(score)
         scores_by_trial.append(ERS_dif)
+        # print(f'{score=:.5f}')
+        # quit()
     scores = np.array(scores)
     return scores, sizes, scores_by_trial

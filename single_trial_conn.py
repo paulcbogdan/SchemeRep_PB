@@ -72,12 +72,15 @@ def prep_networks(setting=1):
         }
     elif setting == 2:
         networks = {
-            'Frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', ],
-            'PFC_sub': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'Amyg', 'Hipp',
-                        'Str', 'Tha'],
+            # 'Frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', ],
+            # 'PFC_sub': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'Amyg', 'Hipp',
+            #             'Str', 'Tha'],
             'else': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS', 'SPL',
                      'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'Amyg', 'Hipp', 'Str',
                      'Tha'],
+            'else_cortical': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS',
+                              'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG'],
+            'sub': ['Amyg', 'Hipp', 'Str', 'Tha'],
         }
     # elif setting == 3:
     #     networks = {
@@ -106,8 +109,9 @@ def prep_networks(setting=1):
     elif setting == 6:
         networks = {
             'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
-            'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC'],
-            'PFC_Hipp': ['IFG', 'MFG', 'SFG', 'Hipp', 'Org'],
+            # 'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
+            # 'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
+            'PFC_Hipp': ['IFG', 'MFG', 'SFG', 'Hipp', 'OrG'],
             'dPFC': ['IFG', 'MFG', 'SFG'],
             'DMN': ['OrG', 'CG', 'Pcun', 'IPL'],
             'Salience': ['INS', 'CG'],
@@ -116,6 +120,16 @@ def prep_networks(setting=1):
             'dlPFC': ['IFG', 'MFG'],
             'mPFC_hipp': ['OrG', 'Hipp'],
         }
+    elif setting == 7:
+        networks = {'else_ventral': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
+                                     'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
+                                     'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
+                                     'FuG', 'PhG', 'ATL', 'MTG']}
+    # elif setting == 7:
+    #     networks = {
+    #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
+    #         'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
+    #     }
     else:
         raise ValueError(f'Unknown setting: {setting}')
     return networks
@@ -201,12 +215,16 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     assert not (combine_regions and split), 'cannot combine and split'
     assert (not combine_regions) or do_networks
     assert RSA or second_order == 'spear', 'Leave second_order as \"spear\" for ERS'
-    assert not (conn == 'BOLD' and do_networks)
-    assert do_networks != 3 or 'cross' in conn
+    assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
+    if do_networks == 3:
+        if 'cross' not in conn:
+            settings['conn'] = f'cross_{conn}'
+            print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
+    # assert do_networks != 3 or 'cross' in conn
     # assert not split, 'No split!'
     dir_results = r'cache/conn_RSA'
     results = pickle_wrap(None, run_settings, kwargs=settings,
-                          cache_dir=dir_results, easy_override=False)
+                          cache_dir=dir_results, easy_override=True)
     report_results(results)
 
 def run_analysis_toggles():
@@ -217,29 +235,34 @@ def run_analysis_toggles():
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
-    trial_similarity_toggle = ['euc', 'corr']
-    four_tasks_toggle = [False, True]
-    conn_toggle = ['euc', 'prod']
+    trial_similarity_toggle = ['corr']
+    four_tasks_toggle = [True]
+    # conn_toggle = ['cross_euc', 'cross_prod']
+    conn_toggle = ['euc', ]
+    # conn_toggle = ['BOLD']
     split_toggle = [False]
     # split_toggle = [False]
 
-    # , (True, True)
 
-    for (RSA, semantic) in [(True, False), (False, False), (True, True)]:
-        for four_tasks in four_tasks_toggle:
-            for conn in conn_toggle:
-                for trial_similarity in trial_similarity_toggle:
-                    for split in split_toggle:
-                        try:
-                            run_analysis(conn=conn,
-                                         trial_similarity=trial_similarity,
-                                         four_tasks=four_tasks, split=split,
-                                         RSA=RSA, semantic=semantic,
-                                         do_networks=do_networks,
-                                         RDM_method=RDM_method)
-                        except AssertionError as e:
-                            print(f'Assertion no bueno: {e}')
-                            pass
+    analyses = [(True, False), (False, False)]
+    # analyses = [(False, False)]
+
+    for do_networks in [2, 3, 4, 5, 6]:
+        for conn in conn_toggle:
+            for split in split_toggle:
+                for (RSA, semantic) in analyses:
+                    for four_tasks in four_tasks_toggle:
+                        for trial_similarity in trial_similarity_toggle:
+                            try:
+                                run_analysis(conn=conn,
+                                             trial_similarity=trial_similarity,
+                                             four_tasks=four_tasks, split=split,
+                                             RSA=RSA, semantic=semantic,
+                                             do_networks=do_networks,
+                                             RDM_method=RDM_method)
+                            except AssertionError as e:
+                                print(f'Assertion no bueno: {e}')
+                                pass
 
 if __name__ == '__main__':
     run_analysis_toggles()

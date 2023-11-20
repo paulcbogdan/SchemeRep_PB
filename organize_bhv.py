@@ -57,7 +57,8 @@ NAME_RENAMER = {'inside of a car': 'car',
 def get_trial_info(sn, easy_override=False):
     fp = fr'cache/trial_info/{sn}.pkl'
     df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn),
-                        easy_override=easy_override)
+                        easy_override=easy_override,
+                        verbose=False)
     return df_sn
 
 def get_trial_info_(sn, ret=False):

@@ -1,8 +1,39 @@
-world 572 soul wars chill
+Could combine regions be the key?
 
-Create a Mithril Grapple. 
-Fletch 100 Yew shortbows. 
-Fletch a Magic Shortbow. 
+
+Result 1: Have connectivity with the occipital lobe for sure (setting = 3 analyses)
+Do network 2!!
+
+fp0='bl2_fMRI' fp1='obj2_fMRI'
+fp0='bl2_fMRI' fp1='vis2_fMRI'
+fp0='obj2_fMRI' fp1='vis2_fMRI'
+
+fp0='bl2_fMRI' fp1='obj2_fMRI'
+fp0='bl2_fMRI' fp1='vis2_fMRI'
+fp0='bl2_fMRI' fp1='con2_fMRI'
+fp0='obj2_fMRI' fp1='vis2_fMRI'
+fp0='con2_fMRI' fp1='obj2_fMRI'
+fp0='con2_fMRI' fp1='vis2_fMRI'
+
+    if four_tasks:
+        fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
+    else:
+        fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+
+11/19/2023:
+Shows promise:
+
+settings={'RSA': True, 'semantic': False, 'do_networks': 6, 'conn': 'cross_euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
+Frontal_CG (2024.0), t[29]=2.13, p=0.021
+PFC_Hipp (2440.0), t[29]=1.78, p=0.043
+dPFC (1064.0), t[29]=2.53, p=0.009
+DMN (1568.0), t[29]=1.41, p=0.084
+Salience (336.0), t[29]=1.37, p=0.090
+FPCN (960.0), t[29]=1.39, p=0.088
+FPCN_CG (2024.0), t[29]=1.53, p=0.069
+dlPFC (336.0), t[29]=1.83, p=0.039
+mPFC_hipp (96.0), t[29]=1.99, p=0.028
+
 
 11/18/2023:
 * Only use "euc" and "corr" then confirm with other settings

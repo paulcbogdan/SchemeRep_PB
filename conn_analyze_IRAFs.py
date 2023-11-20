@@ -26,30 +26,16 @@ def get_BNA_ROIs():
     return ROIs
 
 def run_lmer():
-    dir_results = r'cache/conn_RSA'
-    settings = {'RSA': True, 'semantic': False, 'do_networks': 3,
-                # 'conn': 'cross_euc',
-                'conn': 'cross_euc',
-                'trial_similarity': 'corr',
-                'second_order': 'spear', 'four_tasks': False,
-                'combine_regions': False, 'split': False,
-                'RDM_method': 'clever_std', 'verbose': 1}
+    dir_results = r'cache/conn_RSA/old'
 
-    RSA = True
+
+    RSA = False
     semantic = False
     split = False
-    four_tasks = True
-
-    # TODO: watch out for putting in verbose
-
-
-    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': 3,
-                'conn': 'cross_euc', 'trial_similarity': 'corr',
-                'second_order': 'spear', 'four_tasks': four_tasks,
-                'combine_regions': False, 'split': split,
-                'RDM_method': 'clever_std', 'verbose': 1}
-
-    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': 1,
+    four_tasks = False
+    do_networks = True
+    target_ROI = 'Ventral'
+    settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': split,
@@ -57,18 +43,20 @@ def run_lmer():
 
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
+    report_results(results_conn)
+    # quit()
     scores_conn = results_conn['scores_by_ROI']
     scores_conn = np.array(scores_conn)
-    report_results(results_conn)
-    quit()
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
                 'conn': 'BOLD', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
-                'RDM_method': 'clever_std', 'verbose': 1}
+                'RDM_method': 'clever_std'}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
+    report_results(results_bold)
+    # quit()
 
     # TODO: values are unsorted across fps
     scores_bold = results_bold['scores_by_ROI']
@@ -84,35 +72,43 @@ def run_lmer():
     # df_as_ d = {'ROI': [], 'sn': [], 'conn_score': [], 'hit_hit': []}
     df_as_d = defaultdict(list)
     all_ROI_names = results_conn['keys']
-    network2ROI = prep_networks(setting=1)
-    for key, l in network2ROI.items():
-        if isinstance(l, tuple):
-            network2ROI[key] = l[0] + l[1]
+    if do_networks:
+        network2ROI = prep_networks(setting=do_networks)
+        for key, l in network2ROI.items():
+            if isinstance(l, tuple):
+                network2ROI[key] = l[0] + l[1]
+        assert target_ROI in network2ROI.keys(), f'{target_ROI} not in settings choice'
 
     # TODO: network bold
 
     ROI_to_bold_keys = {}
     # target_ROI = 'Ventral'
-    target_ROI = 'PFC_Occ'
-    print('Org df')
+    # print('Org df')
     for sn_i, sn in enumerate(results_conn['sns']):
         df_sn = get_trial_info(sn, easy_override=False)
+
         df_sn.sort_values(by='bl_trial', inplace=True)
         for ROI_j, ROI_name in enumerate(results_conn['keys']):
             if ROI_name != target_ROI:
                 continue
-            fp_k = 0
-            scores_conn_fp = scores_conn[sn_i, fp_k, ROI_j, :]
-            n = scores_conn_fp.shape[0] 
+            fp_k = 3
+            # scores_conn_fp = scores_conn[sn_i, fp_k, ROI_j, :]
+            # scores_conn_fp = scores_conn[sn_i, :, ROI_j, :]
+            # print(scores_conn_fp.shape)
+            scores_conn_fp = scores_conn[sn_i, :, ROI_j, :].mean(axis=0)
+            # print(scores_conn_fp.shape)
+            # quit()
+
+            n = scores_conn_fp.shape[0]
             df_as_d['ROI'].extend([ROI_name]*n)
             df_as_d['sn'].extend([sn]*n)
             df_as_d['conn_score'].extend(scores_conn_fp)
-            if ROI_name in network2ROI:
+            if do_networks and ROI_name in network2ROI:
                 idxs = []
                 ROI_bold_keys_short = []
                 for ROI_name2 in network2ROI[ROI_name]:
-                    if ROI_name2 not in ['LOC', 'EVC', 'sOcG']:
-                        continue
+                    # if ROI_name2 not in ['LOC', 'EVC', 'sOcG']:
+                    #     continue
                     idxs2, ROI_bold_keys_short2 = \
                         get_idx_from_key(BOLD_keys_short, ROI_name2)
                     idxs.extend(idxs2)
@@ -121,14 +117,16 @@ def run_lmer():
                 idxs, ROI_bold_keys_short = \
                     get_idx_from_key(BOLD_keys_short, ROI_name)
             ROI_to_bold_keys[ROI_name] = ROI_bold_keys_short
-
             # print(f'{ROI_bold_keys_short=}')
             # quit()
             # continue
             # scores_bold_org.append(scores_bold[sn_i, fp_k, idxs, :])
 
             for idx, key_short in zip(idxs, ROI_bold_keys_short):
-                df_as_d[f'{key_short}'].extend(scores_bold[sn_i, fp_k, idx, :])
+                # df_as_d[f'{key_short}'].extend(scores_bold[sn_i, fp_k, idx, :])
+                scores_bold_fp = scores_bold[sn_i, :, idx, :].mean(axis=0)
+                df_as_d[f'{key_short}'].extend(scores_bold_fp)
+
 
             df_as_d['hit_hit'].extend(df_sn['hit_hit'].values)
             df_as_d['inc'].extend(df_sn['inc'].values)
@@ -143,8 +141,11 @@ def run_lmer():
     SD_score = df_M['conn_score'].std()
     SE_score = SD_score / np.sqrt(df_M.shape[0])
     t_score = M_score / SE_score
-    print(f'{M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, {t_score=:.3f}')
-    quit()
+    print('-'*100)
+    report_results(results_conn)
+    print('-'*100)
+    print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, {t_score=:.3f}')
+    # quit()
 
     print(list(ROI_to_bold_keys))
     target_bold_keys = ROI_to_bold_keys[target_ROI]
@@ -155,7 +156,7 @@ def run_lmer():
     df.dropna(inplace=True)
 
     from pymer4.models import Lmer
-    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + ' (1|sn)'
+    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
     # formula = 'conn_score ~ 1 + (1|sn)'
 
     print(f'{formula=}')
@@ -171,8 +172,6 @@ def search_for_PFC_significant_result():
     #             'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False,
     #             'RDM_method': 'clever_std', 'verbose': 1}
     # Frontal(64.0), t[29] = 2.36, p = 0.013
-
-
     pass
 
             

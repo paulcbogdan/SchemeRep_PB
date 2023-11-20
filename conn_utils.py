@@ -231,7 +231,7 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                             drop_nan_voxels=False,
                             org_by_region=org_by_region,
-                            easy_override=False)
+                            easy_override=False,)
     if fp1 is not None:
         ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
                                 drop_nan_voxels=False,
