@@ -1,15 +1,18 @@
 import pickle
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
-from stim import get_stim_RDM, get_DNN_vecs, scipy_dist
+from stim import get_stim_RDM, get_DNN_vecs, scipy_dist, prune_RSM_outliers
 from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer
 import scipy.stats as stats
 
 import warnings
+from time import time
 
 warnings.filterwarnings('ignore', message='Mean of empty slice')
 warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
@@ -267,8 +270,10 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
     # Fixed bug (Nov 21, where this was stdizing for euc & seuc)
     vecs0 = vecs[None, :, :]
     if vecs1 is not None:
+        has_vecs1 = True
         vecs1 = vecs1[:, None, :]
     else:
+        has_vecs1 = False
         vecs1 = vecs[:, None, :]
     if trial_similarity == 'corr':
         vecs0 = stdize(vecs0, axis=2, nans=True)
@@ -276,10 +281,75 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
     elif trial_similarity == 'euc':
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
-    # elif trial_similarity == 'spear':
-    #     pass
+    elif trial_similarity == 'spear':
+        # t = time()
+        vecs0_r = stats.rankdata(vecs0, method='average', axis=-1)
+        vecs1_r = stats.rankdata(vecs1, method='average', axis=-1)
+        vecs0_r = stdize(vecs0_r, axis=2, nans=True)
+        vecs1_r = stdize(vecs1_r, axis=2, nans=True)
+
+        RSM_fMRI = np.nanmean(vecs0_r * vecs1_r, axis=-1)  # Spearman
+        # print(f'Time needed for spearman trial x trial: {time() - t:.2f}s')
+        # plt.imshow(RSM_fMRI)
+        # plt.title('Fast')
+        # plt.colorbar()
+        # plt.show()
+        # t = time()
+        #
+        # RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Spearman
+        # print(f'Time needed for spearman trial x trial: {time() - t:.2f}s')
+        # # prune_RSM_outliers(RSM_fMRI, z=3.5)
+        #
+        # plt.imshow(RSM_fMRI)
+        # plt.title('euc')
+        # plt.colorbar()
+        # plt.show()
+        #
+        # RSM_fMRI = np.nanmean(-abs(vecs0_r - vecs1_r), axis=-1)  # Spearman
+        # print(f'Time needed for spearman trial x trial: {time() - t:.2f}s')
+        # plt.imshow(RSM_fMRI)
+        # plt.title('ranked euc')
+        # plt.colorbar()
+        # plt.show()
+        # t = time()
+        #
+        #
+        # RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
+        #                       metric='seuclidean')
+        # # prune_RSM_outliers(RSM_fMRI, z=3.5)
+        # plt.imshow(RSM_fMRI)
+        # plt.title('std euc')
+        # plt.colorbar()
+        # plt.show()
+        # t = time()
+        #
+        #
+        #
+        # print(f'{has_vecs1=}')
+        #
+        # vecs0, vecs1 = np.squeeze(vecs0), np.squeeze(vecs1)
+        # RSM_fMRI = np.zeros((vecs0.shape[0], vecs1.shape[0]))
+        # for i in range(vecs0.shape[0]):
+        #     for j in range(vecs1.shape[0]):
+        #         if i >= j and not has_vecs1:
+        #             continue
+        #         r, p = stats.spearmanr(vecs0[i], vecs1[j])
+        #         z = np.arctanh(r)
+        #         RSM_fMRI[j, i] = z
+        #         if not has_vecs1:
+        #             RSM_fMRI[j, i] = z
+        # print(f'Time needed for spearman trial x trial: {time() - t:.2f}s')
+        #
+        # plt.imshow(RSM_fMRI)
+        # plt.colorbar()
+        # plt.title('Slow spearman')
+        # plt.show()
+        # quit()
+        # RSM_fMRI[np.diag_indices_from(RSM_fMRI)] = np.nan
     elif trial_similarity == 'seuclidean':
-        RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1))
+        RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
+                              metric='seuclidean')
+        RSM_fMRI = prune_RSM_outliers(RSM_fMRI)
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI

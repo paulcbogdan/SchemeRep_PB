@@ -109,13 +109,13 @@ def get_trial_info_(sn, ret=False):
             inc = mat_enc['pdata'][0][0][9][0][i][0][0]
             resp = mat_enc['pdata'][0][0][11][0][i][0][0]
             if pd.isna(resp):
-                per_inc = np.nan
+                perceived_inc = np.nan
             elif resp == 1:
-                per_inc = 1
+                perceived_inc = 1
             elif resp == 4:
-                per_inc = 3
+                perceived_inc = 3
             else:
-                per_inc = 2
+                perceived_inc = 2
 
             if obj in renamer:
                 obj_rename = renamer[obj]
@@ -125,6 +125,13 @@ def get_trial_info_(sn, ret=False):
                 scene_rename = renamer[scene]
             else:
                 scene_rename = scene
+                
+            inc2str = {1: 'incongruent', 2: 'neutral', 3: 'congruent'}
+            if pd.isna(perceived_inc):
+                per_inc_str = None
+            else:
+                per_inc_str = inc2str[perceived_inc]
+            inc_str = inc2str[inc]
 
             outlier_bool = bool(outliers[i][0])
             trial_full = trial + 38 * (run - 1)
@@ -146,8 +153,10 @@ def get_trial_info_(sn, ret=False):
                  'obj_rename': obj_rename,
                  'scene_rename': scene_rename,
                  'inc': inc,
+                 'inc_str': inc_str,
                  'per_con': resp, # higher (up to 4) = seen as congruent
-                 'per_inc': per_inc,
+                 'per_inc': perceived_inc,
+                 'per_inc_str': per_inc_str,
                  'enc_outlier': outlier_bool,
                  'obj_outlier': outlier_bool,
                  'obj2_outlier': outlier_bool,

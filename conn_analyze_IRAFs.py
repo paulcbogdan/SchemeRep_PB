@@ -28,13 +28,12 @@ def get_BNA_ROIs():
 def run_lmer():
     dir_results = r'cache/conn_RSA'
 
-
     RSA = False
     semantic = False
     split = False
-    four_tasks = True
-    do_networks = 6
-    target_ROI = 'Frontal_CG'
+    four_tasks = False
+    do_networks = 1
+    target_ROI = 'Ventral'
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
@@ -47,8 +46,10 @@ def run_lmer():
 
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
+    print('-'*100)
     report_results(results_conn)
-    # quit()
+    print('-'*100)
+
     scores_conn = results_conn['scores_by_ROI']
     scores_conn = np.array(scores_conn)
 
@@ -65,16 +66,13 @@ def run_lmer():
     # TODO: values are unsorted across fps
     scores_bold = results_bold['scores_by_ROI']
     # print(np.array(scores_bold).shape)
-    quit()
+    # quit()
     scores_bold = np.array(scores_bold)
     BOLD_keys = get_BNA_ROIs()
     key2short = {key: key.split(' ')[1] for key in BOLD_keys}
     BOLD_keys_short = [key2short[key] for key in BOLD_keys]
 
-    # print(f'{scores_bold.shape=}')
-    # print(results_bold['keys'])
-    # quit()
-    # quit()
+
     # df_as_ d = {'ROI': [], 'sn': [], 'conn_score': [], 'hit_hit': []}
     df_as_d = defaultdict(list)
     all_ROI_names = results_conn['keys']
@@ -91,7 +89,7 @@ def run_lmer():
     # target_ROI = 'Ventral'
     # print('Org df')
     for sn_i, sn in enumerate(results_conn['sns']):
-        df_sn = get_trial_info(sn, easy_override=False)
+        df_sn = get_trial_info(sn, easy_override=True)
 
         df_sn.sort_values(by='bl_trial', inplace=True)
         for ROI_j, ROI_name in enumerate(results_conn['keys']):
@@ -101,8 +99,9 @@ def run_lmer():
             # scores_conn_fp = scores_conn[sn_i, fp_k, ROI_j, :]
             # scores_conn_fp = scores_conn[sn_i, :, ROI_j, :]
             # print(scores_conn_fp.shape)
-            # con_idxer = [2, 4, 5]
+            # con_idxer = [0, 2]
             # con_idxer = [2, 4]
+            # con_idxer = [0, 3, 4]
             # con_idxer = [5]
 
 
@@ -163,9 +162,7 @@ def run_lmer():
     SD_score = df_M['conn_score'].std()
     SE_score = SD_score / np.sqrt(df_M.shape[0])
     t_score = M_score / SE_score
-    print('-'*100)
-    report_results(results_conn)
-    print('-'*100)
+
     print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, {t_score=:.3f}')
     # quit()
 
@@ -174,7 +171,8 @@ def run_lmer():
     print(f'{target_bold_keys=}')
     print(f'{len(target_bold_keys)=}')
     print()
-    cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit'] + \
+    cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
+            'inc_str', 'per_inc_str'] + \
            target_bold_keys
     df = df[cols]
     df.dropna(inplace=True)
@@ -182,8 +180,8 @@ def run_lmer():
     df['con_hit'] = df['con_hit'].astype(int)
 
     from pymer4.models import Lmer
-    formula = 'conn_score ~ 1 + hit_hit + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
-    # formula = 'conn_score ~ 1 +  (1|sn)'
+    # formula = 'conn_score ~ 1 + inc_str + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
+    formula = 'conn_score ~ 1 + inc + (1|sn)'
 
     print(f'{formula=}')
     model = Lmer(formula, data=df)

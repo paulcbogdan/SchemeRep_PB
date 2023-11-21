@@ -228,7 +228,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     # assert not split, 'No split!'
     dir_results = r'cache/conn_RSA'
     results = pickle_wrap(None, run_settings, kwargs=settings,
-                          cache_dir=dir_results, easy_override=True)
+                          cache_dir=dir_results, easy_override=False)
     print(f'Finished!')
     report_results(results)
 
@@ -236,27 +236,27 @@ def run_analysis_toggles():
     # RSA = False
     # semantic = False
     # do_networks = 1
-    # RDM_method = 'clever_std'
-    RDM_method = 'within_nan'
+    RDM_method = 'clever_std'
+    # RDM_method = 'within_nan'
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
-    trial_similarity_toggle = ['corr', 'seuclidean']
-    # trial_similarity_toggle = ['corr']
+    # trial_similarity_toggle = ['seuclidean']
+    trial_similarity_toggle = ['spear']
 
     four_tasks_toggle = [True, False]
     # conn_toggle = ['cross_euc', 'cross_prod']
-    conn_toggle = ['BOLD', ]
+    conn_toggle = ['euc', ]
     # conn_toggle = ['BOLD']
     split_toggle = [False]
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
     # analyses = [(True, True)]
-    analyses = [(True, False)]
+    analyses = [(False, False)]
     # analyses = [(True, False)]
     for four_tasks in four_tasks_toggle:
-        for do_networks in [False, 1, 2, 3, 4, 5, 6, 7]: #
+        for do_networks in [1, 3, 4, 5, 6, 7]: #
             for conn in conn_toggle:
                 for split in split_toggle:
                     for (RSA, semantic) in analyses:
@@ -267,7 +267,8 @@ def run_analysis_toggles():
                                              four_tasks=four_tasks, split=split,
                                              RSA=RSA, semantic=semantic,
                                              do_networks=do_networks,
-                                             RDM_method=RDM_method)
+                                             RDM_method=RDM_method,
+                                             )
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')
                                 pass

@@ -7,7 +7,7 @@ from PIL import Image
 from utils import pickle_wrap
 from sklearn import decomposition
 # from torchvision import models as models, transforms as transforms
-
+import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
 import matplotlib.pyplot as plt
@@ -81,6 +81,16 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
     # quit()
     if dist == 'corr':
         RDM_stim = np.corrcoef(all_vecs)
+    elif dist == 'spear':
+        RDM_stim = np.zeros((all_vecs.shape[0], all_vecs.shape[0]))
+        for i in range(all_vecs.shape[0]):
+            for j in range(all_vecs.shape[0]):
+                if i >= j:
+                    continue
+                r, p = stats.spearmanr(all_vecs[i], all_vecs[j])
+                RDM_stim[i, j] = r
+                RDM_stim[j, i] = r
+        RDM_stim[np.diag_indices_from(RDM_stim)] = np.nan
     elif dist == 'mahalanobis' or dist == 'seuclidean':
         RDM_stim = scipy_dist(all_vecs, metric=dist)
     else:
@@ -132,17 +142,24 @@ def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
     return RSM
 
 def prune_RSM_outliers(RSM, z=3):
+    print('-'*100)
     prune_outliers = True
     while prune_outliers:
         M_dis = np.nanmean(RSM, axis=0)
         Z_M_dis = (M_dis - np.nanmean(M_dis)) / np.nanstd(M_dis)
-        # plt.hist(Z_M_dis, bins=100)
-        # plt.show()
-        # plt.imshow(RSM)
-        # plt.show()
+        M_dis1 = np.nanmean(RSM, axis=1)
+        Z_M_dis1 = (M_dis1 - np.nanmean(M_dis1)) / np.nanstd(M_dis1)
+
         if np.nanmax(np.abs(Z_M_dis)) > z:
             # print('Pruning outliers')
             outliers = np.argwhere(np.abs(Z_M_dis) > z)
+            print(f'{outliers=}')
+            RSM[outliers, :] = np.nan
+            RSM[:, outliers] = np.nan
+        elif np.nanmax(np.abs(Z_M_dis1)) > z:
+            # print('Pruning outliers')
+            outliers = np.argwhere(np.abs(Z_M_dis1) > z)
+            print(f'{outliers=}')
             RSM[outliers, :] = np.nan
             RSM[:, outliers] = np.nan
         else:

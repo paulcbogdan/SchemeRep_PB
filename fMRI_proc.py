@@ -224,7 +224,6 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     if n_nans:
         raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
 
-
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     # for idx, row in df_sn.iterrows():
     #     print(row[fp_fMRI_col])

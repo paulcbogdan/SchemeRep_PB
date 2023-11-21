@@ -45,7 +45,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn)
-        RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist=trial_similarity)
+        RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
+                                dist=trial_similarity)
         if RDM_method == 'by_run':
             RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
             z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr=second_order)
@@ -169,33 +170,14 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
                     vecs_j = vecs_j[~nans]
                     if trial_similarity in ['mahalanobis', 'seuclidean']:
                         raise ValueError(f'{trial_similarity=} not supported with NaNs')
-                    # print('Has NaN: ', nans.sum())
                 r = pdist(vecs_i, vecs_j, trial_similarity, arg)
-                # if trial_similarity == 'mahalanobis':
-                #     r = -distance.mahalanobis(vecs_i, vecs_j, IV)
-                # elif trial_similarity == 'seuclidean':
-                #     # r = -distance.seuclidean(vecs_i, vecs_j, V_by_edge)
-                #     r = -distance.euclidean(vecs_i, vecs_j)
-                # else:
-                #     r, p = stats.pearsonr(vecs_i, vecs_j)
+
                 RSM[i, j] = r
                 RSM[j, i] = r
 
     if trial_similarity == 'mahalanobis' or trial_similarity == 'seuclidean':
         RSM = prune_RSM_outliers(RSM)
-    # quit()
-    # flat = RSM[np.triu_indices_from(RSM, k=1)]
-    # flat_std = flat.std()
 
-    # quit()
-    # plt.imshow(RSM)
-    # plt.colorbar()
-    # plt.show()
-    # quit()
-    # plt.imshow(RSM)
-    # plt.colorbar()
-    # plt.show()
-    # quit()
     return RSM
 
 def pdist(vec_i, vec_j, measure, arg=None):
@@ -204,6 +186,12 @@ def pdist(vec_i, vec_j, measure, arg=None):
     elif measure == 'seuclidean':
         r = -distance.seuclidean(vec_i, vec_j, arg)
         # r = -distance.euclidean(vec_i, vec_j)
-    else:
+    elif measure == 'spear':
+        r, p = stats.spearmanr(vec_i, vec_j)
+        r = np.arctanh(r)
+    elif measure == 'corr':
         r, p = stats.pearsonr(vec_i, vec_j)
+        r = np.arctanh(r)
+    else:
+        raise ValueError(f'Second order {measure=} not supported')
     return r

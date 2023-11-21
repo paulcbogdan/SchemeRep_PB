@@ -156,27 +156,30 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	return results
 
 def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
-			 split=False, do_networks=False, trial_similarity='euc'):
+			 split=False, do_networks=0, trial_similarity='corr'):
 	settings = locals().copy()
 	assert not (combine_regions and split), 'cannot combine and split'
 	assert (not combine_regions) or do_networks
 	assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
+	if do_networks == 3:
+		if 'cross' not in conn:
+			settings['conn'] = f'cross_{conn}'
+			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
 	results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
 						  cache_dir=dir_results, easy_override=True)
 	print(f'Finished!')
-	report_results(results)
 
 def run_ISPC_toggle():
-	trial_similarity_toggle = ['seuclidean']
+	trial_similarity_toggle = ['corr']
 	four_tasks_toggle = [True, False]
-	conn_toggle = ['BOLD', ]
+	conn_toggle = ['euc', 'prod']
 	split_toggle = [False]
 
-	for four_tasks in four_tasks_toggle:
-		for do_networks in [4, 5, 6]:  #
-			for conn in conn_toggle:
+	for conn in conn_toggle:
+		for four_tasks in four_tasks_toggle:
+			for do_networks in [5, 6]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:
@@ -188,9 +191,8 @@ def run_ISPC_toggle():
 							print(f'Assertion no bueno: {e}')
 							pass
 
-
 if __name__ == '__main__':
-	run_ISPC()
+	run_ISPC_toggle()
 
 
 
