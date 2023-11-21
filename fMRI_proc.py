@@ -195,7 +195,7 @@ def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
 
 def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
                  org_by_region=False, inc=None, drop_nan_voxels=True,
-                 easy_override=True):
+                 easy_override=True, combine_regions=False):
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     n_ROIs = len(ROIs)
@@ -206,12 +206,14 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     inc_str = '' if inc is None else \
         '_Con' if inc == 1 else \
             '_Inc' if inc == 2 else '_Neu'
+    combine_str = '_comb' if combine_regions else '_noComb'
     fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
-               fr'_reg{n_regions}{org_by_region_str}{nan_str}.pkl'
+               fr'_reg{n_regions}{org_by_region_str}{nan_str}{combine_str}.pkl'
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
-    r2vecs = pickle_wrap(fp_cache, f, verbose=True,
-                         easy_override=easy_override)
+    r2vecs = pickle_wrap(fp_cache, f, verbose=False,
+                         easy_override=easy_override,
+                         )
     return r2vecs
 
 

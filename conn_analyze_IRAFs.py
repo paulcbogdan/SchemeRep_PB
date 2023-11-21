@@ -59,11 +59,13 @@ def run_lmer():
                 'RDM_method': 'clever_std'}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                           cache_dir=dir_results, easy_override=False)
-    report_results(results_bold)
+    # print(results_bold['keys'])
     # quit()
-
+    # report_results(results_bold)
     # TODO: values are unsorted across fps
     scores_bold = results_bold['scores_by_ROI']
+    # print(np.array(scores_bold).shape)
+    quit()
     scores_bold = np.array(scores_bold)
     BOLD_keys = get_BNA_ROIs()
     key2short = {key: key.split(' ')[1] for key in BOLD_keys}

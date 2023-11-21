@@ -5,7 +5,7 @@ from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
-from stim import get_stim_RDM, get_DNN_vecs
+from stim import get_stim_RDM, get_DNN_vecs, scipy_dist
 from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer
 import scipy.stats as stats
 
@@ -227,16 +227,19 @@ def cluster_regions(ROI2vecs, networks):
 
 def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       org_by_region=True, cross_region=False,
-                      conn=None):
+                      conn=None, combine_regions=False):
+    assert not (combine_regions and org_by_region)
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
-                            drop_nan_voxels=False,
-                            org_by_region=org_by_region,
-                            easy_override=False,)
+                             drop_nan_voxels=False,
+                             org_by_region=org_by_region,
+                             easy_override=False,
+                             combine_regions=combine_regions)
     if fp1 is not None:
         ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
-                                drop_nan_voxels=False,
-                                org_by_region=org_by_region,
-                                easy_override=False)
+                                 drop_nan_voxels=False,
+                                 org_by_region=org_by_region,
+                                 easy_override=False,
+                                 combine_regions=combine_regions)
     else:
         ROI2vecs1 = None
 
@@ -261,19 +264,22 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
 
 
 def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
-    vecs = stdize(vecs, axis=1, nans=True) # Is this needed?
+    # Fixed bug (Nov 21, where this was stdizing for euc & seuc)
     vecs0 = vecs[None, :, :]
     if vecs1 is not None:
-        vecs1 = stdize(vecs1, axis=1, nans=True)  # Is this needed?
         vecs1 = vecs1[:, None, :]
     else:
         vecs1 = vecs[:, None, :]
     if trial_similarity == 'corr':
+        vecs0 = stdize(vecs0, axis=2, nans=True)
+        vecs1 = stdize(vecs1, axis=2, nans=True)
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
     elif trial_similarity == 'euc':
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
     # elif trial_similarity == 'spear':
     #     pass
+    elif trial_similarity == 'seuclidean':
+        RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1))
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI

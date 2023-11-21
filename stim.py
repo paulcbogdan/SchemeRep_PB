@@ -11,6 +11,7 @@ from sklearn import decomposition
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
@@ -81,12 +82,12 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
     if dist == 'corr':
         RDM_stim = np.corrcoef(all_vecs)
     elif dist == 'mahalanobis' or dist == 'seuclidean':
-        RDM_stim = scipy_dist(all_vecs, dist)
+        RDM_stim = scipy_dist(all_vecs, metric=dist)
     else:
         raise ValueError('dist must be corr or mahalanobis')
     return RDM_stim
 
-def scipy_dist(all_vecs, metric):
+def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
     from scipy.spatial import distance
     all_vecs = np.array(all_vecs)
     # V_by_edge = np.nanvar(all_vecs, axis=0)
@@ -101,15 +102,33 @@ def scipy_dist(all_vecs, metric):
     # plt.imshow(RSM)
     # plt.colorbar()
     # plt.show()
-    RSM_triangle = distance.pdist(all_vecs, metric)
-    RSM = distance.squareform(RSM_triangle)
-    RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
-    RSM = prune_RSM_outliers(RSM)
+    # plt.imshow(all_vecs)
+    # plt.show()
+    # print(np.sum(np.isnan(all_vecs)))
+    # print(np.sum(np.isnan(vecs1)))
+    # quit()
+    if vecs1 is None:
+        RSM_triangle = -distance.pdist(all_vecs, metric)
+        RSM = distance.squareform(RSM_triangle)
+        RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
+        RSM = prune_RSM_outliers(RSM)
+    else:
+        vecs1 = np.array(vecs1)
+        # print(f'{all_vecs.shape=}')
+        # print(f'{vecs1.shape=}')
+        RSM = -distance.cdist(all_vecs, vecs1, metric)
+
+    #     plt.imshow(RSM)
+    #     plt.show()
+    #     quit()
+    # # print(RSM.shape)
+    # RSM = prune_RSM_outliers(RSM)
     # plt.imshow(RSM)
     # plt.colorbar()
     # plt.show()
     # quit()
     # impute mean for nan
+
     return RSM
 
 def prune_RSM_outliers(RSM, z=3):
@@ -122,7 +141,7 @@ def prune_RSM_outliers(RSM, z=3):
         # plt.imshow(RSM)
         # plt.show()
         if np.nanmax(np.abs(Z_M_dis)) > z:
-            print('Pruning outliers')
+            # print('Pruning outliers')
             outliers = np.argwhere(np.abs(Z_M_dis) > z)
             RSM[outliers, :] = np.nan
             RSM[:, outliers] = np.nan
@@ -142,24 +161,63 @@ def get_vec(stim, w2v):
     return np.mean(vecs, axis=0)
 
 
-def get_semantic_vectors_():
+def get_semantic_vectors_(normalize=False, norm_by_type=True):
     from gensim import downloader
     w2vectors = downloader.load('word2vec-google-news-300')
     print('Loaded word2vec')
     df = get_trial_info('138')
     d_all = {}
-    for obj, scene, obj_rename, scene_rename in zip(df['obj'], df['scene'],
-                          df['obj_rename'], df['scene_rename']):
+    vecs_obj = []
+    vecs_scn = []
+    for obj, scene, obj_rename, scene_rename in tqdm(zip(df['obj'], df['scene'],
+                          df['obj_rename'], df['scene_rename']),
+                          desc='Getting semantic vectors'):
         d_all[obj] = get_vec(obj_rename, w2vectors)
         d_all[scene] = get_vec(scene_rename, w2vectors)
+        vecs_obj.append(d_all[obj])
+        vecs_scn.append(d_all[scene])
+        # vecs_all.append(d_all[obj])
+        # vecs_all.append(d_all[scene])
+        # print(f'{d_all[obj]=}')
+
+    if normalize:
+        d_all = norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type,
+                             set(df['obj'].values))
     return d_all
 
+def norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type, objs):
+    if norm_by_type:
+        vecs_SDs_obj = np.nanstd(vecs_obj, axis=0)
+        vecs_Ms_obj = np.nanmean(vecs_obj, axis=0)
+        vecs_SDs_scn = np.nanstd(vecs_scn, axis=0)
+        vecs_Ms_scn = np.nanmean(vecs_scn, axis=0)
+        for name, vec in d_all.items():
+            if name in objs:
+                vec -= vecs_Ms_obj
+                vec /= vecs_SDs_obj
+            else:
+                vec -= vecs_Ms_scn
+                vec /= vecs_SDs_scn
+            d_all[name] = vec
+    else:
+        vecs_all = np.array(vecs_obj + vecs_scn)
+        print(np.sum(np.isnan(vecs_all)))
+        plt.imshow(vecs_all)
+        plt.show()
+        vec_SDs = np.nanstd(vecs_all, axis=0)
+        vec_Ms = np.nanmean(vecs_all, axis=0)
+        for name, vec in d_all.items():
+            vec -= vec_Ms
+            vec /= vec_SDs
+            d_all[name] = vec
+    return d_all
 
-def get_semantic_vectors():
+def get_semantic_vectors(normalize=True):
     # fit using python 3.11
-    fp_vecs = f'cache/schemerep_sem_vecs.pkl'
-    d_vecs = pickle_wrap(fp_vecs, get_semantic_vectors_,
-                         easy_override=False)
+    norm_string = '_norm' if normalize else ''
+    fp_vecs = f'cache/schemerep_sem_vecs{norm_string}.pkl'
+    d_vecs = pickle_wrap(fp_vecs, lambda: get_semantic_vectors_(normalize),
+                         easy_override=True)
     return d_vecs
 
 
@@ -264,24 +322,47 @@ def get_img_fns(get_dict=False):
         return names, fps
 
 if __name__ == '__main__':
+    d_vecs = get_semantic_vectors(normalize=True)
+    df = get_trial_info('138')
+    vecs_all = []
+    for obj in df['obj']:
+        vec = d_vecs[obj]
+        vecs_all.append(vec)
+    # for key, vec in d_vecs.items():
+    #     vecs_all.append(vec)
+    vecs_all = np.array(vecs_all)
+    print(vecs_all.shape)
+    M_vec = np.mean(vecs_all, axis=0)
+    print(f'{M_vec.shape=}')
+    SD_vec = np.std(vecs_all, axis=0)
+    print(SD_vec)
+    plt.hist(M_vec)
+    plt.title('Mean vec')
+    plt.show()
+    plt.hist(SD_vec)
+    plt.title('SD vec')
+    plt.show()
+    quit()
+
+
     # all_vecs =  [(35.0456, -85.2672),
     #       (35.1174, np.nan),
     #       (np.nan, -83.9422),
-    #       (36.1667, -86.7833)]
-    all_vecs = [(35.0456, -85.2672),
-          (35.1174, -89.9711),
-          (35.9728, -83.9422),
-          (36.1667, -86.7833)]
-
+    # #       (36.1667, -86.7833)]
     # all_vecs = [(35.0456, -85.2672),
     #       (35.1174, -89.9711),
     #       (35.9728, -83.9422),
-    #       (36.1667, -86.7833),
-    #      (35.0456, -85.2672),
-    #      (35.1174, -89.9711),
-    #      (35.9728, -83.9422),
-    #      (36.1667, -86.7833)
-    #      ]
-    scipy_dist(all_vecs, 'seuclidean')
-    # d_vecs = get_DNN_vecs()
+    #       (36.1667, -86.7833)]
+    #
+    # # all_vecs = [(35.0456, -85.2672),
+    # #       (35.1174, -89.9711),
+    # #       (35.9728, -83.9422),
+    # #       (36.1667, -86.7833),
+    # #      (35.0456, -85.2672),
+    # #      (35.1174, -89.9711),
+    # #      (35.9728, -83.9422),
+    # #      (36.1667, -86.7833)
+    # #      ]
+    # scipy_dist(all_vecs, 'seuclidean')
+    # # d_vecs = get_DNN_vecs()
     # d_vecs = get_semantic_vectors()

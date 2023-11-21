@@ -48,7 +48,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
 def prep_vecs(RSA, semantic):
     if RSA:
         if semantic:
-            d_vecs = get_semantic_vectors()
+            d_vecs = get_semantic_vectors(normalize=True)
         else:
             d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True, PCA_obj=True)
     else:
@@ -184,6 +184,10 @@ def report_results(results):
     print_settings(results['settings'])
     scores = np.array(results['scores'])
     sizes = np.array(results['sizes'])
+
+    assert len(results['keys']) == scores.shape[1], \
+        f'{len(results["keys"])=}, {scores.shape=}'
+
     for j, ROI in enumerate(results['keys']):
         ROI_scores = scores[:, j]
         M = np.nanmean(ROI_scores)
@@ -192,10 +196,8 @@ def report_results(results):
         SE = SD / np.sqrt(N)
         t = M / SE
         p = stats.t.sf(np.abs(t), N - 1)
-
         M_size = np.nanmean(sizes[:, j])
         print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}')
-
 
 def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
     M_mat = np.nanmean(rs_by_edge_ar_all, axis=0)
@@ -227,36 +229,37 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     dir_results = r'cache/conn_RSA'
     results = pickle_wrap(None, run_settings, kwargs=settings,
                           cache_dir=dir_results, easy_override=True)
+    print(f'Finished!')
     report_results(results)
 
 def run_analysis_toggles():
     # RSA = False
     # semantic = False
     # do_networks = 1
-    RDM_method = 'clever_std'
+    # RDM_method = 'clever_std'
+    RDM_method = 'within_nan'
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
-    trial_similarity_toggle = ['seuclidean']
+    trial_similarity_toggle = ['corr', 'seuclidean']
     # trial_similarity_toggle = ['corr']
 
     four_tasks_toggle = [True, False]
     # conn_toggle = ['cross_euc', 'cross_prod']
-    conn_toggle = ['euc', ]
+    conn_toggle = ['BOLD', ]
     # conn_toggle = ['BOLD']
     split_toggle = [False]
     # split_toggle = [False]
 
-
-    analyses = [(True, False), (False, False)]
+    # analyses = [(True, False), (False, False)]#, (True, True)]
     # analyses = [(True, True)]
-    # analyses = [(False, False)]
-
-    for do_networks in [2, 3, 4, 5, 6, 7]:
-        for conn in conn_toggle:
-            for split in split_toggle:
-                for (RSA, semantic) in analyses:
-                    for four_tasks in four_tasks_toggle:
+    analyses = [(True, False)]
+    # analyses = [(True, False)]
+    for four_tasks in four_tasks_toggle:
+        for do_networks in [False, 1, 2, 3, 4, 5, 6, 7]: #
+            for conn in conn_toggle:
+                for split in split_toggle:
+                    for (RSA, semantic) in analyses:
                         for trial_similarity in trial_similarity_toggle:
                             try:
                                 run_analysis(conn=conn,

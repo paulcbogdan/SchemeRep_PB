@@ -31,6 +31,9 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape
         keeps = np.logical_and(~np.isnan(vecs_enc_BOLD).any(axis=0),
                                ~np.isnan(vecs_ret_BOLD).any(axis=0))
+        vecs_enc_BOLD = vecs_enc_BOLD[:, keeps]
+        vecs_ret_BOLD = vecs_ret_BOLD[:, keeps]
+
         sizes.append(np.sum(keeps))
         if BOLD or cross_region:
             vecs_enc = vecs_enc_BOLD
@@ -51,7 +54,6 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         score = np.nanmean(ERS_dif)
         scores.append(score)
         scores_by_trial.append(ERS_dif)
-        # print(f'{score=:.5f}')
-        # quit()
+
     scores = np.array(scores)
     return scores, sizes, scores_by_trial

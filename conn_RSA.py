@@ -54,13 +54,17 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                                              trial_similarity=trial_similarity)
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
+        elif RDM_method == 'within_nan':
+            RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
+            z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
+                          within_to_nan=True)
         else:
             raise ValueError(f'{RDM_method=} not supported')
         scores.append(z)
         IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn, within_to_nan=False,
                           by_run=RDM_method == 'by_run')
         IRAFs_all_ROI.append(IRAFs)
-        # print(f'{z=}')
+
     scores = np.array(scores)
     return scores, sizes, IRAFs_all_ROI
 
@@ -81,9 +85,10 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
             trial2run[trial + low] = run
 
     between_run_vecs = {}
-    if trial_similarity == 'mahalanobis' and vecs.shape[1] > 1000:
-        raise ValueError(f'Too many features ({vecs.shape[1]}) for '
-                         f'Mahalanobis distance')
+    if trial_similarity == 'mahalanobis' and vecs.shape[1] > vecs.shape[0]:
+        raise ValueError(f'Too many features '
+                         f'({vecs.shape[1]} > {vecs.shape[0]}) '
+                         f'for Mahalanobis distance')
     elif trial_similarity == 'mahalanobis':
         V = np.cov(vecs.T)
         IV = np.linalg.inv(V)

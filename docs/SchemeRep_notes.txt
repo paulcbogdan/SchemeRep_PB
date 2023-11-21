@@ -1,3 +1,22 @@
+ADD ARGSORT?!?!?
+
+
+IRAF paper, I think it would also help to show that using lmer without random slopes doesn't inflate the false positive rate
+* That's one concern I have, even though they subjectively do not seem to inflate them
+
+settings={'RSA': False, 'semantic': False, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
+Frontal_CG (52.0), t[29]=2.76, p=0.005
+PFC_Hipp (56.0), t[29]=3.12, p=0.002
+
+Meeting:
+* I could mention that I found that thing related to regressing out within-run
+* PFC may work for item similarity
+* Findings suggest PFC involvement in specifically the conceptual retrieval task, potentially
+* Something wrong with the word2vec scoring
+* In some cases I found sub-threshold trends (e.g., testing only on hits would give a result but not if testing only on misses)
+
+hit_hit wont work for PFC ERS
+
 
 Implement within_to_nan
 
