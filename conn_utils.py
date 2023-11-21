@@ -163,7 +163,7 @@ def get_conn_vecs(vecs, vecs1=None, conn='euc'):
         cross = False
     else:
         # TODO: redo all cross, there may be an error
-        vecs = stdize(vecs, axis=1, nans=True)
+        vecs = stdize(vecs, axis=0, nans=True)
         cross = True
     if conn == 'euc':
         vecs = pb_outer_euc(vecs, vecs1, tril=not cross,

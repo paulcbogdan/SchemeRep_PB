@@ -39,6 +39,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 			else:
 				vecs = get_conn_vecs(vecs_BOLD, conn=conn)
 			vecs = vecs[df_sn['obj'].argsort(), :]
+
 			ROI2vecs_all_sn[ROI].append(vecs)
 
 	score_by_stim = []
@@ -48,6 +49,11 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 		# if 'LOC' not in ROI: continue
 		# if ROI != 'LOC' and ROI != 'EVC': continue
 		ROI_vecs = np.array(ROI_vecs)
+
+		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
+		sn_SDs = np.nanstd(ROI_vecs, axis=1)[:, None, :]
+		ROI_vecs = (ROI_vecs - sn_Ms) / sn_SDs
+
 		size = np.sum(~np.isnan(ROI_vecs)) / (ROI_vecs.shape[0] *
 											  ROI_vecs.shape[1])
 		sizes.append(size)
@@ -56,22 +62,14 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 		ROI_else_scores = []
 		for stim_j in tqdm(range(ROI_vecs.shape[1]), desc='ISPC'):
 			stim_data = ROI_vecs[:, stim_j, :]
-			# print(stim_data.shape)
-			# stim_data = np.repeat(np.array(list(range(30)))[:, None],
-			# 					  stim_data.shape[1], axis=1)
-			# print(stim_data.shape)
-			# print(stim_data)
-			# Nan accounting?
+			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
+			stim_data = stim_data[:, keeps]
+			assert stim_data.shape[1] > 1, f'Killed all the voxels!'
 			ISPC_matrix = get_trial_x_trial(stim_data,
 											trial_similarity=trial_similarity)
 			ISPC_triangle = ISPC_matrix[np.tril_indices_from(ISPC_matrix, k=-1)]
 			M_similarity = np.mean(ISPC_triangle)
 			ROI_same_scores.append(M_similarity)
-			# plt.imshow(ISPC_matrix)
-			# plt.title(f'{M_similarity=:.5f}')
-			# plt.colorbar()
-			# plt.show()
-
 
 			stim_else_scores = []
 			for stim_j2 in list(range(ROI_vecs.shape[1])):
@@ -80,6 +78,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 				# if random() > 0.1:
 				# 	continue
 				stim_data2 = ROI_vecs[:, stim_j2, :]
+				stim_data2 = stim_data2[:, keeps]
 				# stim_data2 = np.repeat(np.array(list(range(30)))[:, None],
 				# 					  stim_data.shape[1], axis=1)
 				ISPC_matrix = get_trial_x_trial(stim_data, stim_data2,
@@ -97,12 +96,12 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 			M_similarity_else = np.mean(stim_else_scores)
 			ROI_else_scores.append(M_similarity_else)
 		ROI_same_scores = np.array(ROI_same_scores)
-		print(f'{ROI_same_scores=}')
+		# print(f'{ROI_same_scores=}')
 		ROI_else_scores = np.array(ROI_else_scores)
-		print(f'{ROI_else_scores=}')
+		# print(f'{ROI_else_scores=}')
 		ROI_scores = ROI_same_scores - ROI_else_scores
-		print(f'{ROI_scores=}')
-		quit()
+		# print(f'{ROI_scores=}')
+
 
 		ROI_M = np.mean(ROI_scores)
 		ROI_SD = np.std(ROI_scores)
@@ -111,6 +110,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 		ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_same_scores) - 1) * 2
 		print(f'{ROI} ({ROI_M:.5f}), t={ROI_t:.2f}, p={ROI_p:.3f}')
 		score_by_stim.append(ROI_scores)
+		# quit()
 		# scores.append(ROI_M)
 	score_by_stim = np.array(score_by_stim)
 	return score_by_stim, sizes,
@@ -136,6 +136,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	fps = prep_fps(four_tasks)
 	scores_by_fp_ROI_stim, size_by_ROI = [], []
 	for fp in fps:
+		print(f'--------- {fp} ---------')
 		scores, sizes = ISPC(atlas, sns, fp=fp, conn=conn,
 							 combine_regions=combine_regions,
 							 split=split, networks=do_networks,
@@ -154,8 +155,8 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	results['scores_by_ROI'] = scores_by_stim_fp_ROI
 	return results
 
-def run_ISPC(four_tasks=False, conn='BOLD', combine_regions=False,
-			 split=False, do_networks=False, trial_similarity='seuclidean'):
+def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
+			 split=False, do_networks=False, trial_similarity='euc'):
 	settings = locals().copy()
 	assert not (combine_regions and split), 'cannot combine and split'
 	assert (not combine_regions) or do_networks
