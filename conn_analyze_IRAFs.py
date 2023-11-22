@@ -28,16 +28,16 @@ def get_BNA_ROIs():
 def run_lmer():
     dir_results = r'cache/conn_RSA'
 
-    RSA = False
-    semantic = False
+    RSA = True
+    semantic = -1
     split = False
-    four_tasks = False
+    four_tasks = True
     do_networks = 1
     target_ROI = 'Ventral'
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
-                'conn': 'euc', 'trial_similarity': 'corr',
+                'conn': 'euc', 'trial_similarity': 'corr', # change trial_similarity=spear
                 'second_order': 'spear', 'four_tasks': four_tasks,
-                'combine_regions': False, 'split': split,
+                'combine_regions': False, 'split': True,
                 'RDM_method': 'clever_std'}
 
     # settings = {'RSA': False, 'semantic': False, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'corr',
@@ -49,6 +49,7 @@ def run_lmer():
     print('-'*100)
     report_results(results_conn)
     print('-'*100)
+    # quit()
 
     scores_conn = results_conn['scores_by_ROI']
     scores_conn = np.array(scores_conn)
@@ -101,15 +102,15 @@ def run_lmer():
             # print(scores_conn_fp.shape)
             # con_idxer = [0, 2]
             # con_idxer = [2, 4]
-            # con_idxer = [0, 3, 4]
+            con_idxer = [3]
             # con_idxer = [5]
 
 
             # print(scores_conn.shape)
             # quit()
-            scores_conn_fp = scores_conn[sn_i, :, ROI_j, :].mean(axis=0)
+            # scores_conn_fp = scores_conn[sn_i, :, ROI_j, :].mean(axis=0)
             # scores_conn_fp = scores_conn[sn_i, 3, ROI_j, :]
-            # scores_conn_fp = scores_conn[sn_i, con_idxer, ROI_j, :].mean(axis=0)
+            scores_conn_fp = scores_conn[sn_i, con_idxer, ROI_j, :].mean(axis=0)
 
             # print(scores_conn_fp.shape)
             # quit()
@@ -139,8 +140,8 @@ def run_lmer():
 
             for idx, key_short in zip(idxs, ROI_bold_keys_short):
                 # df_as_d[f'{key_short}'].extend(scores_bold[sn_i, fp_k, idx, :])
-                scores_bold_fp = scores_bold[sn_i, :, idx, :].mean(axis=0)
-                # scores_bold_fp = scores_bold[sn_i, con_idxer, idx, :].mean(axis=0)
+                # scores_bold_fp = scores_bold[sn_i, :, idx, :].mean(axis=0)
+                scores_bold_fp = scores_bold[sn_i, con_idxer, idx, :].mean(axis=0)
 
                 df_as_d[f'{key_short}'].extend(scores_bold_fp)
 
@@ -180,14 +181,28 @@ def run_lmer():
     df['con_hit'] = df['con_hit'].astype(int)
 
     from pymer4.models import Lmer
-    # formula = 'conn_score ~ 1 + inc_str + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
-    formula = 'conn_score ~ 1 + inc + (1|sn)'
 
+    print('-'*120)
+    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
     print(f'{formula=}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
-    # summary = model.coefs
     print(model.summary())
+    
+    print('-'*120)
+    formula = 'conn_score ~ 1 + hit_hit + (1|sn)'
+    print(f'{formula=}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+    
+    print('-'*120)
+    formula = 'conn_score ~ 1 + inc_str + (1|sn)'
+    print(f'{formula=}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
     
 def search_for_PFC_significant_result():
     # Model free Frontal with Euc,

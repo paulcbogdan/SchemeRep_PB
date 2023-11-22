@@ -47,12 +47,15 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
 
 def prep_vecs(RSA, semantic):
     if RSA:
-        if isinstance(semantic, int):
+        if isinstance(semantic, bool):
+            if semantic:
+                d_vecs = get_semantic_vectors(normalize=True)
+            else:
+                d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True, PCA_obj=True)
+        elif isinstance(semantic, int):
             d_vecs = get_DNN_vecs(DNN_layer=semantic, PCA=True, PCA_obj=True)
-        elif semantic:
-            d_vecs = get_semantic_vectors(normalize=True)
         else:
-            d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True, PCA_obj=True)
+            raise ValueError(f'Invalid {semantic=}')
     else:
         d_vecs = None
     return d_vecs
@@ -129,6 +132,13 @@ def prep_networks(setting=1):
                                      'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
                                      'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
                                      'FuG', 'PhG', 'ATL', 'MTG']}
+    elif setting == 8:
+        networks = {'ventral_hipp': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'Hipp'],
+                    'temporal': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS'],
+                    'dorsal_proper': ['SPL', 'IPL', 'Pcun', 'PoG'],
+                    }
+    elif setting == 9:
+        networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
     # elif setting == 7:
     #     networks = {
     #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
@@ -186,6 +196,9 @@ def report_results(results):
     print_settings(results['settings'])
     scores = np.array(results['scores'])
     sizes = np.array(results['sizes'])
+    if scores.shape[1] == 246:
+        print('\t Results printing for BOLD is not yet implemented')
+        return
 
     assert len(results['keys']) == scores.shape[1], \
         f'{len(results["keys"])=}, {scores.shape=}'
@@ -245,24 +258,24 @@ def run_analysis_toggles():
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['corr']#, 'seuclidean']
+    trial_similarity_toggle = ['spear']#, 'seuclidean']
 
     four_tasks_toggle = [True, False]
     # conn_toggle = ['cross_euc', 'cross_prod']
     conn_toggle = ['euc']
     # conn_toggle = ['BOLD']
-    split_toggle = [False]
+    split_toggle = [False, True]
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
     # analyses = [(True, True), (True, False)]
     # analyses = [(False, False)]
     # analyses = [(True, False)]
-    analyses = [(True, -1), (True, 4), ]
+    analyses = [(True, -1), (True, False), (False, False), (True, 4)]
     for trial_similarity in trial_similarity_toggle:
 
         for four_tasks in four_tasks_toggle:
-            for do_networks in [1, 3, 4, 5, 6, 7, False]: #
+            for do_networks in [9, 8]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
@@ -279,6 +292,10 @@ def run_analysis_toggles():
                                 pass
 
 if __name__ == '__main__':
+
+    # print(isinstance(1, bool))
+    # quit()
+
     run_analysis_toggles()
 
     # print(prep_networks(setting=2))

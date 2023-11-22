@@ -60,8 +60,8 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 		nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
 		n_good =  np.sum(keeps)
 		if n_good < 10:
-			warnings.warn(f'Barely any good voxels for {ROI}. '
-						  f'{n_good=}, {nan_prop=:.3f}')
+			warn_str = f'Barely any good voxels for {ROI}. {n_good=}, {nan_prop=:.3f}'
+			warnings.warn(warn_str)
 			score_by_stim.append(np.full(ROI_vecs.shape[1], np.nan))
 			sizes.append(0)
 			continue
@@ -178,17 +178,18 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
 						  cache_dir=dir_results, easy_override=False)
 	print(f'Finished!')
+	report_results(results)
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
 	four_tasks_toggle = [True, False]
-	conn_toggle = ['euc', 'prod']
-	conn_toggle = ['BOLD']
+	conn_toggle = ['euc']
+	# conn_toggle = ['BOLD']
 	split_toggle = [False]
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [False]:
+			for do_networks in [8]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

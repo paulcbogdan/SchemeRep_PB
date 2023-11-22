@@ -339,6 +339,9 @@ def get_img_fns(get_dict=False):
         return names, fps
 
 if __name__ == '__main__':
+    get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=4)
+    quit()
+
     d_vecs = get_semantic_vectors(normalize=True)
     df = get_trial_info('138')
     vecs_all = []
