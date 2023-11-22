@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from single_trial_conn import prep_fps, prep_networks, report_results
 from utils import pickle_wrap
-
+import warnings
 
 def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=False,
 		 networks=False,  trial_similarity='corr', ):
@@ -56,15 +56,23 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 
 		size = np.sum(~np.isnan(ROI_vecs)) / (ROI_vecs.shape[0] *
 											  ROI_vecs.shape[1])
+		keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
+		nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
+		n_good =  np.sum(keeps)
+		if n_good < 10:
+			warnings.warn(f'Barely any good voxels for {ROI}. '
+						  f'{n_good=}, {nan_prop=:.3f}')
+			score_by_stim.append(np.full(ROI_vecs.shape[1], np.nan))
+			sizes.append(0)
+			continue
 		sizes.append(size)
 		# print(f'{ROI}, {vecs_all.shape=}')
 		ROI_same_scores = []
 		ROI_else_scores = []
 		for stim_j in tqdm(range(ROI_vecs.shape[1]), desc='ISPC'):
 			stim_data = ROI_vecs[:, stim_j, :]
-			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
 			stim_data = stim_data[:, keeps]
-			assert stim_data.shape[1] > 1, f'Killed all the voxels!'
+
 			ISPC_matrix = get_trial_x_trial(stim_data,
 											trial_similarity=trial_similarity)
 			ISPC_triangle = ISPC_matrix[np.tril_indices_from(ISPC_matrix, k=-1)]
@@ -168,18 +176,19 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
 	results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
-						  cache_dir=dir_results, easy_override=True)
+						  cache_dir=dir_results, easy_override=False)
 	print(f'Finished!')
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
 	four_tasks_toggle = [True, False]
 	conn_toggle = ['euc', 'prod']
+	conn_toggle = ['BOLD']
 	split_toggle = [False]
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [5, 6]:
+			for do_networks in [False]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

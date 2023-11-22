@@ -45,6 +45,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn)
+
         RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                                 dist=trial_similarity)
         if RDM_method == 'by_run':
@@ -168,7 +169,7 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
                     nans = np.isnan(vecs_i) | np.isnan(vecs_j)
                     vecs_i = vecs_i[~nans]
                     vecs_j = vecs_j[~nans]
-                    if trial_similarity in ['mahalanobis', 'seuclidean']:
+                    if trial_similarity in ['mahalanobis', 'seuclidean', 'euc']:
                         raise ValueError(f'{trial_similarity=} not supported with NaNs')
                 r = pdist(vecs_i, vecs_j, trial_similarity, arg)
 
@@ -186,6 +187,8 @@ def pdist(vec_i, vec_j, measure, arg=None):
     elif measure == 'seuclidean':
         r = -distance.seuclidean(vec_i, vec_j, arg)
         # r = -distance.euclidean(vec_i, vec_j)
+    elif measure == 'euc':
+        r = -distance.euclidean(vec_i, vec_j)
     elif measure == 'spear':
         r, p = stats.spearmanr(vec_i, vec_j)
         r = np.arctanh(r)
@@ -193,5 +196,5 @@ def pdist(vec_i, vec_j, measure, arg=None):
         r, p = stats.pearsonr(vec_i, vec_j)
         r = np.arctanh(r)
     else:
-        raise ValueError(f'Second order {measure=} not supported')
+        raise ValueError(f'First order {measure=} not supported')
     return r

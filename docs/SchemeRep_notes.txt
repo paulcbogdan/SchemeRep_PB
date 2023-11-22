@@ -1,3 +1,26 @@
+Seems like taking semantic = -1 works for ventral + PFC, athough it could be stronger
+
+settings={'RSA': True, 'semantic': -1, 'do_networks': 1, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
+Occipital (22.0), t[29]=1.53, p=0.068
+Ventral (45.5), t[29]=2.03, p=0.026
+Dorsal (34.0), t[29]=1.05, p=0.152
+dPFC (40.0), t[29]=1.76, p=0.044
+PFC_Occ (62.0), t[29]=1.41, p=0.085
+FPCN (66.0), t[29]=1.83, p=0.039
+settings={'RSA': True, 'semantic': -1, 'do_networks': 7, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
+else_ventral (212.7), t[29]=2.04, p=0.025
+settings={'RSA': True, 'semantic': -1, 'do_networks': 4, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': False, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
+PFC (52.0), t[29]=2.00, p=0.028
+
+ISPC, more ventral results:
+settings={'four_tasks': False, 'conn': 'euc', 'combine_regions': False, 'split': False, 'do_networks': 1, 'trial_similarity': 'corr'}
+Occipital (231.0), t[113]=6.27, p=0.000
+Ventral (1021.0), t[113]=3.18, p=0.001
+Dorsal (561.0), t[113]=2.20, p=0.015
+dPFC (780.0), t[113]=-0.14, p=0.446
+PFC_Occ (1891.0), t[113]=3.00, p=0.002
+FPCN (2145.0), t[113]=0.79, p=0.216
+
 settings={'RSA': False, 'semantic': False, 'do_networks': 1, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': False, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
 Occipital (22.0), t[29]=3.75, p=0.000
 Ventral (45.2), t[29]=2.91, p=0.003
@@ -5,6 +28,7 @@ Dorsal (34.0), t[29]=-0.38, p=0.354
 dPFC (40.0), t[29]=0.90, p=0.189
 PFC_Occ (62.0), t[29]=1.27, p=0.107
 FPCN (66.0), t[29]=0.59, p=0.279
+* Ventral, marginal trend (p = .08), wherein 
 
 ADD ARGSORT?!?!?
 
@@ -41,6 +65,8 @@ In the Old code, Ventral works for ERS:
 		PFC_Occ (62.0), t[29]=1.27, p=0.107
 		FPCN (66.0), t[29]=0.59, p=0.279
 	(combine regions=False)
+	
+	
 	
 
 Could combine regions be the key?

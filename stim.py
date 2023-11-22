@@ -93,6 +93,8 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
         RDM_stim[np.diag_indices_from(RDM_stim)] = np.nan
     elif dist == 'mahalanobis' or dist == 'seuclidean':
         RDM_stim = scipy_dist(all_vecs, metric=dist)
+    elif dist == 'euc':
+        RDM_stim = scipy_dist(all_vecs, metric='euclidean')
     else:
         raise ValueError('dist must be corr or mahalanobis')
     return RDM_stim
@@ -121,7 +123,6 @@ def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
         RSM_triangle = -distance.pdist(all_vecs, metric)
         RSM = distance.squareform(RSM_triangle)
         RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
-        RSM = prune_RSM_outliers(RSM)
     else:
         vecs1 = np.array(vecs1)
         # print(f'{all_vecs.shape=}')
@@ -142,7 +143,6 @@ def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
     return RSM
 
 def prune_RSM_outliers(RSM, z=3):
-    print('-'*100)
     prune_outliers = True
     while prune_outliers:
         M_dis = np.nanmean(RSM, axis=0)
@@ -153,13 +153,13 @@ def prune_RSM_outliers(RSM, z=3):
         if np.nanmax(np.abs(Z_M_dis)) > z:
             # print('Pruning outliers')
             outliers = np.argwhere(np.abs(Z_M_dis) > z)
-            print(f'{outliers=}')
+            # print(f'{outliers=}')
             RSM[outliers, :] = np.nan
             RSM[:, outliers] = np.nan
         elif np.nanmax(np.abs(Z_M_dis1)) > z:
             # print('Pruning outliers')
             outliers = np.argwhere(np.abs(Z_M_dis1) > z)
-            print(f'{outliers=}')
+            # print(f'{outliers=}')
             RSM[outliers, :] = np.nan
             RSM[:, outliers] = np.nan
         else:

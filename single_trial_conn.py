@@ -47,7 +47,9 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
 
 def prep_vecs(RSA, semantic):
     if RSA:
-        if semantic:
+        if isinstance(semantic, int):
+            d_vecs = get_DNN_vecs(DNN_layer=semantic, PCA=True, PCA_obj=True)
+        elif semantic:
             d_vecs = get_semantic_vectors(normalize=True)
         else:
             d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True, PCA_obj=True)
@@ -220,6 +222,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     assert (not combine_regions) or do_networks
     assert RSA or second_order == 'spear', 'Leave second_order as \"spear\" for ERS'
     assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
+    assert not (split and do_networks in [2, 7]), 'Too computationally intense'
     if do_networks == 3:
         if 'cross' not in conn:
             settings['conn'] = f'cross_{conn}'
@@ -242,25 +245,27 @@ def run_analysis_toggles():
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['spear']
+    trial_similarity_toggle = ['corr']#, 'seuclidean']
 
     four_tasks_toggle = [True, False]
     # conn_toggle = ['cross_euc', 'cross_prod']
-    conn_toggle = ['euc', ]
+    conn_toggle = ['euc']
     # conn_toggle = ['BOLD']
     split_toggle = [False]
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
-    # analyses = [(True, True)]
-    analyses = [(False, False)]
+    # analyses = [(True, True), (True, False)]
+    # analyses = [(False, False)]
     # analyses = [(True, False)]
-    for four_tasks in four_tasks_toggle:
-        for do_networks in [1, 3, 4, 5, 6, 7]: #
-            for conn in conn_toggle:
-                for split in split_toggle:
-                    for (RSA, semantic) in analyses:
-                        for trial_similarity in trial_similarity_toggle:
+    analyses = [(True, -1), (True, 4), ]
+    for trial_similarity in trial_similarity_toggle:
+
+        for four_tasks in four_tasks_toggle:
+            for do_networks in [1, 3, 4, 5, 6, 7, False]: #
+                for conn in conn_toggle:
+                    for split in split_toggle:
+                        for (RSA, semantic) in analyses:
                             try:
                                 run_analysis(conn=conn,
                                              trial_similarity=trial_similarity,

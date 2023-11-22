@@ -281,6 +281,8 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
     elif trial_similarity == 'euc':
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
+        RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
+
     elif trial_similarity == 'spear':
         # t = time()
         vecs0_r = stats.rankdata(vecs0, method='average', axis=-1)
@@ -349,7 +351,7 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
     elif trial_similarity == 'seuclidean':
         RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
                               metric='seuclidean')
-        RSM_fMRI = prune_RSM_outliers(RSM_fMRI)
+        RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI
