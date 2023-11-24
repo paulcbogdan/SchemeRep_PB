@@ -31,7 +31,7 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
     dir_results = r'cache/conn_RSA'
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
-                'conn': 'euc', 'trial_similarity': 'corr',  # change trial_similarity=spear
+                'conn': 'euc', 'trial_similarity': trial_similarity,  # change trial_similarity=spear
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': split,
                 'RDM_method': 'clever_std'}
@@ -72,7 +72,7 @@ def organize_df(results_conn, results_bold, do_networks, target_ROI):
             for fp_idx in range(scores_conn.shape[1]):
                 scores_conn_fp = scores_conn[sn_i, fp_idx, ROI_j, :]
                 n = scores_conn_fp.shape[0]
-                df_as_d['fp_idx'].extend([fp_idx] * n)
+                df_as_d['fp_idx'].extend([str(fp_idx)] * n)
                 df_as_d['ROI'].extend([ROI_name] * n)
                 df_as_d['conn_score'].extend(scores_conn_fp)
                 if do_networks and ROI_name in network2ROI:
@@ -95,12 +95,27 @@ def organize_df(results_conn, results_bold, do_networks, target_ROI):
                     df_as_d[f'{key_short}'].extend(scores_bold_fp)
 
                 for col in df_sn.columns:
+                    # print(f'{col=} | {df_sn[col].values}')
                     df_as_d[col].extend(df_sn[col].values)
+        # break
 
     # for key, l in df_as_d.items():
     #     print(f'{key}: {len(l)}')
 
     df = pd.DataFrame(df_as_d)
+
+    print(len(df))
+    def mean_or_first(l):
+        try:
+            M = l.mean()
+        except TypeError:
+            M = l.iloc[0]
+        return M
+
+    # df = df.groupby(['sn', 'obj', 'ROI']).agg(mean_or_first).reset_index()
+    # print(len(df))
+    # print(list(df.columns))
+    # quit()
     return df, ROI_to_bold_keys
 
 def prep_network2ROI(do_networks, target_ROI):
@@ -133,7 +148,7 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
     print(f'{len(target_bold_keys)=}')
     print()
     cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
-            'inc_str', 'per_inc_str'] + \
+            'inc_str', 'per_inc_str', 'fp_idx'] + \
            target_bold_keys
     df = df[cols]
     df.dropna(inplace=True)
@@ -143,21 +158,42 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
     from pymer4.models import Lmer
 
     print('-' * 120)
-    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
+    formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn) + (1|fp_idx)'
     print(f'{formula=}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
-    formula = 'conn_score ~ 1 + hit_hit + (1|sn)'
+    formula = 'conn_score ~ 1 + hit_hit + (1|sn) + (1|fp_idx)'
     print(f'{formula=}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
-    formula = 'conn_score ~ 1 + inc_str + (1|sn)'
+    formula = 'conn_score ~ 1 + inc_str + (1|sn) + (1|fp_idx)'
+    print(f'{formula=}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
+    print('-' * 120)
+    formula = 'conn_score ~ 1 + (1|sn) + (1|fp_idx)'
+    print(f'{formula=}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
+    print('-' * 120)
+    formula = 'conn_score ~ 1 + (1|sn)'
+    print(f'{formula=}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
+    print('-' * 120)
+    formula = 'conn_score ~ 1 + (1|fp_idx)'
     print(f'{formula=}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
@@ -180,20 +216,6 @@ def run_lmer():
 
     lmer_stats(df, ROI_to_bold_keys, target_ROI)
 
-
-
-
-def run_lmer_task_factor():
-    pass
-
-def search_for_PFC_significant_result():
-    # Model free Frontal with Euc,
-    #   Not the strongest sadly...
-    # settings = {'RSA': False, 'semantic': False, 'do_networks': 2, 'conn': 'euc', 'trial_similarity': 'corr',
-    #             'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False,
-    #             'RDM_method': 'clever_std', 'verbose': 1}
-    # Frontal(64.0), t[29] = 2.36, p = 0.013
-    pass
 
             
 

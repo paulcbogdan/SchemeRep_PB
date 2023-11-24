@@ -344,7 +344,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region)
-    sess = fp_fMRI_col.split('_')[0].replace('2', '')
+    sess = fp_fMRI_col.split('_')[0].replace('2', '').replace('3', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     if shuffle:
@@ -544,9 +544,9 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 def run_multi_settings():
     # semantic = False
-    combine_regions = False
+    combine_regions = True
     bilateral = False # combines bilateral ROIs/regions
-    org_by_region = True
+    org_by_region = False
     PCA_obj = True
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
@@ -554,21 +554,21 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     inc = None
     # if True:
-    for age in [1,]:
+    for age in [1, 2]:
         for inc in [None]:
             for DNN_layer, semantic in [
                 (2, False),
                 # (4, False),
                 # (6, False),
-                # (-1, False),
+                (-1, False),
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                                    'bl2_fMRI',
-                                    'obj2_fMRI',
-                                    'scn2_fMRI',
+                                    'bl3_fMRI',
+                                    'obj3_fMRI',
+                                    'scn3_fMRI',
                                     #'con2_fMRI',
-                                    'vis2_fMRI',
+                                    'vis3_fMRI',
                 ]:
             # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:

@@ -19,7 +19,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         conn = conn.replace('cross_', '')
 
     df_sn = get_trial_info(sn)
-    sess = fp.split('_')[0].replace('2', '')
+    sess = fp.split('_')[0].replace('2', '').replace('3', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
     # TODO: Implement toggle to be high density
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,

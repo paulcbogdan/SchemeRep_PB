@@ -68,6 +68,8 @@ def get_trial_info_(sn, ret=False):
     obj_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/obj'
     scn_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/scenes'
     scn_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/scn'
+    obj_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/OBJ'
+    scn_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/SCN'
 
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
     df_sn_as_l = []
@@ -94,6 +96,11 @@ def get_trial_info_(sn, ret=False):
             assert len(glob_obj2) == 1
             fp_obj2 = glob_obj2[0]
 
+            glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_obj3 = glob(glob_obj3)
+            assert len(glob_obj3) == 1
+            fp_obj3 = glob_obj3[0]
+
             glob_scn = fr'{scn_root}/Day2_Run{run}_Trial{trial}_*.nii'
             glob_scn = glob(glob_scn)
             assert len(glob_scn) == 1
@@ -103,6 +110,11 @@ def get_trial_info_(sn, ret=False):
             glob_scn2 = glob(glob_scn2)
             assert len(glob_scn2) == 1
             fp_scn2 = glob_scn2[0]
+
+            # glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+            # glob_scn3 = glob(glob_scn3)
+            # assert len(glob_scn3) == 1
+            # fp_scn3 = glob_scn3[0]
 
             obj = mat_enc['pdata'][0][0][7][0][i][0]
             scene = mat_enc['pdata'][0][0][8][0][i][0]
@@ -146,8 +158,11 @@ def get_trial_info_(sn, ret=False):
                  #'fp_fMRI': fp_obj,
                  'obj_fMRI': fp_obj,
                  'obj2_fMRI': fp_obj2,
+                 'obj3_fMRI': fp_obj3,
                  'scn_fMRI': fp_scn,
                  'scn2_fMRI': fp_scn2,
+                 # 'scn3_fMRI': fp_scn3,
+
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
@@ -228,6 +243,7 @@ def include_conceptual(df_sn, sn):
     obj2rt = {}
     obj2fp = {}
     obj2fp2 = {}
+    obj2fp3 = {}
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
     obj2trial = {}
     # obj2run = {}
@@ -275,6 +291,12 @@ def include_conceptual(df_sn, sn):
                 assert len(glob_conc2) == 1
                 obj2fp2[obj] = glob_conc2[0]
 
+            glob_conc3 = fr'{conc_root}/CON_rerun3/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_conc3 = glob(glob_conc3)
+            if len(glob_conc3):
+                assert len(glob_conc3) == 1
+                obj2fp3[obj] = glob_conc3[0]
+
                 #break
             # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
             obj2outlier[obj] = bool(outliers[i][0])
@@ -287,6 +309,7 @@ def include_conceptual(df_sn, sn):
             lambda x: np.nan if pd.isna(x) else x >= 3)
         df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['con2_fMRI'] = df_sn['obj'].map(obj2fp2)
+        df_sn['con3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['con_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
@@ -308,6 +331,7 @@ def include_vis(df_sn, sn):
     obj2type = {} # unused
     obj2fp = {}
     obj2fp2 = {}
+    obj2fp3 = {}
     obj2rt = {}
     obj2run = {}
     obj2trial = {}
@@ -358,10 +382,12 @@ def include_vis(df_sn, sn):
                 continue
 
             glob_vic2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            # print(glob_vic2)
             glob_vic2 = glob(glob_vic2)
-            # print(glob_vic2)
             obj2fp2[obj] = glob_vic2[0]
+
+            glob_vic3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+            glob_vic3 = glob(glob_vic3)
+            obj2fp3[obj] = glob_vic3[0]
 
     else:
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
@@ -371,6 +397,7 @@ def include_vis(df_sn, sn):
         df_sn['vis_hit'] = df_sn.apply(f, axis=1)
         df_sn['vis_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['vis2_fMRI'] = df_sn['obj'].map(obj2fp2)
+        df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['vis_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
@@ -401,6 +428,7 @@ def include_BL(df_sn, sn):
     obj2run = {}
     obj2fp = {}
     obj2fp2 = {}
+    obj2fp3 = {}
     obj2outlier = {}
     obj2trial = {}
     dir_outliers = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/outliers'
@@ -434,7 +462,6 @@ def include_BL(df_sn, sn):
             glob_BL = glob(glob_BL)
             if len(glob_BL):
                 obj2fp[obj] = glob_BL[0]
-
             glob_BL2 = fr'{bl_root}/BL_rerun/bl/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             # glob_BL2 = fr'Day2EncSingleTrialModellingLSS_sorted/134/BL_rerun/bl/*.nii'
             # print(f'{glob_BL2=}')
@@ -446,11 +473,17 @@ def include_BL(df_sn, sn):
             assert len(glob_BL2) == 1 or len(glob_BL) == 1, f'Bad bl missing'
             obj2fp2[obj] = glob_BL2[0]
 
+            glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_BL3 = glob(glob_BL3)
+            assert len(glob_BL3) == 1 or len(glob_BL) == 1, f'Bad bl3 missing'
+            obj2fp3[obj] = glob_BL3[0]
+
             obj2outlier[obj] = bool(outliers[i][0])
     else:
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['bl2_fMRI'] = df_sn['obj'].map(obj2fp2)
+        df_sn['bl3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['bl_outlier'] = df_sn['obj'].map(obj2outlier)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
@@ -547,7 +580,7 @@ if __name__ == '__main__':
     # quit()
     df_all = []
     SNS = age2sn[1]
-    SNS = ['138']
+    # SNS = ['138']
     for SN in SNS:
         if SN == '135': continue
         print(f'Testing: {SN}')

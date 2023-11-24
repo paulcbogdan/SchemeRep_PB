@@ -61,7 +61,11 @@ def prep_vecs(RSA, semantic):
     return d_vecs
 
 def prep_fps(four_tasks):
-    if four_tasks:
+    if four_tasks == '3_4':
+        fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    elif four_tasks == '3_3':
+        fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
+    elif four_tasks:
         fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
     else:
         fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
@@ -152,7 +156,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
-                 ):
+                 age=1):
     settings = locals().copy()
     print(f'Run settings start: {settings=}')
     d_vecs = prep_vecs(RSA, semantic)
@@ -164,12 +168,12 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                       split=split, split_code='xyz')
     fps = prep_fps(four_tasks)
     age2sn = get_all_sns(ret=True)
-    sns = age2sn[1]
+    sns = age2sn[age]
 
     if do_networks:
         networks = prep_networks(do_networks)
         keys = list(networks)
-    else:
+    elif conn == 'BOLD':
         networks = None
         keys = atlas['tick_labels']
 
@@ -228,8 +232,14 @@ def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
 def run_analysis(RSA=True, semantic=False, do_networks=1,
                  conn='euc', trial_similarity='corr', second_order='spear',
                  four_tasks=False, combine_regions=False, split=True,
-                 RDM_method='clever_std'):
+                 RDM_method='clever_std', age=1):
     settings = locals().copy()
+    OA = age == 2
+    if OA:
+        assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+    else:
+        del settings['age']
+
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
     assert (not combine_regions) or do_networks
@@ -258,13 +268,15 @@ def run_analysis_toggles():
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['spear']#, 'seuclidean']
+    trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
-    four_tasks_toggle = [True, False]
+    four_tasks_toggle = ['3_4', '3_3']
+    # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
     conn_toggle = ['euc']
     # conn_toggle = ['BOLD']
-    split_toggle = [False, True]
+    split_toggle = [False]
+    age = 2
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
@@ -272,10 +284,10 @@ def run_analysis_toggles():
     # analyses = [(False, False)]
     # analyses = [(True, False)]
     analyses = [(True, -1), (True, False), (False, False), (True, 4)]
+    # analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
-
         for four_tasks in four_tasks_toggle:
-            for do_networks in [9, 8]: # 8, 1, 3, 4, 5, 6, 7, False
+            for do_networks in [1, 2, 3, 4, 5, 6, 7, 9, 8, False]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
@@ -286,16 +298,14 @@ def run_analysis_toggles():
                                              RSA=RSA, semantic=semantic,
                                              do_networks=do_networks,
                                              RDM_method=RDM_method,
-                                             )
+                                             age=age)
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')
                                 pass
 
 if __name__ == '__main__':
-
     # print(isinstance(1, bool))
     # quit()
-
     run_analysis_toggles()
 
     # print(prep_networks(setting=2))

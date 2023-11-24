@@ -182,14 +182,14 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
-	four_tasks_toggle = [True, False]
+	four_tasks_toggle = ['3_4', '3_3']
 	conn_toggle = ['euc']
 	# conn_toggle = ['BOLD']
 	split_toggle = [False]
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [8]:
+			for do_networks in [1, 3, 4, 5, 6, 7]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:
