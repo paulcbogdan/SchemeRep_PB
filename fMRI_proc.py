@@ -209,6 +209,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     combine_str = '_comb' if combine_regions else '_noComb'
     fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
                fr'_reg{n_regions}{org_by_region_str}{nan_str}{combine_str}.pkl'
+    # print(f'Go: ... {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
     r2vecs = pickle_wrap(fp_cache, f, verbose=False,
@@ -222,7 +223,8 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   drop_nan_voxels=True):
     n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
     if n_nans:
-        raise ValueError(f'Found NaNs in {fp_fMRI_col}, {n_nans=}')
+        sn = df_sn['sn'].iloc[0]
+        raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
 
     img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     # for idx, row in df_sn.iterrows():

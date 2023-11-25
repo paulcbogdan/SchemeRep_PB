@@ -10,7 +10,8 @@ from conn_utils import get_ROI_vecs_wrap, get_conn_vecs, get_trial_x_trial
 from organize_bhv import get_all_sns, get_trial_info
 from tqdm import tqdm
 
-from single_trial_conn import prep_fps, prep_networks, report_results
+from single_trial_conn import prep_fps, report_results
+from networks import prep_networks
 from utils import pickle_wrap
 import warnings
 
@@ -124,7 +125,8 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 	return score_by_stim, sizes,
 
 def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
-					  split=False, do_networks=1, trial_similarity='corr'):
+					  split=False, do_networks=1, trial_similarity='corr',
+					  age=1):
 	settings = locals().copy()
 	atlas = get_atlas(combine_regions=combine_regions,
 					  combine_bilateral=False,
@@ -137,7 +139,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 		do_networks = None
 		keys = atlas['tick_labels']
 	age2sn = get_all_sns(ret=True)
-	sns = age2sn[1]
+	sns = age2sn[age]
 
 	results = {'networks': do_networks, 'keys': keys, 'sns': sns}
 
@@ -164,8 +166,15 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	return results
 
 def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
-			 split=False, do_networks=0, trial_similarity='corr'):
+			 split=False, do_networks=0, trial_similarity='corr',
+			 age=1):
 	settings = locals().copy()
+	OA = age == 2
+	if OA:
+		assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+	else:
+		del settings['age']
+
 	assert not (combine_regions and split), 'cannot combine and split'
 	assert (not combine_regions) or do_networks
 	assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
@@ -176,7 +185,8 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
 	results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
-						  cache_dir=dir_results, easy_override=False)
+						  cache_dir=dir_results, easy_override=False,
+						  )
 	print(f'Finished!')
 	report_results(results)
 
@@ -186,17 +196,19 @@ def run_ISPC_toggle():
 	conn_toggle = ['euc']
 	# conn_toggle = ['BOLD']
 	split_toggle = [False]
+	age = 2
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [1, 3, 4, 5, 6, 7]:
+			for do_networks in [False]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:
 							run_ISPC(conn=conn,
 										 trial_similarity=trial_similarity,
 										 four_tasks=four_tasks, split=split,
-										 do_networks=do_networks,)
+										 do_networks=do_networks,
+									 age=age)
 						except AssertionError as e:
 							print(f'Assertion no bueno: {e}')
 							pass

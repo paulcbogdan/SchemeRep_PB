@@ -6,7 +6,13 @@ import pandas as pd
 from PIL import Image
 from utils import pickle_wrap
 from sklearn import decomposition
-# from torchvision import models as models, transforms as transforms
+try:
+    from torchvision import models as models, transforms as transforms
+    import torch
+except OSError:
+    # Can't get this to work on my py3.11
+    pass
+
 import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
@@ -245,7 +251,6 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
     model.eval()
     print(model.features)
 
-
     data_transforms = transforms.Compose([transforms.ToTensor(),
                     transforms.Resize((224, 224)),
                     # transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -266,7 +271,18 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
         img = np.array(img, dtype=np.uint8)
         x = data_transforms(img).unsqueeze(0)
         if DNN_layer == -1:
+            # from copy import deepcopy
+            # x_ = deepcopy(x)
+            # for j in range(len(model.features)):
+            #     x_ = model.features[j](x_)
+            #     print(f'{j} | {x.shape=}')
+            # x_ = model.avgpool(x_)
+            # x_ = torch.flatten(x_, 1)
+            # x_ = model.classifier(x_)
+            # print(f'{x_}')
+            # print(f'{x_.shape=}')
             x = model.forward(x)
+            print(f'Test: {x.shape=}')
         else:
             for j in range(DNN_layer):
                 x = model.features[j](x)
@@ -276,7 +292,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
         # else:
         #     x = model.forward(x)
         x = x.detach().numpy().flatten()
-        x = np.concatenate([x, np.array([scene])])
+        # x = np.concatenate([x, np.array([scene])]) # Why do I have this last feat?
         img_vecs.append(x)
         if not scene:
             obj_vecs.append(x)
@@ -306,7 +322,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
     return d_vecs
 
 
-def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2):
+def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False):
     dnn_str = 'late' if DNN_layer == -1 else \
               'early' if DNN_layer == 2 else \
               f'dnn{DNN_layer}'
@@ -316,7 +332,7 @@ def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2):
     return pickle_wrap(fp_DNN_vecs,
                        lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
                                              PCA_obj=PCA_obj),
-                       easy_override=False)
+                       easy_override=easy_override)
 
 
 def get_img_fns(get_dict=False):
@@ -339,30 +355,33 @@ def get_img_fns(get_dict=False):
         return names, fps
 
 if __name__ == '__main__':
-    get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=4)
-    quit()
-
-    d_vecs = get_semantic_vectors(normalize=True)
-    df = get_trial_info('138')
-    vecs_all = []
-    for obj in df['obj']:
-        vec = d_vecs[obj]
-        vecs_all.append(vec)
-    # for key, vec in d_vecs.items():
+    d_vecs = get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=5,
+                          easy_override=True)
+    for obj, vec in d_vecs.items():
+        print(f'{obj} | {vec.shape=}')
+    # quit()
+    #
+    # d_vecs = get_semantic_vectors(normalize=True)
+    # df = get_trial_info('138')
+    # vecs_all = []
+    # for obj in df['obj']:
+    #     vec = d_vecs[obj]
     #     vecs_all.append(vec)
-    vecs_all = np.array(vecs_all)
-    print(vecs_all.shape)
-    M_vec = np.mean(vecs_all, axis=0)
-    print(f'{M_vec.shape=}')
-    SD_vec = np.std(vecs_all, axis=0)
-    print(SD_vec)
-    plt.hist(M_vec)
-    plt.title('Mean vec')
-    plt.show()
-    plt.hist(SD_vec)
-    plt.title('SD vec')
-    plt.show()
-    quit()
+    # # for key, vec in d_vecs.items():
+    # #     vecs_all.append(vec)
+    # vecs_all = np.array(vecs_all)
+    # print(vecs_all.shape)
+    # M_vec = np.mean(vecs_all, axis=0)
+    # print(f'{M_vec.shape=}')
+    # SD_vec = np.std(vecs_all, axis=0)
+    # print(SD_vec)
+    # plt.hist(M_vec)
+    # plt.title('Mean vec')
+    # plt.show()
+    # plt.hist(SD_vec)
+    # plt.title('SD vec')
+    # plt.show()
+    # quit()
 
 
     # all_vecs =  [(35.0456, -85.2672),

@@ -77,39 +77,58 @@ def get_trial_info_(sn, ret=False):
         fp_bhv = fr'behavFiles/ENC/S{sn}_run{run}.mat'
         mat_enc = io.loadmat(fp_bhv)
         # TODO: Figure out why 138 doesn't have outlier data
-        if sn == '138':
-            outliers = np.full((48, 1), np.nan)
-        else:
+        try:
+            # if sn == '138' or sn == '221':
+            #     outliers = np.full((48, 1), np.nan)
+            # else:
             fp_outliers = fr'{dir_outliers}/Day2run{run}outlier_trials.mat'
             mat_outliers = io.loadmat(fp_outliers)
             outliers = mat_outliers['outliertrials']
+        except FileNotFoundError:
+            outliers = np.full((48, 1), np.nan)
 
         for i in range(38):
             trial = i + 1
-            glob_obj = fr'{obj_root}/Day2_Run{run}_Trial{trial}_*.nii'
-            glob_obj = glob(glob_obj)
-            assert len(glob_obj) == 1
-            fp_obj = glob_obj[0]
+            try:
+                glob_obj = fr'{obj_root}/Day2_Run{run}_Trial{trial}_*.nii'
+                glob_obj = glob(glob_obj)
+            # assert len(glob_obj) == 1, f'{sn}, trial: {trial}'
+                fp_obj = glob_obj[0]
+                glob_scn = fr'{scn_root}/Day2_Run{run}_Trial{trial}_*.nii'
+                glob_scn = glob(glob_scn)
+                # assert len(glob_scn) == 1
+                fp_scn = glob_scn[0]
+            except IndexError:
+                fp_obj = None
+                fp_scn = None
 
-            glob_obj2 = fr'{obj_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_obj2 = glob(glob_obj2)
-            assert len(glob_obj2) == 1
-            fp_obj2 = glob_obj2[0]
+            if sn[0] == '2':
+                fp_obj2 = None
+            else:
+                glob_obj2 = fr'{obj_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+                glob_obj2 = glob(glob_obj2)
+                assert len(glob_obj2) == 1
+                fp_obj2 = glob_obj2[0]
 
             glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_obj3 = glob(glob_obj3)
-            assert len(glob_obj3) == 1
-            fp_obj3 = glob_obj3[0]
+            try:
+                # assert len(glob_obj3) == 1
+                fp_obj3 = glob_obj3[0]
+            except IndexError:
+                if sn == '224' and run == 3:
+                    fp_obj3 = None
+                else:
+                    raise IndexError(f'{sn}, {run}, {trial}')
 
-            glob_scn = fr'{scn_root}/Day2_Run{run}_Trial{trial}_*.nii'
-            glob_scn = glob(glob_scn)
-            assert len(glob_scn) == 1
-            fp_scn = glob_scn[0]
 
-            glob_scn2 = fr'{scn_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_scn2 = glob(glob_scn2)
-            assert len(glob_scn2) == 1
-            fp_scn2 = glob_scn2[0]
+            if sn[0] == '2':
+                fp_scn2 = None
+            else:
+                glob_scn2 = fr'{scn_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+                glob_scn2 = glob(glob_scn2)
+                assert len(glob_scn2) == 1
+                fp_scn2 = glob_scn2[0]
 
             # glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             # glob_scn3 = glob(glob_scn3)
@@ -137,7 +156,7 @@ def get_trial_info_(sn, ret=False):
                 scene_rename = renamer[scene]
             else:
                 scene_rename = scene
-                
+
             inc2str = {1: 'incongruent', 2: 'neutral', 3: 'congruent'}
             if pd.isna(perceived_inc):
                 per_inc_str = None
@@ -179,7 +198,7 @@ def get_trial_info_(sn, ret=False):
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
-    add_onset_time(df_sn, sn)
+    # add_onset_time(df_sn, sn)
 
     df_sn = include_BL(df_sn, sn)
     df_sn = include_conceptual(df_sn, sn)
@@ -232,7 +251,8 @@ def add_onset_time(df_sn, sn):
         try:
             df_sn[f'{key}_onset_TR'] = df_sn[f'{key}_onset_TR'].astype(int)
         except pd.errors.IntCastingNaNError:
-            assert sn == '133' or sn == '138'
+            assert sn == '133' or sn == '138'# or sn == '212'
+            # TODO: investigate 212...
 
 
 def include_conceptual(df_sn, sn):
@@ -280,22 +300,27 @@ def include_conceptual(df_sn, sn):
             if len(glob_conc) < 1:
                 #print(f'No glob_conc ({sn}): {glob_conc=}')
                 obj2fp[obj] = np.nan
-                has_missing_fMRI = True
             else:
                 obj2fp[obj] = glob_conc[0]
 
 
-            glob_conc2 =  fr'{conc_root}/CON_rerun/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_conc2 = glob(glob_conc2)
-            if len(glob_conc2):
-                assert len(glob_conc2) == 1
-                obj2fp2[obj] = glob_conc2[0]
+            if sn[0] == '2':
+                obj2fp2[obj] = None
+            else:
+                glob_conc2 =  fr'{conc_root}/CON_rerun/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
+                glob_conc2 = glob(glob_conc2)
+                if len(glob_conc2):
+                    assert len(glob_conc2) == 1
+                    obj2fp2[obj] = glob_conc2[0]
 
             glob_conc3 = fr'{conc_root}/CON_rerun3/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_conc3 = glob(glob_conc3)
             if len(glob_conc3):
                 assert len(glob_conc3) == 1
                 obj2fp3[obj] = glob_conc3[0]
+            else:
+                if len(glob_conc) < 1:
+                    has_missing_fMRI = True
 
                 #break
             # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
@@ -315,8 +340,8 @@ def include_conceptual(df_sn, sn):
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
 
         if sn not in get_bad_sns(ret=True):
-            assert len(df_sn['con2_fMRI'].value_counts()) == 114, \
-                'Missing con fMRI fp'
+            assert len(df_sn['con2_fMRI'].value_counts()) == 114 or \
+                   sn[0] == '2', 'Missing con fMRI fp'
         # for x in df_sn['con_fMRI']:
         #     exists = os.path.isfile(x)
         #     if not exists:
@@ -374,16 +399,18 @@ def include_vis(df_sn, sn):
             glob_vic = glob(glob_vic)
             if len(glob_vic) < 1:
                 obj2fp[obj] = None
-                continue
             else:
                 obj2fp[obj] = glob_vic[0]
 
             if sn == '138': # has original preprocessing but no rerun betas?
                 continue
 
-            glob_vic2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            glob_vic2 = glob(glob_vic2)
-            obj2fp2[obj] = glob_vic2[0]
+            if sn[0] == '2':
+                obj2fp2[obj] = None
+            else:
+                glob_vic2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+                glob_vic2 = glob(glob_vic2)
+                obj2fp2[obj] = glob_vic2[0]
 
             glob_vic3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
             glob_vic3 = glob(glob_vic3)
@@ -440,15 +467,17 @@ def include_BL(df_sn, sn):
             print('Missing trial data bl')
             continue
         # TODO: Figure out why 138 doesn't have outlier data
-        if sn == '138':
-            outliers = np.full((48, 1), np.nan)
-        elif sn == '135':
+
+        if sn == '135':
             # 135 has no rerun data
             continue
-        else:
+        try:
             fp_outliers = fr'{dir_outliers}/Day1run{run}outlier_trials.mat'
             mat_outliers = io.loadmat(fp_outliers)
             outliers = mat_outliers['outliertrials']
+        except FileNotFoundError:
+            outliers = np.full((48, 1), np.nan)
+
         for i in range(38):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
@@ -462,16 +491,14 @@ def include_BL(df_sn, sn):
             glob_BL = glob(glob_BL)
             if len(glob_BL):
                 obj2fp[obj] = glob_BL[0]
-            glob_BL2 = fr'{bl_root}/BL_rerun/bl/BL_sub{sn}_run{run}_trial{trial}_*.nii'
-            # glob_BL2 = fr'Day2EncSingleTrialModellingLSS_sorted/134/BL_rerun/bl/*.nii'
-            # print(f'{glob_BL2=}')
-            # glob_BL2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/BL_rerun/bl/*.nii'
-            # print(f'{bl_root=}')
 
-            # print(glob_BL2)
-            glob_BL2 = glob(glob_BL2)
-            assert len(glob_BL2) == 1 or len(glob_BL) == 1, f'Bad bl missing'
-            obj2fp2[obj] = glob_BL2[0]
+            if sn[0] == '2':
+                obj2fp2[obj] = None
+            else:
+                glob_BL2 = fr'{bl_root}/BL_rerun/bl/BL_sub{sn}_run{run}_trial{trial}_*.nii'
+                glob_BL2 = glob(glob_BL2)
+                assert len(glob_BL2) == 1 or len(glob_BL) == 1, f'Bad bl missing'
+                obj2fp2[obj] = glob_BL2[0]
 
             glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL3 = glob(glob_BL3)
@@ -489,22 +516,39 @@ def include_BL(df_sn, sn):
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
 
 
-        assert pd.isna(df_sn['bl2_fMRI']).sum() == 0 or sn == '135', 'Missing bl fMRI fp unneeded'
+        assert pd.isna(df_sn['bl2_fMRI']).sum() == 0 or sn == '135' or \
+               sn[0] == '2', 'Missing bl fMRI fp unneeded'
         # assert len(df_sn['bl_fMRI'].value_counts()) == 114, 'Missing bl fMRI fp'
     return df_sn
 
 def get_bad_sns(ret=False):
-    bad_sns = {'201', '224', '231', '232', '233', '234', '235',
-               '135' # missing bl in the re-run data
+    # bad_sns = {'201', '212', '224', '227', '231', '232', '233', '234', '235',
+    #            '135' # missing bl in the re-run data
+    #            }
+    # if ret:
+    #     bad_sns.add('116')
+    #     bad_sns.add('125')
+    #     bad_sns.add('133')
+    #     bad_sns.add('138') # Has con but not vis
+    #
+    #     bad_sns.add('213')
+    #     bad_sns.add('225')
+
+    bad_sns = {#'201', '224', '231', #'232', '233', '234', '235',
+               '224', # missing run 3 of encoding I believe
+               '212', # missing BL in rerun
+               '135',  # missing bl in the re-run data
+               '234' # missing entirely, xlsx says "compcorr failed"
                }
     if ret:
-        bad_sns.add('116')
-        bad_sns.add('125')
-        bad_sns.add('133')
-        bad_sns.add('138') # Has con but not vis
+        bad_sns.add('116') # no memory
+        bad_sns.add('125') # no memory
+        bad_sns.add('133') # no memory
+        bad_sns.add('138') # no VIS
 
-        bad_sns.add('213')
-        bad_sns.add('215')
+        bad_sns.add('213') # no VIS
+        bad_sns.add('215') # no memory
+        bad_sns.add('231') # no CON
 
     return bad_sns
 
@@ -571,20 +615,27 @@ def print_outlier_data(df):
     print(col2outlier)
 
 if __name__ == '__main__':
-    age2sn = get_all_sns(ret=False)
+    # TODO: bring up sn 231, they have no CON betas but there's no note about them
+    #   in the spreadsheet
+    age2sn = get_all_sns(ret=True)
     # test = get_trial_info_('126')
     # quit()
     # print(age2sn[1])
     # n_subj = len(age2sn[1])
     # print(f'{n_subj=}')
     # quit()
+    # df_sn = get_trial_info('233', easy_override=True)
+    # quit()
+
     df_all = []
-    SNS = age2sn[1]
+    SNS = age2sn[2]
     # SNS = ['138']
     for SN in SNS:
+        # if SN not in {'201', '224', '231'}: continue
+        # if int(SN) < 233: continue
         if SN == '135': continue
-        print(f'Testing: {SN}')
         df_sn = get_trial_info(SN, easy_override=True)
+        print(df_sn['vis3_fMRI'])
         # for i in range(30):
         #     print(dict(df_sn[['inc', 'vis_fMRI', 'vis_resp', 'vis_type',
         #                       'obj_fMRI']].iloc[i]))
@@ -592,7 +643,4 @@ if __name__ == '__main__':
         # print_outlier_data(df_sn)
         df_all.append(df_sn)
     df_all = pd.concat(df_all)
-    print('All')
-    print_outlier_data(df_all)
-
 

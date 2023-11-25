@@ -1,3 +1,20 @@
+OA summary of connectivity:
+	- do not show PFC effect. Only occipital effect
+	- FPCN predict semantic (False) RSA (t=3.3)
+	- OA show strong ISPPC, including PFC. else_ventral works, ventral too, no dorsal, no FPCN
+
+224 is missing run 3
+
+Change the 4 layer to 5
+Remove PCA from -1 layer
+Vectors pre-PCA had a last feature of 0 if obj and 1 is scene. Strange. I comented this out (Nov 24)
+
+New data summary:
+- ISPC gives expected results for 3_3 (p < .01) and 3_4 (p < .05) in ventral + occipital
+- ERS gives PFC results
+- RSA with -1 DNN layer (or first [False] layer) gives PFC-Occ, hipp_occ, parietal_occ, ventral occ  results? but not occ itself
+- RSA
+
 the new data, (rerun3), gives weird results. like even for traditional BOLD analyses,
 - PFC effect
 - connectivity w PFC effect

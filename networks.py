@@ -1,0 +1,80 @@
+def prep_networks(setting=1):
+    if setting == 1:
+        networks = {
+            'Occipital': ['EVC', 'LOC', 'sOcG'],
+            'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
+            'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
+            'dPFC': ['IFG', 'MFG', 'SFG'],
+            'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
+            'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
+        }
+    elif setting == 2:
+        networks = {
+            # 'Frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', ],
+            # 'PFC_sub': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'Amyg', 'Hipp',
+            #             'Str', 'Tha'],
+            'else': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS', 'SPL',
+                     'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'Amyg', 'Hipp', 'Str',
+                     'Tha'],
+            'else_cortical': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS',
+                              'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG'],
+            'sub': ['Amyg', 'Hipp', 'Str', 'Tha'],
+        }
+    # elif setting == 3:
+    #     networks = {
+    #         'Sanity': (['IFG', 'MFG', 'INS']),
+    #         'PFC_Occ': (['IFG', 'MFG', 'SFG', 'OrG', 'EVC', 'LOC']),
+    #         'Hipp_Occ': (['Hipp', 'EVC', 'LOC']),
+    #         'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun', 'EVC', 'LOC']),
+    #         'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'EVC', 'LOC']),
+    #     }
+    elif setting == 3:
+        networks = {
+            'Sanity': (['IFG', 'MFG'], ['INS']),
+            'PFC_Occ': (['IFG', 'MFG', 'SFG', 'OrG'], ['EVC', 'LOC']),
+            'Hipp_Occ': (['Hipp'], ['EVC', 'LOC']),
+            'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun'], ['EVC', 'LOC']),
+            'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG'], ['EVC', 'LOC']),
+        }
+    elif setting == 4:
+        networks = {
+            'PFC': ['SFG', 'MFG', 'IFG', 'OrG',],
+        }
+    elif setting == 5:
+        networks = {
+            'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
+        }
+    elif setting == 6:
+        networks = {
+            'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
+            # 'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
+            # 'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
+            'PFC_Hipp': ['IFG', 'MFG', 'SFG', 'Hipp', 'OrG'],
+            'dPFC': ['IFG', 'MFG', 'SFG'],
+            'DMN': ['OrG', 'CG', 'Pcun', 'IPL'],
+            'Salience': ['INS', 'CG'],
+            'FPCN': ['MFG', 'IFG', 'IPL'],
+            'FPCN_CG': ['MFG', 'IFG', 'IPL', 'CG'],
+            'dlPFC': ['IFG', 'MFG'],
+            'mPFC_hipp': ['OrG', 'Hipp'],
+        }
+    elif setting == 7:
+        networks = {'else_ventral': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
+                                     'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
+                                     'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
+                                     'FuG', 'PhG', 'ATL', 'MTG']}
+    elif setting == 8:
+        networks = {'ventral_hipp': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'Hipp'],
+                    'temporal': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS'],
+                    'dorsal_proper': ['SPL', 'IPL', 'Pcun', 'PoG'],
+                    }
+    elif setting == 9:
+        networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
+    # elif setting == 7:
+    #     networks = {
+    #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
+    #         'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
+    #     }
+    else:
+        raise ValueError(f'Unknown setting: {setting}')
+    return networks

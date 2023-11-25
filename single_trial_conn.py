@@ -3,6 +3,8 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from conn_RSA import RSA_sn
 from conn_ERS import ERS_sn
+from conn_utils import get_BNA_ROIs
+from networks import prep_networks
 from organize_bhv import get_all_sns
 from old.plot_gen import plot_connectivity
 import numpy as np
@@ -10,7 +12,8 @@ import scipy.stats as stats
 
 from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
-
+import warnings
+from datetime import datetime
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
@@ -53,9 +56,14 @@ def prep_vecs(RSA, semantic):
             else:
                 d_vecs = get_DNN_vecs(DNN_layer=2, PCA=True, PCA_obj=True)
         elif isinstance(semantic, int):
-            d_vecs = get_DNN_vecs(DNN_layer=semantic, PCA=True, PCA_obj=True)
+            last_layer = semantic == -1
+            d_vecs = get_DNN_vecs(DNN_layer=semantic, PCA=not last_layer,
+                                  PCA_obj=True)
         else:
             raise ValueError(f'Invalid {semantic=}')
+        for obj, vec in d_vecs.items():
+            print(f'RSA stimulus vector size: {vec.shape=}')
+            break
     else:
         d_vecs = None
     return d_vecs
@@ -71,86 +79,6 @@ def prep_fps(four_tasks):
         fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
     return fps
 
-def prep_networks(setting=1):
-    if setting == 1:
-        networks = {
-            'Occipital': ['EVC', 'LOC', 'sOcG'],
-            'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
-            'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
-            'dPFC': ['IFG', 'MFG', 'SFG'],
-            'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
-            'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
-        }
-    elif setting == 2:
-        networks = {
-            # 'Frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', ],
-            # 'PFC_sub': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'Amyg', 'Hipp',
-            #             'Str', 'Tha'],
-            'else': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS', 'SPL',
-                     'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'Amyg', 'Hipp', 'Str',
-                     'Tha'],
-            'else_cortical': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS',
-                              'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG'],
-            'sub': ['Amyg', 'Hipp', 'Str', 'Tha'],
-        }
-    # elif setting == 3:
-    #     networks = {
-    #         'Sanity': (['IFG', 'MFG', 'INS']),
-    #         'PFC_Occ': (['IFG', 'MFG', 'SFG', 'OrG', 'EVC', 'LOC']),
-    #         'Hipp_Occ': (['Hipp', 'EVC', 'LOC']),
-    #         'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun', 'EVC', 'LOC']),
-    #         'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'EVC', 'LOC']),
-    #     }
-    elif setting == 3:
-        networks = {
-            'Sanity': (['IFG', 'MFG'], ['INS']),
-            'PFC_Occ': (['IFG', 'MFG', 'SFG', 'OrG'], ['EVC', 'LOC']),
-            'Hipp_Occ': (['Hipp'], ['EVC', 'LOC']),
-            'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun'], ['EVC', 'LOC']),
-            'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG'], ['EVC', 'LOC']),
-        }
-    elif setting == 4:
-        networks = {
-            'PFC': ['SFG', 'MFG', 'IFG', 'OrG',],
-        }
-    elif setting == 5:
-        networks = {
-            'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
-        }
-    elif setting == 6:
-        networks = {
-            'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
-            # 'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
-            # 'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
-            'PFC_Hipp': ['IFG', 'MFG', 'SFG', 'Hipp', 'OrG'],
-            'dPFC': ['IFG', 'MFG', 'SFG'],
-            'DMN': ['OrG', 'CG', 'Pcun', 'IPL'],
-            'Salience': ['INS', 'CG'],
-            'FPCN': ['MFG', 'IFG', 'IPL'],
-            'FPCN_CG': ['MFG', 'IFG', 'IPL', 'CG'],
-            'dlPFC': ['IFG', 'MFG'],
-            'mPFC_hipp': ['OrG', 'Hipp'],
-        }
-    elif setting == 7:
-        networks = {'else_ventral': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
-                                     'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
-                                     'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
-                                     'FuG', 'PhG', 'ATL', 'MTG']}
-    elif setting == 8:
-        networks = {'ventral_hipp': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'Hipp'],
-                    'temporal': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS'],
-                    'dorsal_proper': ['SPL', 'IPL', 'Pcun', 'PoG'],
-                    }
-    elif setting == 9:
-        networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
-    # elif setting == 7:
-    #     networks = {
-    #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
-    #         'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
-    #     }
-    else:
-        raise ValueError(f'Unknown setting: {setting}')
-    return networks
 
 def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
@@ -170,12 +98,22 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     age2sn = get_all_sns(ret=True)
     sns = age2sn[age]
 
-    if do_networks:
+    if (isinstance(do_networks, int) and do_networks) or \
+            isinstance(do_networks, str):
         networks = prep_networks(do_networks)
         keys = list(networks)
-    elif conn == 'BOLD':
+    else:
         networks = None
-        keys = atlas['tick_labels']
+        if conn == 'BOLD':
+            if combine_regions:
+                keys = atlas['tick_labels']
+            else:
+                keys = atlas['ROIs']
+        else:
+            keys = atlas['tick_labels']
+
+    # else:
+    #     raise ValueError(f'Unknown do_networks: {do_networks}')
 
     results = {'networks': networks, 'keys': keys,
                'sns': sns, 'scores': [], 'sizes': [],
@@ -200,12 +138,19 @@ def report_results(results):
     print_settings(results['settings'])
     scores = np.array(results['scores'])
     sizes = np.array(results['sizes'])
-    if scores.shape[1] == 246:
-        print('\t Results printing for BOLD is not yet implemented')
-        return
+    # if scores.shape[1] == 246:
+    #     print('\t Results printing for BOLD is not yet implemented')
+    #     return
 
-    assert len(results['keys']) == scores.shape[1], \
-        f'{len(results["keys"])=}, {scores.shape=}'
+    if len(results['keys']) != scores.shape[1]:
+        if results['settings']['conn'] == 'BOLD':
+            results['keys'] = get_BNA_ROIs()
+            warnings.warn('For Bold, setting keys to 246 BNA ROIs')
+        else:
+            raise ValueError(f'{len(results["keys"])=} != {scores.shape=}')
+
+    # assert len(results['keys']) == scores.shape[1], \
+    #     f'{len(results["keys"])=}, {scores.shape=}'
 
     for j, ROI in enumerate(results['keys']):
         ROI_scores = scores[:, j]
@@ -252,9 +197,17 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
             print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
     # assert do_networks != 3 or 'cross' in conn
     # assert not split, 'No split!'
+
+    if semantic == -1:
+        dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
+    else:
+        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+
+
     dir_results = r'cache/conn_RSA'
     results = pickle_wrap(None, run_settings, kwargs=settings,
-                          cache_dir=dir_results, easy_override=False)
+                          cache_dir=dir_results, easy_override=False,
+                          dt_max=dt_max)
     print(f'Finished!')
     report_results(results)
 
@@ -270,24 +223,25 @@ def run_analysis_toggles():
     # trial_similarity_toggle = ['seuclidean']
     trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
-    four_tasks_toggle = ['3_4', '3_3']
+    four_tasks_toggle = ['3_3', '3_4']
     # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
+    # conn_toggle = ['euc']#, 'prod']
     conn_toggle = ['euc']
-    # conn_toggle = ['BOLD']
     split_toggle = [False]
-    age = 2
+    age = 1
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
     # analyses = [(True, True), (True, False)]
     # analyses = [(False, False)]
     # analyses = [(True, False)]
-    analyses = [(True, -1), (True, False), (False, False), (True, 4)]
+    # analyses = [(True, -1)]#, (True, False), (False, False)]
+    analyses = [(False, False),  (True, False), (True, -1), (True, 5), ]
     # analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [1, 2, 3, 4, 5, 6, 7, 9, 8, False]: # 8, 1, 3, 4, 5, 6, 7, False
+            for do_networks in [False]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:

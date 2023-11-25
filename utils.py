@@ -260,7 +260,7 @@ def get_default_fp(args, kwargs, callback, cache_dir):
     return filepath
 
 def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
-                verbose=0, cache_dir=None):
+                verbose=0, cache_dir=None, dt_max=None):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
@@ -284,12 +284,13 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
     if os.path.isfile(filepath):
         made = os.path.getmtime(filepath)
         fn = os.path.basename(filepath)
-        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+        if dt_max is None:
+            dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
         dt_min = datetime(2023, 11, 1, 14, 0, 0, 0)
 
         dt = datetime.fromtimestamp(made)
         if dt < dt_max and dt > dt_min:
-            # easy_override = True
+            easy_override = True
             print(f'File ({fn}) was made: {made}')
             print('\tFile is old, overriding')
         # print(dt > dt_max)
