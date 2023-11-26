@@ -45,7 +45,7 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
     semantic = False
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
-                'conn': 'BOLD', 'trial_similarity': trial_similarity,
+                'conn': 'BOLD', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
                 'RDM_method': 'clever_std'}
@@ -174,6 +174,14 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
     print(model.summary())
 
     print('-' * 120)
+    formula = 'conn_score ~ 1 + con_hit + (1|sn) + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
+
+    print('-' * 120)
     formula = 'conn_score ~ 1 + inc_str + (1|sn) + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
@@ -209,23 +217,63 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
     print(model.summary())
 
     for fp, df_fp in df.groupby('fp_idx'):
-        print('-' * 20 + Fore.CYAN + fp + Fore.RESET + '-' * 20)
+        print('-*-' * 20 + Fore.CYAN + fp + Fore.RESET + '-*-' * 20)
         formula = 'conn_score ~ 1 + (1|sn)'
         print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
         model = Lmer(formula, data=df_fp)
         model.fit(REML=True, verbose=True, summary=True)
         print(model.summary())
 
+        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
         formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
         print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
         model = Lmer(formula, data=df_fp)
         model.fit(REML=True, verbose=True, summary=True)
         print(model.summary())
 
+        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
+        formula = 'conn_score ~ 1 + con_hit + (1|sn)'
+        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+        model = Lmer(formula, data=df_fp)
+        model.fit(REML=True, verbose=True, summary=True)
+        print(model.summary())
 
-def run_lmer():
+        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
+        formula = 'conn_score ~ 1 + inc_str + (1|sn)'
+        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+        model = Lmer(formula, data=df_fp)
+        model.fit(REML=True, verbose=True, summary=True)
+        print(model.summary())
+
+
+def run_lmer_PFC_RSA():
+    # RSA = True
+    # semantic = True
+    # split = False
+    # four_tasks = '3_4'
+    # do_networks = 6
+    # target_ROI = 'Frontal_CG'
+    # trial_similarity = 'corr'
+
     RSA = True
     semantic = True
+    split = False
+    four_tasks = '3_4'
+    do_networks = 6
+    target_ROI = 'Frontal_CG'
+    trial_similarity = 'spear'
+
+    results_bold, results_conn = load_for_lmer(RSA, semantic, split,
+                                               four_tasks, do_networks,
+                                               trial_similarity)
+    df, ROI_to_bold_keys = organize_df(results_conn, results_bold, do_networks,
+                                       target_ROI)
+
+    lmer_stats(df, ROI_to_bold_keys, target_ROI)
+
+def run_lmer():
+    RSA = False
+    semantic = False
     split = False
     four_tasks = '3_4'
     do_networks = 6
@@ -240,12 +288,11 @@ def run_lmer():
 
     lmer_stats(df, ROI_to_bold_keys, target_ROI)
 
-
             
 
 if __name__ == '__main__':
     # atlas = get_atlas(False, False)
     # print(atlas['tick_labels'])
     # quit()
-    run_lmer()
+    run_lmer_PFC_RSA()
 

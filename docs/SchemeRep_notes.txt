@@ -1,3 +1,26 @@
+
+PROBLEM, WAS CALCULATING AS SIMPLE MEAN!!!!!!!??????
+
+Final summary:
+1. Main result: PFC, present the ERS then the w2v RSA. Then, show how it is driven by the conceptual retrieval condition
+- TODO 1A: finish BOLD for the RSA/ERS and control that in the IRAF
+- TODO 1B: see if Split leads to stronger result. Doesn't work
+- TODO 1C: see if spearman leads to stronger result
+- TODO 1D: Plot edgewise
+- TODO 1E: establish module based on community algorithm
+- TODO 1F: try within-nan
+- BL seems to have the most similarity with ENC, VIS, CON. Although it's slight. I can claim that its driven by all
+- full_frontal and full_frontal_CG is worse than pure PFC (misnamed "frontal_CG" in the code)
+2. Side result
+- ISPC probably not viable
+- Even ERS doesn't work for occipital in YA
+- Maybe just a whole brain result??  Doesn't work for YA
+3. YA process perceptual information at population level vs. OA at occipital network level?
+3. Distinguish from occipital BOLD-level results?
+- Run the combine_regions BOLD
+
+
+
 Final:
 1. Ventral YA results have moved. Used to get a weak semantic -1 result. probably bunk anyhow
 2. Very compelling Frontal connectivity results for stim-similarity. Appears in both YA and OA (need to check IRAF)
@@ -15,25 +38,67 @@ Final:
 	dlPFC (26.0), t[53]=2.48, p=0.008
 	mPFC_hipp (16.0), t[53]=2.49, p=0.008
 * RSA, some trends:
-	NEED TO LOOK AT THIS BUT FOR 3_4
 	settings={'RSA': True, 'semantic': True, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'corr', 
-			  'second_order': 'spear', 'four_tasks': '3_3', 'combine_regions': False, 'split': False, 
+			  'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False, 
 			  'RDM_method': 'clever_std', 'age': 1}
-	Frontal_CG (52.0), t[29]=1.42, p=0.083
-	PFC_Hipp (56.0), t[29]=1.25, p=0.111
-	dPFC (40.0), t[29]=1.60, p=0.061
-* ISPC doesn't give PFC results for YA only OA
+		Frontal_CG (52.0), t[29]=1.74, p=0.046
+		PFC_Hipp (56.0), t[29]=1.77, p=0.044
+		dPFC (40.0), t[29]=1.84, p=0.038
+		DMN (46.0), t[29]=-0.28, p=0.390
+		Salience (26.0), t[29]=-0.85, p=0.201
+		FPCN (38.0), t[29]=1.43, p=0.082
+		FPCN_CG (52.0), t[29]=0.79, p=0.218
+		dlPFC (26.0), t[29]=1.41, p=0.085
+		mPFC_hipp (16.0), t[29]=-1.12, p=0.136
+	settings={'RSA': True, 'semantic': True, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'spear', 'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std', 'age': 1}
+		Frontal_CG (52.0), t[29]=1.98, p=0.028
+		PFC_Hipp (56.0), t[29]=1.85, p=0.037
+	Promising IRAF, but need to control for things
+* IRAF analysis suggests that this result is specific to conceptual retrieval.
+PROB WHETHER CONN=PROD HELPS?? or just other tweaks
+"Frontal CG" is a misnomer. Doesn't actually include CG??
+* I think pure PFC is best
+* Prod seems to hurt
+	settings={'RSA': False, 'semantic': False, 'do_networks': 6, 'conn': 'prod', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std', 'age': 'healthy'}
+	Frontal_CG (52.0), t[53]=1.12, p=0.134
+	PFC_Hipp (56.0), t[53]=1.68, p=0.050
+	dPFC (40.0), t[53]=0.79, p=0.216
+	DMN (46.0), t[53]=-0.57, p=0.286
+	Salience (26.0), t[53]=0.62, p=0.269
+	FPCN (38.0), t[53]=0.39, p=0.349
+	FPCN_CG (52.0), t[53]=0.26, p=0.397
+	dlPFC (26.0), t[53]=1.21, p=0.116
+	mPFC_hipp (16.0), t[53]=0.87, p=0.194
+
+* ISPC doesn't give PFC results for YA only OA but not super strong
+* 'trial_similarity': 'seuclidean'* doesn't give good PFC
+* Run ISPC for whole_brain. This can allude to an effect even if none if specific regions cannot be implicated
+*** Check perceptual RSA with split
+	
+	
+	
+	
 	
 - The "sanity" network (['IFG', 'MFG'], ['INS']) gives null results
 - Occipital-connectivity no longer gives results for YA in the new data
 3. ISPC: Hold people show more homogeneity in their network responses? More ISPC
+
+
 4. ISPC: Some ventral patterns
 	settings={'four_tasks': '3_3', 'conn': 'euc', 'combine_regions': False, 'split': False, 
 			  'do_networks': 8, 'trial_similarity': 'corr', 'age': 'healthy'}
 	ventral_hipp (1217.1), t[227]=2.01, p=0.023
 	temporal (1531.1), t[227]=2.66, p=0.004
 	dorsal_proper (703.0), t[227]=1.13, p=0.130
+* Best that YA can give...
+	Young people:
+settings={'four_tasks': '3_4', 'conn': 'euc', 'combine_regions': False, 'split': False, 'do_networks': 9, 'trial_similarity': 'corr'}
+MTL (490.6), t[113]=1.69, p=0.047
 
+5. full_frontal and full_frontal_CG is worse than pure PFC (misnamed "frontal_CG" in the code)
+settings={'RSA': False, 'semantic': False, 'do_networks': 11, 'conn': 'euc', 'trial_similarity': 'spear', 'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std', 'age': 1}
+full_frontal (68.0), t[29]=1.63, p=0.057
+full_frontal_CG (82.0), t[29]=0.88, p=0.193
 
 Suppose I go with the new data, YAs:
 1. Occipital shows no conn effects??? No single region either

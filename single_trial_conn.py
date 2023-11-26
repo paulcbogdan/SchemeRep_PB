@@ -18,7 +18,7 @@ from colorama import Fore
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
-           RDM_method='by_run'):
+           RDM_method='by_run', combine_regions=False):
     scores_all = []
     sizes_all = []
     scores_by_ROI = []
@@ -28,6 +28,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 RSA_sn(sn, atlas, d_vecs, fp0, networks=networks,
                        conn=conn, trial_similarity=trial_similarity,
                        second_order=second_order, RDM_method=RDM_method,
+                       combine_regions=combine_regions,
                        )
             scores_all.append(scores)
             sizes_all.append(sizes)
@@ -38,7 +39,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                     continue
                 scores, sizes, score_by_ROI = \
                     ERS_sn(sn, atlas, fp0, fp1, networks=networks,
-                           conn=conn, trial_similarity=trial_similarity)
+                           conn=conn, trial_similarity=trial_similarity,
+                           combine_regions=combine_regions,)
                 scores_all.append(scores)
                 sizes_all.append(sizes)
                 scores_by_ROI.append(score_by_ROI)
@@ -125,7 +127,8 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         scores, sizes, scores_by_ROI = \
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
                    conn=conn, trial_similarity=trial_similarity,
-                   second_order=second_order, RDM_method=RDM_method)
+                   second_order=second_order, RDM_method=RDM_method,
+                   combine_regions=combine_regions)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         results['scores_by_ROI'].append(scores_by_ROI)
@@ -186,6 +189,9 @@ def run_settings_healthy(settings, ISPC=False):
     else:
         dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
 
+    if 'cross_' in settings['conn']:
+        dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
+
     settings1 = settings.copy()
     del settings1['age']
     results1 = pickle_wrap(None, run_settings, kwargs=settings1,
@@ -226,7 +232,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
-    assert (not combine_regions) or do_networks
+    assert (not combine_regions) or do_networks or conn == 'BOLD'
     assert RSA or second_order == 'spear', 'Leave second_order as \"spear\" for ERS'
     assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
     assert not (split and do_networks in [2, 7]), 'Too computationally intense'
@@ -241,6 +247,9 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
         dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
     else:
         dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+
+    if 'cross_' in conn:
+        dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
 
     dir_results = r'cache/conn_RSA'
     if age == 'healthy':
@@ -266,24 +275,26 @@ def run_analysis_toggles():
     # RSA = False
     # semantic = False
     # do_networks = 1
-    RDM_method = 'clever_std'
-    # RDM_method = 'within_nan'
+    # RDM_method = 'clever_std'
+    RDM_method = 'within_nan'
+    # RDM_method = 'clever_std_complex_mean'
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['corr', 'spear', 'seuclidean']
+    trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
 
-    four_tasks_toggle = ['3_3', '3_4']
     four_tasks_toggle = ['3_4']
+    # four_tasks_toggle = ['3_3']
     # four_tasks_toggle = [True]
     # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['euc']#, 'prod']
-    conn_toggle = ['prod']
+    conn_toggle = ['BOLD']
     split_toggle = [False]
-    age = 'healthy'
+    age = 1
+    combine_regions = True
     # age = 1
     # split_toggle = [False]
 
@@ -293,11 +304,13 @@ def run_analysis_toggles():
     # analyses = [(True, False)]
     # analyses = [(True, -1)]#, (True, False), (False, False)]
     # analyses = [(True, False), ]
-    analyses = [(True, True), (True, False), (False, False)]
+    analyses = [(True, True), (False, False)]
+    # analyses = [(True, False), (False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [6]:
-            # for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]: # 8, 1, 3, 4, 5, 6, 7, False
+            # for do_networks in [6]:
+            for do_networks in [False]:
+            # for do_networks in [1, 3, 4, 5, 6, 8, 9, False, 2, 7]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
@@ -308,6 +321,7 @@ def run_analysis_toggles():
                                              RSA=RSA, semantic=semantic,
                                              do_networks=do_networks,
                                              RDM_method=RDM_method,
+                                             combine_regions=combine_regions,
                                              age=age)
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')

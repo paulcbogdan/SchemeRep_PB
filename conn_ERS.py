@@ -6,7 +6,7 @@ from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
 
 def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
-           ):
+           combine_regions=False):
     BOLD = conn == 'BOLD'
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
@@ -17,7 +17,8 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
                                                    fp1=fp1, networks=networks,
                                                    org_by_region=not BOLD,
                                                    cross_region=cross_region,
-                                                   conn=conn,)
+                                                   conn=conn,
+                                                   combine_regions=combine_regions,)
     scores = []
     sizes = []
     scores_by_trial = []

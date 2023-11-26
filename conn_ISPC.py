@@ -118,7 +118,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 		ROI_SD = np.std(ROI_scores)
 		ROI_SE = ROI_SD / np.sqrt(len(ROI_same_scores))
 		ROI_t = ROI_M / ROI_SE
-		ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_same_scores) - 1) * 2
+		ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_same_scores) - 1)# * 2
 		print(f'{ROI} ({ROI_M:.5f}), t={ROI_t:.2f}, p={ROI_p:.3f}')
 		score_by_stim.append(ROI_scores)
 		# quit()
@@ -244,7 +244,8 @@ def run_ISPC_toggle():
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [2]:
+			for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]:
+			# for do_networks in [6]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

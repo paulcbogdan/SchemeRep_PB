@@ -4,9 +4,9 @@ def prep_networks(setting=1):
             'Occipital': ['EVC', 'LOC', 'sOcG'],
             'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
             'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
-            'dPFC': ['IFG', 'MFG', 'SFG'],
-            'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
-            'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
+            #'dPFC': ['IFG', 'MFG', 'SFG'],
+            #'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
+            #'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
         }
     elif setting == 2:
         networks = {
@@ -41,9 +41,10 @@ def prep_networks(setting=1):
             'PFC': ['SFG', 'MFG', 'IFG', 'OrG',],
         }
     elif setting == 5:
-        networks = {
-            'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
-        }
+        raise ValueError('setting 5 is bad don\'t use it')
+        # networks = {
+        #     'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
+        # }
     elif setting == 6:
         networks = {
             'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
@@ -75,7 +76,15 @@ def prep_networks(setting=1):
                                      'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
                                      'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
                                      'FuG', 'PhG', 'ATL', 'MTG',
-                                     'EVC', 'LOC', 'sOcG']}
+                                     'EVC', 'LOC', 'sOcG'],
+                    'perceptual': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS',
+                                   'SPL', 'IPL', 'Pcun', 'PoG',
+                                   'EVC', 'LOC', 'sOcG']}
+    elif setting == 11:
+        networks = {'full_frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL'],
+                    'full_frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG',
+                                        'PCL', 'CG'],}
+
     # elif setting == 7:
     #     networks = {
     #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),

@@ -199,6 +199,8 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     n_ROIs = len(ROIs)
+    # print(f'{n_ROIs=}')
+    # quit()
     n_regions = len(np.unique(ROI_regions))
     nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
     nan_str += '_dropNaNvox' if drop_nan_voxels else ''
@@ -209,7 +211,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     combine_str = '_comb' if combine_regions else '_noComb'
     fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
                fr'_reg{n_regions}{org_by_region_str}{nan_str}{combine_str}.pkl'
-    # print(f'Go: ... {fp_cache=}')
+    print(f'Load: ... {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
     r2vecs = pickle_wrap(fp_cache, f, verbose=False,

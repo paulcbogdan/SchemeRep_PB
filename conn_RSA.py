@@ -12,7 +12,7 @@ from scipy.spatial import distance
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
-           RDM_method='by_run'):
+           RDM_method='by_run', combine_regions=False):
     BOLD = conn == 'BOLD'
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
@@ -24,7 +24,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     # TODO: Implement toggle to be high density
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks, org_by_region=not BOLD,
-                                 cross_region=cross_region, conn=conn)
+                                 cross_region=cross_region, conn=conn,
+                                 combine_regions=combine_regions)
     scores = []
     sizes = []
     IRAFs_all_ROI = []
@@ -53,6 +54,11 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr=second_order)
         elif RDM_method == 'clever_std':
             RSM_fMRI = get_trial_x_trial_RSM(vecs, simple_mean=True,
+                                             trial_similarity=trial_similarity)
+            z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
+                          within_to_nan=False)
+        elif RDM_method == 'clever_std_complex_mean':
+            RSM_fMRI = get_trial_x_trial_RSM(vecs, simple_mean=False,
                                              trial_similarity=trial_similarity)
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
