@@ -27,22 +27,20 @@ def get_idx_from_key(l, substring):
 
 
 def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
-                  trial_similarity):
+                  trial_similarity, RDM_method):
     dir_results = r'cache/conn_RSA'
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': trial_similarity,  # change trial_similarity=spear
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': split,
-                'RDM_method': 'clever_std'}
+                'RDM_method': RDM_method}
 
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
     print('-' * 100)
     report_results(results_conn)
     print('-' * 100)
-
-    semantic = False
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
                 'conn': 'BOLD', 'trial_similarity': 'corr',
@@ -51,6 +49,8 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
                 'RDM_method': 'clever_std'}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
+    # report_results(results_bold)
+    # quit()
     return results_bold, results_conn
 
 def organize_df(results_conn, results_bold, do_networks, target_ROI):
@@ -262,10 +262,12 @@ def run_lmer_PFC_RSA():
     do_networks = 6
     target_ROI = 'Frontal_CG'
     trial_similarity = 'spear'
+    RDM_method = 'clever_std'
 
     results_bold, results_conn = load_for_lmer(RSA, semantic, split,
                                                four_tasks, do_networks,
-                                               trial_similarity)
+                                               trial_similarity,
+                                               RDM_method)
     df, ROI_to_bold_keys = organize_df(results_conn, results_bold, do_networks,
                                        target_ROI)
 

@@ -108,12 +108,16 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     else:
         networks = None
         if conn == 'BOLD':
-            if combine_regions:
-                keys = atlas['tick_labels']
-            else:
-                keys = atlas['ROIs']
+            # if combine_regions:
+            #     keys = atlas['tick_labels']
+            # else:
+            keys = atlas['ROIs']
         else:
             keys = atlas['tick_labels']
+    # print(atlas['ROIs'])
+    # quit()
+    # print(f'{len(keys)=}')
+    # quit()
 
     # else:
     #     raise ValueError(f'Unknown do_networks: {do_networks}')
@@ -148,6 +152,7 @@ def report_results(results):
 
     if len(results['keys']) != scores.shape[1]:
         if results['settings']['conn'] == 'BOLD':
+            assert scores.shape[1] == 246, f'BAD BOLD {scores.shape=}'
             results['keys'] = get_BNA_ROIs()
             warnings.warn('For Bold, setting keys to 246 BNA ROIs')
         else:
@@ -276,8 +281,8 @@ def run_analysis_toggles():
     # semantic = False
     # do_networks = 1
     # RDM_method = 'clever_std'
-    RDM_method = 'within_nan'
-    # RDM_method = 'clever_std_complex_mean'
+    # RDM_method = 'within_nan'
+    RDM_method = 'clever_std_complex_mean'
 
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
