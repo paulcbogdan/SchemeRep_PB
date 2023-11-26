@@ -3,16 +3,14 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from conn_RSA import RSA_sn
 from conn_ERS import ERS_sn
-from conn_utils import get_BNA_ROIs
+from conn_report import report_results
 from networks import prep_networks
 from organize_bhv import get_all_sns
 from old.plot_gen import plot_connectivity
 import numpy as np
-import scipy.stats as stats
 
 from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
-import warnings
 from datetime import datetime
 from colorama import Fore
 
@@ -139,38 +137,6 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         report_results(results)
     return results
 
-def print_settings(settings):
-    print(f'{settings=}')
-
-def report_results(results):
-    print_settings(results['settings'])
-    scores = np.array(results['scores'])
-    sizes = np.array(results['sizes'])
-    # if scores.shape[1] == 246:
-    #     print('\t Results printing for BOLD is not yet implemented')
-    #     return
-
-    if len(results['keys']) != scores.shape[1]:
-        if results['settings']['conn'] == 'BOLD':
-            assert scores.shape[1] == 246, f'BAD BOLD {scores.shape=}'
-            results['keys'] = get_BNA_ROIs()
-            warnings.warn('For Bold, setting keys to 246 BNA ROIs')
-        else:
-            raise ValueError(f'{len(results["keys"])=} != {scores.shape=}')
-
-    # assert len(results['keys']) == scores.shape[1], \
-    #     f'{len(results["keys"])=}, {scores.shape=}'
-
-    for j, ROI in enumerate(results['keys']):
-        ROI_scores = scores[:, j]
-        M = np.nanmean(ROI_scores)
-        SD = np.nanstd(ROI_scores)
-        N = len(ROI_scores[~np.isnan(ROI_scores)])
-        SE = SD / np.sqrt(N)
-        t = M / SE
-        p = stats.t.sf(np.abs(t), N - 1)
-        M_size = np.nanmean(sizes[:, j])
-        print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}')
 
 def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
     M_mat = np.nanmean(rs_by_edge_ar_all, axis=0)
@@ -290,7 +256,7 @@ def run_analysis_toggles():
     trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
 
-    four_tasks_toggle = ['3_4']
+    four_tasks_toggle = ['3_3']
     # four_tasks_toggle = ['3_3']
     # four_tasks_toggle = [True]
     # four_tasks_toggle = [False, True]

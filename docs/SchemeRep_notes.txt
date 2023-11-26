@@ -1,5 +1,22 @@
 
-PROBLEM, WAS CALCULATING AS SIMPLE MEAN!!!!!!!??????
+
+1. w2v RSA gives only perceptual regions (ventral + dorsal + occipital) when doing all four fps
+- Need to plot this
+2. connectivity analysis only gives us the PFC
+- p = .014 from conn_score~1+(1|sn)+(1|fp_idx)
+- p = .015 when doing the above lmer with all SFG/MFG/IFG/OrG controls
+- This notably demonstrates another compelling use case for IRAF (mention that the ROI-level often showed trends for encoding or visual?)
+- Driven by the conceptual retrieval task
+3. Similar results when looking at ERS, speaking to the robustness of the findings
+- For conn, PFC shows it
+- For BOLD, only perceptual does 
+4. RSA trend suggests that this is strongest for the conceptual retrieval
+Other.
+- ISPC shows OA effect (p = .016) but not YA (p = 0.215 and in opposite direction)
+- ?????
+
+
+Optics of p = .01 are good
 
 Final summary:
 1. Main result: PFC, present the ERS then the w2v RSA. Then, show how it is driven by the conceptual retrieval condition

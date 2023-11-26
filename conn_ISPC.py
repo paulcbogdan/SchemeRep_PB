@@ -11,7 +11,8 @@ from conn_utils import get_ROI_vecs_wrap, get_conn_vecs, get_trial_x_trial
 from organize_bhv import get_all_sns, get_trial_info
 from tqdm import tqdm
 
-from single_trial_conn import prep_fps, report_results, run_settings_healthy
+from single_trial_conn import prep_fps, run_settings_healthy
+from conn_report import report_results
 from networks import prep_networks
 from utils import pickle_wrap
 import warnings
@@ -178,7 +179,7 @@ def run_settings_ISPC_healthy(settings):
 						   cache_dir=dir_results, easy_override=False,
 						   verbose=0)
 	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
-	report_results(results1)
+	report_results(results1, ISPC=True)
 
 	settings2 = settings.copy()
 	settings2['age'] = 2
@@ -186,7 +187,7 @@ def run_settings_ISPC_healthy(settings):
 						   cache_dir=dir_results, easy_override=False,
 							verbose=0)
 	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
-	report_results(results2)
+	report_results(results2, ISPC=True)
 
 	results_both = {'networks': results1['networks'],
 					'keys': results1['keys'],
@@ -232,7 +233,7 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 		results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
 							  cache_dir=dir_results, easy_override=False)
 		print(f'{Fore.RED}Finished!{Fore.RESET}')
-	report_results(results)
+	report_results(results, ISPC=True)
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
@@ -244,8 +245,8 @@ def run_ISPC_toggle():
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]:
-			# for do_networks in [6]:
+			# for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]:
+			for do_networks in [6]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

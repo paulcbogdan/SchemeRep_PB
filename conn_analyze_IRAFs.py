@@ -2,7 +2,8 @@ from collections import defaultdict
 
 from conn_utils import get_BNA_ROIs
 from organize_bhv import get_trial_info
-from single_trial_conn import run_settings, report_results
+from single_trial_conn import run_settings
+from conn_report import report_results
 from networks import prep_networks
 from utils import pickle_wrap
 import pandas as pd
@@ -27,30 +28,29 @@ def get_idx_from_key(l, substring):
 
 
 def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
-                  trial_similarity, RDM_method):
+                  trial_similarity, RDM_method, age):
     dir_results = r'cache/conn_RSA'
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': trial_similarity,  # change trial_similarity=spear
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': split,
-                'RDM_method': RDM_method}
+                'RDM_method': RDM_method, 'age': age}
 
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
     print('-' * 100)
-    report_results(results_conn)
+    report_results(results_conn, do_lmer=True)
     print('-' * 100)
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
                 'conn': 'BOLD', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
-                'RDM_method': 'clever_std'}
+                'RDM_method': 'clever_std', 'age': age}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
-    # report_results(results_bold)
-    # quit()
+    report_results(results_bold, do_lmer=True)
     return results_bold, results_conn
 
 def organize_df(results_conn, results_bold, do_networks, target_ROI):
@@ -247,14 +247,6 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
 
 
 def run_lmer_PFC_RSA():
-    # RSA = True
-    # semantic = True
-    # split = False
-    # four_tasks = '3_4'
-    # do_networks = 6
-    # target_ROI = 'Frontal_CG'
-    # trial_similarity = 'corr'
-
     RSA = True
     semantic = True
     split = False
@@ -263,15 +255,40 @@ def run_lmer_PFC_RSA():
     target_ROI = 'Frontal_CG'
     trial_similarity = 'spear'
     RDM_method = 'clever_std'
+    age = 1
 
     results_bold, results_conn = load_for_lmer(RSA, semantic, split,
                                                four_tasks, do_networks,
                                                trial_similarity,
-                                               RDM_method)
+                                               RDM_method,
+                                               age)
     df, ROI_to_bold_keys = organize_df(results_conn, results_bold, do_networks,
                                        target_ROI)
 
     lmer_stats(df, ROI_to_bold_keys, target_ROI)
+
+
+def run_lmer_PFC_ERS():
+    RSA = True
+    semantic = False
+    split = False
+    four_tasks = '3_4'
+    do_networks = 6
+    target_ROI = 'Frontal_CG'
+    trial_similarity = 'spear'
+    RDM_method = 'clever_std'
+    age = 1
+
+    results_bold, results_conn = load_for_lmer(RSA, semantic, split,
+                                               four_tasks, do_networks,
+                                               trial_similarity,
+                                               RDM_method,
+                                               age)
+    df, ROI_to_bold_keys = organize_df(results_conn, results_bold, do_networks,
+                                       target_ROI)
+
+    lmer_stats(df, ROI_to_bold_keys, target_ROI)
+
 
 def run_lmer():
     RSA = False
