@@ -54,9 +54,11 @@ NAME_RENAMER = {'inside of a car': 'car',
                }
 
 
-def get_trial_info(sn, easy_override=False):
-    fp = fr'cache/trial_info/{sn}.pkl'
-    df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn),
+def get_trial_info(sn, easy_override=False, ret=True):
+    # ret may not be needed. added in 11/25/2025 but it wasnt needed
+    ret_str = '_NoRet' if not ret else ''
+    fp = fr'cache/trial_info/{sn}{ret_str}.pkl'
+    df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn, ret),
                         easy_override=easy_override,
                         verbose=False)
     return df_sn
@@ -201,8 +203,9 @@ def get_trial_info_(sn, ret=False):
     # add_onset_time(df_sn, sn)
 
     df_sn = include_BL(df_sn, sn)
-    df_sn = include_conceptual(df_sn, sn)
-    df_sn = include_vis(df_sn, sn)
+    if ret:
+        df_sn = include_conceptual(df_sn, sn)
+        df_sn = include_vis(df_sn, sn)
     try:
         df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
         def f(row):
@@ -312,6 +315,8 @@ def include_conceptual(df_sn, sn):
                 if len(glob_conc2):
                     assert len(glob_conc2) == 1
                     obj2fp2[obj] = glob_conc2[0]
+                else:
+                    obj2fp2[obj] = None
 
             glob_conc3 = fr'{conc_root}/CON_rerun3/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_conc3 = glob(glob_conc3)
@@ -410,11 +415,17 @@ def include_vis(df_sn, sn):
             else:
                 glob_vic2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
                 glob_vic2 = glob(glob_vic2)
-                obj2fp2[obj] = glob_vic2[0]
+                if len(glob_vic2):
+                    obj2fp2[obj] = glob_vic2[0]
+                else:
+                    obj2fp2[obj] = None
 
             glob_vic3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
             glob_vic3 = glob(glob_vic3)
-            obj2fp3[obj] = glob_vic3[0]
+            if len(glob_vic3):
+                obj2fp3[obj] = glob_vic3[0]
+            else:
+                obj2fp3[obj] = None
 
     else:
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)

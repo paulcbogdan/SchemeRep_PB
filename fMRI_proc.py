@@ -315,7 +315,8 @@ def include_bhv(bhv, df_sn_):
         except KeyError:
             bhv[key].append(np.full(len(df_sn_), np.nan))
 
-def prep_variables(sn, cin, atlas, org_by_region):
+def prep_variables(sn, cin, atlas, org_by_region, ret):
+    print(f'{ret=}')
     df_sn = get_trial_info(sn, easy_override=True)
     if cin is not None:
         df_sn = df_sn[df_sn['inc'] == cin]
@@ -345,7 +346,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     print(f'Onto: {sn}')
 
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
-        prep_variables(sn, cin, atlas, org_by_region)
+        prep_variables(sn, cin, atlas, org_by_region,
+                       ret=('vis' in fp_fMRI_col or 'con' in fp_fMRI_col))
     sess = fp_fMRI_col.split('_')[0].replace('2', '').replace('3', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
@@ -447,7 +449,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     # else:
     #     atlas = get_BN_and_resample(combine_bilateral=bilateral)
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
-                          'con2_fMRI', 'vis2_fMRI', ]
+                          'con2_fMRI', 'vis2_fMRI', 'con3_fMRI', 'vis3_fMRI', ]
     atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
     age2sn = get_all_sns(ret=ret)
 
@@ -470,7 +472,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     stim_keys = ['obj', 'obj_abs',
                  'scn', 'scn_abs',
                  'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
-    stim_keys = ['obj', 'scn']#, 'dif_abs']
+    # stim_keys = ['obj', 'scn']#, 'dif_abs']
     triple_z = {}
     # rxr_all = {}
     # for key in stim_keys:
@@ -556,7 +558,7 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     inc = None
     # if True:
-    for age in [1, 2]:
+    for age in [2]:
         for inc in [None]:
             for DNN_layer, semantic in [
                 (2, False),
@@ -568,8 +570,8 @@ def run_multi_settings():
                 for fp_fMRI_col in [
                                     'bl3_fMRI',
                                     'obj3_fMRI',
-                                    'scn3_fMRI',
-                                    #'con2_fMRI',
+                                    # 'scn3_fMRI',
+                                    'con3_fMRI',
                                     'vis3_fMRI',
                 ]:
             # for fp_fMRI_col in ['obj_fMRI']:
@@ -596,7 +598,7 @@ def run_multi_settings():
                                                PCA_obj=PCA_obj,
                                                shuffle=False
                                                )
-                    d = pickle_wrap(fp_out, f, easy_override=True,
+                    d = pickle_wrap(fp_out, f, easy_override=False,
                                     verbose=True)
 
 

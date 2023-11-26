@@ -70,6 +70,12 @@ def prep_networks(setting=1):
                     }
     elif setting == 9:
         networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
+    elif setting == 10:
+        networks = {'whole_brain': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
+                                     'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
+                                     'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
+                                     'FuG', 'PhG', 'ATL', 'MTG',
+                                     'EVC', 'LOC', 'sOcG']}
     # elif setting == 7:
     #     networks = {
     #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),

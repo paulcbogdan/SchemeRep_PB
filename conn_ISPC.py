@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from random import random
 
 import numpy as np
@@ -10,10 +11,11 @@ from conn_utils import get_ROI_vecs_wrap, get_conn_vecs, get_trial_x_trial
 from organize_bhv import get_all_sns, get_trial_info
 from tqdm import tqdm
 
-from single_trial_conn import prep_fps, report_results
+from single_trial_conn import prep_fps, report_results, run_settings_healthy
 from networks import prep_networks
 from utils import pickle_wrap
 import warnings
+from colorama import Fore
 
 def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=False,
 		 networks=False,  trial_similarity='corr', ):
@@ -128,6 +130,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 					  split=False, do_networks=1, trial_similarity='corr',
 					  age=1):
 	settings = locals().copy()
+	print(f'Run settings ISPC: {settings=}')
 	atlas = get_atlas(combine_regions=combine_regions,
 					  combine_bilateral=False,
 					  split=split, split_code='xyz')
@@ -165,16 +168,47 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	results['scores_by_ROI'] = scores_by_stim_fp_ROI
 	return results
 
+def run_settings_ISPC_healthy(settings):
+	# results_both = run_settings_healthy(settings, run_settings_ISPC)
+	dir_results = r'cache/conn_RSA'
+
+	settings1 = settings.copy()
+	del settings1['age']
+	results1 = pickle_wrap(None, run_settings_ISPC, kwargs=settings1,
+						   cache_dir=dir_results, easy_override=False,
+						   verbose=0)
+	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
+	report_results(results1)
+
+	settings2 = settings.copy()
+	settings2['age'] = 2
+	results2 = pickle_wrap(None, run_settings_ISPC, kwargs=settings2,
+						   cache_dir=dir_results, easy_override=False,
+							verbose=0)
+	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
+	report_results(results2)
+
+	results_both = {'networks': results1['networks'],
+					'keys': results1['keys'],
+					'sns': results1['sns'] + results2['sns'],
+					'scores': np.concatenate([results1['scores'],
+											  results2['scores']]),
+					'sizes': np.concatenate([results1['sizes'],
+											 results2['sizes']]),
+					'scores_by_ROI': np.concatenate([results1['scores_by_ROI'],
+													 results2['scores_by_ROI']]),
+					'settings': settings}
+	return results_both
+
 def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			 split=False, do_networks=0, trial_similarity='corr',
 			 age=1):
 	settings = locals().copy()
-	OA = age == 2
-	if OA:
-		assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
-	else:
-		del settings['age']
-
+	# OA = age == 2
+	# if OA:
+	# 	assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+	# else:
+	# 	del settings['age']
 	assert not (combine_regions and split), 'cannot combine and split'
 	assert (not combine_regions) or do_networks
 	assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
@@ -184,23 +218,33 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
-	results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
-						  cache_dir=dir_results, easy_override=False,
-						  )
-	print(f'Finished!')
+	if age == 'healthy':
+		results = pickle_wrap(None, run_settings_ISPC_healthy,
+							  kwargs={'settings': settings},
+							  cache_dir=dir_results, easy_override=True,
+							  verbose=0)
+		print(f'{Fore.RED}Combined people:{Fore.RESET}')
+	else:
+		if age == 2:
+			assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+		else:
+			del settings['age']
+		results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
+							  cache_dir=dir_results, easy_override=False)
+		print(f'{Fore.RED}Finished!{Fore.RESET}')
 	report_results(results)
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
-	four_tasks_toggle = ['3_4', '3_3']
+	four_tasks_toggle = ['3_4']#, '3_3']
 	conn_toggle = ['euc']
 	# conn_toggle = ['BOLD']
 	split_toggle = [False]
-	age = 2
+	age = 'healthy'
 
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
-			for do_networks in [False]:
+			for do_networks in [2]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

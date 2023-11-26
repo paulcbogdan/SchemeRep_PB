@@ -1,3 +1,66 @@
+Final:
+1. Ventral YA results have moved. Used to get a weak semantic -1 result. probably bunk anyhow
+2. Very compelling Frontal connectivity results for stim-similarity. Appears in both YA and OA (need to check IRAF)
+	settings={'RSA': False, 'semantic': False, 'do_networks': 6, 'conn': 'euc', 
+			  'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': '3_4', 
+			  'combine_regions': False, 'split': False, 'RDM_method': 'clever_std', 
+			  'age': 'healthy'}
+	Frontal_CG (52.0), t[53]=3.66, p=0.000
+	PFC_Hipp (56.0), t[53]=4.23, p=0.000
+	dPFC (40.0), t[53]=2.38, p=0.011
+	DMN (46.0), t[53]=0.17, p=0.435
+	Salience (26.0), t[53]=1.73, p=0.045
+	FPCN (38.0), t[53]=1.87, p=0.034
+	FPCN_CG (52.0), t[53]=1.75, p=0.043
+	dlPFC (26.0), t[53]=2.48, p=0.008
+	mPFC_hipp (16.0), t[53]=2.49, p=0.008
+* RSA, some trends:
+	NEED TO LOOK AT THIS BUT FOR 3_4
+	settings={'RSA': True, 'semantic': True, 'do_networks': 6, 'conn': 'euc', 'trial_similarity': 'corr', 
+			  'second_order': 'spear', 'four_tasks': '3_3', 'combine_regions': False, 'split': False, 
+			  'RDM_method': 'clever_std', 'age': 1}
+	Frontal_CG (52.0), t[29]=1.42, p=0.083
+	PFC_Hipp (56.0), t[29]=1.25, p=0.111
+	dPFC (40.0), t[29]=1.60, p=0.061
+* ISPC doesn't give PFC results for YA only OA
+	
+- The "sanity" network (['IFG', 'MFG'], ['INS']) gives null results
+- Occipital-connectivity no longer gives results for YA in the new data
+3. ISPC: Hold people show more homogeneity in their network responses? More ISPC
+4. ISPC: Some ventral patterns
+	settings={'four_tasks': '3_3', 'conn': 'euc', 'combine_regions': False, 'split': False, 
+			  'do_networks': 8, 'trial_similarity': 'corr', 'age': 'healthy'}
+	ventral_hipp (1217.1), t[227]=2.01, p=0.023
+	temporal (1531.1), t[227]=2.66, p=0.004
+	dorsal_proper (703.0), t[227]=1.13, p=0.130
+
+
+Suppose I go with the new data, YAs:
+1. Occipital shows no conn effects??? No single region either
+- Look into BOLD
+2. Ventral dies. Even negative effect commonly. Negative effect for occipital too stratngely
+- Hopeless
+2. ERS YA: mPFC_hipp (16.0), t[29]=2.68, p=0.006.
+Need:
+- At least one type of RSA result
+- Predict at least one type of memory 
+- Show an IRAF effect for some conditions specifically
+- However, OA shows (?????): For perceptual RSA: mPFC_hipp (16.0), t[23]=-4.36, p=0.000
+3. else_ventral falls flat...
+4. Single region mostly falls flat
+5. OA may show frontal representation (RSA perceptual) + stimulus-similarity effect. Could reflect PASA?
+- OA also show just BOLD similarity effect in PFC, but no PFC RSA (RSA even shows negative trends)
+- OA also seem to show ISPC in PFC?? it's running now. very very hard to do because of how many nans there are. for most regions it errors out due to having fewer than 10 good voxels
+6. Semantic 5 does nothing
+
+
+Prioritization Saturday Nov 25:
+1. Critical, need to just explore whether BOLD alone gives results
+2. If this isn't looking good, do the fMRI_prep analysis
+3. Combine YA and OA. Have it check if exists and load 
+
+
+
 OA summary of connectivity:
 	- do not show PFC effect. Only occipital effect
 	- FPCN predict semantic (False) RSA (t=3.3)
@@ -39,6 +102,7 @@ Then, if looking just at conceptual retrieval (con_idxer = [3]), we get a signif
 
 Seems like taking semantic = -1 works for ventral + PFC, athough it could be stronger
 
+This wass  maybe back when semantic -1 was being PCAed
 settings={'RSA': True, 'semantic': -1, 'do_networks': 1, 'conn': 'euc', 'trial_similarity': 'corr', 'second_order': 'spear', 'four_tasks': True, 'combine_regions': False, 'split': False, 'RDM_method': 'clever_std'}
 Occipital (22.0), t[29]=1.53, p=0.068
 Ventral (45.5), t[29]=2.03, p=0.026

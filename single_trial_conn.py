@@ -14,6 +14,7 @@ from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
 import warnings
 from datetime import datetime
+from colorama import Fore
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
@@ -174,16 +175,54 @@ def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
                       vmin=-4, vmax=4, no_avg=True,
                       title=prt_all, cbar_label='t-value')
 
+def run_settings_healthy(settings, ISPC=False):
+    # if ISPC:
+    #     f = run_settings_healthy
+    # else:
+    #     f = run_settings
+    dir_results = r'cache/conn_RSA'
+    if settings['semantic'] == -1:
+        dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
+    else:
+        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+
+    settings1 = settings.copy()
+    del settings1['age']
+    results1 = pickle_wrap(None, run_settings, kwargs=settings1,
+                          cache_dir=dir_results, easy_override=False,
+                          dt_max=dt_max, verbose=0)
+    print(f'{Fore.CYAN}Young people:{Fore.RESET}')
+    report_results(results1)
+
+    settings2 = settings.copy()
+    settings2['age'] = 2
+    results2 = pickle_wrap(None, run_settings, kwargs=settings2,
+                          cache_dir=dir_results, easy_override=False,
+                          dt_max=dt_max, verbose=0)
+    print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
+    report_results(results2)
+
+    results_both = {'networks': results1['networks'],
+                    'keys': results1['keys'],
+                    'sns': results1['sns'] + results2['sns'],
+                    'scores': np.concatenate([results1['scores'],
+                                              results2['scores']]),
+                    'sizes': np.concatenate([results1['sizes'],
+                                             results2['sizes']]),
+                    'scores_by_ROI': np.concatenate([results1['scores_by_ROI'],
+                                                     results2['scores_by_ROI']]),
+                    'settings': settings}
+    # print(results_both['scores'].shape)
+    # print(results_both['scores_by_ROI'].shape)
+    # quit()
+    return results_both
+
+
 def run_analysis(RSA=True, semantic=False, do_networks=1,
                  conn='euc', trial_similarity='corr', second_order='spear',
                  four_tasks=False, combine_regions=False, split=True,
                  RDM_method='clever_std', age=1):
     settings = locals().copy()
-    OA = age == 2
-    if OA:
-        assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
-    else:
-        del settings['age']
 
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
@@ -198,17 +237,29 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     # assert do_networks != 3 or 'cross' in conn
     # assert not split, 'No split!'
 
-    if semantic == -1:
+    if semantic == -1: # added due to discovered issue at one point with semantic
         dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
     else:
         dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
 
-
     dir_results = r'cache/conn_RSA'
-    results = pickle_wrap(None, run_settings, kwargs=settings,
-                          cache_dir=dir_results, easy_override=False,
-                          dt_max=dt_max)
-    print(f'Finished!')
+    if age == 'healthy':
+        print('\n')
+        print('*' + '-*' * 120)
+        results = pickle_wrap(None, run_settings_healthy,
+                              kwargs={'settings': settings},
+                              cache_dir=dir_results, easy_override=True,
+                              dt_max=dt_max)
+        print(f'{Fore.RED}Combined people:{Fore.RESET}')
+    else:
+        if age == 2:
+            assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+        else:
+            del settings['age']
+        results = pickle_wrap(None, run_settings, kwargs=settings,
+                              cache_dir=dir_results, easy_override=False,
+                              dt_max=dt_max)
+        print(f'Finished!')
     report_results(results)
 
 def run_analysis_toggles():
@@ -221,15 +272,19 @@ def run_analysis_toggles():
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
+    trial_similarity_toggle = ['corr', 'spear', 'seuclidean']
+
 
     four_tasks_toggle = ['3_3', '3_4']
+    four_tasks_toggle = ['3_4']
+    # four_tasks_toggle = [True]
     # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['euc']#, 'prod']
-    conn_toggle = ['euc']
+    conn_toggle = ['prod']
     split_toggle = [False]
-    age = 1
+    age = 'healthy'
+    # age = 1
     # split_toggle = [False]
 
     # analyses = [(True, False), (False, False)]#, (True, True)]
@@ -237,11 +292,12 @@ def run_analysis_toggles():
     # analyses = [(False, False)]
     # analyses = [(True, False)]
     # analyses = [(True, -1)]#, (True, False), (False, False)]
-    analyses = [(False, False),  (True, False), (True, -1), (True, 5), ]
-    # analyses = [(False, False)]
+    # analyses = [(True, False), ]
+    analyses = [(True, True), (True, False), (False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [False]: # 8, 1, 3, 4, 5, 6, 7, False
+            for do_networks in [6]:
+            # for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
