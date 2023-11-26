@@ -9,6 +9,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+from colorama import Fore
+
 def get_idx_from_key(l, substring):
     idxs = []
     keys = []
@@ -40,8 +42,10 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
     report_results(results_conn)
     print('-' * 100)
 
+    semantic = False
+
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': False,
-                'conn': 'BOLD', 'trial_similarity': 'corr',
+                'conn': 'BOLD', 'trial_similarity': trial_similarity,
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
                 'RDM_method': 'clever_std'}
@@ -157,53 +161,75 @@ def lmer_stats(df, ROI_to_bold_keys, target_ROI):
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn) + (1|fp_idx)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + hit_hit + (1|sn) + (1|fp_idx)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + inc_str + (1|sn) + (1|fp_idx)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + (1|sn) + (1|fp_idx)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + (1|sn)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
     print('-' * 120)
     formula = 'conn_score ~ 1 + (1|fp_idx)'
-    print(f'{formula=}')
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
     print(model.summary())
 
+    print('-' * 120)
+    formula = 'conn_score ~ 1 + fp_idx + (1|sn)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
+    for fp, df_fp in df.groupby('fp_idx'):
+        print('-' * 20 + Fore.CYAN + fp + Fore.RESET + '-' * 20)
+        formula = 'conn_score ~ 1 + (1|sn)'
+        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+        model = Lmer(formula, data=df_fp)
+        model.fit(REML=True, verbose=True, summary=True)
+        print(model.summary())
+
+        formula = 'conn_score ~ 1 + ' + ' + '.join(target_bold_keys) + '+  (1|sn)'
+        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+        model = Lmer(formula, data=df_fp)
+        model.fit(REML=True, verbose=True, summary=True)
+        print(model.summary())
+
+
 def run_lmer():
     RSA = True
-    semantic = -1
+    semantic = True
     split = False
-    four_tasks = True
-    do_networks = 1
-    target_ROI = 'Ventral'
+    four_tasks = '3_4'
+    do_networks = 6
+    target_ROI = 'Frontal_CG'
     trial_similarity = 'corr'
 
     results_bold, results_conn = load_for_lmer(RSA, semantic, split,
