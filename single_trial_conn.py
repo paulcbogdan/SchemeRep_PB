@@ -256,16 +256,17 @@ def run_analysis_toggles():
     trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
 
-    four_tasks_toggle = ['3_3']
+    four_tasks_toggle = ['3_3', '3_4']
     # four_tasks_toggle = ['3_3']
     # four_tasks_toggle = [True]
     # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['euc']#, 'prod']
-    conn_toggle = ['BOLD']
+    conn_toggle = ['euc', 'prod']
+    # conn_toggle = ['BOLD']
     split_toggle = [False]
     age = 1
-    combine_regions = True
+    combine_regions = False
     # age = 1
     # split_toggle = [False]
 
@@ -280,7 +281,8 @@ def run_analysis_toggles():
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
             # for do_networks in [6]:
-            for do_networks in [False]:
+            # for do_networks in [False]:
+            for do_networks in [1, 6, 10, 11]:
             # for do_networks in [1, 3, 4, 5, 6, 8, 9, False, 2, 7]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:

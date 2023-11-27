@@ -37,6 +37,9 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
                 'combine_regions': False, 'split': split,
                 'RDM_method': RDM_method, 'age': age}
 
+    if age == 1:
+        del settings['age']
+
     results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
     print('-' * 100)
@@ -47,10 +50,10 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
                 'conn': 'BOLD', 'trial_similarity': 'corr',
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
-                'RDM_method': 'clever_std', 'age': age}
+                'RDM_method': RDM_method, 'age': age}
     results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
                                cache_dir=dir_results, easy_override=False)
-    report_results(results_bold, do_lmer=True)
+    # report_results(results_bold, do_lmer=True)
     return results_bold, results_conn
 
 def organize_df(results_conn, results_bold, do_networks, target_ROI):
@@ -254,7 +257,8 @@ def run_lmer_PFC_RSA():
     do_networks = 6
     target_ROI = 'Frontal_CG'
     trial_similarity = 'spear'
-    RDM_method = 'clever_std'
+    # RDM_method = 'clever_std'
+    RDM_method = 'clever_std_complex_mean'
     age = 1
 
     results_bold, results_conn = load_for_lmer(RSA, semantic, split,
@@ -269,7 +273,7 @@ def run_lmer_PFC_RSA():
 
 
 def run_lmer_PFC_ERS():
-    RSA = True
+    RSA = False
     semantic = False
     split = False
     four_tasks = '3_4'
@@ -277,6 +281,8 @@ def run_lmer_PFC_ERS():
     target_ROI = 'Frontal_CG'
     trial_similarity = 'spear'
     RDM_method = 'clever_std'
+    # RDM_method = 'clever_std_complex_mean'
+
     age = 1
 
     results_bold, results_conn = load_for_lmer(RSA, semantic, split,
@@ -314,4 +320,5 @@ if __name__ == '__main__':
     # print(atlas['tick_labels'])
     # quit()
     run_lmer_PFC_RSA()
+    # run_lmer_PFC_ERS()
 

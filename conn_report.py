@@ -71,19 +71,18 @@ def report_results(results, do_lmer=False, ISPC=False):
             df_ROI_as_d.dropna(inplace=True)
             if not len(df_ROI_as_d):
                 lmer_result_str = '\tLmer: all NaN'
-                # print('\tLmer: all NaN')
-                continue
-            formula = 'conn_score ~ 1 + (1|sn) + (1|fp)'
-
-            from pymer4.models import Lmer
-            model = Lmer(formula, data=df_ROI_as_d)
-            model.fit(REML=True, verbose=False, summary=False)
-            # print(model.summary())
-            # print('-'*100)
-            summary = model.coefs
-            lmer_t = summary['T-stat'].loc['(Intercept)']
-            lmer_p = summary['P-val'].loc['(Intercept)']
-            lmer_result_str = f'\tLmer: t={lmer_t:.2f}, p={lmer_p:.3f}'
+            else:
+                from pymer4.models import Lmer
+                formula = 'conn_score ~ 1 + (1|sn) + (1|fp)'
+                model = Lmer(formula, data=df_ROI_as_d)
+                try:
+                    model.fit(REML=True, verbose=False, summary=False)
+                    summary = model.coefs
+                    lmer_t = summary['T-stat'].loc['(Intercept)']
+                    lmer_p = summary['P-val'].loc['(Intercept)']
+                    lmer_result_str = f'\tLmer: t={lmer_t:.2f}, p={lmer_p:.3f}'
+                except:
+                    lmer_result_str = '\tLmer: fit failed'
         else:
             lmer_result_str = ''
 
