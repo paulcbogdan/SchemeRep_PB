@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats as stats
@@ -20,6 +22,85 @@ def regress_out_edgewise_RSM():
             M01 = np.nanmean(RSM_fMRI_by_edge[low0:high0, low1:high1, :],
                              axis=(0, 1))
             RSM_fMRI_by_edge[low0:high0, low1:high1, :]
+
+def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
+                     trial_similarity='corr', second_order='spear',
+                     RDM_method='by_run', combine_regions=False):
+    df_sn = get_trial_info(sn)
+    ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
+                                 networks=False, org_by_region=False,
+                                 cross_region=False, conn=conn,
+                                 combine_regions=False)
+    region2vecs = defaultdict(list)
+    for ROI, region_LR in zip(atlas['ROIs'],
+                              atlas['ROI_regions_laterality']):
+        # print(ROI2vecs[ROI].shape)
+        # quit()
+        region2vecs[region_LR].append(np.nanmean(ROI2vecs[ROI], axis=1))
+
+    for region_LR, vecs in region2vecs.items():
+        region2vecs[region_LR] = np.array(vecs).T
+
+    # print(list(region2vecs))
+    # print(atlas['tick_labels'])
+    # quit()
+
+    region_order = [(f'{region}_L', f'{region}_R') for
+                    region in atlas['tick_labels']]
+    region_order = [item for sublist in region_order for item in sublist]
+
+
+    ROI2vecs = region2vecs
+
+    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
+                            dist=trial_similarity)
+    # ROI_pair2conn_vecs = {}
+    score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
+    for i, ROI0 in enumerate(region_order):
+        vecs0 = ROI2vecs[ROI0]
+        # print(ROI0, vecs0)
+        # quit()
+        for j, ROI1 in enumerate(region_order):
+            vecs1 = ROI2vecs[ROI1]
+    # for i, (ROI0, vecs0) in enumerate(ROI2vecs.items()):
+    #     for j, (ROI1, vecs1) in enumerate(ROI2vecs.items()):
+            if ROI1 > ROI0:
+                continue
+            elif ROI0 == ROI1:
+                vecs = get_conn_vecs(vecs0, conn=conn)
+            else:
+                vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+            z = get_RSM_subtract_run_mean_fast(vecs, RSM_stim,
+                                               second_order=second_order)
+            score_ar[i, j] = z
+            score_ar[j, i] = z
+            # print(f'{ROI0} | {ROI1}: {z=:.3f}')
+            # ROI_pair2conn_vecs[(ROI0, ROI1)] = z
+            # ROI_pair2conn_vecs[(ROI1, ROI0)] = z
+    # plt.imshow(score_ar)
+    # plt.title(f'{sn} | {fp=}')
+    # plt.show()
+    return score_ar, np.nan, np.nan
+
+
+
+
+def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, second_order='spear'):
+    trials_per_run = 38
+    for run in range(3):
+        low = run * trials_per_run
+        high = (run + 1) * trials_per_run
+        M = np.nanmean(vecs[low:high, :], axis=0)
+        vecs[low:high, :] -= M
+
+    vecs = stdize(vecs, axis=1, nans=True)
+    vecs0 = vecs[None, :, :]
+    vecs1 = vecs[:, None, :]
+    RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=2)
+    z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
+                  within_to_nan=False)
+    return z
+
 
 def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',

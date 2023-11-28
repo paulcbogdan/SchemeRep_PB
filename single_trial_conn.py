@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from conn_RSA import RSA_sn, RSA_edgewise
+from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise
 from conn_ERS import ERS_sn
 from conn_report import report_results
 from networks import prep_networks
@@ -24,7 +24,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     scores_by_ROI = []
     for fp0 in fps:
         if RSA:
-            f = RSA_edgewise if edgewise else RSA_sn
+            # f = RSA_edgewise if edgewise else RSA_sn
+            f = RSA_ROI_pairwise if edgewise else RSA_sn
             scores, sizes, score_by_ROI = \
                 f(sn, atlas, d_vecs, fp0, networks=networks,
                        conn=conn, trial_similarity=trial_similarity,
@@ -116,6 +117,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
             keys = atlas['ROIs']
         else:
             keys = atlas['tick_labels']
+
     # print(atlas['ROIs'])
     # quit()
     # print(f'{len(keys)=}')
@@ -140,27 +142,34 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         results['scores_by_ROI'].append(scores_by_ROI)
         if not edgewise:
             report_results(results)
-
-        if i < 3:
-            continue
-
-        M_all = np.mean(results['scores'], axis=0)
-        SD_all = np.std(results['scores'], axis=0)
-        N_all = np.sum(~np.isnan(results['scores']), axis=0)
-        SE_all = SD_all / np.sqrt(N_all)
-        t_all = M_all / SE_all
-
-        plot_connectivity(t_all, atlas['ticks'],
-                          atlas['tick_labels'],
-                          atlas['tick_lows'],
-                          no_avg=True,
-                          title=f'Euclidean Connectivity, n = {i + 1}',
-                          cbar_label='Distance',
-                          vmin=-4, vmax=4)
-    quit()
+        else:
+            if i > 2:
+                visualize_region_pairwise(results)
 
     return results
 
+def visualize_region_pairwise(results):
+    M_all = np.nanmean(results['scores'], axis=0)
+    SD_all = np.nanstd(results['scores'], axis=0)
+    N_all = np.sum(~np.isnan(results['scores']), axis=0)
+    N = np.max(N_all)
+    SE_all = SD_all / np.sqrt(N_all)
+    t_all = M_all / SE_all
+
+    ticks = 0.5 + np.arange(26) * 2
+    tick_labels = results['keys']
+    tick_lows = 0 + np.arange(26) * 2
+
+    plot_connectivity(t_all,
+                      ticks,
+                      tick_labels,
+                      tick_lows,
+                      # atlas['ticks'],
+                      # atlas['tick_labels'],
+                      # atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'Euclidean Connectivity, n = {N}',
+                      cbar_label='t-value')
 
 def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
     M_mat = np.nanmean(rs_by_edge_ar_all, axis=0)
@@ -224,6 +233,8 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
                  four_tasks=False, combine_regions=False, split=True,
                  RDM_method='clever_std', age=1, edgewise=False):
     settings = locals().copy()
+    if not edgewise:
+        del settings['edgewise']
 
     # assert not edgewise or (trial_similarity == 'corr' and second_order == 'corr')
 
@@ -266,7 +277,10 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
                               cache_dir=dir_results, easy_override=False,
                               dt_max=dt_max)
         print(f'Finished!')
-    report_results(results)
+    if 'edgewise' in settings:
+        visualize_region_pairwise(results)
+    else:
+        report_results(results)
 
 def run_analysis_toggles():
     # RSA = False
@@ -288,12 +302,12 @@ def run_analysis_toggles():
     # four_tasks_toggle = [False, True]
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['euc']#, 'prod']
-    conn_toggle = ['euc', 'prod']
+    conn_toggle = ['euc']
     # conn_toggle = ['BOLD']
     split_toggle = [False]
     age = 1
     combine_regions = False
-    edgewise=True
+    edgewise = True
     # age = 1
     # split_toggle = [False]
 
@@ -304,13 +318,13 @@ def run_analysis_toggles():
     # analyses = [(True, -1)]#, (True, False), (False, False)]
     # analyses = [(True, False), ]
     # analyses = [(True, True), (False, False)]
-    analyses = [(True, True)]
+    analyses = [(True, True)]#, (False, False), (True, False)]
     # analyses = [(True, False), (False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
             # for do_networks in [6]:
             # for do_networks in [False]:
-            for do_networks in [1, 6, 10, 11]:
+            for do_networks in [12]:
             # for do_networks in [1, 3, 4, 5, 6, 8, 9, False, 2, 7]: # 8, 1, 3, 4, 5, 6, 7, False
                 for conn in conn_toggle:
                     for split in split_toggle:

@@ -84,6 +84,9 @@ def prep_networks(setting=1):
         networks = {'full_frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL'],
                     'full_frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG',
                                         'PCL', 'CG'],}
+    elif setting == 12:
+        networks = {'dPFC': ['SFG', 'MFG', 'IFG'],
+                    'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
 
     # elif setting == 7:
     #     networks = {
