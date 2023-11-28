@@ -53,9 +53,9 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
     plt.yticks(ticks, tick_labels, fontsize=10)
     plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
-    for low in tick_lows:
-        plt.plot([0, M_connect.shape[0]], [low, low], 'w', linewidth=0.5)
-        plt.plot([low, low], [0, M_connect.shape[0]], 'w', linewidth=0.5)
+    # for low in tick_lows:
+    #     plt.plot([0, M_connect.shape[0]], [low, low], 'w', linewidth=0.5)
+    #     plt.plot([low, low], [0, M_connect.shape[0]], 'w', linewidth=0.5)
     plt.xlim([-0.5, M_connect.shape[0]-0.5])
     plt.ylim([-0.5, M_connect.shape[0]-0.5])
     cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,

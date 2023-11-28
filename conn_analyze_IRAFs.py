@@ -124,7 +124,7 @@ def organize_df(results_conn, results_bold, do_networks, target_ROI):
     return df, ROI_to_bold_keys
 
 def prep_network2ROI(do_networks, target_ROI):
-    network2ROI = prep_networks(setting=do_networks)
+    network2ROI = prep_networks(network_setting=do_networks)
     for key, l in network2ROI.items():
         if isinstance(l, tuple):
             network2ROI[key] = l[0] + l[1]

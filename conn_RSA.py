@@ -1,27 +1,58 @@
-from collections import defaultdict
-
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats as stats
 
 from fMRI_proc import RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
 from organize_bhv import get_trial_info
-from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
+from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise, get_BNA_ROIs
 from stim import get_stim_RDM, prune_RSM_outliers
-from utils import stdize, pb_outer_euc
+from utils import stdize
 from scipy.spatial import distance
 
-def regress_out_edgewise_RSM():
-    trials_per_run = 38
-    for run0 in range(3):
-        for run1 in range(3):
-            low0 = run0 * trials_per_run
-            high0 = (run0 + 1) * trials_per_run
-            low1 = run1 * trials_per_run
-            high1 = (run1 + 1) * trials_per_run
-            M01 = np.nanmean(RSM_fMRI_by_edge[low0:high0, low1:high1, :],
-                             axis=(0, 1))
-            RSM_fMRI_by_edge[low0:high0, low1:high1, :]
+
+def RSA_ROI_PFC(sn, atlas, d_vecs, fp, networks=True, conn='euc',
+                trial_similarity='corr', second_order='spear',
+                RDM_method='by_run', combine_regions=False):
+    df_sn = get_trial_info(sn)
+    ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
+                                 networks=False, org_by_region=False,
+                                 cross_region=False, conn=conn,
+                                 combine_regions=False)
+    ROI2vecs_PFC = {}
+    for ROI, vecs in ROI2vecs.items():
+        if 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
+            ROI2vecs_PFC[ROI] = np.nanmean(vecs, axis=1)
+    ROI2vecs = ROI2vecs_PFC
+    ROIs_l = get_BNA_ROIs(code=None)
+    ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs.keys()]
+    # print(ROIs_l)
+    # quit()
+    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist=trial_similarity)
+
+    scores = []
+    sizes = []
+    scores_trialwise = []
+    for ROI0 in ROIs_l:
+        vecs0 = ROI2vecs[ROI0]
+        vecs0 = vecs0[:, None]
+        vecs_else = []
+        for ROI1 in ROIs_l:
+            if ROI1 == ROI0:
+                continue
+            vecs1 = ROI2vecs[ROI1]
+            vecs_else.append(vecs1)
+        vecs_else = np.vstack(vecs_else).T
+        sizes.append(vecs_else.shape[1])
+        # print(f'{vecs_else.shape=}')
+        vecs = get_conn_vecs(vecs0, vecs_else, conn=conn)
+        # print(f'{vecs}')
+        z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
+                                                  second_order=second_order)
+        scores.append(z)
+        # print(f'{z=:.3f}')
+        scores_trialwise.append(IRAFs)
+    # quit()
+    return scores, sizes, scores_trialwise
+
 
 def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                      trial_similarity='corr', second_order='spear',
@@ -33,39 +64,21 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-    region2vecs = defaultdict(list)
-    for ROI, region_LR in zip(atlas['ROIs'],
-                              atlas['ROI_regions_laterality']):
-        # print(ROI2vecs[ROI].shape)
-        # quit()
-        region2vecs[region_LR].append(np.nanmean(ROI2vecs[ROI], axis=1))
 
-    for region_LR, vecs in region2vecs.items():
-        region2vecs[region_LR] = np.array(vecs).T
-
-    # print(list(region2vecs))
-    # print(atlas['tick_labels'])
-    # quit()
-
-    region_order = [(f'{region}_L', f'{region}_R') for
-                    region in atlas['tick_labels']]
-    region_order = [item for sublist in region_order for item in sublist]
-
-
-    ROI2vecs = region2vecs
+    ROI2vecs, region_order, score_ar, IRAFs_ar = \
+        prep_for_pairwise(ROI2vecs, atlas)
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
     # ROI_pair2conn_vecs = {}
-    score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
-    IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
+    # score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
+    # IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
 
     for i, ROI0 in enumerate(region_order):
         vecs0 = ROI2vecs[ROI0]
         # print(ROI0, vecs0)
         # quit()
         for j, ROI1 in enumerate(region_order):
-            vecs1 = ROI2vecs[ROI1]
     # for i, (ROI0, vecs0) in enumerate(ROI2vecs.items()):
     #     for j, (ROI1, vecs1) in enumerate(ROI2vecs.items()):
             if ROI1 > ROI0:
@@ -73,13 +86,13 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             elif ROI0 == ROI1:
                 vecs = get_conn_vecs(vecs0, conn=conn)
             else:
+                vecs1 = ROI2vecs[ROI1]
                 vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
             if vecs.shape[1] == 1:
                 score_ar[i, j] = np.nan
                 score_ar[j, i] = np.nan
                 IRAFs_ar[i, j, :] = np.full((114), np.nan)
                 IRAFs_ar[j, i, :] = np.full((114), np.nan)
-                # print(f'Only one edge: {ROI0}, {ROI1}')
                 continue
             # if ROI1 == 'PCL_L' and ROI0 == 'PCL_L':
                 # print(vecs.shape)
@@ -123,6 +136,7 @@ def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
     # try:
     z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                   within_to_nan=False)
+    # IRAFs = np.full((114), np.nan)
     IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn,
                       within_to_nan=False,
                       second_order=second_order)

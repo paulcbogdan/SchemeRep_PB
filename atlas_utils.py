@@ -204,8 +204,8 @@ def split_BNA(new_space=True, split_code='xyz'):
     return atlas_new
 
 
-def get_atlas(combine_regions, combine_bilateral, split=False, new_space=True,
-              split_code='xyz'):
+def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
+              new_space=True, split_code='xyz'):
     if split:
         assert not combine_regions, 'split and combine_regions are mutually exclusive'
         atlas = split_BNA(new_space=new_space, split_code=split_code)

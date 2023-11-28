@@ -146,23 +146,32 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
         fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
+    stim_RDM_ = stim_RDM.copy()
     if second_order == 'corr':
         fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)
         stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
-        IRAFs = fMRI_RDM_std * stim_RDM_std
-        IRAFs = np.nanmean(IRAFs, axis=0)
+        IRAFs = np.nanmean(fMRI_RDM_std * stim_RDM_std, axis=0)
+        IRAFs = np.arctanh(IRAFs)
     elif second_order == 'spear':
-        IRAFs = []
-        for i in range(fMRI_RDM_.shape[0]):
-            fMRI_flat = fMRI_RDM_[i, :]
-            stim_flat = stim_RDM[i, :]
-            nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
-            fMRI_flat = fMRI_flat[~nans]
-            stim_flat = stim_flat[~nans]
-            r, _ = stats.spearmanr(fMRI_flat, stim_flat)
-            z = np.arctanh(r)
-            IRAFs.append(z)
-        IRAFs = np.array(IRAFs)
+        fMRI_RDM_[np.isnan(stim_RDM_)] = np.nan
+        stim_RDM_[np.isnan(fMRI_RDM_)] = np.nan
+        fMRI_RDM_r = stats.rankdata(fMRI_RDM_, axis=0, nan_policy='omit')
+        stim_RDM_r = stats.rankdata(stim_RDM_, axis=0, nan_policy='omit')
+        fMRI_RDM_r = stdize(fMRI_RDM_r, axis=0, nans=True)
+        stim_RDM_r = stdize(stim_RDM_r, axis=0, nans=True)
+        IRAFs = np.nanmean(fMRI_RDM_r * stim_RDM_r, axis=0)
+        IRAFs = np.arctanh(IRAFs)
+        # IRAFs = []
+        # for i in range(fMRI_RDM_.shape[0]):
+        #     fMRI_flat = fMRI_RDM_[i, :]
+        #     stim_flat = stim_RDM[i, :]
+        #     nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
+        #     fMRI_flat = fMRI_flat[~nans]
+        #     stim_flat = stim_flat[~nans]
+        #     r, _ = stats.spearmanr(fMRI_flat, stim_flat)
+        #     z = np.arctanh(r)
+        #     IRAFs.append(z)
+        # IRAFs = np.array(IRAFs)
     else:
         raise NotImplementedError(f'get_IRAFs {second_order=}')
     IRAFs = IRAFs[df_sn['obj'].argsort()]

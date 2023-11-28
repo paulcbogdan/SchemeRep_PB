@@ -336,3 +336,38 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
             pickle.dump(output, new_file)
         if verbose: print(f'\tDump time: {time()-start:.3f} s')
         return output
+
+if __name__ == '__main__':
+    a = np.array([[np.nan, 1, 2, 4, 2.2, 113]])
+    b = np.array([[5, 7, 21, -4, 2.2, 113]])
+
+    b[np.isnan(a)] = np.nan
+    a[np.isnan(b)] = np.nan
+
+    # a = np.random.random((20, 10))
+    # b = np.random.random((20, 10))
+    r, p = stats.spearmanr(a[0], b[0], nan_policy='omit')
+    print(f'{r=:.3f}')
+
+    a_r = stats.rankdata(a, axis=1, nan_policy='omit')
+
+    # print(f'{a_r=}')
+    b_r = stats.rankdata(b, axis=1, nan_policy='omit')
+    b_r[np.isnan(a_r)] = np.nan
+
+    # print(f'{b_r=}')
+    # r2, p2 = stats.pearsonr(a_r, b_r)
+
+    a_r = stdize(a_r, axis=1, nans=True)
+    print(f'{a_r=}')
+    print(f'{np.nanmean(a_r):.3f} | {np.nanstd(a_r):.3f}')
+    b_r = stdize(b_r, axis=1, nans=True)
+    print(f'{b_r=}')
+    print(f'{np.nanmean(b_r):.3f} | {np.nanstd(b_r):.3f}')
+
+    # print(np.nansum(a_r * b_r))
+
+    r3 = np.nanmean(a_r * b_r, axis=1)
+    # print(f'{r2=:.3f}')
+    print(f'{r3=:}')
+

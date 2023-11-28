@@ -1,5 +1,7 @@
-def prep_networks(setting=1):
-    if setting == 1:
+def prep_networks(network_setting=1):
+    if not network_setting:
+        return None
+    if network_setting == 1:
         networks = {
             'Occipital': ['EVC', 'LOC', 'sOcG'],
             'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
@@ -8,7 +10,7 @@ def prep_networks(setting=1):
             #'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],
             #'FPCN': ['IFG', 'MFG', 'SFG', 'SPL', 'IPL', 'pSTS']
         }
-    elif setting == 2:
+    elif network_setting == 2:
         networks = {
             # 'Frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', ],
             # 'PFC_sub': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'Amyg', 'Hipp',
@@ -28,7 +30,7 @@ def prep_networks(setting=1):
     #         'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun', 'EVC', 'LOC']),
     #         'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'EVC', 'LOC']),
     #     }
-    elif setting == 3:
+    elif network_setting == 3:
         networks = {
             'Sanity': (['IFG', 'MFG'], ['INS']),
             'PFC_Occ': (['IFG', 'MFG', 'SFG', 'OrG'], ['EVC', 'LOC']),
@@ -36,16 +38,16 @@ def prep_networks(setting=1):
             'Parietal_Occ': (['SPL', 'IPL', 'pSTS', 'Pcun'], ['EVC', 'LOC']),
             'Ventral_Occ': (['ITG', 'FuG', 'PhG', 'ATL', 'MTG'], ['EVC', 'LOC']),
         }
-    elif setting == 4:
+    elif network_setting == 4:
         networks = {
             'PFC': ['SFG', 'MFG', 'IFG', 'OrG',],
         }
-    elif setting == 5:
+    elif network_setting == 5:
         raise ValueError('setting 5 is bad don\'t use it')
         # networks = {
         #     'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
         # }
-    elif setting == 6:
+    elif network_setting == 6:
         networks = {
             'Frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG'],
             # 'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
@@ -59,19 +61,19 @@ def prep_networks(setting=1):
             'dlPFC': ['IFG', 'MFG'],
             'mPFC_hipp': ['OrG', 'Hipp'],
         }
-    elif setting == 7:
+    elif network_setting == 7:
         networks = {'else_ventral': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
                                      'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
                                      'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
                                      'FuG', 'PhG', 'ATL', 'MTG']}
-    elif setting == 8:
+    elif network_setting == 8:
         networks = {'ventral_hipp': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'Hipp'],
                     'temporal': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS'],
                     'dorsal_proper': ['SPL', 'IPL', 'Pcun', 'PoG'],
                     }
-    elif setting == 9:
+    elif network_setting == 9:
         networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
-    elif setting == 10:
+    elif network_setting == 10:
         networks = {'whole_brain': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
                                      'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
                                      'CG', 'Amyg', 'Hipp', 'Str', 'Tha', 'ITG',
@@ -80,14 +82,14 @@ def prep_networks(setting=1):
                     'perceptual': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG', 'pSTS',
                                    'SPL', 'IPL', 'Pcun', 'PoG',
                                    'EVC', 'LOC', 'sOcG']}
-    elif setting == 11:
+    elif network_setting == 11:
         networks = {'full_frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL'],
                     'full_frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG',
                                         'PCL', 'CG'],}
-    elif setting == 12:
+    elif network_setting == 12:
         networks = {'dPFC': ['SFG', 'MFG', 'IFG'],
                     'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
-    elif setting == -1:
+    elif network_setting == -1:
         networks = {}
     # elif setting == 7:
     #     networks = {
@@ -95,5 +97,5 @@ def prep_networks(setting=1):
     #         'dlPFC_Occ': (['IFG', 'MFG'], ['EVC', 'LOC']),
     #     }
     else:
-        raise ValueError(f'Unknown setting: {setting}')
+        raise ValueError(f'Unknown setting: {network_setting}')
     return networks

@@ -3,9 +3,13 @@ import warnings
 import numpy as np
 import pandas as pd
 from scipy import stats as stats
+from tqdm import tqdm
 
+from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
+from old.plot_gen import plot_connectivity
 
+from utils import get_default_fp, pickle_wrap
 
 def print_settings(settings):
     print(f'{settings=}')
@@ -13,6 +17,11 @@ def print_settings(settings):
 
 def report_results(results, do_lmer=False, ISPC=False):
     print_settings(results['settings'])
+    if 'plotting' in results['settings'] and \
+            results['settings']['plotting'] in ['regions', 'edges']:
+        setting_plotting = results['settings']['plotting']
+        print(f'Can\'t report_results for plotting={setting_plotting}')
+        return
     scores = np.array(results['scores'])
     sizes = np.array(results['sizes'])
     # if scores.shape[1] == 246:
@@ -36,6 +45,10 @@ def report_results(results, do_lmer=False, ISPC=False):
         scores_by_ROI = np.array(results['scores_by_ROI'])
         scores_by_fp = np.nanmean(scores_by_ROI, axis=3)
 
+    print(scores_by_fp.shape)
+    # quit()
+    ts = np.full(scores_by_fp.shape[2], np.nan)
+    ts_by_fp = np.full(scores_by_fp.shape[1:], np.nan)
     for j, ROI in enumerate(results['keys']):
         ROI_scores_by_fp = scores_by_fp[:, :, j]
         M_by_fp = np.nanmean(ROI_scores_by_fp, axis=0)
@@ -44,8 +57,9 @@ def report_results(results, do_lmer=False, ISPC=False):
         SE_by_fp = SD_by_fp / np.sqrt(N_by_fp)
         t_by_fp = M_by_fp / SE_by_fp
         t_by_fp_str = '['
-        for t in t_by_fp:
+        for k, t in enumerate(t_by_fp):
             t_by_fp_str += f'{t:.2f}, '
+            ts_by_fp[k, j] = t
         t_by_fp_str = t_by_fp_str[:-2]
         t_by_fp_str += ']'
 
@@ -55,6 +69,7 @@ def report_results(results, do_lmer=False, ISPC=False):
         N = len(ROI_scores[~np.isnan(ROI_scores)])
         SE = SD / np.sqrt(N)
         t = M / SE
+        if not do_lmer: ts[j] = t
         p = stats.t.sf(np.abs(t), N - 1)
         M_size = np.nanmean(sizes[:, j])
 
@@ -79,6 +94,7 @@ def report_results(results, do_lmer=False, ISPC=False):
                     model.fit(REML=True, verbose=False, summary=False)
                     summary = model.coefs
                     lmer_t = summary['T-stat'].loc['(Intercept)']
+                    ts[j] = lmer_t
                     lmer_p = summary['P-val'].loc['(Intercept)']
                     lmer_result_str = f'\tLmer: t={lmer_t:.2f}, p={lmer_p:.3f}'
                 except:
@@ -88,3 +104,144 @@ def report_results(results, do_lmer=False, ISPC=False):
 
         print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}, '
               f'{t_by_fp_str} {lmer_result_str}')
+    return ts, ts_by_fp
+
+def get_lmer_matrix(results):
+    print(f'{results["scores_by_ROI"].shape=}')
+    n_regions = results['scores_by_ROI'].shape[2]
+    print(f'{n_regions=}')
+    lmer_ar = np.full((n_regions, n_regions), np.nan)
+    for i in tqdm(range(n_regions), desc='running lmers'):
+        for j in range(n_regions):
+            if i > j:
+                continue
+            else:
+                pair_scores = results['scores_by_ROI'][:, :, i, j, :]
+                # print(f'{i} | {j} ')
+                pair_scores_raveled = pair_scores.ravel()
+                # print(f'{pair_scores_raveled.shape=}')
+                df = pd.DataFrame({'IRAF': pair_scores_raveled})
+                # print(f'{pair_scores.shape=}')
+                idxs = np.ndindex(pair_scores.shape)
+                idxs = np.array(list(idxs))
+
+                df[['sn', 'fp', 'stim']] = idxs
+                for key in ['sn', 'fp', 'stim']:
+                    df[key] = df[key].astype(str)
+                # print(df)
+                df.dropna(inplace=True)
+                if len(df) < 10000:
+                    print(f'{i}, {j} | many na drops {len(df)=}')
+                    lmer_ar[i, j] = np.nan
+                    lmer_ar[j, i] = np.nan
+                    continue
+
+                # print(df)
+                from pymer4.models import Lmer
+                # st = time()
+                formula = 'IRAF ~ 1 + (1|sn) + (1|fp)'
+                model = Lmer(formula, data=df)
+                # model.fit()
+                # print(model.summary())
+
+                model.fit(REML=True, verbose=False, summary=False)
+                summary = model.coefs
+                lmer_t = summary['T-stat'].loc['(Intercept)']
+                lmer_ar[i, j] = lmer_t
+                lmer_ar[j, i] = lmer_t
+    return lmer_ar
+
+def visualize_region_matrix(results, plot_lmer=False):
+    M_all = np.nanmean(results['scores'], axis=0)
+    SD_all = np.nanstd(results['scores'], axis=0)
+    N_all = np.sum(~np.isnan(results['scores']), axis=0)
+    N = np.max(N_all)
+    SE_all = SD_all / np.sqrt(N_all)
+    t_all = M_all / SE_all
+
+    # ticks = results['ticks']
+    # tick_labels = results['tick_labels']
+    # tick_lows = results['tick_lows']
+
+    # print(f'{ticks=}')
+    # print(f'{tick_lows=}')
+
+    conn_str = f'conn={results["settings"]["conn"]}'
+    second_order_str = f'second_order={results["settings"]["second_order"]}'
+    trial_similarity_str = f'trial_similarity={results["settings"]["trial_similarity"]}'
+    analysis_str = f'RSA={results["settings"]["RSA"]}, ' \
+                   f'arg={results["settings"]["semantic"]}'
+    title_str = f'n = {N}, {analysis_str}, \n' \
+                f'{conn_str}, {second_order_str}, {trial_similarity_str}'
+
+    plot_connectivity(t_all,
+                      # ticks,
+                      # tick_labels,
+                      # tick_lows,
+                      results['ticks'],
+                      results['tick_labels'],
+                      results['tick_lows'],
+                      no_avg=True,
+                      title=f't-test: {title_str}',
+                      cbar_label='t-value',
+                      vmin=-4, vmax=4)
+
+    if N == 24 or N >= 30:
+        scores_trialwise = results['scores_by_ROI']
+        for fp in range(scores_trialwise.shape[1]):
+            scores_fp = np.mean(scores_trialwise[:, fp, :, :, :],
+                                axis=-1)
+            M_scores_fp = np.nanmean(scores_fp, axis=0)
+            SD_scores_fp = np.nanstd(scores_fp, axis=0)
+            N_scores_fp = np.sum(~np.isnan(scores_fp), axis=0)
+            SE_scores_fp = SD_scores_fp / np.sqrt(N_scores_fp)
+            t_scores_fp = M_scores_fp / SE_scores_fp
+            plot_connectivity(t_scores_fp,
+                              # ticks,
+                              # tick_labels,
+                              # tick_lows,
+                              results['ticks'],
+                              results['tick_labels'],
+                              results['tick_lows'],
+                              no_avg=True,
+                              title=f't-test (fp={fp}): {title_str}',
+                              cbar_label='t-value',
+                              vmin=-4, vmax=4)
+        # quit()
+
+    if not plot_lmer:
+        return
+
+    settings = results['settings']
+    lmer_fp = get_default_fp(None, settings, get_lmer_matrix,
+                             r'cache/lmer_ar', False)
+
+    lmer_ar = pickle_wrap(lmer_fp, lambda: get_lmer_matrix(results))
+
+    plot_connectivity(lmer_ar,
+                      # ticks,
+                      # tick_labels,
+                      # tick_lows,
+                      results['ticks'],
+                      results['tick_labels'],
+                      results['tick_lows'],
+                      no_avg=True,
+                      title=f'lmer: {title_str}',
+                      cbar_label='t-value',
+                      vmin=-4, vmax=4)
+
+def visualize_ROIs(results):
+    from connsearch.report import plot_ROI_scores
+    atlas = get_atlas()
+    ROI2coord = atlas['ROI2coord']
+    results_coords = [ROI2coord[ROI] for ROI in results['keys']]
+    ts, ts_by_fp = report_results(results, do_lmer=True)
+    plot_ROI_scores(ts, results_coords, fp_out='trash.png', show=True,
+                    vmin=0, vmax=2, title='all')
+
+    for k in range(ts_by_fp.shape[0]):
+        plot_ROI_scores(ts_by_fp[k, :], results_coords, fp_out='trash.png',
+                        show=True, vmin=0, vmax=3, title=f'fp: {k}')
+
+    quit()
+
