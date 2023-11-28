@@ -6,8 +6,115 @@ from fMRI_proc import RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
 from organize_bhv import get_trial_info
 from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
 from stim import get_stim_RDM, prune_RSM_outliers
-from utils import stdize
+from utils import stdize, pb_outer_euc
 from scipy.spatial import distance
+
+def regress_out_edgewise_RSM():
+    trials_per_run = 38
+    for run0 in range(3):
+        for run1 in range(3):
+            low0 = run0 * trials_per_run
+            high0 = (run0 + 1) * trials_per_run
+            low1 = run1 * trials_per_run
+            high1 = (run1 + 1) * trials_per_run
+            M01 = np.nanmean(RSM_fMRI_by_edge[low0:high0, low1:high1, :],
+                             axis=(0, 1))
+            RSM_fMRI_by_edge[low0:high0, low1:high1, :]
+
+def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,
+           conn='euc', trial_similarity='corr', second_order='spear',
+           RDM_method='by_run', combine_regions=False):
+    df_sn = get_trial_info(sn)
+    ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
+                                 networks=False, org_by_region=True,
+                                 cross_region=False, conn=conn,
+                                 combine_regions=False)
+
+    vecs_BOLD = []
+    for ROI, vecs in ROI2vecs.items():
+        vecs_BOLD.append(vecs)
+    vecs_BOLD = np.concatenate(vecs_BOLD, axis=1)
+    n_regions = vecs_BOLD.shape[1]
+    vecs = get_conn_vecs(vecs_BOLD, conn=conn)
+    vecs = stdize(vecs, axis=1, nans=True)
+
+    trials_per_run = 38
+    for run0 in range(3):
+        low0 = run0 * trials_per_run
+        high0 = (run0 + 1) * trials_per_run
+        M0 = np.nanmean(vecs[low0:high0, :], axis=0)
+        vecs[low0:high0, :] -= M0
+        # SD = np.nanstd(M0)
+        # print(f'{M0=}')
+        # print(f'{SD=}')
+        # M0_sans_trials = (M0 * trials_per_run - vecs[low0:high0, :]) / (trials_per_run - 1)
+        # print(M0_sans_trials.shape)
+        # print(vecs[low0:high0, 0])
+        # print(M0_sans_trials[:, 0])
+        # print(np.mean(vecs[low0:high0, 0]))
+        # quit()
+        # vecs[low0:high0, :] -= M0_sans_trials
+
+    vecs0 = vecs[None, :, :]
+    vecs1 = vecs[:, None, :]
+
+    trial_trils = np.tril_indices_from(vecs0[0], k=-1)
+    RSM_fMRI_by_edge = -abs(vecs0 - vecs1)
+    assert RSM_fMRI_by_edge.shape == (114, 114, 30135)
+    # test = np.nanmean(RSM_fMRI_by_edge, axis=2)
+    # plt.imshow(test)
+    # plt.show()
+    # quit()
+
+
+    RSM_flat_fMRI_by_edge = RSM_fMRI_by_edge[trial_trils[0], trial_trils[1], :]
+    assert RSM_flat_fMRI_by_edge.shape == (6441, 30135)
+    RSM_flat_fMRI_by_edge = stdize(RSM_flat_fMRI_by_edge, axis=0, nans=True)
+
+    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
+                            dist=trial_similarity)
+    RSM_stim_flat = RSM_stim[trial_trils[0], trial_trils[1]]
+    RSM_stim_flat = RSM_stim_flat[:, None]
+
+    assert RSM_stim_flat.shape == (6441, 1)
+    RSM_stim_flat = stdize(RSM_stim_flat, axis=0, nans=True)
+
+    score_by_edge_flat = np.nanmean(RSM_flat_fMRI_by_edge * RSM_stim_flat,
+                                    axis=0)
+    score_by_edge_flat = np.arctanh(score_by_edge_flat)
+    score_by_edge = np.full((n_regions, n_regions), np.nan)
+    edge_trils = np.tril_indices(n_regions, k=-1)
+    score_by_edge[edge_trils[0], edge_trils[1]] = score_by_edge_flat
+    score_by_edge[edge_trils[1], edge_trils[0]] = score_by_edge_flat
+    return score_by_edge, np.nan, np.nan
+
+    # TODO:
+
+    #
+    # plt.imshow(RSA_by_edge)
+    # plt.show()
+    #
+    #
+    # quit()
+    #
+    # # print(RSM_fMRI_by_edge.shape)
+    # RSM_fMRI_by_edge = np.transpose(RSM_fMRI_by_edge, (2, 0, 1))
+    # # print(RSM_fMRI_by_edge.shape)
+    # RSM_flat_fMRI_by_edge = RSM_fMRI_by_edge[:, trils[0], trils[1]]
+    # # print(RSM_flat_fMRI_by_edge.shape)
+    # # print(RSM_fMRI_by_edge.shape)
+    # # print(f'{len(trils)=}')
+    # # print(f'{RSM_flat_fMRI_by_edge.shape=}')
+    # # print(f'{RSM_stim_flat.shape=}')
+    # rs_by_edge = corr_last_dim(RSM_flat_fMRI_by_edge, RSM_stim_flat)
+    # # print(rs_by_edge)
+    # # quit()
+    # # print(f'{rs_by_edge.shape=}')
+    # rs_by_edge_ar = np.zeros((n_regions, n_regions))
+    # trils_c = np.tril_indices_from(rs_by_edge_ar, k=-1)
+    #
+    # rs_by_edge_ar[trils_c[0], trils_c[1]] = rs_by_edge
+    # rs_by_edge_ar[trils_c[1], trils_c[0]] = rs_by_edge
 
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,

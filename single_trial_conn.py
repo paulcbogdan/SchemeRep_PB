@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from conn_RSA import RSA_sn
+from conn_RSA import RSA_sn, RSA_edgewise
 from conn_ERS import ERS_sn
 from conn_report import report_results
 from networks import prep_networks
@@ -14,16 +14,19 @@ from utils import pickle_wrap
 from datetime import datetime
 from colorama import Fore
 
+import matplotlib.pyplot as plt
+
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
-           RDM_method='by_run', combine_regions=False):
+           RDM_method='by_run', combine_regions=False, edgewise=False):
     scores_all = []
     sizes_all = []
     scores_by_ROI = []
     for fp0 in fps:
         if RSA:
+            f = RSA_edgewise if edgewise else RSA_sn
             scores, sizes, score_by_ROI = \
-                RSA_sn(sn, atlas, d_vecs, fp0, networks=networks,
+                f(sn, atlas, d_vecs, fp0, networks=networks,
                        conn=conn, trial_similarity=trial_similarity,
                        second_order=second_order, RDM_method=RDM_method,
                        combine_regions=combine_regions,
@@ -43,6 +46,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 sizes_all.append(sizes)
                 scores_by_ROI.append(score_by_ROI)
     M_score_by_ROI = np.nanmean(scores_all, axis=0)
+
     M_size_by_ROI = np.nanmean(sizes_all, axis=0)
     scores_by_ROI = np.array(scores_by_ROI)
     # print(f'{scores_by_ROI.shape=}')
@@ -85,7 +89,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
-                 age=1):
+                 age=1, edgewise=False):
     settings = locals().copy()
     print(f'Run settings start: {settings=}')
     d_vecs = prep_vecs(RSA, semantic)
@@ -130,11 +134,31 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
                    conn=conn, trial_similarity=trial_similarity,
                    second_order=second_order, RDM_method=RDM_method,
-                   combine_regions=combine_regions)
+                   combine_regions=combine_regions, edgewise=edgewise)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         results['scores_by_ROI'].append(scores_by_ROI)
-        report_results(results)
+        if not edgewise:
+            report_results(results)
+
+        if i < 3:
+            continue
+
+        M_all = np.mean(results['scores'], axis=0)
+        SD_all = np.std(results['scores'], axis=0)
+        N_all = np.sum(~np.isnan(results['scores']), axis=0)
+        SE_all = SD_all / np.sqrt(N_all)
+        t_all = M_all / SE_all
+
+        plot_connectivity(t_all, atlas['ticks'],
+                          atlas['tick_labels'],
+                          atlas['tick_lows'],
+                          no_avg=True,
+                          title=f'Euclidean Connectivity, n = {i + 1}',
+                          cbar_label='Distance',
+                          vmin=-4, vmax=4)
+    quit()
+
     return results
 
 
@@ -198,8 +222,10 @@ def run_settings_healthy(settings, ISPC=False):
 def run_analysis(RSA=True, semantic=False, do_networks=1,
                  conn='euc', trial_similarity='corr', second_order='spear',
                  four_tasks=False, combine_regions=False, split=True,
-                 RDM_method='clever_std', age=1):
+                 RDM_method='clever_std', age=1, edgewise=False):
     settings = locals().copy()
+
+    # assert not edgewise or (trial_similarity == 'corr' and second_order == 'corr')
 
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
@@ -256,7 +282,7 @@ def run_analysis_toggles():
     trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
 
 
-    four_tasks_toggle = ['3_3', '3_4']
+    four_tasks_toggle = ['3_4']
     # four_tasks_toggle = ['3_3']
     # four_tasks_toggle = [True]
     # four_tasks_toggle = [False, True]
@@ -267,6 +293,7 @@ def run_analysis_toggles():
     split_toggle = [False]
     age = 1
     combine_regions = False
+    edgewise=True
     # age = 1
     # split_toggle = [False]
 
@@ -276,7 +303,8 @@ def run_analysis_toggles():
     # analyses = [(True, False)]
     # analyses = [(True, -1)]#, (True, False), (False, False)]
     # analyses = [(True, False), ]
-    analyses = [(True, True), (False, False)]
+    # analyses = [(True, True), (False, False)]
+    analyses = [(True, True)]
     # analyses = [(True, False), (False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
@@ -295,7 +323,7 @@ def run_analysis_toggles():
                                              do_networks=do_networks,
                                              RDM_method=RDM_method,
                                              combine_regions=combine_regions,
-                                             age=age)
+                                             age=age, edgewise=edgewise)
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')
                                 pass

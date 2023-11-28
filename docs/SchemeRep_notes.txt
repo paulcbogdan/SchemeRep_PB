@@ -10,6 +10,7 @@
 3. Similar results when looking at ERS, speaking to the robustness of the findings
 - For conn, PFC shows it
 - For BOLD, only perceptual does 
+- Could look at ERS purely with the conceptual
 4. RSA trend suggests that this is strongest for the conceptual retrieval
 Other.
 - ISPC shows OA effect (p = .016) but not YA (p = 0.215 and in opposite direction)
