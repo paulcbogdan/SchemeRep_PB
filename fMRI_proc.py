@@ -113,12 +113,13 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear', within_to_nan=True):
     nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
     fMRI_flat = fMRI_flat[~nans]
     stim_flat = stim_flat[~nans]
+    # print(f'{fMRI_flat=}')
+    # print(f'{stim_flat=}')
     if corr == 'spear':
         r, _ = stats.spearmanr(fMRI_flat, stim_flat)
         z = np.arctanh(r)
     elif corr == 'corr':
         r, _ = stats.pearsonr(fMRI_flat, stim_flat)
-        # print(f'{r=:.3f}')
         z = np.arctanh(r)
     elif corr == 'euc':
         z = -np.mean(fMRI_flat - stim_flat)
@@ -128,13 +129,14 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear', within_to_nan=True):
     return z
 
 def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
-              by_run=False):
+              by_run=False, second_order='corr'):
     '''
     matmul all took 0.001 seconds
     matmul semi (one loop, inner matmul) took 0.008 seconds
     scipy pearsonr took 0.013 seconds
     scipy spearmanr took 0.055 seconds
     '''
+
     if within_to_nan:
         fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
     elif by_run:
@@ -144,10 +146,25 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
         fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
     stim_RDM[np.diag_indices_from(stim_RDM)] = np.nan
-    fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)
-    stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
-    IRAFs = fMRI_RDM_std * stim_RDM_std
-    IRAFs = np.nanmean(IRAFs, axis=0)
+    if second_order == 'corr':
+        fMRI_RDM_std = stdize(fMRI_RDM_, axis=0, nans=True)
+        stim_RDM_std = stdize(stim_RDM, axis=0, nans=True)
+        IRAFs = fMRI_RDM_std * stim_RDM_std
+        IRAFs = np.nanmean(IRAFs, axis=0)
+    elif second_order == 'spear':
+        IRAFs = []
+        for i in range(fMRI_RDM_.shape[0]):
+            fMRI_flat = fMRI_RDM_[i, :]
+            stim_flat = stim_RDM[i, :]
+            nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
+            fMRI_flat = fMRI_flat[~nans]
+            stim_flat = stim_flat[~nans]
+            r, _ = stats.spearmanr(fMRI_flat, stim_flat)
+            z = np.arctanh(r)
+            IRAFs.append(z)
+        IRAFs = np.array(IRAFs)
+    else:
+        raise NotImplementedError(f'get_IRAFs {second_order=}')
     IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
 

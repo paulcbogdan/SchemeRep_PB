@@ -1,3 +1,4 @@
+import pandas as pd
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
@@ -12,6 +13,7 @@ import numpy as np
 from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
 from datetime import datetime
+from time import time
 from colorama import Fore
 
 import matplotlib.pyplot as plt
@@ -21,12 +23,12 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            RDM_method='by_run', combine_regions=False, edgewise=False):
     scores_all = []
     sizes_all = []
-    scores_by_ROI = []
+    trialwise_all = []
     for fp0 in fps:
         if RSA:
             # f = RSA_edgewise if edgewise else RSA_sn
             f = RSA_ROI_pairwise if edgewise else RSA_sn
-            scores, sizes, score_by_ROI = \
+            scores, sizes, trialwise = \
                 f(sn, atlas, d_vecs, fp0, networks=networks,
                        conn=conn, trial_similarity=trial_similarity,
                        second_order=second_order, RDM_method=RDM_method,
@@ -34,25 +36,25 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                        )
             scores_all.append(scores)
             sizes_all.append(sizes)
-            scores_by_ROI.append(score_by_ROI)
+            trialwise_all.append(trialwise)
         else:
             for fp1 in fps:
                 if fp0 >= fp1:
                     continue
-                scores, sizes, score_by_ROI = \
+                scores, sizes, trialwise = \
                     ERS_sn(sn, atlas, fp0, fp1, networks=networks,
                            conn=conn, trial_similarity=trial_similarity,
                            combine_regions=combine_regions,)
                 scores_all.append(scores)
                 sizes_all.append(sizes)
-                scores_by_ROI.append(score_by_ROI)
+                trialwise_all.append(trialwise)
     M_score_by_ROI = np.nanmean(scores_all, axis=0)
 
     M_size_by_ROI = np.nanmean(sizes_all, axis=0)
-    scores_by_ROI = np.array(scores_by_ROI)
+    trialwise_all = np.array(trialwise_all)
     # print(f'{scores_by_ROI.shape=}')
     # quit()
-    return M_score_by_ROI, M_size_by_ROI, scores_by_ROI
+    return M_score_by_ROI, M_size_by_ROI, trialwise_all
 
 def prep_vecs(RSA, semantic):
     if RSA:
@@ -118,6 +120,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         else:
             keys = atlas['tick_labels']
 
+
     # print(atlas['ROIs'])
     # quit()
     # print(f'{len(keys)=}')
@@ -128,7 +131,8 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
     results = {'networks': networks, 'keys': keys,
                'sns': sns, 'scores': [], 'sizes': [],
-               'scores_by_ROI': []}
+               'scores_by_ROI': [],
+               'tick_labels': atlas['tick_labels']}
     results['settings'] = settings
     for i, sn in tqdm(enumerate(sns), desc='ERS, looping subjects'):
         ers_sn_by_comparison = []
@@ -140,15 +144,16 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         results['scores_by_ROI'].append(scores_by_ROI)
+        results['trialwise'] = np.array(results['scores_by_ROI'])
         if not edgewise:
             report_results(results)
         else:
-            if i > 2:
+            if i > 1:
                 visualize_region_pairwise(results)
 
     return results
 
-def visualize_region_pairwise(results):
+def visualize_region_pairwise(results, plot_lmer=False):
     M_all = np.nanmean(results['scores'], axis=0)
     SD_all = np.nanstd(results['scores'], axis=0)
     N_all = np.sum(~np.isnan(results['scores']), axis=0)
@@ -157,7 +162,7 @@ def visualize_region_pairwise(results):
     t_all = M_all / SE_all
 
     ticks = 0.5 + np.arange(26) * 2
-    tick_labels = results['keys']
+    tick_labels = results['tick_labels']
     tick_lows = 0 + np.arange(26) * 2
 
     plot_connectivity(t_all,
@@ -168,8 +173,60 @@ def visualize_region_pairwise(results):
                       # atlas['tick_labels'],
                       # atlas['tick_lows'],
                       no_avg=True,
-                      title=f'Euclidean Connectivity, n = {N}',
-                      cbar_label='t-value')
+                      title=f'Region-pair RSA, n = {N}',
+                      cbar_label='t-value',
+                      vmin=-4, vmax=4)
+
+    if not plot_lmer:
+        return
+
+    print(f'{results["trialwise"].shape=}')
+    n_regions = results['trialwise'].shape[2]
+    print(f'{n_regions=}')
+    lmer_ar = np.full((n_regions, n_regions), np.nan)
+    for i in tqdm(range(n_regions), desc='running lmers'):
+        for j in range(n_regions):
+            if i > j:
+                continue
+            else:
+                pair_scores = results['trialwise'][:, :, i, j, :]
+                print(f'{i} | {j} ')
+                pair_scores_raveled = pair_scores.ravel()
+                # print(f'{pair_scores_raveled.shape=}')
+                df = pd.DataFrame({'IRAF': pair_scores_raveled})
+                # print(f'{pair_scores.shape=}')
+                idxs = np.ndindex(pair_scores.shape)
+                idxs = np.array(list(idxs))
+
+                df[['sn', 'fp', 'stim']] = idxs
+                for key in ['sn', 'fp', 'stim']:
+                    df[key] = df[key].astype(str)
+
+                # print(df)
+                from pymer4.models import Lmer
+                # st = time()
+                formula = 'IRAF ~ 1 + (1|sn) + (1|fp)'
+                model = Lmer(formula, data=df)
+                # model.fit()
+                # print(model.summary())
+
+                model.fit(REML=True, verbose=False, summary=False)
+                summary = model.coefs
+                lmer_t = summary['T-stat'].loc['(Intercept)']
+                lmer_ar[i, j] = lmer_t
+                lmer_ar[j, i] = lmer_t
+
+    plot_connectivity(lmer_ar,
+                      ticks,
+                      tick_labels,
+                      tick_lows,
+                      # atlas['ticks'],
+                      # atlas['tick_labels'],
+                      # atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'lmer: region-pair RSA, n = {N}',
+                      cbar_label='t-value',
+                      vmin=-4, vmax=4)
 
 def plot_edgewise(rs_by_edge_ar_all, atlas, prt_all):
     M_mat = np.nanmean(rs_by_edge_ar_all, axis=0)
@@ -229,12 +286,14 @@ def run_settings_healthy(settings, ISPC=False):
 
 
 def run_analysis(RSA=True, semantic=False, do_networks=1,
-                 conn='euc', trial_similarity='corr', second_order='spear',
+                 conn='euc', trial_similarity='corr', second_order='corr',
                  four_tasks=False, combine_regions=False, split=True,
                  RDM_method='clever_std', age=1, edgewise=False):
     settings = locals().copy()
     if not edgewise:
         del settings['edgewise']
+    else:
+        settings['do_networks'] = -1
 
     # assert not edgewise or (trial_similarity == 'corr' and second_order == 'corr')
 
@@ -278,7 +337,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
                               dt_max=dt_max)
         print(f'Finished!')
     if 'edgewise' in settings:
-        visualize_region_pairwise(results)
+        visualize_region_pairwise(results, plot_lmer=True)
     else:
         report_results(results)
 
@@ -293,7 +352,7 @@ def run_analysis_toggles():
     # conn_toggle = ['cross_euc', 'cross_prod']
     # conn_toggle = ['BOLD']
     # trial_similarity_toggle = ['seuclidean']
-    trial_similarity_toggle = ['corr', 'spear']#, 'seuclidean']
+    trial_similarity_toggle = ['corr']#, 'spear']#, 'seuclidean']
 
 
     four_tasks_toggle = ['3_4']
@@ -332,7 +391,8 @@ def run_analysis_toggles():
                             try:
                                 run_analysis(conn=conn,
                                              trial_similarity=trial_similarity,
-                                             four_tasks=four_tasks, split=split,
+                                             four_tasks=four_tasks,
+                                             split=split,
                                              RSA=RSA, semantic=semantic,
                                              do_networks=do_networks,
                                              RDM_method=RDM_method,
@@ -343,6 +403,11 @@ def run_analysis_toggles():
                                 pass
 
 if __name__ == '__main__':
+    # import scipy.stats as stats
+    # r, _ = stats.spearmanr([], [])
+    # r, _ = stats.pearsonr([], [])
+    # quit()
+
     # print(isinstance(1, bool))
     # quit()
     run_analysis_toggles()

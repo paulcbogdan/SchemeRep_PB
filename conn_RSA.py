@@ -26,6 +26,8 @@ def regress_out_edgewise_RSM():
 def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                      trial_similarity='corr', second_order='spear',
                      RDM_method='by_run', combine_regions=False):
+    # print(f'{second_order=}')
+    # quit()
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
@@ -56,6 +58,8 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                             dist=trial_similarity)
     # ROI_pair2conn_vecs = {}
     score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
+    IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
+
     for i, ROI0 in enumerate(region_order):
         vecs0 = ROI2vecs[ROI0]
         # print(ROI0, vecs0)
@@ -70,36 +74,62 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                 vecs = get_conn_vecs(vecs0, conn=conn)
             else:
                 vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
-            z = get_RSM_subtract_run_mean_fast(vecs, RSM_stim,
+            if vecs.shape[1] == 1:
+                score_ar[i, j] = z
+                score_ar[j, i] = z
+                IRAFs_ar[i, j, :] = np.full((114), np.nan)
+                IRAFs_ar[j, i, :] = np.full((114), np.nan)
+                # print(f'Only one edge: {ROI0}, {ROI1}')
+                continue
+            # if ROI1 == 'PCL_L' and ROI0 == 'PCL_L':
+                # print(vecs.shape)
+                # quit()
+            # else:
+            #     continue
+                # print(f'{vecs=}')
+                # quit()
+            # print(f'{ROI1} | {ROI0}')
+            z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
                                                second_order=second_order)
             score_ar[i, j] = z
             score_ar[j, i] = z
+            IRAFs_ar[i, j, :] = IRAFs
+            IRAFs_ar[j, i, :] = IRAFs
+                # quit()
             # print(f'{ROI0} | {ROI1}: {z=:.3f}')
             # ROI_pair2conn_vecs[(ROI0, ROI1)] = z
             # ROI_pair2conn_vecs[(ROI1, ROI0)] = z
-    # plt.imshow(score_ar)
-    # plt.title(f'{sn} | {fp=}')
-    # plt.show()
-    return score_ar, np.nan, np.nan
+    return score_ar, np.nan, IRAFs_ar
 
 
 
 
-def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, second_order='spear'):
+def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
+                                   second_order='spear'):
     trials_per_run = 38
     for run in range(3):
         low = run * trials_per_run
         high = (run + 1) * trials_per_run
         M = np.nanmean(vecs[low:high, :], axis=0)
         vecs[low:high, :] -= M
-
     vecs = stdize(vecs, axis=1, nans=True)
+    # print(vecs)
+
     vecs0 = vecs[None, :, :]
     vecs1 = vecs[:, None, :]
+    # print(vecs0 * vecs1)
     RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=2)
+
+    # try:
     z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                   within_to_nan=False)
-    return z
+    IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn,
+                      within_to_nan=False,
+                      second_order=second_order)
+    # except:
+    #     print(f'{RSM_fMRI=}')
+    #     quit()
+    return z, IRAFs
 
 
 def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,

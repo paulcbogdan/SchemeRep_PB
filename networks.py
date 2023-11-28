@@ -87,7 +87,8 @@ def prep_networks(setting=1):
     elif setting == 12:
         networks = {'dPFC': ['SFG', 'MFG', 'IFG'],
                     'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
-
+    elif setting == -1:
+        networks = {}
     # elif setting == 7:
     #     networks = {
     #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),
