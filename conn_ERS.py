@@ -3,6 +3,16 @@ import numpy as np
 from organize_bhv import get_trial_info
 from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
 
+def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
+           networks=True, conn='euc', trial_similarity='euc',
+           combine_regions=False):
+    df_sn = get_trial_info(sn)
+    ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
+                                                   fp1=fp1, networks=False,
+                                                   org_by_region=False,
+                                                   cross_region=False,
+                                                   conn=conn,
+                                                   combine_regions=False,)
 
 def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',

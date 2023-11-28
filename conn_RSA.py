@@ -75,8 +75,8 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             else:
                 vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
             if vecs.shape[1] == 1:
-                score_ar[i, j] = z
-                score_ar[j, i] = z
+                score_ar[i, j] = np.nan
+                score_ar[j, i] = np.nan
                 IRAFs_ar[i, j, :] = np.full((114), np.nan)
                 IRAFs_ar[j, i, :] = np.full((114), np.nan)
                 # print(f'Only one edge: {ROI0}, {ROI1}')
