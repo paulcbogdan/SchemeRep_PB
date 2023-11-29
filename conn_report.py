@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
-from old.plot_gen import plot_connectivity
+from old.plot_gen import plot_connectivity, my_plot_surf
 
 from utils import get_default_fp, pickle_wrap
 
@@ -45,7 +45,6 @@ def report_results(results, do_lmer=False, ISPC=False):
         scores_by_ROI = np.array(results['scores_by_ROI'])
         scores_by_fp = np.nanmean(scores_by_ROI, axis=3)
 
-    print(scores_by_fp.shape)
     # quit()
     ts = np.full(scores_by_fp.shape[2], np.nan)
     ts_by_fp = np.full(scores_by_fp.shape[1:], np.nan)
@@ -104,6 +103,11 @@ def report_results(results, do_lmer=False, ISPC=False):
 
         print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}, '
               f'{t_by_fp_str} {lmer_result_str}')
+
+
+
+
+
     return ts, ts_by_fp
 
 def get_lmer_matrix(results):
@@ -187,6 +191,7 @@ def visualize_region_matrix(results, plot_lmer=False):
                       vmin=-4, vmax=4)
 
     if N == 24 or N >= 30:
+        results['scores_by_ROI'] = np.array(results['scores_by_ROI'])
         scores_trialwise = results['scores_by_ROI']
         for fp in range(scores_trialwise.shape[1]):
             scores_fp = np.mean(scores_trialwise[:, fp, :, :, :],
@@ -235,7 +240,33 @@ def visualize_ROIs(results):
     atlas = get_atlas()
     ROI2coord = atlas['ROI2coord']
     results_coords = [ROI2coord[ROI] for ROI in results['keys']]
-    ts, ts_by_fp = report_results(results, do_lmer=True)
+    ts, ts_by_fp = report_results(results, do_lmer=False)
+
+    atlas = get_atlas(combine_regions=results['settings']['combine_regions'],
+                      combine_bilateral=False,
+                      split=results['settings']['split'], split_code='xyz')
+
+    ROI2atlas_idx = {ROI: i for i, ROI in enumerate(atlas['ROIs'])}
+    scores = np.full((len(atlas['ROIs']),), np.nan)
+    for i, ROI in enumerate(results['keys']):
+        scores[ROI2atlas_idx[ROI]] = ts[i]
+    print(f'{scores=}')
+    my_plot_surf(scores, atlas, 'test')
+    quit()
+
+    # ROI2score = {}
+    # for i, ROI in enumerate(results['keys']):
+    #     ROI2score[ROI] = ts[i]
+    # scores_w_NaNs = []
+    # print(f'{len(ROI2score)=}')
+    # for ROI in atlas['ROIs']:
+    #     if ROI in ROI2score:
+    #         scores_w_NaNs.append(ROI2score[ROI])
+    #     else:
+    #         scores_w_NaNs.append(np.nan)
+    # print(f'{len(scores_w_NaNs)=}')
+    # print(ts)
+    # quit()
     plot_ROI_scores(ts, results_coords, fp_out='trash.png', show=True,
                     vmin=0, vmax=2, title='all')
 
@@ -244,4 +275,3 @@ def visualize_ROIs(results):
                         show=True, vmin=0, vmax=3, title=f'fp: {k}')
 
     quit()
-

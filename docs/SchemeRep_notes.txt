@@ -1,3 +1,10 @@
+TODO: 
+fp0='bl2_fMRI' fp1='obj2_fMRI'
+fp0='bl2_fMRI' fp1='vis2_fMRI'
+fp0='bl2_fMRI' fp1='con2_fMRI'
+fp0='obj2_fMRI' fp1='vis2_fMRI'
+fp0='con2_fMRI' fp1='obj2_fMRI'
+fp0='con2_fMRI' fp1='vis2_fMRI'
 
 
 1. w2v RSA gives only perceptual regions (ventral + dorsal + occipital) when doing all four fps

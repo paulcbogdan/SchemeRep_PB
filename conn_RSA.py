@@ -8,25 +8,69 @@ from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
 from scipy.spatial import distance
 
-
 def RSA_ROI_PFC(sn, atlas, d_vecs, fp, networks=True, conn='euc',
-                trial_similarity='corr', second_order='spear',
-                RDM_method='by_run', combine_regions=False):
+            trial_similarity='corr', second_order='spear',
+            RDM_method='by_run', combine_regions=False):
+    return RSA_ROI(sn, atlas, d_vecs, fp, networks=networks, conn=conn,
+            trial_similarity=trial_similarity,
+            second_order=second_order, RDM_method=RDM_method,
+            combine_regions=combine_regions, PFC=True)
+
+
+def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
+            trial_similarity='corr', second_order='spear',
+            RDM_method='by_run', combine_regions=False,
+            PFC=False):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-    ROI2vecs_PFC = {}
+    ROI2vecs_M = {}
     for ROI, vecs in ROI2vecs.items():
-        if 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
-            ROI2vecs_PFC[ROI] = np.nanmean(vecs, axis=1)
-    ROI2vecs = ROI2vecs_PFC
-    ROIs_l = get_BNA_ROIs(code=None)
+        if PFC:
+            if 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
+                ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+        else:
+            ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+    ROI2vecs = ROI2vecs_M
+
+    # print(len(ROI2vecs))
+    # quit()
+    if len(ROI2vecs) > 400:
+        ROIs_l = get_BNA_ROIs(code='PFC_8')
+    else:
+        ROIs_l = get_BNA_ROIs(code=None)
     ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs.keys()]
+    # for i in range(52):
+    #     test = f'{i} '
+    #     cnt = sum([1 for roi in ROIs_l if f'{i} ' in roi])
+    #
+    #     print(f'{i} ! {cnt}')
+    # quit()
     # print(ROIs_l)
     # quit()
-    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist=trial_similarity)
+    if not PFC:
+        conn_trialwise = np.full((len(ROIs_l), len(ROIs_l), 114), np.nan)
+        for i, ROI0 in enumerate(ROIs_l):
+            vecs0 = ROI2vecs[ROI0]
+            vecs0 = vecs0[:, None]
+            for j, ROI1 in enumerate(ROIs_l):
+                if ROI1 == ROI0:
+                    conn_trialwise[i, j, :] = np.nan
+                    continue
+                vecs1 = ROI2vecs[ROI1]
+                vecs1 = vecs1[:, None]
+                if conn == 'euc':
+                    vecs = np.abs(vecs0 - vecs1) # speed-up
+                else:
+                    vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+                conn_trialwise[i, j, :] = np.squeeze(vecs) # prev (114, 1)
+        mean_conn_trialwise = np.nanmean(conn_trialwise, axis=0)
+        # print(f'{mean_conn_trialwise.shape=}')
+
+    RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
+                            dist=trial_similarity)
 
     scores = []
     sizes = []
@@ -37,16 +81,22 @@ def RSA_ROI_PFC(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         vecs_else = []
         for ROI1 in ROIs_l:
             if ROI1 == ROI0:
+                vecs_else.append(np.full(vecs0.shape[0], np.nan))
                 continue
             vecs1 = ROI2vecs[ROI1]
             vecs_else.append(vecs1)
         vecs_else = np.vstack(vecs_else).T
         sizes.append(vecs_else.shape[1])
-        # print(f'{vecs_else.shape=}')
         vecs = get_conn_vecs(vecs0, vecs_else, conn=conn)
-        # print(f'{vecs}')
+        if not PFC:
+            vecs -= (mean_conn_trialwise.T * 246 - vecs) / 245
+        # print(f'{vecs.shape=}')
+        # quit()
         z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
+                                                  trial_similarity=trial_similarity,
                                                   second_order=second_order)
+        # print(IRAFs)
+        # quit()
         scores.append(z)
         # print(f'{z=:.3f}')
         scores_trialwise.append(IRAFs)
@@ -103,7 +153,8 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                 # quit()
             # print(f'{ROI1} | {ROI0}')
             z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
-                                               second_order=second_order)
+                                    trial_similarity=trial_similarity,
+                                                      second_order=second_order)
             score_ar[i, j] = z
             score_ar[j, i] = z
             IRAFs_ar[i, j, :] = IRAFs
@@ -118,6 +169,7 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
 
 
 def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
+                                   trial_similarity='corr',
                                    second_order='spear'):
     trials_per_run = 38
     for run in range(3):
@@ -125,13 +177,22 @@ def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
         high = (run + 1) * trials_per_run
         M = np.nanmean(vecs[low:high, :], axis=0)
         vecs[low:high, :] -= M
-    vecs = stdize(vecs, axis=1, nans=True)
-    # print(vecs)
 
-    vecs0 = vecs[None, :, :]
-    vecs1 = vecs[:, None, :]
+    if trial_similarity == 'corr':
+        vecs = stdize(vecs, axis=1, nans=True)
+        vecs0 = vecs[None, :, :]
+        vecs1 = vecs[:, None, :]
+        RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=2)
+    elif trial_similarity == 'spear':
+        vecs_r = stats.rankdata(vecs, axis=1, nan_policy='omit')
+        vecs0_r = vecs_r[None, :, :]
+        vecs1_r = vecs_r[:, None, :]
+        vecs0_r = stdize(vecs0_r, axis=2, nans=True)
+        vecs1_r = stdize(vecs1_r, axis=2, nans=True)
+        RSM_fMRI = np.nanmean(vecs0_r * vecs1_r, axis=2)  # Spearman
+    else:
+        raise NotImplementedError(f'{trial_similarity=}')
     # print(vecs0 * vecs1)
-    RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=2)
 
     # try:
     z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,

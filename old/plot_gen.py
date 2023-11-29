@@ -111,6 +111,7 @@ def get_split_cmap(vabs, thresh, cmap):
 
 
 def my_plot_surf(Ms, atlas, title):
+    Ms[np.isinf(Ms)] = np.nan
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
@@ -120,7 +121,7 @@ def my_plot_surf(Ms, atlas, title):
 
     vabs = np.nanmax(np.abs(Ms))
     print(f'{vabs=}')
-    thresh = 2
+    thresh = 1.65
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
 
     img = image.new_img_like(atlas['maps'], img_data)

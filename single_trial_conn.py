@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI_PFC
+from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI, RSA_ROI_PFC
 from conn_ERS import ERS_sn, ERS_ROI_pairwise
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
@@ -28,6 +28,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 f = RSA_sn
             elif plotting == 'ROIs_PFC':
                 f = RSA_ROI_PFC
+            elif plotting == 'ROIs':
+                f = RSA_ROI
             elif plotting == 'edges':
                 f = RSA_edgewise
             elif plotting == 'regions':
@@ -108,13 +110,17 @@ def prep_results_d(settings, networks, atlas, sns):
             keys = atlas['tick_labels']
     else:
         if settings['plotting'] == 'ROIs_PFC':
-            keys = get_BNA_ROIs(code='PFC')
+            if settings['split']:
+                keys = get_BNA_ROIs(code='PFC_8')
+            else:
+                keys = get_BNA_ROIs(code='PFC')
+        elif settings['plotting'] == 'ROIs':
+            keys = get_BNA_ROIs()
         else:
             keys = list(networks)
 
     results = {'networks': networks, 'keys': keys,
                'sns': sns, 'scores': [], 'sizes': [],
-               'scores_by_ROI': [],
                'tick_labels': atlas['tick_labels'],
                }
     if settings['plotting'] == 'regions':
@@ -145,18 +151,20 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     networks = prep_networks(do_networks)
     results = prep_results_d(settings, networks, atlas, sns)
 
+    trialwise_all = []
     for i, sn in tqdm(enumerate(sns), desc='run_settings, looping subjects'):
         ers_sn_by_comparison = []
-        scores, sizes, scores_by_ROI = \
+        scores, sizes, scores_trialwise = \
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
                    conn=conn, trial_similarity=trial_similarity,
                    second_order=second_order, RDM_method=RDM_method,
                    combine_regions=combine_regions, plotting=plotting)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
-        results['scores_by_ROI'].append(scores_by_ROI)
-        results['trialwise'] = np.array(results['scores_by_ROI'])
-        if plotting is None or plotting == 'ROIs_PFC':
+        trialwise_all.append(scores_trialwise)
+        results['scores_by_ROI'] = np.array(trialwise_all)
+        results['trialwise'] = np.array(trialwise_all)
+        if plotting is None or (plotting == 'ROIs_PFC' or plotting == 'ROIs'):
             report_results(results)
         else:
             if i > 1:
@@ -199,10 +207,15 @@ def run_settings_healthy(settings, ISPC=False):
                                              results2['sizes']]),
                     'scores_by_ROI': np.concatenate([results1['scores_by_ROI'],
                                                      results2['scores_by_ROI']]),
-                    'settings': settings,
-                    'ticks': results1['ticks'],
-                    'tick_lows': results1['tick_lows'],
-                    'tick_labels': results1['tick_labels'],}
+                    'settings': settings}
+    if 'ticks' in results1:
+        results_both['ticks'] = results1['ticks']
+        results_both['tick_lows'] = results1['tick_lows']
+        results_both['tick_labels'] = results1['tick_labels']
+
+                    # 'ticks': results2['ticks'],
+                    # 'tick_lows': results2['tick_lows'],
+                    # 'tick_labels': results2['tick_labels'],}
 
     return results_both
 
@@ -238,6 +251,10 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     if 'cross_' in conn:
         dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
 
+    if 'plotting' in settings and settings['plotting'] == 'ROIs':
+        dt_max = datetime(2023, 11, 29, 17, 0, 0, 0)
+
+
     dir_results = r'cache/conn_RSA'
     if age == 'healthy':
         print('\n')
@@ -257,26 +274,27 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
                               dt_max=dt_max)
         print(f'Finished!')
 
-    if settings['plotting'] == 'ROIs_PFC':
+    if 'ROIs' in settings['plotting']:
         visualize_ROIs(results)
-    if 'plotting' not in settings or settings['plotting'] == 'ROIs_PFC':
+    if 'plotting' not in settings or 'ROIs' in settings['plotting']:
         report_results(results)
     else:
         visualize_region_matrix(results, plot_lmer=True)
 
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
-    trial_similarity_toggle = ['corr']
+    trial_similarity_toggle = ['spear']
     four_tasks_toggle = ['3_4']
     conn_toggle = ['euc']
     split_toggle = [False]
-    age = 'healthy'
-    # age = 1
+    # age = 'healthy'
+    age = 1
     combine_regions = False
-    plotting = 'ROIs_PFC'
+    plotting = 'ROIs'
     second_order = 'spear'
-    # analyses = [(True, True)]
-    analyses = [(True, False)]
+    analyses = [(True, True)]
+    # analyses = [(True, False)]
+    # analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
             for do_networks in [12]:
