@@ -110,7 +110,9 @@ def prep_results_d(settings, networks, atlas, sns):
             keys = atlas['tick_labels']
     else:
         if settings['plotting'] == 'ROIs_PFC':
-            if settings['split']:
+            if settings['atlas'] == 'schaefer':
+                keys = get_BNA_ROIs(code='PFC_schaefer')
+            elif settings['split']:
                 keys = get_BNA_ROIs(code='PFC_8')
             else:
                 keys = get_BNA_ROIs(code='PFC')
@@ -136,13 +138,16 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
-                 age=1, plotting=None):
+                 age=1, plotting=None, atlas='BNA'):
     settings = locals().copy()
     print(f'Run settings start: {settings=}')
     d_vecs = prep_vecs(RSA, semantic)
-    atlas = get_atlas(combine_regions=combine_regions,
-                      combine_bilateral=False,
-                      split=split, split_code='xyz')
+    if atlas == 'schaefer':
+        atlas = get_atlas(schaefer=True)
+    else:
+        atlas = get_atlas(combine_regions=combine_regions,
+                          combine_bilateral=False,
+                          split=split, split_code='xyz')
     fps = prep_fps(four_tasks)
     age2sn = get_all_sns(ret=True)
     sns = age2sn[age]
@@ -223,7 +228,7 @@ def run_settings_healthy(settings, ISPC=False):
 def run_analysis(RSA=True, semantic=False, do_networks=1,
                  conn='euc', trial_similarity='corr', second_order='spear',
                  four_tasks=False, combine_regions=False, split=True,
-                 RDM_method='clever_std', age=1, plotting=None):
+                 RDM_method='clever_std', age=1, plotting=None, atlas='BNA'):
     settings = locals().copy()
 
     if plotting is None:
@@ -231,6 +236,9 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     else:
         settings['do_networks'] = -1
         settings['RDM_method'] = 'clever_std'
+
+    if atlas == 'BNA':
+        del settings['atlas']
 
     assert RSA or (not RSA and not semantic), 'semantic only for RSA'
     assert not (combine_regions and split), 'cannot combine and split'
@@ -287,10 +295,11 @@ def run_analysis_toggles():
     four_tasks_toggle = ['3_4']
     conn_toggle = ['euc']
     split_toggle = [False]
+    atlas = 'schaefer'
     # age = 'healthy'
     age = 1
     combine_regions = False
-    plotting = 'ROIs'
+    plotting = 'regions'
     second_order = 'spear'
     analyses = [(True, True)]
     # analyses = [(True, False)]
@@ -311,7 +320,8 @@ def run_analysis_toggles():
                                              RDM_method=RDM_method,
                                              combine_regions=combine_regions,
                                              second_order=second_order,
-                                             age=age, plotting=plotting)
+                                             age=age, plotting=plotting,
+                                             atlas=atlas)
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')
                                 pass

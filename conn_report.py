@@ -237,8 +237,12 @@ def visualize_region_matrix(results, plot_lmer=False):
 
 def visualize_ROIs(results):
     from connsearch.report import plot_ROI_scores
-    atlas = get_atlas()
+    atlas = get_atlas(split=results['settings']['split'])
     ROI2coord = atlas['ROI2coord']
+    # print(ROI2coord)
+    # print(f'{len(ROI2coord)=}')
+    # print(list(atlas['ROI2coord']))
+    # quit()
     results_coords = [ROI2coord[ROI] for ROI in results['keys']]
     ts, ts_by_fp = report_results(results, do_lmer=False)
 

@@ -29,15 +29,23 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
     ROI2vecs_M = {}
     for ROI, vecs in ROI2vecs.items():
         if PFC:
-            if 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
+            if 'PFC' in ROI:
+                ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+            elif 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
                 ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
         else:
             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
     ROI2vecs = ROI2vecs_M
+    # print(len(list(ROI2vecs)))
+    # quit()
+    # print(f'{len(ROI2vecs)=}')
+    # quit()
 
     # print(len(ROI2vecs))
     # quit()
-    if len(ROI2vecs) > 400:
+    if len(ROI2vecs) == 155:
+        ROIs_l = get_BNA_ROIs(code='PFC_schaef')
+    elif len(ROI2vecs) > 400:
         ROIs_l = get_BNA_ROIs(code='PFC_8')
     else:
         ROIs_l = get_BNA_ROIs(code=None)
@@ -115,16 +123,21 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
 
+
     ROI2vecs, region_order, score_ar, IRAFs_ar = \
         prep_for_pairwise(ROI2vecs, atlas)
+    # print(list(ROI2vecs))
+    # print(ROI2vecs)
+    # quit()
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
     # ROI_pair2conn_vecs = {}
     # score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
     # IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
-
+    print(ROI2vecs)
     for i, ROI0 in enumerate(region_order):
+
         vecs0 = ROI2vecs[ROI0]
         # print(ROI0, vecs0)
         # quit()
@@ -134,6 +147,7 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             if ROI1 > ROI0:
                 continue
             elif ROI0 == ROI1:
+                # print(f'{np.array(vecs0).shape=}')
                 vecs = get_conn_vecs(vecs0, conn=conn)
             else:
                 vecs1 = ROI2vecs[ROI1]

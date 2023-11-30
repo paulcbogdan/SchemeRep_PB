@@ -7,6 +7,67 @@ from scipy import ndimage
 from nilearn import plotting
 import random
 
+def get_Schaefer_atlas():
+    atlas = {}
+
+    from nilearn.datasets import fetch_atlas_schaefer_2018
+    atlas_ni = fetch_atlas_schaefer_2018(n_rois=1000, resolution_mm=2,
+                                      yeo_networks=17)
+    df_coords = r'Schaefer2018_1000Parcels_17Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
+    df_coords = pd.read_csv(df_coords)
+    atlas['coords'] = np.array(df_coords[['R', 'A', 'S']])
+    print(atlas['coords'].shape)
+
+    fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+             r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+    img = image.load_img(fp_ref)
+    atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img,
+                                          interpolation='nearest')
+    ROIs = [str(ROI, encoding='utf-8') for ROI in atlas_ni['labels']]
+    ROI_nums = [i + 1 for i in range(len(ROIs))]
+    n_ROIs = len(ROIs)
+    ROI_regions = []
+    ROI_regions_laterality = []
+    region_nums = defaultdict(list)
+    ROIs_ = []
+    for i, ROI in enumerate(ROIs):
+        ROI = ROI.replace('_LH', '_L').replace('_RH', '_R')
+        ROIs_.append(ROI)
+        # ROI = str(ROI, encoding='utf-8')
+        region = ROI.split('_')[-2]
+        ROI_regions.append(region)
+        LR = ROI.split('_')[1]
+        region_LR = region + '_' + LR
+        region_nums[region].append(i)#int(ROI_num)-1)
+        ROI_regions_laterality.append(region_LR)
+    ROIs = ROIs_
+
+    ticks = []
+    tick_labels = []
+    tick_lows = []
+    for region, l in region_nums.items():
+        ticks.append(np.mean(l))
+        tick_labels.append(region)
+        tick_lows.append(l[0])
+
+    atlas['ROIs'] = ROIs
+    atlas['ROI_nums'] = ROI_nums
+    atlas['n_ROIs'] = n_ROIs
+    atlas['ROI_regions'] = ROI_regions # repeats, length = # ROI
+    atlas['ticks'] = ticks
+    atlas['tick_labels'] = tick_labels # no repeat, length = # regions
+    atlas['tick_lows'] = tick_lows
+    # for tick, label in zip(ticks, tick_labels):
+    #     print(f'{tick=}, {label=}')
+        # TODO: sort by region
+    # print(f'{tick_labels=}')
+
+    # quit()
+    atlas['ROI_regions_laterality'] = ROI_regions_laterality
+    atlas['ROI2coord'] = dict(zip(ROIs, atlas['coords']))
+    return atlas
+
+
 def add_ROI_info(atlas):
     ROIs = atlas['labels']
     ROI_nums = [i + 1 for i in range(len(ROIs))]
@@ -187,7 +248,24 @@ def split_BNA(new_space=True, split_code='xyz'):
                     ROI_regions_new.append(region)
                     ROI_regions_LR_new.append(region_LR)
                     ROI_nums_new.append(new_num)
-                    coords_new.append(coord) # TODO
+
+                    if idxs_choice.shape[0] == 0:
+                        coords_new.append(coord)
+                    else:
+                        x_low = idxs_choice[:, 0].min()
+                        x_high = idxs_choice[:, 0].max()
+                        y_low = idxs_choice[:, 1].min()
+                        y_high = idxs_choice[:, 1].max()
+                        z_low = idxs_choice[:, 2].min()
+                        z_high = idxs_choice[:, 2].max()
+                        x_new = (x_low + x_high) / 2
+                        y_new = (y_low + y_high) / 2
+                        z_new = (z_low + z_high) / 2
+                        coord_new = image.coord_transform(x_new, y_new, z_new,
+                                                          atlas['maps'].affine)
+                        coords_new.append(coord_new)
+
+
 
     atlas_new = {}
     atlas_new['coords'] = coords_new
@@ -199,14 +277,16 @@ def split_BNA(new_space=True, split_code='xyz'):
     atlas_new['tick_labels'] = atlas['tick_labels']
     atlas_new['tick_lows'] = atlas['tick_lows']*8
     atlas_new['ROI_regions_laterality'] = ROI_regions_LR_new
-    atlas_new['ROI2coord'] = dict(zip(ROIs_new, atlas['coords']))
+    atlas_new['ROI2coord'] = dict(zip(ROIs_new, atlas_new['coords']))
     atlas_new['maps'] = image.new_img_like(atlas['maps'], atlas_data_new)
     return atlas_new
 
 
 def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
-              new_space=True, split_code='xyz'):
-    if split:
+              new_space=True, split_code='xyz', schaefer=False):
+    if schaefer:
+        atlas = get_Schaefer_atlas()
+    elif split:
         assert not combine_regions, 'split and combine_regions are mutually exclusive'
         atlas = split_BNA(new_space=new_space, split_code=split_code)
     elif combine_regions:
@@ -227,7 +307,8 @@ def org_BNA_coords():
     return coords
 
 if __name__ == '__main__':
+    get_Schaefer_atlas()
     # split_BNA()
-    get_atlas(combine_regions=True, combine_bilateral=False)
+    # get_atlas(combine_regions=True, combine_bilateral=False)
     # get_BN_atlas()
     # get_combined_BNA(combine_bilateral=True)
