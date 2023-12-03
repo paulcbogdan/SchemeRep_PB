@@ -9,7 +9,8 @@ from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
 from old.plot_gen import plot_connectivity, my_plot_surf
 
-from utils import get_default_fp, pickle_wrap
+from utils import get_default_fp, pickle_wrap, make_title_str
+
 
 def print_settings(settings):
     print(f'{settings=}')
@@ -237,25 +238,41 @@ def visualize_region_matrix(results, plot_lmer=False):
 
 def visualize_ROIs(results):
     from connsearch.report import plot_ROI_scores
-    atlas = get_atlas(split=results['settings']['split'])
+    if 'atlas' in results['settings'] and results['settings']['atlas'] == 'schaefer':
+        atlas = get_atlas(schaefer=True)
+    else:
+        atlas = get_atlas(combine_regions=results['settings']['combine_regions'],
+                          combine_bilateral=False,
+                          split=results['settings']['split'], split_code='xyz')
+    # print(atlas['ROIs'])
+    # quit()
     ROI2coord = atlas['ROI2coord']
     # print(ROI2coord)
     # print(f'{len(ROI2coord)=}')
     # print(list(atlas['ROI2coord']))
     # quit()
+    results['keys'] = [ROI.replace('LH_', 'L_').replace('RH_', 'R_')
+                       for ROI in results['keys']]
+    # print(list(ROI2coord))
+    # print(results['keys'])
     results_coords = [ROI2coord[ROI] for ROI in results['keys']]
     ts, ts_by_fp = report_results(results, do_lmer=False)
 
-    atlas = get_atlas(combine_regions=results['settings']['combine_regions'],
-                      combine_bilateral=False,
-                      split=results['settings']['split'], split_code='xyz')
+
+    # print(f'{len(atlas["ROIs"])=}')
+    # quit()
 
     ROI2atlas_idx = {ROI: i for i, ROI in enumerate(atlas['ROIs'])}
     scores = np.full((len(atlas['ROIs']),), np.nan)
     for i, ROI in enumerate(results['keys']):
         scores[ROI2atlas_idx[ROI]] = ts[i]
-    print(f'{scores=}')
-    my_plot_surf(scores, atlas, 'test')
+    if results['settings']['RSA']:
+        title_short = make_title_str('', 'obj', 1, False,
+                                     results['settings']['semantic'],
+                                     short=True)
+    else:
+        title_short = 'Object IPS. YA.'
+    my_plot_surf(scores, atlas, title_short)
     quit()
 
     # ROI2score = {}

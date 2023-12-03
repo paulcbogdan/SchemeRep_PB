@@ -2,7 +2,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI, RSA_ROI_PFC
-from conn_ERS import ERS_sn, ERS_ROI_pairwise
+from conn_ERS import ERS_sn, ERS_ROI_pairwise, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
 from networks import prep_networks
@@ -14,7 +14,7 @@ from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
 from datetime import datetime
 from colorama import Fore
-
+from functools import partial
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
@@ -26,8 +26,12 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
         if RSA:
             if plotting is None:
                 f = RSA_sn
+            elif plotting == 'ROIs_PFC_ctrl':
+                f = partial(RSA_ROI, PFC=True, ROI_ctrl=True)
             elif plotting == 'ROIs_PFC':
-                f = RSA_ROI_PFC
+                f = partial(RSA_ROI, PFC=True, ROI_ctrl=False)
+            elif plotting == 'ROIs_ctrl':
+                f = partial(RSA_ROI, PFC=False, ROI_ctrl=True)
             elif plotting == 'ROIs':
                 f = RSA_ROI
             elif plotting == 'edges':
@@ -48,6 +52,12 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
         else:
             if plotting is None:
                 f = ERS_sn
+            elif plotting == 'ROIs_PFC_ctrl':
+                f = partial(ERS_ROI, PFC=True, ROI_ctrl=True)
+            elif plotting == 'ROIs_PFC':
+                f = partial(ERS_ROI, PFC=True, ROI_ctrl=False)
+            elif plotting == 'ROIs':
+                f = ERS_ROI
             elif plotting == 'edges':
                 raise ValueError(f'run_sn ERS unknown: {plotting=}')
             elif plotting == 'regions':
@@ -109,15 +119,21 @@ def prep_results_d(settings, networks, atlas, sns):
         else:
             keys = atlas['tick_labels']
     else:
-        if settings['plotting'] == 'ROIs_PFC':
-            if settings['atlas'] == 'schaefer':
-                keys = get_BNA_ROIs(code='PFC_schaefer')
-            elif settings['split']:
-                keys = get_BNA_ROIs(code='PFC_8')
+        if 'plotting' in settings and settings['plotting'] is not None:
+            if 'ROIs_PFC' in settings['plotting']:
+                if settings['atlas'] == 'schaefer':
+                    keys = get_BNA_ROIs(code='PFC_schaefer')
+                elif settings['split']:
+                    keys = get_BNA_ROIs(code='PFC_8')
+                else:
+                    keys = get_BNA_ROIs(code='PFC')
+            elif 'ROIs' in settings['plotting']:
+                if settings['atlas'] == 'schaefer':
+                    keys = get_BNA_ROIs(code='schaefer')
+                else:
+                    keys = get_BNA_ROIs()
             else:
-                keys = get_BNA_ROIs(code='PFC')
-        elif settings['plotting'] == 'ROIs':
-            keys = get_BNA_ROIs()
+                keys = list(networks)
         else:
             keys = list(networks)
 
@@ -126,8 +142,12 @@ def prep_results_d(settings, networks, atlas, sns):
                'tick_labels': atlas['tick_labels'],
                }
     if settings['plotting'] == 'regions':
-        results['ticks'] = 0.5 + np.arange(26) * 2
-        results['tick_lows'] = 0 + np.arange(26) * 2
+        if settings['atlas'] == 'schaefer':
+            results['ticks'] = 0.5 + np.arange(38) * 2
+            results['tick_lows'] = 0 + np.arange(38) * 2
+        else:
+            results['ticks'] = 0.5 + np.arange(26) * 2
+            results['tick_lows'] = 0 + np.arange(26) * 2
     elif settings['plotting'] == 'edges':
         results['ticks'] = atlas['ticks']
         results['tick_lows'] = atlas['tick_lows']
@@ -169,7 +189,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         trialwise_all.append(scores_trialwise)
         results['scores_by_ROI'] = np.array(trialwise_all)
         results['trialwise'] = np.array(trialwise_all)
-        if plotting is None or (plotting == 'ROIs_PFC' or plotting == 'ROIs'):
+        if plotting is None or ('ROIs' in plotting):
             report_results(results)
         else:
             if i > 1:
@@ -261,7 +281,10 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 
     if 'plotting' in settings and settings['plotting'] == 'ROIs':
         dt_max = datetime(2023, 11, 29, 17, 0, 0, 0)
-
+    #
+    # settings = {'RSA': True, 'semantic': True, 'do_networks': -1, 'conn': 'euc', 'trial_similarity': 'spear',
+    #             'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False,
+    #             'RDM_method': 'clever_std', 'age': 1, 'plotting': 'regions'}#, 'atlas': 'BNA'}
 
     dir_results = r'cache/conn_RSA'
     if age == 'healthy':
@@ -279,34 +302,41 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
             del settings['age']
         results = pickle_wrap(None, run_settings, kwargs=settings,
                               cache_dir=dir_results, easy_override=False,
-                              dt_max=dt_max)
+                              dt_max=dt_max, verbose=1)
         print(f'Finished!')
 
-    if 'ROIs' in settings['plotting']:
+    if ('plotting' in settings) and ('ROIs' in settings['plotting']):
         visualize_ROIs(results)
     if 'plotting' not in settings or 'ROIs' in settings['plotting']:
-        report_results(results)
+        report_results(results, do_lmer=True)
     else:
         visualize_region_matrix(results, plot_lmer=True)
 
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
-    trial_similarity_toggle = ['spear']
+    trial_similarity_toggle = ['corr', 'spear']
     four_tasks_toggle = ['3_4']
     conn_toggle = ['euc']
     split_toggle = [False]
-    atlas = 'schaefer'
-    # age = 'healthy'
+    # atlas = 'schaefer'
+    atlas = 'BNA'
+    # atlas = None
     age = 1
+    # age = 1
     combine_regions = False
     plotting = 'regions'
+    plotting = 'ROIs_PFC_ctrl'
+    plotting = None
+    # 'ROIs_ctrl' # no ROI is above t=2.1 for whole-brain
+    # plotting = 'regions'
+    # second_order = 'spear'
     second_order = 'spear'
     analyses = [(True, True)]
     # analyses = [(True, False)]
     # analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [12]:
+            for do_networks in [13]:
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:

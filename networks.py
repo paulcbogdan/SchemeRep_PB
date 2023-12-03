@@ -87,8 +87,18 @@ def prep_networks(network_setting=1):
                     'full_frontal_CG': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG',
                                         'PCL', 'CG'],}
     elif network_setting == 12:
-        networks = {'dPFC': ['SFG', 'MFG', 'IFG'],
-                    'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
+        networks = {'dPFC': ['SFG', 'MFG', 'IFG',
+                             'PFCl', 'PFCd'],
+                    'PFC': ['SFG', 'MFG', 'IFG', 'OrG',
+                            'PFCd', 'PFCl', 'PFCmp', 'PFClv', 'PFCm', 'PFCv',
+                            'OFC']}
+    elif network_setting == 13:
+        networks = {'full_frontal': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG'],
+                    'dorsal_frontal': ['SFG', 'MFG', 'IFG', 'PrG'],
+                    'prefrontal': ['SFG', 'MFG', 'IFG', 'OrG']}
+    elif network_setting == 14:
+        networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG'],
+                    'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC']}
     elif network_setting == -1:
         networks = {}
     # elif setting == 7:

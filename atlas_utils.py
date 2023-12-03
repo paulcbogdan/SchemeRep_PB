@@ -24,6 +24,11 @@ def get_Schaefer_atlas():
     atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img,
                                           interpolation='nearest')
     ROIs = [str(ROI, encoding='utf-8') for ROI in atlas_ni['labels']]
+    ROIs = [ROI.replace('PrC_', 'PrCv_').replace('Cinga_1', 'PFCmp_6').
+            replace('PFCld', 'PFCl').replace('AntTemp', 'Temp')
+            for ROI in ROIs]
+
+
     ROI_nums = [i + 1 for i in range(len(ROIs))]
     n_ROIs = len(ROIs)
     ROI_regions = []
@@ -31,13 +36,14 @@ def get_Schaefer_atlas():
     region_nums = defaultdict(list)
     ROIs_ = []
     for i, ROI in enumerate(ROIs):
-        ROI = ROI.replace('_LH', '_L').replace('_RH', '_R')
+        ROI = ROI.replace('s_LH', 's_L').replace('s_RH', 's_R')
         ROIs_.append(ROI)
         # ROI = str(ROI, encoding='utf-8')
         region = ROI.split('_')[-2]
         ROI_regions.append(region)
         LR = ROI.split('_')[1]
         region_LR = region + '_' + LR
+        # print(f'{ROI} | {region_LR=}')
         region_nums[region].append(i)#int(ROI_num)-1)
         ROI_regions_laterality.append(region_LR)
     ROIs = ROIs_
@@ -45,11 +51,18 @@ def get_Schaefer_atlas():
     ticks = []
     tick_labels = []
     tick_lows = []
-    for region, l in region_nums.items():
+    regions = list(region_nums.keys())
+    regions.sort()
+    for region in regions:
+        l = region_nums[region]
+    # for region, l in region_nums.items():
         ticks.append(np.mean(l))
         tick_labels.append(region)
         tick_lows.append(l[0])
 
+    # print(tick_labels)
+    # quit()
+    # quit()
     atlas['ROIs'] = ROIs
     atlas['ROI_nums'] = ROI_nums
     atlas['n_ROIs'] = n_ROIs
@@ -113,7 +126,8 @@ def add_ROI_info(atlas):
 
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True):
     img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
-    fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
+    # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
+    fp_labels = 'BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()

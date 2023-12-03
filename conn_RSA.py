@@ -3,39 +3,44 @@ from scipy import stats as stats
 
 from fMRI_proc import RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
 from organize_bhv import get_trial_info
-from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise, get_BNA_ROIs
+from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise, get_BNA_ROIs, \
+    prep_for_ROI_analysis, get_mean_conn_trialwise
 from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
 from scipy.spatial import distance
 
 def RSA_ROI_PFC(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             trial_similarity='corr', second_order='spear',
-            RDM_method='by_run', combine_regions=False):
+            RDM_method='by_run', combine_regions=False, ROI_ctrl=False):
     return RSA_ROI(sn, atlas, d_vecs, fp, networks=networks, conn=conn,
             trial_similarity=trial_similarity,
             second_order=second_order, RDM_method=RDM_method,
-            combine_regions=combine_regions, PFC=True)
+            combine_regions=combine_regions, PFC=True, ROI_ctrl=ROI_ctrl)
 
 
 def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             trial_similarity='corr', second_order='spear',
             RDM_method='by_run', combine_regions=False,
-            PFC=False):
+            PFC=False, ROI_ctrl=False):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-    ROI2vecs_M = {}
-    for ROI, vecs in ROI2vecs.items():
-        if PFC:
-            if 'PFC' in ROI:
-                ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-            elif 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
-                ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-        else:
-            ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-    ROI2vecs = ROI2vecs_M
+    ROI2vecs = prep_for_ROI_analysis(ROI2vecs, PFC)
+    # ROI2vecs_M = {}
+    # for ROI, vecs in ROI2vecs.items():
+    #     if PFC:
+    #         if 'PFC' in ROI or 'OFC' in ROI:
+    #             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+    #         elif 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
+    #             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+    #     else:
+    #         ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
+    # ROI2vecs = ROI2vecs_M
+    # print(list(ROI2vecs))
+    # print(len(ROI2vecs))
+    # quit()
     # print(len(list(ROI2vecs)))
     # quit()
     # print(f'{len(ROI2vecs)=}')
@@ -43,12 +48,17 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
 
     # print(len(ROI2vecs))
     # quit()
-    if len(ROI2vecs) == 155:
+    if len(ROI2vecs) == 997:
+        ROIs_l = get_BNA_ROIs(code='schaefer')
+    elif len(ROI2vecs) == 189:
         ROIs_l = get_BNA_ROIs(code='PFC_schaef')
     elif len(ROI2vecs) > 400:
         ROIs_l = get_BNA_ROIs(code='PFC_8')
     else:
         ROIs_l = get_BNA_ROIs(code=None)
+    # print(list(ROI2vecs))
+    # print(len(list(ROI2vecs)))
+    # print(len(ROIs_l))
     ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs.keys()]
     # for i in range(52):
     #     test = f'{i} '
@@ -57,24 +67,26 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
     #     print(f'{i} ! {cnt}')
     # quit()
     # print(ROIs_l)
+
     # quit()
-    if not PFC:
-        conn_trialwise = np.full((len(ROIs_l), len(ROIs_l), 114), np.nan)
-        for i, ROI0 in enumerate(ROIs_l):
-            vecs0 = ROI2vecs[ROI0]
-            vecs0 = vecs0[:, None]
-            for j, ROI1 in enumerate(ROIs_l):
-                if ROI1 == ROI0:
-                    conn_trialwise[i, j, :] = np.nan
-                    continue
-                vecs1 = ROI2vecs[ROI1]
-                vecs1 = vecs1[:, None]
-                if conn == 'euc':
-                    vecs = np.abs(vecs0 - vecs1) # speed-up
-                else:
-                    vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
-                conn_trialwise[i, j, :] = np.squeeze(vecs) # prev (114, 1)
-        mean_conn_trialwise = np.nanmean(conn_trialwise, axis=0)
+    if ROI_ctrl:# or (not PFC):
+        mean_conn_trialwise = get_mean_conn_trialwise(ROIs_l, ROI2vecs, conn)
+        # conn_trialwise = np.full((len(ROIs_l), len(ROIs_l), 114), np.nan)
+        # for i, ROI0 in enumerate(ROIs_l):
+        #     vecs0 = ROI2vecs[ROI0]
+        #     vecs0 = vecs0[:, None]
+        #     for j, ROI1 in enumerate(ROIs_l):
+        #         if ROI1 == ROI0:
+        #             conn_trialwise[i, j, :] = np.nan
+        #             continue
+        #         vecs1 = ROI2vecs[ROI1]
+        #         vecs1 = vecs1[:, None]
+        #         if conn == 'euc':
+        #             vecs = np.abs(vecs0 - vecs1) # speed-up
+        #         else:
+        #             vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
+        #         conn_trialwise[i, j, :] = np.squeeze(vecs) # prev (114, 1)
+        # mean_conn_trialwise = np.nanmean(conn_trialwise, axis=0)
         # print(f'{mean_conn_trialwise.shape=}')
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
@@ -96,7 +108,9 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         vecs_else = np.vstack(vecs_else).T
         sizes.append(vecs_else.shape[1])
         vecs = get_conn_vecs(vecs0, vecs_else, conn=conn)
-        if not PFC:
+        # print(f'{vecs.shape=}')
+        # quit()
+        if ROI_ctrl:# or (not PFC):
             vecs -= (mean_conn_trialwise.T * 246 - vecs) / 245
         # print(f'{vecs.shape=}')
         # quit()
@@ -108,6 +122,7 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         scores.append(z)
         # print(f'{z=:.3f}')
         scores_trialwise.append(IRAFs)
+
     # quit()
     return scores, sizes, scores_trialwise
 
@@ -135,22 +150,24 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
     # ROI_pair2conn_vecs = {}
     # score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
     # IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
-    print(ROI2vecs)
+    # print(ROI2vecs)
     for i, ROI0 in enumerate(region_order):
 
         vecs0 = ROI2vecs[ROI0]
         # print(ROI0, vecs0)
         # quit()
+        # print(f'{np.array(vecs0).shape=}')
+
         for j, ROI1 in enumerate(region_order):
     # for i, (ROI0, vecs0) in enumerate(ROI2vecs.items()):
     #     for j, (ROI1, vecs1) in enumerate(ROI2vecs.items()):
             if ROI1 > ROI0:
                 continue
             elif ROI0 == ROI1:
-                # print(f'{np.array(vecs0).shape=}')
                 vecs = get_conn_vecs(vecs0, conn=conn)
             else:
                 vecs1 = ROI2vecs[ROI1]
+                # print(f'{ROI1} | {np.array(vecs1).shape=}')
                 vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
             if vecs.shape[1] == 1:
                 score_ar[i, j] = np.nan

@@ -243,7 +243,6 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     r2vecs = pickle_wrap(fp_cache, f, verbose=False,
                          easy_override=easy_override,
                          )
-    print(f'{len(r2vecs)=}')
     return r2vecs
 
 
