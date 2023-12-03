@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI, RSA_ROI_PFC
+from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI
 from conn_ERS import ERS_sn, ERS_ROI_pairwise, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
@@ -26,14 +26,11 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
         if RSA:
             if plotting is None:
                 f = RSA_sn
-            elif plotting == 'ROIs_PFC_ctrl':
-                f = partial(RSA_ROI, PFC=True, ROI_ctrl=True)
-            elif plotting == 'ROIs_PFC':
-                f = partial(RSA_ROI, PFC=True, ROI_ctrl=False)
-            elif plotting == 'ROIs_ctrl':
-                f = partial(RSA_ROI, PFC=False, ROI_ctrl=True)
-            elif plotting == 'ROIs':
-                f = RSA_ROI
+            elif 'ROIs' in plotting:
+                PFC2 = 'PFC2' in plotting
+                PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
+                ctrl = 'ctrl' in plotting
+                f = partial(RSA_ROI, PFC=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
             elif plotting == 'edges':
                 f = RSA_edgewise
             elif plotting == 'regions':
@@ -52,12 +49,17 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
         else:
             if plotting is None:
                 f = ERS_sn
-            elif plotting == 'ROIs_PFC_ctrl':
-                f = partial(ERS_ROI, PFC=True, ROI_ctrl=True)
-            elif plotting == 'ROIs_PFC':
-                f = partial(ERS_ROI, PFC=True, ROI_ctrl=False)
-            elif plotting == 'ROIs':
-                f = ERS_ROI
+            elif 'ROIs' in plotting:
+                PFC2 = 'PFC2' in plotting
+                PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
+                ctrl = 'ctrl' in plotting
+                f = partial(RSA_ROI, PCF=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
+            # elif plotting == 'ROIs_PFC_ctrl':
+            #     f = partial(ERS_ROI, PFC=True, ROI_ctrl=True)
+            # elif plotting == 'ROIs_PFC':
+            #     f = partial(ERS_ROI, PFC=True, ROI_ctrl=False)
+            # elif plotting == 'ROIs':
+            #     f = ERS_ROI
             elif plotting == 'edges':
                 raise ValueError(f'run_sn ERS unknown: {plotting=}')
             elif plotting == 'regions':
@@ -120,7 +122,12 @@ def prep_results_d(settings, networks, atlas, sns):
             keys = atlas['tick_labels']
     else:
         if 'plotting' in settings and settings['plotting'] is not None:
-            if 'ROIs_PFC' in settings['plotting']:
+            if 'ROIs_PFC2' in settings['plotting']:
+                if settings['split']:
+                    raise NotImplementedError('No keys for PFC2 and split')
+                else:
+                    keys = get_BNA_ROIs(code='PFC_ACC')
+            elif 'ROIs_PFC' in settings['plotting']:
                 if settings['atlas'] == 'schaefer':
                     keys = get_BNA_ROIs(code='PFC_schaefer')
                 elif settings['split']:
@@ -148,6 +155,9 @@ def prep_results_d(settings, networks, atlas, sns):
         else:
             results['ticks'] = 0.5 + np.arange(26) * 2
             results['tick_lows'] = 0 + np.arange(26) * 2
+            results['ticks'] = 0.5 + np.arange(27) * 2
+            results['tick_lows'] = 0 + np.arange(27) * 2
+
     elif settings['plotting'] == 'edges':
         results['ticks'] = atlas['ticks']
         results['tick_lows'] = atlas['tick_lows']
@@ -266,6 +276,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     assert RSA or second_order == 'spear', 'Leave second_order as \"spear\" for ERS'
     assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
     assert not (split and do_networks in [2, 7]), 'Too computationally intense'
+    assert not (split and 'PFC2' in plotting)
     if do_networks == 3:
         if 'cross' not in conn:
             settings['conn'] = f'cross_{conn}'
@@ -325,8 +336,8 @@ def run_analysis_toggles():
     # age = 1
     combine_regions = False
     plotting = 'regions'
-    plotting = 'ROIs_PFC_ctrl'
-    plotting = None
+    plotting = 'ROIs_PFC2_ctrl'
+    # plotting = None
     # 'ROIs_ctrl' # no ROI is above t=2.1 for whole-brain
     # plotting = 'regions'
     # second_order = 'spear'
@@ -336,7 +347,7 @@ def run_analysis_toggles():
     # analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [13]:
+            for do_networks in [14]:
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:

@@ -78,24 +78,43 @@ def get_split_cmap(vabs, thresh, cmap):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
-    n = 256
-    vals = cmap(np.linspace(0., 1., n))
-    vals_st = vals[:int(n/2)]
-    vals_end = vals[int(n/2):]
-    # vabs = np.min([vabs, 5.])
-    vabs_minus_thresh = (vabs - thresh)
-    # print(f'{vabs_minus_thresh=}')
-    # print(f'{thresh=}')
-    # print(f'{n=}')
-    size_mid = int(vabs_minus_thresh / thresh * n / 2)
-    # size_mid = int(vabs_minus_thresh / thresh * n)# * 2)
-    # print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
-    # print()
-
-
-    vals_mid = np.repeat(np.array([0, 0, 0, 1])[:, None], size_mid,
+    n = 1000
+    prop_black = thresh / vabs
+    if prop_black > 1:
+        raise ValueError(f'{prop_black=}')
+    n_black = int(n * prop_black)
+    vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
                          axis=1).T
-    vals = np.concatenate([vals_st, vals_mid, vals_end])
+    prop_colored = 1 - prop_black
+    n_colored = int(n * prop_colored)
+    vals_colored = cmap(np.linspace(0., 1., n))
+    vals_low = vals_colored[:int(n/2)]
+    vals_high = vals_colored[int(n/2):]
+    vals = np.concatenate([vals_low, vals_black, vals_high])
+
+
+
+    # n = 256
+    # vals = cmap(np.linspace(0., 1., n))
+    # vals_low = vals[:int(n/2)]
+    # vals_high = vals[int(n/2):]
+    # # vabs = np.min([vabs, 5.])
+    #
+    #
+    #
+    # vabs_minus_thresh = (vabs - thresh)
+    # # print(f'{vabs_minus_thresh=}')
+    # # print(f'{thresh=}')
+    # # print(f'{n=}')
+    # size_mid = int(vabs_minus_thresh / thresh * n / 2)
+    # # size_mid = int(vabs_minus_thresh / thresh * n)# * 2)
+    # # print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
+    # # print()
+    #
+    #
+    # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], size_mid,
+    #                      axis=1).T
+    # vals = np.concatenate([vals_low, vals_black, vals_high])
     # print(vals_mid.shape)
 
     # print(vals.shape)
@@ -128,14 +147,13 @@ def my_plot_surf(Ms, atlas, title):
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
     thresh = 2.45 # p = .01
-    thresh = 1
+    # thresh = 1
     # thresh = 2.05
     # thresh = 1.7 # p = .05
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     print(f'{thresh=} | {num_above_thresh=}')
     print(Ms)
     for i, val in enumerate(Ms):
-        print(f'go={val:.3f}')
         img_data[atlas_data == (i + 1)] = val
         above_thresh = np.abs(val) > thresh
         continue

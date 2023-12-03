@@ -9,25 +9,18 @@ from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
 from scipy.spatial import distance
 
-def RSA_ROI_PFC(sn, atlas, d_vecs, fp, networks=True, conn='euc',
-            trial_similarity='corr', second_order='spear',
-            RDM_method='by_run', combine_regions=False, ROI_ctrl=False):
-    return RSA_ROI(sn, atlas, d_vecs, fp, networks=networks, conn=conn,
-            trial_similarity=trial_similarity,
-            second_order=second_order, RDM_method=RDM_method,
-            combine_regions=combine_regions, PFC=True, ROI_ctrl=ROI_ctrl)
-
 
 def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             trial_similarity='corr', second_order='spear',
             RDM_method='by_run', combine_regions=False,
-            PFC=False, ROI_ctrl=False):
+            PFC=False, PFC2=False, ROI_ctrl=False):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-    ROI2vecs = prep_for_ROI_analysis(ROI2vecs, PFC)
+    ROI2vecs = prep_for_ROI_analysis(ROI2vecs, PFC, PFC2)
+
     # ROI2vecs_M = {}
     # for ROI, vecs in ROI2vecs.items():
     #     if PFC:
@@ -54,12 +47,21 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         ROIs_l = get_BNA_ROIs(code='PFC_schaef')
     elif len(ROI2vecs) > 400:
         ROIs_l = get_BNA_ROIs(code='PFC_8')
-    else:
+    elif len(ROI2vecs) == 60:
+        ROIs_l = get_BNA_ROIs(code='PFC_ACC')
+    elif len(ROI2vecs) == 52:
+        ROIs_l = get_BNA_ROIs(code='PFC_52')
+    elif len(ROI2vecs) == 246:
         ROIs_l = get_BNA_ROIs(code=None)
+    else:
+        raise ValueError(f'Bad get_BNA_ROIs code: {len(ROI2vecs)=}')
+    # else:
+    #     ROIs_l = get_BNA_ROIs(code=None)
     # print(list(ROI2vecs))
     # print(len(list(ROI2vecs)))
     # print(len(ROIs_l))
     ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs.keys()]
+
     # for i in range(52):
     #     test = f'{i} '
     #     cnt = sum([1 for roi in ROIs_l if f'{i} ' in roi])

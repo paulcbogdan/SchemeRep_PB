@@ -127,7 +127,7 @@ def add_ROI_info(atlas):
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True):
     img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
     # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    fp_labels = 'BNA_labels_Lifu_ACC.txt'
+    fp_labels = 'cache/BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()

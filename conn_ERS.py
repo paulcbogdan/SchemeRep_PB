@@ -8,7 +8,7 @@ from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep
 def ERS_ROI(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
            combine_regions=False,
-            PFC=False, ROI_ctrl=False):
+            PFC=False, PFC2=False, ROI_ctrl=False):
     df_sn = get_trial_info(sn)
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
                                                    fp1=fp1, networks=False,
@@ -16,20 +16,25 @@ def ERS_ROI(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
                                                    cross_region=False,
                                                    conn=conn,
                                                    combine_regions=False,)
-    ROI2vecs_enc = prep_for_ROI_analysis(ROI2vecs_enc, PFC)
+    ROI2vecs_enc = prep_for_ROI_analysis(ROI2vecs_enc, PFC, PFC2)
     # print(list(ROI2vecs_enc))
     # print(len(ROI2vecs_enc))
     # quit()
-    ROI2vecs_ret = prep_for_ROI_analysis(ROI2vecs_ret, PFC)
+    ROI2vecs_ret = prep_for_ROI_analysis(ROI2vecs_ret, PFC, PFC2)
     if len(ROI2vecs_enc) == 997:
         ROIs_l = get_BNA_ROIs(code='schaefer')
     elif len(ROI2vecs_enc) == 189:
         ROIs_l = get_BNA_ROIs(code='PFC_schaef')
     elif len(ROI2vecs_enc) > 400:
         ROIs_l = get_BNA_ROIs(code='PFC_8')
-    else:
+    elif len(ROI2vecs_enc) == 60:
+        ROIs_l = get_BNA_ROIs(code='PFC_ACC')
+    elif len(ROI2vecs_enc) == 52:
+        ROIs_l = get_BNA_ROIs(code='PFC_52')
+    elif len(ROI2vecs_enc) == 246:
         ROIs_l = get_BNA_ROIs(code=None)
-    ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs_enc.keys()]
+    else:
+        raise ValueError(f'Bad get_BNA_ROIs code: {len(ROI2vecs_enc)=}')
 
     if ROI_ctrl or (not PFC):
         mean_conn_trialwise_enc = get_mean_conn_trialwise(ROIs_l, ROI2vecs_enc,
