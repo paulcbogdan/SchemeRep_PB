@@ -53,7 +53,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 PFC2 = 'PFC2' in plotting
                 PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
                 ctrl = 'ctrl' in plotting
-                f = partial(RSA_ROI, PCF=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
+                f = partial(ERS_ROI, PFC=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
             # elif plotting == 'ROIs_PFC_ctrl':
             #     f = partial(ERS_ROI, PFC=True, ROI_ctrl=True)
             # elif plotting == 'ROIs_PFC':
@@ -220,7 +220,7 @@ def run_settings_healthy(settings, ISPC=False):
     settings1 = settings.copy()
     del settings1['age']
     results1 = pickle_wrap(None, run_settings, kwargs=settings1,
-                          cache_dir=dir_results, easy_override=False,
+                          cache_dir=dir_results, easy_override=EASY_OVERRIDE,
                           dt_max=dt_max, verbose=0)
     print(f'{Fore.CYAN}Young people:{Fore.RESET}')
     report_results(results1)
@@ -228,7 +228,7 @@ def run_settings_healthy(settings, ISPC=False):
     settings2 = settings.copy()
     settings2['age'] = 2
     results2 = pickle_wrap(None, run_settings, kwargs=settings2,
-                          cache_dir=dir_results, easy_override=False,
+                          cache_dir=dir_results, easy_override=EASY_OVERRIDE,
                           dt_max=dt_max, verbose=0)
     print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
     report_results(results2)
@@ -312,7 +312,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
         else:
             del settings['age']
         results = pickle_wrap(None, run_settings, kwargs=settings,
-                              cache_dir=dir_results, easy_override=False,
+                              cache_dir=dir_results, easy_override=EASY_OVERRIDE,
                               dt_max=dt_max, verbose=1)
         print(f'Finished!')
 
@@ -325,7 +325,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
-    trial_similarity_toggle = ['corr', 'spear']
+    trial_similarity_toggle = ['spear']
     four_tasks_toggle = ['3_4']
     conn_toggle = ['euc']
     split_toggle = [False]
@@ -335,19 +335,20 @@ def run_analysis_toggles():
     age = 1
     # age = 1
     combine_regions = False
-    plotting = 'regions'
+    # plotting = 'regions'
     plotting = 'ROIs_PFC2_ctrl'
+    # plotting = 'ROIs'
     # plotting = None
     # 'ROIs_ctrl' # no ROI is above t=2.1 for whole-brain
     # plotting = 'regions'
     # second_order = 'spear'
     second_order = 'spear'
-    analyses = [(True, True)]
+    # analyses = [(True, True)]
     # analyses = [(True, False)]
-    # analyses = [(False, False)]
+    analyses = [(False, False)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [14]:
+            for do_networks in [15]:
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
@@ -368,5 +369,6 @@ def run_analysis_toggles():
                                 pass
 
 if __name__ == '__main__':
+    EASY_OVERRIDE = True
     run_analysis_toggles()
 

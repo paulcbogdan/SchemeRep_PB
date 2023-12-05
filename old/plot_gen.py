@@ -52,6 +52,17 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     print(f'{len(ticks)=} | {ticks=}')
     print(f'{len(tick_labels)=} | {tick_labels=}')
 
+    if M_connect.shape[0] == 52:
+        ticks = 0.5 + np.arange(26) * 2
+        tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG', 'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
+                       'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'EVC', 'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
+                       'Tha']
+    elif M_connect.shape[0] == 54:
+        ticks = 0.5 + np.arange(27) * 2
+        tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG', 'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
+                       'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
+                       'Tha']
+
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
     plt.yticks(ticks, tick_labels, fontsize=10)
     plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
@@ -146,10 +157,11 @@ def my_plot_surf(Ms, atlas, title):
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
-    thresh = 2.45 # p = .01
+    # thresh = 2.45 # p = .01
+    # thresh = 2.45
     # thresh = 1
     # thresh = 2.05
-    # thresh = 1.7 # p = .05
+    thresh = 1.65 # p = .05
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     print(f'{thresh=} | {num_above_thresh=}')
     print(Ms)
@@ -200,8 +212,10 @@ def my_plot_surf(Ms, atlas, title):
 
     img = image.new_img_like(atlas['maps'], img_data)
     # print(f'{thresh=}')
+    # plotting.plot_glass_brain(img, threshold=thresh,
+    #                           vmin=thresh, vmax=vabs,)
     fig = plotting.plot_img_on_surf(img, threshold=thresh,
-                                    cmap=cmap, title=title)
+                                    cmap=cmap, title=title,)
 
     # fig[1][4].set_xticklabels([-2.5, None, 2.5])
     plotting.show()
@@ -217,17 +231,23 @@ if __name__ == '__main__':
     node_colors = []
     idx = 0
     for i, roi in enumerate(atlas['ROIs']):
-        if 'SFG_L' in roi:
+        if '_L' in roi and ('SFG' in roi or 'IFG' in roi or 'MFG' in roi or
+                            'OrG' in roi or 'ACC' in roi):
             L_SFG_coords.append(atlas['coords'][i])
-            node_colors.append('r')
+            # node_colors.append('r')
+            node_colors.append('g')
             L_SFG_idxs.append(idx)
-            print(f'{i=}', atlas['coords'][i])
+            # print(f'{i=}', atlas['coords'][i])
             idx += 1
-        elif 'IFG_R' in roi:
+        elif '_R' in roi and ('SFG' in roi or 'IFG' in roi or 'MFG' in roi or
+                              'OrG' in roi or 'ACC' in roi):
             R_IFG_coords.append(atlas['coords'][i])
-            node_colors.append('b')
+            # node_colors.append('b')
+            node_colors.append('g')
             R_IFG_idxs.append(idx)
             idx += 1
+            print(f'R: {roi}')
+
     coords = list(L_SFG_coords) + list(R_IFG_coords)
     n_rois = len(coords)
     mat = np.zeros((n_rois, n_rois))
@@ -240,11 +260,13 @@ if __name__ == '__main__':
     # quit()
     plotting.plot_connectome(mat, coords,
                              edge_threshold=0.1,
-                             edge_kwargs={'linewidth': 1,
+                             edge_kwargs={'linewidth': 0.1,
                                           'color': 'k'},
                              node_size=10,
                              node_color=node_colors,
                              # node_kwargs={'c': 'k',
                              #              'size': 10},
-                             title=f'L SFG x R IFG')
+                             # title=f'L SFG x R IFG'
+                             title = ''
+                             )
     plotting.show()

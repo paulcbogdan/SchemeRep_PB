@@ -236,7 +236,7 @@ def visualize_region_matrix(results, plot_lmer=False):
                       cbar_label='t-value',
                       vmin=-4, vmax=4)
 
-def visualize_ROIs(results):
+def visualize_ROIs(results, do_lmer=False):
     from connsearch.report import plot_ROI_scores
     if 'atlas' in results['settings'] and results['settings']['atlas'] == 'schaefer':
         atlas = get_atlas(schaefer=True)
@@ -256,7 +256,9 @@ def visualize_ROIs(results):
     # print(list(ROI2coord))
     # print(results['keys'])
     results_coords = [ROI2coord[ROI] for ROI in results['keys']]
-    ts, ts_by_fp = report_results(results, do_lmer=False)
+    ts, ts_by_fp = report_results(results, do_lmer=do_lmer)
+    print(f'{do_lmer=}')
+
 
 
     # print(f'{len(atlas["ROIs"])=}')

@@ -29,8 +29,8 @@ def ERS_ROI(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         ROIs_l = get_BNA_ROIs(code='PFC_8')
     elif len(ROI2vecs_enc) == 60:
         ROIs_l = get_BNA_ROIs(code='PFC_ACC')
-    elif len(ROI2vecs_enc) == 52:
-        ROIs_l = get_BNA_ROIs(code='PFC_52')
+    elif len(ROI2vecs_enc) == 54:
+        ROIs_l = get_BNA_ROIs(code='PFC')
     elif len(ROI2vecs_enc) == 246:
         ROIs_l = get_BNA_ROIs(code=None)
     else:

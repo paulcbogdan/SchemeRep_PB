@@ -225,8 +225,6 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     n_ROIs = len(ROIs)
-    # print(f'{n_ROIs=}')
-    # quit()
     n_regions = len(np.unique(ROI_regions))
     nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
     nan_str += '_dropNaNvox' if drop_nan_voxels else ''
@@ -269,13 +267,22 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         region_vecs = img[atlas_roi]
         voxels_w_nan = np.isnan(region_vecs).any(axis=1)
-        if len(voxels_w_nan) < 5: # sometimes even zero
-            continue
+        voxels_all_nan = (~np.isnan(region_vecs)).any(axis=1)
+        # print(np.isnan(region_vecs))
+        # quit()
+        # if len(voxels_w_nan) < 5: # sometimes even zero
+        #     continue
 
         # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
 
         n_nans_ROI = np.sum(voxels_w_nan)
         p_nan_any = n_nans_ROI / len(voxels_w_nan)
+        p_nan_all = 1 - np.sum(voxels_all_nan) / len(voxels_w_nan)
+        if abs(p_nan_all - p_nan_any) > .01:
+            print(f'Divergence in NaNs ({ROI}): {p_nan_all=:.3f}, '
+                  f'{p_nan_any=:.3f}')
+        # print(f'{ROI} | {p_nan_any:.3f} | {p_nan_all:.3f} | {len(voxels_w_nan)=}')
+
         # print(f'{ROI} | {len(voxels_w_nan)=} | {n_nans_ROI=}')
         # p_nan_overall = np.mean(np.isnan(region_vecs))
         # the thalamus is entirely dropped basically

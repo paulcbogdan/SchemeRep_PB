@@ -21,26 +21,6 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                                  combine_regions=False)
     ROI2vecs = prep_for_ROI_analysis(ROI2vecs, PFC, PFC2)
 
-    # ROI2vecs_M = {}
-    # for ROI, vecs in ROI2vecs.items():
-    #     if PFC:
-    #         if 'PFC' in ROI or 'OFC' in ROI:
-    #             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-    #         elif 'SFG' in ROI or 'MFG' in ROI or 'IFG' in ROI or 'OrG' in ROI:
-    #             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-    #     else:
-    #         ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
-    # ROI2vecs = ROI2vecs_M
-    # print(list(ROI2vecs))
-    # print(len(ROI2vecs))
-    # quit()
-    # print(len(list(ROI2vecs)))
-    # quit()
-    # print(f'{len(ROI2vecs)=}')
-    # quit()
-
-    # print(len(ROI2vecs))
-    # quit()
     if len(ROI2vecs) == 997:
         ROIs_l = get_BNA_ROIs(code='schaefer')
     elif len(ROI2vecs) == 189:
@@ -50,46 +30,17 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
     elif len(ROI2vecs) == 60:
         ROIs_l = get_BNA_ROIs(code='PFC_ACC')
     elif len(ROI2vecs) == 52:
-        ROIs_l = get_BNA_ROIs(code='PFC_52')
+        ROIs_l = get_BNA_ROIs(code='PFC')
     elif len(ROI2vecs) == 246:
         ROIs_l = get_BNA_ROIs(code=None)
     else:
         raise ValueError(f'Bad get_BNA_ROIs code: {len(ROI2vecs)=}')
-    # else:
-    #     ROIs_l = get_BNA_ROIs(code=None)
-    # print(list(ROI2vecs))
-    # print(len(list(ROI2vecs)))
-    # print(len(ROIs_l))
+
     ROIs_l = [ROI for ROI in ROIs_l if ROI in ROI2vecs.keys()]
 
-    # for i in range(52):
-    #     test = f'{i} '
-    #     cnt = sum([1 for roi in ROIs_l if f'{i} ' in roi])
-    #
-    #     print(f'{i} ! {cnt}')
-    # quit()
-    # print(ROIs_l)
 
-    # quit()
-    if ROI_ctrl:# or (not PFC):
+    if ROI_ctrl:
         mean_conn_trialwise = get_mean_conn_trialwise(ROIs_l, ROI2vecs, conn)
-        # conn_trialwise = np.full((len(ROIs_l), len(ROIs_l), 114), np.nan)
-        # for i, ROI0 in enumerate(ROIs_l):
-        #     vecs0 = ROI2vecs[ROI0]
-        #     vecs0 = vecs0[:, None]
-        #     for j, ROI1 in enumerate(ROIs_l):
-        #         if ROI1 == ROI0:
-        #             conn_trialwise[i, j, :] = np.nan
-        #             continue
-        #         vecs1 = ROI2vecs[ROI1]
-        #         vecs1 = vecs1[:, None]
-        #         if conn == 'euc':
-        #             vecs = np.abs(vecs0 - vecs1) # speed-up
-        #         else:
-        #             vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
-        #         conn_trialwise[i, j, :] = np.squeeze(vecs) # prev (114, 1)
-        # mean_conn_trialwise = np.nanmean(conn_trialwise, axis=0)
-        # print(f'{mean_conn_trialwise.shape=}')
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
@@ -113,7 +64,7 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         # print(f'{vecs.shape=}')
         # quit()
         if ROI_ctrl:# or (not PFC):
-            vecs -= (mean_conn_trialwise.T * 246 - vecs) / 245
+            vecs -= mean_conn_trialwise.T# * 246 - vecs) / 245
         # print(f'{vecs.shape=}')
         # quit()
         z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
@@ -139,7 +90,10 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-
+    key0 = list(ROI2vecs)[2]
+    # print(ROI2vecs[key0])
+    # print(f'{key0=}')
+    # quit()
 
     ROI2vecs, region_order, score_ar, IRAFs_ar = \
         prep_for_pairwise(ROI2vecs, atlas)
