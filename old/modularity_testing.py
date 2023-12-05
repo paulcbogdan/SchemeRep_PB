@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from old.plot_gen import plot_connectivity
-from single_trial_conn import corr_matrix_last_two_dim, corr_last_dim
 from utils import get_RSA_fn, tril_flat
 import scipy.stats as stats
 
@@ -31,17 +30,18 @@ def org_activity_by_cin(ar_inc, activity):
 
 # TODO: incorporate convert_matrix update to next version of nichord
 
-def get_modules(corr, threshold_tile=.95, bonus_str=''):
+def get_modules(corr, threshold_tile=.9, bonus_str=''):
     threshold = np.nanquantile(corr, threshold_tile)
     corr_thresh = corr.copy()
     corr_thresh[corr_thresh < threshold] = 0
     corr_thresh[corr_thresh >= threshold] = 1
     corr[corr < threshold] = 0
+    top_edges = corr > threshold
     import leidenalg
     import igraph as ig
     g = ig.Graph.Weighted_Adjacency(corr_thresh)
     part = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)
-    return part
+    return part, top_edges
     #
     # for i, p in enumerate(part):
     #     print(f'{p=}')
@@ -50,36 +50,7 @@ def get_modules(corr, threshold_tile=.95, bonus_str=''):
     #     plot_nichord(get_partition_matrix(corr, p), coords,
     #                  title=f'{bonus_str} Module {i}')
 
-def get_partition_matrix(mat, idx, w_zeros=False):
-    if w_zeros:
-        mat_new = np.zeros(mat.shape)
-        mat_new[np.ix_(idx, idx)] = mat[np.ix_(idx, idx)]
-        return mat_new
-    else:
-        meshy = np.ix_(idx, idx)
-        return mat[..., meshy[0], meshy[1]]
-        # slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
-        # return mat[slicer]
 
-def plot_nichord(corr, coords, fn, title, dir_out='nichord_plots'):
-    from nichord.convert import convert_matrix
-    from nichord.coord_labeler import get_idx_to_label
-
-    edges, edge_weights = convert_matrix(corr)
-    idx_to_label = get_idx_to_label(coords, atlas='yeo')
-
-
-    network_colors = {'Uncertain': 'black', 'Visual': 'purple',
-                      'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
-                      'Limbic': 'burlywood', 'FPCN': 'orange', 'DMN': 'red'}
-
-    network_order = ['FPCN', 'DMN', 'DAN', 'Visual', 'SM', 'Limbic',
-                     'Uncertain', 'VAN']
-    Path(dir_out).mkdir(exist_ok=True, parents=True)
-    plot_and_combine(dir_out, fn, idx_to_label, edges,
-                     edge_weights=edge_weights, coords=coords,
-                     network_order=network_order, network_colors=network_colors,
-                     title=title, chord_kwargs={'alphas': .5})
 
 def get_conn_mat(atlas, fp_fMRI_col = 'obj_fMRI',
                  age=1, early=True, semantic=False, inc=None,
