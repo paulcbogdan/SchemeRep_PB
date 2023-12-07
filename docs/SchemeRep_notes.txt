@@ -1,3 +1,20 @@
+Could there be more variability between schema trials for YA?
+
+ to remind you, this analysis involved correlating the functional connectivity data between remember x forgotten trials. this correlation is greater for OA, meaning that in OA, subsequent memory is linked to weaker functional connectivity effects. 
+
+Suppose there exists a W2V dimension: Man vs. woman
+Suppose one voxel lights up bright when you are viewing a man vs. gets dark when viewing a woman
+Analogous to this, suppose two brain regions become more connected when viewing a man vs. less connected when viewing a woman
+
+
+Lifu connectivity stuff:
+	inc2str = {1: 'incongruent', 2: 'neutral', 3: 'congruent'}
+	Incongruent is associated with higher "Integration" in the PFC
+
+
+
+
+
 TODO: 
 fp0='bl2_fMRI' fp1='obj2_fMRI'
 fp0='bl2_fMRI' fp1='vis2_fMRI'
