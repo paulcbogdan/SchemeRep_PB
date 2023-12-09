@@ -1,7 +1,7 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_BNA_coords, get_main_partitions
-from module_classifiers import conn_similarity
+from module_classifiers import conn_similarity, conn_classifier
 from network_funcs import load_FC_for_Lifu, get_ylim_settings, calculate_within_between, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
 from utils import pickle_wrap
@@ -231,8 +231,8 @@ def rand_test(threshold=0.9, way3=False):
 
 def variability(threshold=0.9):
     fp = 'vis3_fMRI'
-    fp = 'con3_fMRI'
-    # fp = 'obj3_fMRI'
+    # fp = 'con3_fMRI'
+    fp = 'obj3_fMRI'
     # fp = 'scn3_fMRI'
     # fp = 'bl3_fMRI'
     # kwargs = {'fp': fp, 'split': False,
@@ -240,17 +240,17 @@ def variability(threshold=0.9):
     #           'key_vals': (1, 2, 3),
     #           'odd_even': False,
     #           }
-    kwargs = {'fp': fp, 'split': False,
-              'key': 'inc',
-              'key_vals': (1, 3),
-              'odd_even': False,
-              }
     # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'hit_hit',
-    #           # 'key': 'vis_hit',
-    #           'key_vals': (False, True),
+    #           'key': 'inc',
+    #           'key_vals': (1, 3),
     #           'odd_even': False,
-    #           'pad_nan': True}
+    #           }
+    kwargs = {'fp': fp, 'split': False,
+              'key': 'hit_hit',
+              # 'key': 'vis_hit',
+              'key_vals': (False, True),
+              'odd_even': False,
+              'pad_nan': True}
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                  load_FC_for_Lifu, kwargs=kwargs,
                                                  verbose=1, easy_override=False,
@@ -276,7 +276,7 @@ def variability(threshold=0.9):
         p_data = sn_inc_activity[..., p, :]
         print(f'------- {i2name[threshold][i]} -------')
         print(' Subject-specific:')
-        conn_similarity(p_data, age2idxs, p_top_edges, p)
+        conn_classifier(p_data, age2idxs, p_top_edges, p)
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=False)
         # print(' Variability:')

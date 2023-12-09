@@ -1,6 +1,9 @@
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
+from connsearch import RepeatedStratifiedGroupKFold
+from sklearn.model_selection import cross_val_score, StratifiedKFold, RepeatedStratifiedKFold
+from sklearn.svm import SVC
 from tqdm import tqdm
 
 from conn_RSA import get_trial_x_trial_RSM
@@ -10,6 +13,73 @@ import scipy.stats as stats
 
 def corrcoef_na(A, B):
     return ma.corrcoef(ma.masked_invalid(A), ma.masked_invalid(B))
+
+def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
+                    p,
+                    variability=True):
+    # TODO: maybe control for run effects?
+    efs_all = []
+    withins_all = []
+    betweens_all = []
+    for age in [1, 2]:
+        sn_idxs = age2idxs[age]
+        age_sn_inc_act = sn_inc_activity[sn_idxs]
+        efs_age = []
+        sames_age = []
+        difs_age = []
+        withins_age = []
+        withins_age_multi = []
+        betweens_age_multi = []
+        betweens_age = []
+        bad_sns = {1: [9], 2: []}
+        # bad_sns = [9] # nan mismatch within trial
+        GM_acc = []
+        for sn in tqdm(range(age_sn_inc_act.shape[0])):
+            if sn in bad_sns[age]: continue
+            efs = []
+            sames = []
+            difs = []
+            smaller_trial = 1e10
+            withins = []
+            betweens = []
+            assert age_sn_inc_act.shape[1] == 2
+            X = []
+            Y = []
+            for inc0 in range(age_sn_inc_act.shape[1]):
+                act0 = age_sn_inc_act[sn, inc0]
+                nan_trials = np.all(np.isnan(act0), axis=0)
+                act0 = act0[:, ~nan_trials]
+                nan_voxels = np.any(np.isnan(act0), axis=1)
+                act0 = act0[~nan_voxels, :]
+                act0 = act0.T
+                # print(act0.shape)
+                # quit()
+                # act0 = stdize(act0, axis=1)
+                # act0 = abs(act0[:, None, :] - act0[:, :, None])
+                # act0 = act0[:, None, :] * act0[:, :, None]
+                # act0 = act0[:, *np.tril_indices(act0.shape[2], k=1)]
+                # act0 = act0[~nan_trials, :]
+                # print(act0)
+                X.append(act0)
+                # plt.imshow(act0)
+                # plt.show()
+                Y.extend([inc0] * act0.shape[0])
+            X = np.concatenate(X, axis=0)
+            # nan_cols = np.any(np.isnan(X), axis=1)
+            # plt.imshow(X)
+            # plt.show()
+
+            Y = np.array(Y)
+            cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=100)
+            clf = SVC(kernel='linear')
+            acc = cross_val_score(clf, X, Y, cv=cv)
+            acc = np.mean(acc)
+            # print(f'{acc=:.3f}')
+            GM_acc.append(acc)
+            grand_mean = np.mean(GM_acc)
+            grand_SE = np.std(GM_acc) / np.sqrt(len(GM_acc))
+            grand_t = (grand_mean - 0.5) / grand_SE
+            print(f'age {age}: {grand_mean=:.3f} [{grand_SE=:.3f}], {grand_t=:.3f}')
 
 def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
                     p,
