@@ -230,23 +230,23 @@ def rand_test(threshold=0.9, way3=False):
 
 
 def variability(threshold=0.9):
-    fp = 'vis3_fMRI'
-    # fp = 'obj3_fMRI'
+    # fp = 'vis3_fMRI'
+    fp = 'obj3_fMRI'
     # fp = 'scn3_fMRI'
     # fp = 'bl3_fMRI'
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'inc',
-    #           'key_vals': (1, 3),
-    #           'odd_even': False}
     kwargs = {'fp': fp, 'split': False,
-              'key': 'hit_hit',
-              # 'key': 'vis_hit',
-              'key_vals': (False, True),
-              'odd_even': False,
-              'pad_nan': True}
+              'key': 'inc',
+              'key_vals': (1, 3),
+              'odd_even': False}
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'hit_hit',
+    #           # 'key': 'vis_hit',
+    #           'key_vals': (False, True),
+    #           'odd_even': False,
+    #           'pad_nan': True}
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
+                                                 verbose=1, easy_override=True,
                                                  cache_dir='cache')
     sn_inc_activity = np.array(sn_inc_activity)
     fp = 'cache/test.pkl'
@@ -262,6 +262,7 @@ def variability(threshold=0.9):
     i2name = {0.9: {0: 'PFC+', 1: 'MTL+',  3: 'Vis'}}
 
     for i, p in enumerate(partitions):
+        # if i < 1: continue
         if i not in i2name[threshold]:
             continue
         p_top_edges = get_partition_matrix(top_edges_mat, p)

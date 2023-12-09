@@ -365,15 +365,27 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
     trial_per_run = vecs.shape[0] // 3
     trial2run = {}
     run2M = {}
+    run2non_nans = {}
+    # print(f'{vecs.shape=}')
+    # quit()
     for run in range(3):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
         vecs_run = vecs[low:high]
+        # print(vecs_run.shape)
         if do_vecs1:
             vecs_run1 = vecs1[low:high]
             vecs_run = np.concatenate((vecs_run, vecs_run1), axis=0)
+            # print(vecs_run1.shape)
+            # print(vecs_run.shape)
+            # quit()
+        n_non_nans = np.sum(~np.isnan(vecs_run), axis=0)
+        # assert np.all(n_non_nans == n_non_nans[0]), f'{n_non_nans=}'
+        # n_non_nans = n_non_nans[0]
+        # print(f'{run=} {n_non_nans=}')
         M_by_edge = np.nanmean(vecs_run, axis=0)
         run2M[run] = M_by_edge
+        run2non_nans[run] = n_non_nans
         for trial in range(trial_per_run):
             trial2run[trial + low] = run
 
@@ -402,6 +414,8 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
     # print(f'{vecs[4:, :]=}')
     # quit()
     n_sn = vecs.shape[0]
+    # print(vecs.shape)
+    # quit()
     for i in range(vecs.shape[0]):
         run_i = trial2run[i]
         for j in range(vecs.shape[0]):
@@ -437,6 +451,9 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                 if i in between_run_vecs and not do_vecs1:
                     vecs_i = between_run_vecs[i]
                 else:
+                    # if do_vecs1:
+                    n_sn = run2non_nans[run_i]
+                    # print(f'dif: {n_sn=}')
                     M_by_edge_i = (run2M[run_i] * n_sn - vecs_i) / (n_sn - 1)
                     vecs_i -= M_by_edge_i
                     between_run_vecs[i] = vecs_i
@@ -444,6 +461,8 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                 if j in between_run_vecs and not do_vecs1:
                     vecs_j = between_run_vecs[j]
                 else:
+                    n_sn = run2non_nans[run_i]
+                    # print(f'dif: {n_sn=}')
                     M_by_edge_j = (run2M[run_j] * n_sn - vecs_j) / (n_sn - 1)
                     vecs_j -= M_by_edge_j
                     between_run_vecs[j] = vecs_j
@@ -464,6 +483,11 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                     if not do_vecs1:
                         RSM[j, i] = np.nan
             else:
+                n_sn = run2non_nans[run_i]
+                # print(f'same: {n_sn=}')
+                # if do_vecs1:
+                #     n_sn = run2non_nans[run_i]
+                #
                 # print(f'{vecs_j=}')
                 # print(f'{vecs_i=}')
                 if simple_mean:
@@ -490,6 +514,7 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                         RSM[j, i] = np.nan
             # print(f'{i} | {j} | {r=}')
     # quit()
+    RSM[np.diag_indices_from(RSM)] = np.nan
 
     if trial_similarity == 'mahalanobis' or trial_similarity == 'seuclidean':
         RSM = prune_RSM_outliers(RSM)
