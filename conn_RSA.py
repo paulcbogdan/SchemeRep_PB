@@ -357,7 +357,9 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     return scores, sizes, IRAFs_all_ROI
 
 
-def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
+def get_trial_x_trial_RSM(vecs, vecs1=None,
+                          simple_mean=False, trial_similarity='corr'):
+    do_vecs1 = vecs1 is not None
     RSM = np.zeros((vecs.shape[0], vecs.shape[0]))
 
     trial_per_run = vecs.shape[0] // 3
@@ -367,6 +369,9 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
         low = run * trial_per_run
         high = (run + 1) * trial_per_run
         vecs_run = vecs[low:high]
+        if do_vecs1:
+            vecs_run1 = vecs1[low:high]
+            vecs_run = np.concatenate((vecs_run, vecs_run1), axis=0)
         M_by_edge = np.nanmean(vecs_run, axis=0)
         run2M[run] = M_by_edge
         for trial in range(trial_per_run):
@@ -394,16 +399,24 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
     # print(f'{IV.shape=}')
     # quit()
 
+    # print(f'{vecs[4:, :]=}')
+    # quit()
     n_sn = vecs.shape[0]
     for i in range(vecs.shape[0]):
         run_i = trial2run[i]
         for j in range(vecs.shape[0]):
+            # if j != 0: continue
             run_j = trial2run[j]
             vecs_i = vecs[i].copy()
-            vecs_j = vecs[j].copy()
-            if i > j:
+            # print(f'{vecs_i=}')
+            if do_vecs1:
+                vecs_j = vecs1[j].copy()
+            else:
+                vecs_j = vecs[j].copy()
+
+            if i > j and not do_vecs1:
                 continue
-            elif i == j:
+            elif i == j and not do_vecs1:
                 RSM[i, j] = np.nan
                 continue
             elif run_i != run_j:
@@ -421,14 +434,14 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
                 #         vecs_j -= M_by_edge_j
                 #         between_run_vecs[j] = vecs_j
                 # else:
-                if i in between_run_vecs:
+                if i in between_run_vecs and not do_vecs1:
                     vecs_i = between_run_vecs[i]
                 else:
                     M_by_edge_i = (run2M[run_i] * n_sn - vecs_i) / (n_sn - 1)
                     vecs_i -= M_by_edge_i
                     between_run_vecs[i] = vecs_i
 
-                if j in between_run_vecs:
+                if j in between_run_vecs and not do_vecs1:
                     vecs_j = between_run_vecs[j]
                 else:
                     M_by_edge_j = (run2M[run_j] * n_sn - vecs_j) / (n_sn - 1)
@@ -439,11 +452,20 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
                     nans = np.isnan(vecs_i) | np.isnan(vecs_j)
                     vecs_i = vecs_i[~nans]
                     vecs_j = vecs_j[~nans]
-                # r, p = stats.pearsonr(vecs_i, vecs_j)
-                r = pdist(vecs_i, vecs_j, trial_similarity, arg)
-                RSM[i, j] = r
-                RSM[j, i] = r # This was missing as of 11/20/2023 at 4:17 PM
+                if len(vecs_i):
+                    # r, p = stats.pearsonr(vecs_i, vecs_j)
+                    r = pdist(vecs_i, vecs_j, trial_similarity, arg)
+                    RSM[i, j] = r
+                    if not do_vecs1:
+                        RSM[j, i] = r # This was missing as of 11/20/2023 at 4:17 PM
+                else:
+                    r = np.nan
+                    RSM[i, j] = np.nan
+                    if not do_vecs1:
+                        RSM[j, i] = np.nan
             else:
+                # print(f'{vecs_j=}')
+                # print(f'{vecs_i=}')
                 if simple_mean:
                     M_by_edge_ij = run2M[run_i]
                 else:
@@ -457,10 +479,17 @@ def get_trial_x_trial_RSM(vecs, simple_mean=False, trial_similarity='corr'):
                     vecs_j = vecs_j[~nans]
                     if trial_similarity in ['mahalanobis', 'seuclidean', 'euc']:
                         raise ValueError(f'{trial_similarity=} not supported with NaNs')
-                r = pdist(vecs_i, vecs_j, trial_similarity, arg)
-
-                RSM[i, j] = r
-                RSM[j, i] = r
+                if len(vecs_i):
+                    r = pdist(vecs_i, vecs_j, trial_similarity, arg)
+                    RSM[i, j] = r
+                    # RSM[j, i] = r
+                else:
+                    r = np.nan
+                    RSM[i, j] = np.nan
+                    if not do_vecs1:
+                        RSM[j, i] = np.nan
+            # print(f'{i} | {j} | {r=}')
+    # quit()
 
     if trial_similarity == 'mahalanobis' or trial_similarity == 'seuclidean':
         RSM = prune_RSM_outliers(RSM)

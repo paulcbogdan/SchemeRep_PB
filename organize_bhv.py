@@ -132,6 +132,16 @@ def get_trial_info_(sn, ret=False):
                 assert len(glob_scn2) == 1
                 fp_scn2 = glob_scn2[0]
 
+            glob_scn3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_scn3 = glob(glob_scn3)
+            try:
+                fp_scn3 = glob_scn3[0]
+            except IndexError:
+                if sn == '224' and run == 3:
+                    fp_scn3 = None
+                else:
+                    raise IndexError(f'{sn}, {run}, {trial}')
+
             # glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             # glob_scn3 = glob(glob_scn3)
             # assert len(glob_scn3) == 1
@@ -182,6 +192,7 @@ def get_trial_info_(sn, ret=False):
                  'obj3_fMRI': fp_obj3,
                  'scn_fMRI': fp_scn,
                  'scn2_fMRI': fp_scn2,
+                 'scn3_fMRI': fp_scn3,
                  # 'scn3_fMRI': fp_scn3,
 
                  'obj': obj,
