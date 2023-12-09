@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -10,6 +12,7 @@ from conn_RSA import get_trial_x_trial_RSM
 from fMRI_proc import within_run_to_nan
 from utils import stdize
 import scipy.stats as stats
+import random
 
 def corrcoef_na(A, B):
     return ma.corrcoef(ma.masked_invalid(A), ma.masked_invalid(B))
@@ -17,7 +20,7 @@ def corrcoef_na(A, B):
 def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     p,
                     variability=True):
-    # TODO: maybe control for run effects?
+    # TODO: Double check that the congruent/incongruent labels are correct?
     efs_all = []
     withins_all = []
     betweens_all = []
@@ -31,22 +34,21 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
         withins_age_multi = []
         betweens_age_multi = []
         betweens_age = []
-        bad_sns = {1: [9], 2: []}
+        # bad_sns = {1: [9], 2: []}
         # bad_sns = [9] # nan mismatch within trial
         GM_acc = []
         for sn in tqdm(range(age_sn_inc_act.shape[0])):
-            if sn in bad_sns[age]: continue
-            efs = []
-            sames = []
-            difs = []
-            smaller_trial = 1e10
-            withins = []
-            betweens = []
-            assert age_sn_inc_act.shape[1] == 2
+            # if sn in bad_sns[age]: continue
+
+            assert age_sn_inc_act.shape[1] == 3
             X = []
             Y = []
+            sn_act = age_sn_inc_act[sn]
+            # sn_act = stdize(sn_act, axis=1, nans=True)
+            # print(sn_act.shape)
+            # quit()
             for inc0 in range(age_sn_inc_act.shape[1]):
-                act0 = age_sn_inc_act[sn, inc0]
+                act0 = sn_act[inc0]
                 nan_trials = np.all(np.isnan(act0), axis=0)
                 act0 = act0[:, ~nan_trials]
                 nan_voxels = np.any(np.isnan(act0), axis=1)
@@ -54,32 +56,66 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                 act0 = act0.T
                 # print(act0.shape)
                 # quit()
-                # act0 = stdize(act0, axis=1)
+                # act0 = np.random.normal(size=act0.shape)
                 # act0 = abs(act0[:, None, :] - act0[:, :, None])
+                # act0 = stdize(act0, axis=1, nans=True)
                 # act0 = act0[:, None, :] * act0[:, :, None]
-                # act0 = act0[:, *np.tril_indices(act0.shape[2], k=1)]
-                # act0 = act0[~nan_trials, :]
-                # print(act0)
+                # act0 = act0[:, *np.tril_indices(act0.shape[2], k=-1)]
+                # trial_sets = []
+                # for i in range(6):
+                #     trial_set = act0[i*5:(i+1)*5]
+                #     # print(trial_set.shape)
+                #     # trial_set = stdize(trial_set, axis=0)
+                #     trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
+                #     # diag = np.diag_indices_from(trial_set[0])
+                #     # trial_set[:, diag[0], diag[1]] = np.nan
+                #     trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+                #     trial_sets.append(np.nanmean(trial_set, axis=0))
+                #     # print(trial_sets[-1])
+                #     # quit()
+                #     # print(trial_set.shape)
+                #     # quit()
+                # act0 = np.array(trial_sets)
                 X.append(act0)
-                # plt.imshow(act0)
-                # plt.show()
                 Y.extend([inc0] * act0.shape[0])
             X = np.concatenate(X, axis=0)
+            Y = np.array(Y)
+            # X = X[:, :10]
+            # print(X.shape)
+            # quit()
             # nan_cols = np.any(np.isnan(X), axis=1)
             # plt.imshow(X)
             # plt.show()
+            # num0s = np.sum(Y == 0)
+            # num1s = np.sum(Y == 1)
+            # lower = min(num0s, num1s)
+            # X0 = X[Y == 0][:lower]
+            # X1 = X[Y == 1][:lower]
+            # X = np.concatenate([X0, X1], axis=0)
+            # Y = np.array([0] * lower + [1] * lower)
+            # # random.shuffle(Y)
+            # num0s = np.sum(Y == 0)
+            # num1s = np.sum(Y == 1)
+            # print(Y)
+            # quit()
+            # print(f'{num0s=}, {num1s=}')
+            # quit()
 
-            Y = np.array(Y)
-            cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=100)
+            cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=20)
             clf = SVC(kernel='linear')
             acc = cross_val_score(clf, X, Y, cv=cv)
             acc = np.mean(acc)
             # print(f'{acc=:.3f}')
             GM_acc.append(acc)
-            grand_mean = np.mean(GM_acc)
-            grand_SE = np.std(GM_acc) / np.sqrt(len(GM_acc))
+        grand_mean = np.mean(GM_acc)
+        grand_SE = np.std(GM_acc) / np.sqrt(len(GM_acc))
+        if age_sn_inc_act.shape[1] == 2:
             grand_t = (grand_mean - 0.5) / grand_SE
-            print(f'age {age}: {grand_mean=:.3f} [{grand_SE=:.3f}], {grand_t=:.3f}')
+        elif age_sn_inc_act.shape[1] == 3:
+            grand_t = (grand_mean - 1/3) / grand_SE
+        else:
+            raise NotImplementedError
+        print(f'age {age}: {grand_mean=:.3f} [{grand_SE=:.3f}], {grand_t=:.3f}')
 
 def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
                     p,
