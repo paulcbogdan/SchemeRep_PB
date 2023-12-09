@@ -230,14 +230,21 @@ def rand_test(threshold=0.9, way3=False):
 
 
 def variability(threshold=0.9):
-    # fp = 'vis3_fMRI'
-    fp = 'obj3_fMRI'
+    fp = 'vis3_fMRI'
+    fp = 'con3_fMRI'
+    # fp = 'obj3_fMRI'
     # fp = 'scn3_fMRI'
     # fp = 'bl3_fMRI'
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'inc',
+    #           'key_vals': (1, 2, 3),
+    #           'odd_even': False,
+    #           }
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
               'key_vals': (1, 3),
-              'odd_even': False}
+              'odd_even': False,
+              }
     # kwargs = {'fp': fp, 'split': False,
     #           'key': 'hit_hit',
     #           # 'key': 'vis_hit',
@@ -246,7 +253,7 @@ def variability(threshold=0.9):
     #           'pad_nan': True}
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=True,
+                                                 verbose=1, easy_override=False,
                                                  cache_dir='cache')
     sn_inc_activity = np.array(sn_inc_activity)
     fp = 'cache/test.pkl'
