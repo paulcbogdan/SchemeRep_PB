@@ -72,8 +72,8 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     trial_set = act0[run_low:run_high]
                     # trial_set = stdize(trial_set, axis=0, nans=True)
                     # trial_set = trial_set[:, None, :] * trial_set[:, :, None]
-                    # trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
-                    # trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+                    trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
+                    trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
                     nan_trials = np.all(np.isnan(trial_set), axis=1)
                     # print(f'{trial_set.shape=}')
                     # print(f'{inc0=}, {run=}: {nan_trials.sum()=}')
