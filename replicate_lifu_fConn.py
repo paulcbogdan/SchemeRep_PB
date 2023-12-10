@@ -256,6 +256,7 @@ def variability(threshold=0.9):
                                                  verbose=1, easy_override=False,
                                                  cache_dir='cache')
     sn_inc_activity = np.array(sn_inc_activity)
+
     fp = 'cache/test.pkl'
     partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
         sn_conn, plot=False, threshold=threshold), easy_override=False)

@@ -4,7 +4,8 @@ import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
 from connsearch import RepeatedStratifiedGroupKFold
-from sklearn.model_selection import cross_val_score, StratifiedKFold, RepeatedStratifiedKFold
+from sklearn.model_selection import cross_val_score, StratifiedKFold, RepeatedStratifiedKFold, StratifiedGroupKFold, \
+    GroupKFold
 from sklearn.svm import SVC
 from tqdm import tqdm
 
@@ -37,23 +38,26 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
         # bad_sns = {1: [9], 2: []}
         # bad_sns = [9] # nan mismatch within trial
         GM_acc = []
+        # TODO: incorporate group info!!
         for sn in tqdm(range(age_sn_inc_act.shape[0])):
             # if sn in bad_sns[age]: continue
 
-            assert age_sn_inc_act.shape[1] == 3
+            assert age_sn_inc_act.shape[1] in [2, 3]
             X = []
             Y = []
             sn_act = age_sn_inc_act[sn]
             # sn_act = stdize(sn_act, axis=1, nans=True)
             # print(sn_act.shape)
             # quit()
+            groups = []
             for inc0 in range(age_sn_inc_act.shape[1]):
                 act0 = sn_act[inc0]
                 nan_trials = np.all(np.isnan(act0), axis=0)
-                act0 = act0[:, ~nan_trials]
-                nan_voxels = np.any(np.isnan(act0), axis=1)
+                # act0 = act0[:, ~nan_trials]
+                nan_voxels = np.any(np.isnan(act0[:, ~nan_trials]), axis=1)
                 act0 = act0[~nan_voxels, :]
                 act0 = act0.T
+
                 # print(act0.shape)
                 # quit()
                 # act0 = np.random.normal(size=act0.shape)
@@ -61,25 +65,48 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                 # act0 = stdize(act0, axis=1, nans=True)
                 # act0 = act0[:, None, :] * act0[:, :, None]
                 # act0 = act0[:, *np.tril_indices(act0.shape[2], k=-1)]
-                # trial_sets = []
-                # for i in range(6):
-                #     trial_set = act0[i*5:(i+1)*5]
-                #     # print(trial_set.shape)
-                #     # trial_set = stdize(trial_set, axis=0)
-                #     trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
-                #     # diag = np.diag_indices_from(trial_set[0])
-                #     # trial_set[:, diag[0], diag[1]] = np.nan
-                #     trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
-                #     trial_sets.append(np.nanmean(trial_set, axis=0))
-                #     # print(trial_sets[-1])
-                #     # quit()
-                #     # print(trial_set.shape)
-                #     # quit()
-                # act0 = np.array(trial_sets)
+                trial_sets = []
+                for run in range(3):
+                    run_low = run * 38
+                    run_high = (run + 1) * 38
+                    trial_set = act0[run_low:run_high]
+                    # trial_set = stdize(trial_set, axis=0, nans=True)
+                    # trial_set = trial_set[:, None, :] * trial_set[:, :, None]
+                    # trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
+                    # trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+                    nan_trials = np.all(np.isnan(trial_set), axis=1)
+                    # print(f'{trial_set.shape=}')
+                    # print(f'{inc0=}, {run=}: {nan_trials.sum()=}')
+                    trial_set = trial_set[~nan_trials]
+
+                    # print(f'{trial_set.shape=}')
+                    # print()
+                    # print(nan_trials)
+                    # quit()
+                    # trial_set = np.nanmean(trial_set, axis=0)
+                    # trial_sets.append(trial_set)
+                    trial_set = list(trial_set)
+                    trial_sets.extend(trial_set)
+                    # groups.append(run)
+                    groups.extend([run] * len(trial_set))
+                    # print(f'{run=} | {len(trial_sets)}')
+
+                    # print(trial_set.shape)
+                    # quit()
+
+                act0 = np.array(trial_sets)
+                # print(f'{act0.shape=}')
+                # print(f'{len(groups)=}')
+
+                # print(act0.shape)
+                # quit()
                 X.append(act0)
                 Y.extend([inc0] * act0.shape[0])
             X = np.concatenate(X, axis=0)
+
             Y = np.array(Y)
+
+            # print(f'{groups=}')
             # X = X[:, :10]
             # print(X.shape)
             # quit()
@@ -100,13 +127,29 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
             # quit()
             # print(f'{num0s=}, {num1s=}')
             # quit()
+            # print(f'{X.shape=}')
 
-            cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=20)
-            clf = SVC(kernel='linear')
-            acc = cross_val_score(clf, X, Y, cv=cv)
+            cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=10)
+            # print(f'{Y=}')
+            # print(f'{len(Y)=}')
+            # cv = StratifiedGroupKFold(n_splits=3)
+            # cv = GroupKFold(n_splits=2)
+            # for x, y, group in zip(X, Y, groups):
+            #     print(f'{y=}, {group=}')
+            # quit()
+            # print(f'{groups=}')
+
+            clf = SVC(kernel='rbf')
+            # print(f'{len(Y)=}')
+            # print(f'{len(X)=}')
+            # print(f'{len(groups)=}')
+            # print(f'{np.array(groups)=}')
+            acc = cross_val_score(clf, X, Y, cv=cv, groups=groups)
             acc = np.mean(acc)
+            # print(f'{age=}, {sn=}: {acc=}')
             # print(f'{acc=:.3f}')
             GM_acc.append(acc)
+            # quit()
         grand_mean = np.mean(GM_acc)
         grand_SE = np.std(GM_acc) / np.sqrt(len(GM_acc))
         if age_sn_inc_act.shape[1] == 2:
