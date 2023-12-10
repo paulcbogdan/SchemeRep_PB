@@ -237,6 +237,17 @@ def get_trial_info_(sn, ret=False):
         else:
             return row['con_hit'] & row['vis_hit']
     df_sn['hit_hit_nan'] = df_sn.apply(f, axis=1)
+
+
+    df_sn['inc_hit_hit'] = df_sn.apply(
+        lambda row: np.nan if pd.isna(row['hit_hit']) else
+        f'{row["inc"]}{int(row["hit_hit"])}', axis=1)
+    df_sn['inc_vis_hit'] = df_sn.apply(
+        lambda row: np.nan if pd.isna(row['vis_hit']) else
+        f'{row["inc"]}{int(row["vis_hit"])}', axis=1)
+    df_sn['inc_con_hit'] = df_sn.apply(
+        lambda row: np.nan if pd.isna(row['con_hit']) else
+        f'{row["inc"]}{int(row["con_hit"])}', axis=1)
     # df_sn = prep_dif(df_sn, sn)
     return df_sn
 

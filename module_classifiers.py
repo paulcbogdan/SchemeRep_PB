@@ -18,27 +18,36 @@ import random
 def corrcoef_na(A, B):
     return ma.corrcoef(ma.masked_invalid(A), ma.masked_invalid(B))
 
+def stratify(X, Y, groups=None):
+    labels = np.unique(Y)
+    X_new = []
+    Y_new = []
+    n_pre = len(X)
+    if groups is not None:
+        groups_new = []
+        for group in np.unique(groups):
+            Y_grp = Y[groups == group]
+            fewest_labels = np.min([np.sum(Y_grp == label) for label in labels])
+            for label in labels:
+                X_grp_label = X[groups == group][Y_grp == label][:fewest_labels]
+                X_new.extend(X_grp_label)
+                Y_new.extend(Y[groups == group][Y_grp == label][:fewest_labels])
+                groups_new.extend([group]*len(X_grp_label))
+        # n_post = len(X_new)
+        # print(f'Pre-stratification: {n_pre} samples. '
+        #       f'Post-stratification: {n_post} samples.')
+        return X_new, Y_new, groups_new
+
 def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     p,
                     variability=True):
     # TODO: Double check that the congruent/incongruent labels are correct?
-    efs_all = []
-    withins_all = []
-    betweens_all = []
+
     for age in [1, 2]:
         sn_idxs = age2idxs[age]
         age_sn_inc_act = sn_inc_activity[sn_idxs]
-        efs_age = []
-        sames_age = []
-        difs_age = []
-        withins_age = []
-        withins_age_multi = []
-        betweens_age_multi = []
-        betweens_age = []
-        # bad_sns = {1: [9], 2: []}
-        # bad_sns = [9] # nan mismatch within trial
+
         GM_acc = []
-        # TODO: incorporate group info!!
         for sn in tqdm(range(age_sn_inc_act.shape[0])):
             # if sn in bad_sns[age]: continue
 
@@ -72,8 +81,8 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     trial_set = act0[run_low:run_high]
                     # trial_set = stdize(trial_set, axis=0, nans=True)
                     # trial_set = trial_set[:, None, :] * trial_set[:, :, None]
-                    trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
-                    trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+                    # trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
+                    # trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
                     nan_trials = np.all(np.isnan(trial_set), axis=1)
                     # print(f'{trial_set.shape=}')
                     # print(f'{inc0=}, {run=}: {nan_trials.sum()=}')
@@ -88,7 +97,11 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     trial_set = list(trial_set)
                     trial_sets.extend(trial_set)
                     # groups.append(run)
-                    groups.extend([run] * len(trial_set))
+                    # groups.extend([run] * len(trial_set))
+                    run_groups = [run] * (len(trial_set) // 2) + \
+                                 [run + 3] * (len(trial_set) - len(trial_set) // 2)
+                    groups.extend(run_groups)
+
                     # print(f'{run=} | {len(trial_sets)}')
 
                     # print(trial_set.shape)
@@ -105,6 +118,10 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
             X = np.concatenate(X, axis=0)
 
             Y = np.array(Y)
+            # print(f'{len(Y)=}')
+            X, Y, groups = stratify(X, Y, groups=groups)
+            # print(f'{len(Y)=}')
+            # print(f'{Y=}')
 
             # print(f'{groups=}')
             # X = X[:, :10]
@@ -129,10 +146,10 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
             # quit()
             # print(f'{X.shape=}')
 
-            cv = RepeatedStratifiedKFold(n_splits=3, n_repeats=10)
+            # cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=20)
             # print(f'{Y=}')
             # print(f'{len(Y)=}')
-            # cv = StratifiedGroupKFold(n_splits=3)
+            cv = StratifiedGroupKFold(n_splits=3)
             # cv = GroupKFold(n_splits=2)
             # for x, y, group in zip(X, Y, groups):
             #     print(f'{y=}, {group=}')
