@@ -1,7 +1,7 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_BNA_coords, get_main_partitions
-from module_classifiers import conn_similarity, conn_classifier
+from module_classifiers import conn_similarity, conn_classifier, graph_theory
 from network_funcs import load_FC_for_Lifu, get_ylim_settings, calculate_within_between, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
 from utils import pickle_wrap
@@ -240,19 +240,19 @@ def variability(threshold=0.9):
     #           'key_vals': (1, 2, 3),
     #           'odd_even': False,
     #           }
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'inc',
-    #           'key_vals': (1, 3),
-    #           'odd_even': False,
-    #           }
     kwargs = {'fp': fp, 'split': False,
-              'key': 'vis_hit',
-              # 'key': 'con_hit',
-              'key_vals': (False, True),
+              'key': 'inc',
+              'key_vals': (1, 3),
               'odd_even': False,
-              'pad_nan': True}
+              }
     # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'inc_hit_hit',
+              # 'key': 'hit_hit',
+              # 'key': 'con_hit',
+              # 'key_vals': (False, True),
+              # 'odd_even': False,
+              # 'pad_nan': True}
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'inc_con_hit',
     #           # 'key': 'con_hit',
     #           'key_vals': ('10', '11'),
     #           # 'key_vals': ('30', '31'),
@@ -265,10 +265,15 @@ def variability(threshold=0.9):
                                                  cache_dir='cache')
     sn_inc_activity = np.array(sn_inc_activity)
 
+    # partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
+    #     sn_conn, plot=True, threshold=threshold, overlapping=True),
+    #                                         easy_override=True)
+
     fp = 'cache/test.pkl'
     partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
         sn_conn, plot=False, threshold=threshold), easy_override=False)
 
+    sn_inc_conn_unthresh = sn_inc_conn.copy()
     sn_inc_conn[:, :, ~top_edges_mat] = np.nan
 
     # partitions = [list(range(246))]
@@ -283,9 +288,11 @@ def variability(threshold=0.9):
             continue
         p_top_edges = get_partition_matrix(top_edges_mat, p)
         p_data = sn_inc_activity[..., p, :]
+        # print(f'{p=}')
         print(f'------- {i2name[threshold][i]} -------')
-        print(' Subject-specific:')
-        conn_classifier(p_data, age2idxs, p_top_edges, p)
+        # print(' Subject-specific:')
+        # conn_classifier(p_data, age2idxs, p_top_edges, p)
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p)
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=False)
         # print(' Variability:')

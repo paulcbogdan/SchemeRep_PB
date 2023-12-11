@@ -14,6 +14,8 @@ from fMRI_proc import within_run_to_nan
 from utils import stdize
 import scipy.stats as stats
 import random
+import networkx as nx
+import itertools
 
 def corrcoef_na(A, B):
     return ma.corrcoef(ma.masked_invalid(A), ma.masked_invalid(B))
@@ -67,6 +69,7 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                 act0 = act0[~nan_voxels, :]
                 act0 = act0.T
 
+
                 # print(act0.shape)
                 # quit()
                 # act0 = np.random.normal(size=act0.shape)
@@ -80,13 +83,16 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     run_high = (run + 1) * 38
                     trial_set = act0[run_low:run_high]
                     # trial_set = stdize(trial_set, axis=0, nans=True)
+                    # trial_set = trial_set - np.nanmean(trial_set, axis=0)[None, :]
                     # trial_set = trial_set[:, None, :] * trial_set[:, :, None]
-                    # trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
-                    # trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+                    trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
+                    trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
+
                     nan_trials = np.all(np.isnan(trial_set), axis=1)
                     # print(f'{trial_set.shape=}')
                     # print(f'{inc0=}, {run=}: {nan_trials.sum()=}')
                     trial_set = trial_set[~nan_trials]
+
 
                     # print(f'{trial_set.shape=}')
                     # print()
@@ -96,32 +102,39 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                     # trial_sets.append(trial_set)
                     trial_set = list(trial_set)
                     trial_sets.extend(trial_set)
+                    # print(f'{inc0} | {run=}: {len(trial_set)}')
                     # groups.append(run)
-                    # groups.extend([run] * len(trial_set))
-                    run_groups = [run] * (len(trial_set) // 2) + \
-                                 [run + 3] * (len(trial_set) - len(trial_set) // 2)
-                    groups.extend(run_groups)
-
-                    # print(f'{run=} | {len(trial_sets)}')
-
-                    # print(trial_set.shape)
-                    # quit()
-
+                    groups.extend([run] * len(trial_set))
+                    # run_groups = [run] * (len(trial_set) // 2) + \
+                    #              [run + 3] * (len(trial_set) - len(trial_set) // 2)
+                    # groups.extend(run_groups)
                 act0 = np.array(trial_sets)
-                # print(f'{act0.shape=}')
-                # print(f'{len(groups)=}')
-
-                # print(act0.shape)
-                # quit()
                 X.append(act0)
+                # print(f'{act0.shape=}')
                 Y.extend([inc0] * act0.shape[0])
-            X = np.concatenate(X, axis=0)
+            try:
+                X = np.concatenate(X, axis=0)
+            except ValueError:
+                print(f'Fail not enough data: {age=}, {sn=}')
+                continue
 
             Y = np.array(Y)
+            # print(f'{Y=}')
             # print(f'{len(Y)=}')
+            # print(f'{groups=}')
+
             X, Y, groups = stratify(X, Y, groups=groups)
             # print(f'{len(Y)=}')
+            # n_groups = np.unique(groups).shape[0]
+            # print('test:', np.unique(groups), len(np.unique(groups)))
+            # print('-------')
+            # print(f'{np.unique(groups).shape=}')
+            if len(np.unique(groups)) != 3:
+                print(f'Not enough data ({age=}, {sn=})')
+                continue
             # print(f'{Y=}')
+            # print(f'{groups=}')
+
 
             # print(f'{groups=}')
             # X = X[:, :10]
@@ -176,6 +189,8 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
         else:
             raise NotImplementedError
         print(f'age {age}: {grand_mean=:.3f} [{grand_SE=:.3f}], {grand_t=:.3f}')
+
+
 
 def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
                     p,
@@ -322,6 +337,92 @@ def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
     print(f'\tYoung vs. Old: t = {t:.3f}, p = {p:.3f}')
 
 
+
+def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
+                 measure='closeness_centrality'):
+    age_Ms = []
+    for age in [1, 2]:
+        scores_age = []
+        sn_idxs = age2idxs[age]
+        age_sn_inc_act = sn_inc_activity[sn_idxs]
+        for sn in range(age_sn_inc_act.shape[0]):
+            scores_sn = []
+            for inc0 in range(age_sn_inc_act.shape[1]):
+                act0 = age_sn_inc_act[sn, inc0]
+                nan_trials = np.all(np.isnan(act0), axis=0)
+                act0 = act0[:, ~nan_trials]
+                act0_p = act0[p, :]
+                nan_voxels = np.any(np.isnan(act0_p), axis=1)
+                act0_p = act0_p[~nan_voxels, :]
+                conn0_p = ma.corrcoef(ma.masked_invalid(act0_p))
+                conn0_p[np.diag_indices_from(conn0_p)] = np.nan
+                thresh = np.nanquantile(conn0_p, threshold)
+
+                # quit()
+                # print(thresh)
+                conn0_p[conn0_p < thresh] = 0
+                conn0_p[conn0_p >= thresh] = 1
+
+                G = nx.from_numpy_array(conn0_p)
+                comp = nx.algorithms.components.connected_components(G)
+                biggest = set()
+                for c in comp:
+                    if len(c) > len(biggest):
+                        biggest = c
+
+                if len(biggest) < 20:
+                    print(f'Bad: {age=}, {sn=}, {inc0=}, {len(biggest)=}')
+                    # plt.imshow(conn0_p)
+                    # plt.show()
+                    # quit()
+                    break
+                G = G.subgraph(biggest)
+                # print('Calculating small worldness')
+                # smol = nx.sigma(G, niter=10, nrand=2)
+                if measure == 'shortest':
+                    score = nx.average_shortest_path_length(G)
+                elif measure == 'clustering':
+                    score = nx.average_clustering(G)
+                elif measure == 'closeness_centrality':
+                    score = nx.closeness_centrality(G)
+                    print(f'Closeness: {age=}, {sn=}, {inc0=} | {score=:.3f}')
+                elif measure == 'sigma':
+                    score = nx.sigma(G, niter=100, nrand=10, seed=0)
+                    print(f'Sigma: {age=}, {sn=}, {inc0=} | {score=:.3f}')
+                elif measure == 'omega':
+                    score = nx.omega(G, niter=100, nrand=10, seed=0)
+                    print(f'Omega: {age=}, {sn=}, {inc0=} | {score=:.3f}')
+
+                else:
+                    raise NotImplementedError
+                scores_sn.append(score)
+            else:
+                scores_age.append(scores_sn)
+        scores_age = np.array(scores_age)
+        # print(f'{scores_age.shape=}')
+        age_M = np.nanmean(scores_age, axis=1)
+        age_Ms.append(age_M)
+
+        Ms = np.nanmean(scores_age, axis=0)
+        SEs = np.nanstd(scores_age, axis=0) / np.sqrt(scores_age.shape[0])
+        desc_str = ''
+        for cond in range(scores_age.shape[1]):
+            desc_str += f'{Ms[cond]:.3f} [{SEs[cond]:.3f}], '
+        desc_str = desc_str[:-2]
+        print(f'{age=}: {desc_str}')
+
+        comparisons = itertools.combinations(range(scores_age.shape[1]), 2)
+        for c in comparisons:
+            difs = scores_age[:, c[0]] - scores_age[:, c[1]]
+            SE_difs = np.nanstd(difs) / np.sqrt(difs.shape[0])
+            t = np.nanmean(difs) / SE_difs
+            print(f'\t{c[0]} vs. {c[1]}: t = {t:.3f}')
+    M_young = np.nanmean(age_Ms[0])
+    M_old = np.nanmean(age_Ms[1])
+    t, p = stats.ttest_ind(age_Ms[0], age_Ms[1])
+    print(f'\tYoung ({M_young:.3f}) vs. Old ({M_old:.3f}): '
+          f't = {t:.3f}, p = {p:.3f}')
+    # quit()
 
 if __name__ == '__main__':
     pass

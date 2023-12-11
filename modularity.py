@@ -22,6 +22,27 @@ def get_modules(matrix_thresh):
                                     seed=0)
     return part
 
+def get_modules_overlapping(matrix_thresh):
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    G = nx.from_numpy_array(matrix_thresh)
+    # plt.imshow(matrix_thresh)
+    # plt.show()
+    # quit()
+    from cdlib import algorithms
+    nodecluster_obj = algorithms.conga(G, number_communities=50)
+    # nodecluster_obj = algorithms.congo(G, number_communities=20)
+    print(nodecluster_obj)
+    return nodecluster_obj.communities
+    # print(com)
+    print('Angel...') # Angel yields results!
+    nodecluster_obj = algorithms.angel(G, min_community_size=30, threshold=0.9)
+    return nodecluster_obj.communities
+    # # print(com)
+    # for com in nodecluster_obj.communities:
+    #     print(com)
+    #     print(f'{len(com)=}')
+    # quit()
 
 def get_partition_matrix(mat, idx, w_zeros=False):
     if w_zeros:
@@ -62,21 +83,25 @@ def get_BNA_coords():
 
 
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
-                        threshold=.95, fn_str=''):
+                        threshold=.95, fn_str='', overlapping=False):
     coords = coords or get_BNA_coords()
     M_conn = np.nanmean(sn_inc_conn,
                         axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
     matrix_binary, matrix_mask = get_binary_matrix(M_conn,
                                                      threshold=threshold)
     M_conn_masked = M_conn * matrix_mask
-    partitions = get_modules(matrix_binary)
+    if overlapping:
+        partitions = get_modules_overlapping(matrix_binary)
+    else:
+        partitions = get_modules(matrix_binary)
     if plot:
         for i, p in enumerate(partitions):
             if len(p) < 5:
                 continue
-            print(f'Plotting partition: {i}')
+            print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            fn = f'Dec5_{fn_str}thr{threshold}_p{i}.png'
+            overlap_str = 'conga' if overlapping else 'Dec5'
+            fn = f'{overlap_str}_{fn_str}thr{threshold}_p{i}.png'
             title = f'Partition {i}'
             plot_nichord(M_corr_part, coords, fn, title,
                          dir_out='result_pics/nichord',)
