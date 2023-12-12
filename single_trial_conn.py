@@ -6,7 +6,7 @@ from conn_ERS import ERS_sn, ERS_ROI_pairwise, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
 from networks import prep_networks
-from organize_bhv import get_all_sns
+from org_sns import get_all_sns
 from old.plot_gen import plot_connectivity
 import numpy as np
 

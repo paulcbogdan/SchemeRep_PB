@@ -4,7 +4,8 @@ from collections import defaultdict
 import numpy as np
 
 from atlas_utils import get_atlas
-from organize_bhv import get_trial_info, get_all_sns
+from organize_bhv import get_trial_info
+from org_sns import get_all_sns
 from nilearn import image
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
@@ -161,17 +162,6 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
         stim_RDM_r = stdize(stim_RDM_r, axis=0, nans=True)
         IRAFs = np.nanmean(fMRI_RDM_r * stim_RDM_r, axis=0)
         IRAFs = np.arctanh(IRAFs)
-        # IRAFs = []
-        # for i in range(fMRI_RDM_.shape[0]):
-        #     fMRI_flat = fMRI_RDM_[i, :]
-        #     stim_flat = stim_RDM[i, :]
-        #     nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)
-        #     fMRI_flat = fMRI_flat[~nans]
-        #     stim_flat = stim_flat[~nans]
-        #     r, _ = stats.spearmanr(fMRI_flat, stim_flat)
-        #     z = np.arctanh(r)
-        #     IRAFs.append(z)
-        # IRAFs = np.array(IRAFs)
     else:
         raise NotImplementedError(f'get_IRAFs {second_order=}')
     IRAFs = IRAFs[df_sn['obj'].argsort()]
@@ -250,15 +240,21 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
-    n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
-    if n_nans:
-        sn = df_sn['sn'].iloc[0]
-        raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
+    sn = df_sn['sn'].iloc[0]
+    if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
+        # Missing a few trials at the end of Run 1
+        df_sn_ = df_sn.copy()
+        img = np.full((97, 115, 97, 114), np.nan)
+        non_nan_trials = ~pd.isna(df_sn_[fp_fMRI_col])
+        df_sn_.dropna(subset=[fp_fMRI_col], inplace=True)
+        img[..., non_nan_trials] = \
+            image.load_img(df_sn_[fp_fMRI_col]).get_fdata()
+    else:
+        n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+        if n_nans:
+            raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
+        img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
 
-    img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
-    # for idx, row in df_sn.iterrows():
-    #     print(row[fp_fMRI_col])
-    # quit()
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
     ROIs = atlas['ROIs']
@@ -269,14 +265,13 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         region_vecs = img[atlas_roi]
-        voxels_w_nan = np.isnan(region_vecs).any(axis=1)
-        voxels_all_nan = (~np.isnan(region_vecs)).any(axis=1)
-        # print(np.isnan(region_vecs))
-        # quit()
-        # if len(voxels_w_nan) < 5: # sometimes even zero
-        #     continue
-
-        # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
+        if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
+            voxels_w_nan = np.isnan(region_vecs[:, non_nan_trials]).any(axis=1)
+            voxels_all_nan = \
+                (~np.isnan(region_vecs[:, non_nan_trials])).any(axis=1)
+        else:
+            voxels_w_nan = np.isnan(region_vecs).any(axis=1)
+            voxels_all_nan = (~np.isnan(region_vecs)).any(axis=1)
 
         n_nans_ROI = np.sum(voxels_w_nan)
         p_nan_any = n_nans_ROI / len(voxels_w_nan)
@@ -284,21 +279,14 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         if abs(p_nan_all - p_nan_any) > .01:
             print(f'Divergence in NaNs ({ROI}): {p_nan_all=:.3f}, '
                   f'{p_nan_any=:.3f}')
-        # print(f'{ROI} | {p_nan_any:.3f} | {p_nan_all:.3f} | {len(voxels_w_nan)=}')
 
-        # print(f'{ROI} | {len(voxels_w_nan)=} | {n_nans_ROI=}')
-        # p_nan_overall = np.mean(np.isnan(region_vecs))
-        # the thalamus is entirely dropped basically
         if p_nan_any > nan_thresh:  # more than 10%
             # print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
             continue
         if drop_nan_voxels:
             region_vecs = region_vecs[~voxels_w_nan, :]
-        # print(f'({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}. {region_vecs.shape}')
-
         region_vecs = region_vecs.T
         ROI2vecs[ROI] = region_vecs
-
         if org_by_region:
             region2vecs[region].append(np.nanmean(region_vecs, axis=1))
 

@@ -2,7 +2,8 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs, RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
-from organize_bhv import get_all_sns, get_trial_info
+from organize_bhv import get_trial_info
+from org_sns import get_all_sns
 from old.plot_gen import plot_connectivity
 import numpy as np
 import scipy.stats as stats

@@ -8,7 +8,8 @@ from single_trial_conn import prep_fps
 from conn_utils import get_ROI_vecs_wrap
 from conn_RSA import get_trial_x_trial_RSM
 from atlas_utils import get_atlas
-from organize_bhv import get_all_sns, get_trial_info
+from organize_bhv import get_trial_info
+from org_sns import get_all_sns
 
 
 def conn_autocorrelation(combine_regions=False, split=False, four_tasks=False,

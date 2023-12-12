@@ -4,7 +4,8 @@ import numpy as np
 
 from atlas_utils import get_BN_and_resample
 from fMRI_proc import get_ROI_vecs, regress_out_within_across, get_IRAFs, within_run_to_nan
-from organize_bhv import get_trial_info, get_all_sns
+from organize_bhv import get_trial_info
+from org_sns import get_all_sns
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 import utils

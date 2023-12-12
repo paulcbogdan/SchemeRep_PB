@@ -1,6 +1,7 @@
 import pandas as pd
 
-from organize_bhv import get_trial_info, get_all_sns
+from organize_bhv import get_trial_info
+from org_sns import get_all_sns
 from collections import defaultdict
 
 from stim import get_semantic_vectors, get_DNN_vecs

@@ -1,8 +1,13 @@
 formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + AgeGrp + (1|Subject) + (1|Object)'
 m <- lmer(formula=formula, data=df_final_univ, 
-	contrasts = list(AgeGrp = contr.dev, Cong_subj_1_4 = contr.dev, RCON_Old = contr.dev),
 	control=lmerControl(optimizer='bobyqa'))
 summary(m)
+
+		contrasts = list(AgeGrp = contr.dev, Cong_subj_1_4 = contr.dev, RCON_Old = contr.dev),
+
+	
+df_final_univ_116 = df_final_univ[df_final_univ$Subject == 116, ]	
+
 
 lifehacks:
 1. Use ctrl-x as a delete key, so you dont need to move your hand
@@ -12,8 +17,12 @@ lifehacks:
 1a. 
 2. Follow the ROI data into one univariate model and see if I get the same result, checking data intermittently
 
+Ask why we dont have betas for 231
+
 
 Differences:
+1. We were using slightly different versions of the Brainnetome Atlas
+2. We were using different subjects (e.g., because he was excluding for bad performance, I think)
 1. I aligned the subjects. I was using some participants that Shenyang was excluding. Also, Shenyang was using participants with partial data.
 
 
