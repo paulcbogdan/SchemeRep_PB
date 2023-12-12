@@ -151,14 +151,14 @@ def get_trial_info_(sn, ret=False):
             scene = mat_enc['pdata'][0][0][8][0][i][0]
             inc = mat_enc['pdata'][0][0][9][0][i][0][0]
             resp = mat_enc['pdata'][0][0][11][0][i][0][0]
-            if pd.isna(resp):
-                perceived_inc = np.nan
-            elif resp == 1:
-                perceived_inc = 1
-            elif resp == 4:
-                perceived_inc = 3
-            else:
-                perceived_inc = 2
+            # if pd.isna(resp):
+            #     perceived_inc = np.nan
+            # elif resp == 1:
+            #     perceived_inc = 1
+            # elif resp == 4:
+            #     perceived_inc = 3
+            # else:
+            #     perceived_inc = 2
 
             if obj in renamer:
                 obj_rename = renamer[obj]
@@ -170,15 +170,14 @@ def get_trial_info_(sn, ret=False):
                 scene_rename = scene
 
             inc2str = {1: 'incongruent', 2: 'neutral', 3: 'congruent'}
-            if pd.isna(perceived_inc):
-                per_inc_str = None
-            else:
-                per_inc_str = inc2str[perceived_inc]
             inc_str = inc2str[inc]
+            per2str = {1: 'incongruent', 4: 'congruent'}
+
 
             outlier_bool = bool(outliers[i][0])
             trial_full = trial + 38 * (run - 1)
-            per_con14 = resp if resp in [1, 4] else np.nan
+            per_inc14 = resp if resp in [1, 4] else np.nan
+            per_inc14_str = np.nan if pd.isna(per_inc14) else per2str[per_inc14]
 
 
 
@@ -203,10 +202,11 @@ def get_trial_info_(sn, ret=False):
                  'scene_rename': scene_rename,
                  'inc': inc,
                  'inc_str': inc_str,
-                 'per_con': resp, # higher (up to 4) = seen as congruent
-                 'per_con14': per_con14,
-                 'per_inc': perceived_inc,
-                 'per_inc_str': per_inc_str,
+                 'per_inc': resp, # higher (up to 4) = seen as congruent
+                 'per_inc14': per_inc14,
+                 'per_inc14_str': per_inc14_str,
+                 # 'per_inc': perceived_inc,
+                 # 'per_inc_str': per_inc_str,
                  'enc_outlier': outlier_bool,
                  'obj_outlier': outlier_bool,
                  'obj2_outlier': outlier_bool,
@@ -230,9 +230,7 @@ def get_trial_info_(sn, ret=False):
         df_sn['hit_hit_nan'] = df_sn.apply(f, axis=1)
     except KeyError as e:
         pass
-    # df_sn = include_BL(df_sn, sn)
-    # df_sn = include_conceptual(df_sn, sn)
-    # df_sn = include_vis(df_sn, sn)
+
     df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
     def f(row):
         if pd.isna(row['con_hit']) or pd.isna(row['vis_hit']):
@@ -588,6 +586,13 @@ def get_bad_sns(ret=False):
 
     return bad_sns
 
+def get_bad_sns_fp(fp):
+    if fp in ['obj3_fMRI', 'scn3_fMRI']:
+        bad_sns = set()
+    else:
+        raise NotImplementedError
+    return bad_sns
+
 def get_all_sns(ret=False):
     age2sn = defaultdict(list)
     bad_sns = get_bad_sns(ret=ret)
@@ -666,12 +671,15 @@ if __name__ == '__main__':
     df_all = []
     SNS = age2sn[2]
     # SNS = ['138']
+    SNS = ['116']
     for SN in SNS:
         # if SN not in {'201', '224', '231'}: continue
         # if int(SN) < 233: continue
         if SN == '135': continue
         df_sn = get_trial_info(SN, easy_override=True)
-        print(df_sn['vis3_fMRI'])
+        print(df_sn['obj3_fMRI'])
+        # print(df_sn['con_hit'])
+
         # for i in range(30):
         #     print(dict(df_sn[['inc', 'vis_fMRI', 'vis_resp', 'vis_type',
         #                       'obj_fMRI']].iloc[i]))

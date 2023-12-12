@@ -40,51 +40,18 @@ def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
                                      combine_regions=False)
             if ROI_l is None:
                 ROI_l = list(ROI2vecs0.keys())
-            # ROI_l = ROI_l[:1]
-            # print(ROI_l)
 
             ar = []
             for ROI in ROI_l:
-                # if ROI != '103 FuG_L_3_1':
-                #     continue
                 activity = ROI2vecs0[ROI]
-                # print(f'{activity.shape=}')
-                # test_M =  np.nanmean(activity, axis=1)
-                # print(test_M)
-                # print(f'{np.nanmean(test_M)=}')
-                # quit()
                 ar.append(np.nanmean(activity, axis=1))
-                # print(ROI_l)
-                # quit()
                 ROI_cols = ['_'.join(x.split()[1:]) for x in ROI_l]
-            # print(ROI_cols)
-            # quit()
             df_sn_ROI = pd.DataFrame(np.array(ar).T, columns=ROI_cols)
             df_sn = pd.concat([df_sn, df_sn_ROI], axis=1)
-
             df_sn['age'] = age
             df_l.append(df_sn)
-
-
-
-            # for cond in conds:
-            #     matches = df_sn[key] == cond
-            #     for ROI, activity in ROI2vecs0.items():
-            #         ROI2age2inc2l[ROI][age][cond].append(
-            #             np.nanmean(activity[matches]))
-        # pairs = itertools.combinations(conds, 2)
-        # for cond0, cond1 in pairs:
-        #     print(f'Comparing {cond0=} {cond1=}')
-        #     for ROI, inc2l in ROI2inc2l.items():
-        #         l0 = inc2l[cond0]
-        #         l1 = inc2l[cond1]
-        #         t, p = stats.ttest_rel(l0, l1)
-        #         print(f'{ROI=}: {t=:.3f}, {p=:.3f}')
-        #         continue
-        #     continue
     return pd.concat(df_l), ROI_cols
-    # ROI2age2inc2l = dd_to_d(ROI2age2inc2l)
-    # return ROI2age2inc2l
+
 
 def dd_to_d(dd):
     if isinstance(dd, iterable):
@@ -112,26 +79,66 @@ def mean_or_fist(l):
     else:
         return l.iloc[0]
 
+def get_shenyang_subjects():
+    sns_str = '102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 125 ' \
+              '126 127 128 130 132 134 135 136 137 201 202 203 ' \
+              '205 206 207 208 210 211 212 214 216 217 218 219 221 222 225 230 233 234'
+    return set(sns_str.split())
+
+
 def do_univariate_analysis(fp='obj3_fMRI'):
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3)}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
                                 kwargs=kwargs, cache_dir='cache',
                                 easy_override=False)
-    df = df.groupby(['age', 'sn', 'inc_str', 'con_hit']).agg(mean_or_fist).\
-        reset_index()
-    # df = df.groupby(['age', 'sn', 'inc_str', 'con_hit']).mean().reset_index()
-    df = df[df['inc_str'] != 'neutral']
-    df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
-    print(df)
-    print(list(df.columns))
-    print(df['obj'])
+    df = df[~pd.isna(df['per_inc14_str'])]
+    df = df[df['con_hit'] > 0]
+
+    df_test = df[df['sn'] == '104']
+    print(df_test['con_hit'])
+
+    sns_sh = get_shenyang_subjects()
+    sns_mine = set(df['sn'].unique())
+    for sn in sns_sh:
+        if sn not in sns_mine:
+            print(f'shenyang\'s {sn} not in mine')
+    print('-')
+    for sn in sns_mine:
+        if sn not in sns_sh:
+            print(f'my {sn} not in shenyang\'s')
     quit()
+
+    df = df[df['sn'].isin(sns_sh)]
+
+    # df = df.groupby(['age', 'sn', 'inc_str', 'con_hit']).agg(mean_or_fist).\
+    #     reset_index()
+    # df = df.groupby(['age', 'sn', 'inc_str', 'con_hit']).mean().reset_index()
+    # df = df[df['inc_str'] != 'neutral']
+
+    sns = df['sn'].unique()
+    print(len(sns))
+    # sns_str = ' '.join(sns)
+    # print(sns_str)
+    quit()
+
+    df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
+    # print(df)
+    # print(list(df.columns))
+    # print(df['obj'])
+    # quit()
+    # print(len(df))
+    # quit()
+
+    # 102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 125 126 127 128 130 132 134 135 136 137
+    # 102 103 104 105 106 107 108 109 110 111 112 113 114 115 117 118 119 120 123 124 126 127 128 129 130 131 132 134 136 137 201 202 203 204 205 206 207 208 209 210 211 214 216 217 218 219 221 222 225 227 230 232 233 235
 
     from pymer4.models import Lmer
     for ROI in ROI_cols:
-
         print(f'ROI: {ROI}')
-        formula = f'{ROI} ~ age*inc_str*con_hit + (1|sn)'
+        if ROI != 'ATL_R_6_5':
+            continue
+        # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
+        formula =  f'{ROI} ~ age + (1|sn) + (1|obj)'
         # print(f'Formula: {formula}')
 
         keys = keys_from_formula(formula)
@@ -139,11 +146,11 @@ def do_univariate_analysis(fp='obj3_fMRI'):
 
         model = Lmer(formula, data=df)
         try:
-            model.fit(REML=True, verbose=False, summary=False)
+            model.fit(REML=True, verbose=True, summary=True)
         except Exception as e:
             print(f'Error fitting model: {e}')
             continue
-
+        quit()
 
         summary = model.coefs
         print(summary.iloc[1:])
