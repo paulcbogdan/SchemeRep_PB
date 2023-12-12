@@ -339,12 +339,15 @@ def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
 
 
 def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
-                 measure='closeness_centrality'):
+                 measure='omega'):
+    print(f'Measure: {measure}')
     age_Ms = []
+    age_difs = []
     for age in [1, 2]:
         scores_age = []
         sn_idxs = age2idxs[age]
         age_sn_inc_act = sn_inc_activity[sn_idxs]
+        biggest_of_any = 0
         for sn in range(age_sn_inc_act.shape[0]):
             scores_sn = []
             for inc0 in range(age_sn_inc_act.shape[1]):
@@ -370,27 +373,42 @@ def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
                     if len(c) > len(biggest):
                         biggest = c
 
-                if len(biggest) < 20:
+                if len(biggest) < 20 and measure != 'len':
                     print(f'Bad: {age=}, {sn=}, {inc0=}, {len(biggest)=}')
-                    # plt.imshow(conn0_p)
-                    # plt.show()
-                    # quit()
                     break
+                if len(biggest) > biggest_of_any:
+                    biggest_of_any = len(biggest)
+                    # print(f'Biggest: {age=}, {sn=}, {inc0=}, {len(biggest)=}')
                 G = G.subgraph(biggest)
                 # print('Calculating small worldness')
                 # smol = nx.sigma(G, niter=10, nrand=2)
-                if measure == 'shortest':
+                if measure == 'len':
+                    score = len(biggest)
+                elif measure == 'shortest':
                     score = nx.average_shortest_path_length(G)
+                    if len(biggest) < biggest_of_any: # TODO: better
+                        score_d = nx.shortest_path_length(G)
+                        worst_M_score = 0
+                        for node, d in score_d:
+                            node_score = np.mean(list(d.values()))
+                            if node_score > worst_M_score:
+                                worst_M_score = node_score
+                        if len(biggest) < biggest_of_any:
+                            missing = biggest_of_any - len(biggest)
+                            score_new = (worst_M_score * missing +
+                                         score * len(biggest)) / biggest_of_any
+                            # print(f'{score} | {score_new}')
+                            score = score_new
                 elif measure == 'clustering':
                     score = nx.average_clustering(G)
                 elif measure == 'closeness_centrality':
                     score = nx.closeness_centrality(G)
                     print(f'Closeness: {age=}, {sn=}, {inc0=} | {score=:.3f}')
                 elif measure == 'sigma':
-                    score = nx.sigma(G, niter=100, nrand=10, seed=0)
+                    score = nx.sigma(G, niter=10, nrand=5, seed=0)
                     print(f'Sigma: {age=}, {sn=}, {inc0=} | {score=:.3f}')
                 elif measure == 'omega':
-                    score = nx.omega(G, niter=100, nrand=10, seed=0)
+                    score = nx.omega(G, niter=10, nrand=5, seed=0)
                     print(f'Omega: {age=}, {sn=}, {inc0=} | {score=:.3f}')
 
                 else:
@@ -412,16 +430,39 @@ def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
         print(f'{age=}: {desc_str}')
 
         comparisons = itertools.combinations(range(scores_age.shape[1]), 2)
+        comparisons = list(comparisons)
+        difs_all = []
         for c in comparisons:
             difs = scores_age[:, c[0]] - scores_age[:, c[1]]
+            difs_all.append(difs)
             SE_difs = np.nanstd(difs) / np.sqrt(difs.shape[0])
             t = np.nanmean(difs) / SE_difs
-            print(f'\t{c[0]} vs. {c[1]}: t = {t:.3f}')
+            p_val = stats.t.sf(np.abs(t), difs.shape[0] - 1) * 2
+            print(f'\t{c[0]} vs. {c[1]}: t = {t:.3f}, p = {p_val:.3f}')
+        age_difs.append(difs_all)
     M_young = np.nanmean(age_Ms[0])
     M_old = np.nanmean(age_Ms[1])
-    t, p = stats.ttest_ind(age_Ms[0], age_Ms[1])
-    print(f'\tYoung ({M_young:.3f}) vs. Old ({M_old:.3f}): '
-          f't = {t:.3f}, p = {p:.3f}')
+    t, p_val = stats.ttest_ind(age_Ms[0], age_Ms[1])
+    print(f'Young ({M_young:.3f}) vs. Old ({M_old:.3f}): '
+          f't = {t:.3f}, p = {p_val:.3f}')
+    # print(len(difs_all))
+    # print(len(difs_all[0]))
+    # print(len(difs_all[0][0]))
+    # quit()
+    for c_i in range(len(age_difs[0])):
+        difs_young = age_difs[0][c_i]
+        difs_old = age_difs[1][c_i]
+        t, p_val = stats.ttest_ind(difs_young, difs_old)
+        print(f'\tAge x Dif ({c_i}): t = {t:.3f}, p = {p_val:.3f}')
+        difs_both = np.concatenate([difs_young, difs_old])
+        M_both = np.nanmean(difs_both)
+        SE_both = np.nanstd(difs_both) / np.sqrt(difs_both.shape[0])
+        t_both = M_both / SE_both
+        print(f'\t\tBoth ({c_i}): {M_both:.3f} [{SE_both:.3f}], '
+              f't = {t_both:.3f}')
+
+
+
     # quit()
 
 if __name__ == '__main__':

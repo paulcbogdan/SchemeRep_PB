@@ -242,7 +242,7 @@ def variability(threshold=0.9):
     #           }
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
-              'key_vals': (1, 3),
+              'key_vals': (1, 2, 3),
               'odd_even': False,
               }
     # kwargs = {'fp': fp, 'split': False,
@@ -292,7 +292,19 @@ def variability(threshold=0.9):
         print(f'------- {i2name[threshold][i]} -------')
         # print(' Subject-specific:')
         # conn_classifier(p_data, age2idxs, p_top_edges, p)
-        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p)
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+                     measure='shortest')
+        print('-*-*-')
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+                     measure='clustering')
+        print('-*-*-')
+        continue
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+                     measure='omega')
+        print('-*-*-')
+        # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p)
+
+
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=False)
         # print(' Variability:')

@@ -124,8 +124,14 @@ def add_ROI_info(atlas):
     return ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs, ROI_regions
 
 
-def get_BN_atlas(combine_bilaterally=False, lifu_labels=True):
-    img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
+def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
+                 shenyang=True):
+    if shenyang:
+        fp_atlas = r'C:\PycharmProjects_C\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
+        img = image.load_img(fp_atlas)
+    else:
+        img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
+
     fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
     fp_labels = 'cache/BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
@@ -150,17 +156,21 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True):
     return atlas
 
 
-def get_BN_and_resample(combine_bilateral=False, new_space=True):
+def get_BN_and_resample(combine_bilateral=False, new_space=True,
+                        shenyang=True):
     if new_space:
         fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
                  r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     else:
         fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
                  r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
+
     img = image.load_img(fp_ref)
-    atlas = get_BN_atlas(combine_bilaterally=combine_bilateral)
+    atlas = get_BN_atlas(combine_bilaterally=combine_bilateral,
+                         shenyang=shenyang)
     atlas['maps'] = image.resample_to_img(atlas['maps'], img,
                                           interpolation='nearest')
+    atlas['shenyang'] = True
     # atlas['maps'].to_filename('test.nii')
     # print(atlas['maps'].shape)
     # from nilearn import plotting
@@ -297,7 +307,8 @@ def split_BNA(new_space=True, split_code='xyz'):
 
 
 def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
-              new_space=True, split_code='xyz', schaefer=False):
+              new_space=True, split_code='xyz', schaefer=False,
+              shenyang=True):
     if schaefer:
         atlas = get_Schaefer_atlas()
     elif split:
@@ -308,7 +319,8 @@ def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
                                  new_space=new_space)
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
-                                    new_space=new_space)
+                                    new_space=new_space,
+                                    shenyang=True)
     return atlas
 
 def org_BNA_coords():
@@ -321,7 +333,12 @@ def org_BNA_coords():
     return coords
 
 if __name__ == '__main__':
-    get_Schaefer_atlas()
+    # atlas = get_Schaefer_atlas()
+    atlas = get_atlas()
+    test = atlas['maps'].get_fdata() == 1
+    print(np.sum(test))
+    # print(atlas['maps'])
+    # print(atlas['maps'].shape)
     # split_BNA()
     # get_atlas(combine_regions=True, combine_bilateral=False)
     # get_BN_atlas()

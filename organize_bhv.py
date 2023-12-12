@@ -178,6 +178,9 @@ def get_trial_info_(sn, ret=False):
 
             outlier_bool = bool(outliers[i][0])
             trial_full = trial + 38 * (run - 1)
+            per_con14 = resp if resp in [1, 4] else np.nan
+
+
 
             d = {'sn': sn,
                  'enc_trial': trial_full,
@@ -194,7 +197,6 @@ def get_trial_info_(sn, ret=False):
                  'scn2_fMRI': fp_scn2,
                  'scn3_fMRI': fp_scn3,
                  # 'scn3_fMRI': fp_scn3,
-
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
@@ -202,6 +204,7 @@ def get_trial_info_(sn, ret=False):
                  'inc': inc,
                  'inc_str': inc_str,
                  'per_con': resp, # higher (up to 4) = seen as congruent
+                 'per_con14': per_con14,
                  'per_inc': perceived_inc,
                  'per_inc_str': per_inc_str,
                  'enc_outlier': outlier_bool,
