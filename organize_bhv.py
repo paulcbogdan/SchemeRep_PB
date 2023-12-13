@@ -64,9 +64,7 @@ def get_trial_info_(sn, ret=False):
     renamer = NAME_RENAMER
 
     obj_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
-    obj_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/obj'
     scn_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/scenes'
-    scn_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/scn'
     obj_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/OBJ'
     scn_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/SCN'
     cmb_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/CMB'
@@ -92,13 +90,6 @@ def get_trial_info_(sn, ret=False):
                 fp_obj = None
                 fp_scn = None
 
-            if sn[0] == '2':
-                fp_obj2 = None
-            else:
-                glob_obj2 = fr'{obj_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-                glob_obj2 = glob(glob_obj2)
-                assert len(glob_obj2) == 1
-                fp_obj2 = glob_obj2[0]
 
             glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_obj3 = glob(glob_obj3)
@@ -114,14 +105,6 @@ def get_trial_info_(sn, ret=False):
                     raise IndexError(f'{sn}, {run}, {trial}')
 
 
-            if sn[0] == '2':
-                fp_scn2 = None
-            else:
-                glob_scn2 = fr'{scn_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-                glob_scn2 = glob(glob_scn2)
-                assert len(glob_scn2) == 1
-                fp_scn2 = glob_scn2[0]
-
             glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_scn3 = glob(glob_scn3)
             try:
@@ -130,27 +113,26 @@ def get_trial_info_(sn, ret=False):
                 if sn == '224' and run == 3:
                     fp_scn3 = None
                 elif sn == '234' and run == 1:
-                    fp_obj3 = None
+                    fp_scn3 = None
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
 
-            # glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            # glob_scn3 = glob(glob_scn3)
-            # assert len(glob_scn3) == 1
-            # fp_scn3 = glob_scn3[0]
+            glob_cmb3 = fr'{cmb_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_cmb3 = glob(glob_cmb3)
+            try:
+                fp_cmb3 = glob_cmb3[0]
+            except IndexError:
+                if sn == '224' and run == 3:
+                    fp_cmb3 = None
+                elif sn == '234' and run == 1:
+                    fp_cmb3 = None
+                else:
+                    raise IndexError(f'{sn}, {run}, {trial}')
 
             obj = mat_enc['pdata'][0][0][7][0][i][0]
             scene = mat_enc['pdata'][0][0][8][0][i][0]
             inc = mat_enc['pdata'][0][0][9][0][i][0][0]
             resp = mat_enc['pdata'][0][0][11][0][i][0][0]
-            # if pd.isna(resp):
-            #     perceived_inc = np.nan
-            # elif resp == 1:
-            #     perceived_inc = 1
-            # elif resp == 4:
-            #     perceived_inc = 3
-            # else:
-            #     perceived_inc = 2
 
             if obj in renamer:
                 obj_rename = renamer[obj]
@@ -165,12 +147,9 @@ def get_trial_info_(sn, ret=False):
             inc_str = inc2str[inc]
             per2str = {1: 'incongruent', 4: 'congruent'}
 
-
             trial_full = trial + 38 * (run - 1)
             per_inc14 = resp if resp in [1, 4] else np.nan
             per_inc14_str = np.nan if pd.isna(per_inc14) else per2str[per_inc14]
-
-
 
             d = {'sn': sn,
                  'enc_trial': trial_full,
@@ -179,14 +158,13 @@ def get_trial_info_(sn, ret=False):
                  'enc_run': run,
                  'obj_run': run,
                  'scn_run': run,
-                 #'fp_fMRI': fp_obj,
+
                  'obj_fMRI': fp_obj,
-                 'obj2_fMRI': fp_obj2,
                  'obj3_fMRI': fp_obj3,
                  'scn_fMRI': fp_scn,
-                 'scn2_fMRI': fp_scn2,
                  'scn3_fMRI': fp_scn3,
-                 # 'scn3_fMRI': fp_scn3,
+                 'cmb3_fMRI': fp_cmb3,
+
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
@@ -196,9 +174,6 @@ def get_trial_info_(sn, ret=False):
                  'per_inc': resp, # higher (up to 4) = seen as congruent
                  'per_inc14': per_inc14,
                  'per_inc14_str': per_inc14_str,
-                 # 'per_inc': perceived_inc,
-                 # 'per_inc_str': per_inc_str,
-
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
@@ -245,8 +220,6 @@ def add_onset_time(df_sn, sn):
     df_info = pd.read_csv(trial_info)
     df_info = df_info[df_info['ObjectTypeLabel_RCON'] == 'Old']
     df_info_sn = df_info[df_info['Subject'] == int(sn)]
-    # df_info_sn = df_info_sn[df_info_sn['Run_BL'] == 1]
-    # print(df_info_sn)
     obj_l = df_info_sn['Object'].values
     for name, stim, key in [('BL', 'Obj', 'bl'),
                             ('ENC', 'Obj', 'obj'),
@@ -258,10 +231,6 @@ def add_onset_time(df_sn, sn):
         obj2onsets = dict(zip(obj_l, onsets))
         df_sn[f'{key}_onset'] = df_sn['obj'].map(obj2onsets)
         df_sn[f'{key}_onset_TR'] = 4 + df_sn[f'{key}_onset'] // 2# + 1
-        # print(df_sn[f'{key}_onset_TR'].min())
-        # print(df_sn[f'{key}_onset'].min())
-        # quit()
-        # add 1 at end to be ceil for int rounding
         try:
             df_sn[f'{key}_onset_TR'] = df_sn[f'{key}_onset_TR'].astype(int)
         except pd.errors.IntCastingNaNError:
@@ -288,8 +257,6 @@ def include_conceptual(df_sn, sn):
             print(f'Missing CON behavioral data: {sn}, {run=}')
             continue
 
-
-        has_missing_fMRI = False
         for i in range(48):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
@@ -299,27 +266,14 @@ def include_conceptual(df_sn, sn):
             assert old_new in [0, 1], f'Old new not 0 or 1: {old_new=}'
             obj2old_new[obj] =' new' if old_new else 'old'
             resp = mat_enc['pdata'][0][0][9][0][i][0]
-            # print(f'{run}, trial: {i} ({obj}) | {resp=}')
             obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][10][0][i][0]
             glob_conc = fr'{conc_root}/all_CONruns_sorted/Day3Conceptual_Run{run}_Trial{trial}_*.nii'
             glob_conc = glob(glob_conc)
             if len(glob_conc) < 1:
-                #print(f'No glob_conc ({sn}): {glob_conc=}')
                 obj2fp[obj] = np.nan
             else:
                 obj2fp[obj] = glob_conc[0]
-
-            if sn[0] == '2':
-                obj2fp2[obj] = None
-            else:
-                glob_conc2 =  fr'{conc_root}/CON_rerun/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
-                glob_conc2 = glob(glob_conc2)
-                if len(glob_conc2):
-                    assert len(glob_conc2) == 1
-                    obj2fp2[obj] = glob_conc2[0]
-                else:
-                    obj2fp2[obj] = None
 
             glob_conc3 = fr'{conc_root}/CON_rerun3/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_conc3 = glob(glob_conc3)
@@ -328,13 +282,7 @@ def include_conceptual(df_sn, sn):
                 obj2fp3[obj] = glob_conc3[0]
             else:
                 if len(glob_conc) < 1:
-                    has_missing_fMRI = True
-
-                #break
-            # assert len(glob_conc) == 1, f'{len(glob_conc)=}'
-            # obj2trial
-        # if has_missing_fMRI:
-            # print(f'Missing conceptual fMRI data: {sn}, {run=}')
+                    obj2fp3[obj] = None
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['con_hit'] = df_sn['con_resp'].apply(
@@ -344,7 +292,6 @@ def include_conceptual(df_sn, sn):
         df_sn['con3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
-
     return df_sn
 
 def include_vis(df_sn, sn):
@@ -411,7 +358,6 @@ def include_vis(df_sn, sn):
                 obj2fp3[obj] = glob_vic3[0]
             else:
                 obj2fp3[obj] = None
-
     else:
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
@@ -423,11 +369,6 @@ def include_vis(df_sn, sn):
         df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
-        # if sn not in get_bad_sns(ret=True):
-        #     assert len(df_sn['vis2_fMRI'].value_counts()) == 114, \
-        #         f'Missing vis fMRI fp: {len(df_sn["vis2_fMRI"].value_counts())}'
-
-
     return df_sn
 
 def do_BL_move(bl_root, run, trial):
@@ -460,10 +401,6 @@ def include_BL(df_sn, sn):
             print(f'Missing BL behavioral data: {sn}, {run=}')
             continue
 
-        # if sn == '135':
-        #     # 135 has no rerun data
-        #     continue
-
         for i in range(38):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
@@ -478,17 +415,6 @@ def include_BL(df_sn, sn):
             if len(glob_BL):
                 obj2fp[obj] = glob_BL[0]
 
-            if sn[0] == '2':
-                obj2fp2[obj] = None
-            else:
-                glob_BL2 = fr'{bl_root}/BL_rerun/bl/BL_sub{sn}_run{run}_trial{trial}_*.nii'
-                glob_BL2 = glob(glob_BL2)
-                assert len(glob_BL2) == 1 or len(glob_BL) == 1, f'Bad bl missing'
-                if len(glob_BL2):
-                    obj2fp2[obj] = glob_BL2[0]
-                else:
-                    obj2fp2[obj] = None
-
             glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL3 = glob(glob_BL3)
             assert len(glob_BL3) == 1 or len(glob_BL) == 1, f'Bad bl3 missing'
@@ -496,7 +422,6 @@ def include_BL(df_sn, sn):
                 obj2fp3[obj] = glob_BL3[0]
             else:
                 obj2fp3[obj] = None
-
     else:
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
@@ -504,11 +429,6 @@ def include_BL(df_sn, sn):
         df_sn['bl3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
-
-
-        # assert pd.isna(df_sn['bl2_fMRI']).sum() == 0 or sn == '135' or \
-        #        sn[0] == '2', 'Missing bl fMRI fp unneeded'
-        # assert len(df_sn['bl_fMRI'].value_counts()) == 114, 'Missing bl fMRI fp'
     return df_sn
 
 

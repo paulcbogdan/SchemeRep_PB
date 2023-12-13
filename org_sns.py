@@ -16,6 +16,8 @@ def get_bad_sns_fp(fp):
         bad_sns = {'135', '212'}
     elif 'con' in fp or 'vis' in fp:
         bad_sns = {'116', '125', }
+    elif 'cmb' in fp:
+        bad_sns = set()
     else:
         raise ValueError(f'Unknown fp: {fp}')
     bad_sns.add('133') # Missing memory (CON & VIS) behavioral data
@@ -53,11 +55,11 @@ def get_all_sns(fp, sh=False):
     return age2sn
 
 
-def test_fp(fp='obj3_fMRI'):
+def test_fp(fp='obj3_fMRI', ages=(1, 2)):
     age2sn = get_all_sns(fp)
-    for age in [1, 2]:
+    for age in ages:
         for sn in tqdm(age2sn[age], desc=f'Testing org_bhv for {fp}, {age=}'):
-            print(f'Running: {sn=}')
+            print(f'Running ({fp}): {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
             num_nans = df_sn[fp].isna().sum()
             has_con_hits = df_sn['con_hit'].notna().sum() > 0
@@ -78,9 +80,11 @@ def get_shenyang_subjects():
     return set(sns_str.split())
 
 if __name__ == '__main__':
-    df_sn = get_trial_info('105', easy_override=True)
-    pd.set_option('display.max_rows', 115)
-    print(df_sn[['obj', 'con_resp']])
+    test_fp('cmb3_fMRI')
+
+    # df_sn = get_trial_info('105', easy_override=True)
+    # pd.set_option('display.max_rows', 115)
+    # print(df_sn[['obj', 'con_resp']])
     quit()
     for FP in ['bl3_fMRI', 'obj3_fMRI', 'scn3_fMRI', 'con3_fMRI', 'vis3_fMRI']:
         test_fp(FP)
