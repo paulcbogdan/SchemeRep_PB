@@ -71,9 +71,10 @@ def test_fp(fp='obj3_fMRI'):
 
 
 def get_shenyang_subjects():
-    sns_str = '102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 125 ' \
-              '126 127 128 130 132 134 135 136 137 201 202 203 ' \
-              '205 206 207 208 210 211 212 214 216 217 218 219 221 222 225 230 233 234'
+    sns_str = '102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 ' \
+              '125 126 127 128 130 132 134 135 136 137 ' \
+              '201 202 203 205 206 207 208 210 211 212 214 216 217 218 219 ' \
+              '221 222 225 230 233 234'
     return set(sns_str.split())
 
 if __name__ == '__main__':
@@ -81,7 +82,5 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', 115)
     print(df_sn[['obj', 'con_resp']])
     quit()
-
     for FP in ['bl3_fMRI', 'obj3_fMRI', 'scn3_fMRI', 'con3_fMRI', 'vis3_fMRI']:
         test_fp(FP)
-    # test_fp()

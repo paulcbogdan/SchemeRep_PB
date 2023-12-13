@@ -9,19 +9,21 @@ if __name__ == '__main__':
     dir_out = r'Day2EncSingleTrialModellingLSS_sorted'
 
     scans = [
-        'BL__full__regBPtrue',
-        'RCON__full__regBPtrue',
-        'RVIS__full__regBPtrue',
-        'ENC__full__regBPtrue__scene_obj_separate',
-        'ENC__full__regBPtrue__scene_obj_separate',
+        # 'BL__full__regBPtrue',
+        # 'RCON__full__regBPtrue',
+        # 'RVIS__full__regBPtrue',
+        # 'ENC__full__regBPtrue__scene_obj_separate',
+        # 'ENC__full__regBPtrue__scene_obj_separate',
+        'ENC__full__regBPtrue__scene_obj_combined'
     ]
 
     details = [
-        ('b_Object.nii', 'BL_rerun3', 'BL'),
-        ('b_Object.nii', 'CON_rerun3', 'CONC'),
-        ('b_Object.nii', 'VIS_rerun3', 'VIS'),
-        ('b_Object.nii', 'ENC_rerun3', 'OBJ'),
-        ('b_Scene.nii', 'ENC_rerun3', 'SCN'),
+        # ('b_Object.nii', 'BL_rerun3', 'BL'),
+        # ('b_Object.nii', 'CON_rerun3', 'CONC'),
+        # ('b_Object.nii', 'VIS_rerun3', 'VIS'),
+        # ('b_Object.nii', 'ENC_rerun3', 'OBJ'),
+        # ('b_Scene.nii', 'ENC_rerun3', 'SCN'),
+        ('b_SceneObject.nii', 'ENC_rerun3', 'CMB')
     ]
 
 
@@ -29,9 +31,9 @@ if __name__ == '__main__':
         enc_dir = fr'Y:\SchemRep.01\Scripts\SingleTrialModel_SH\model_output\{scan}'
         enc_dir = Path(enc_dir)
         g = enc_dir.glob('*')
-        g = [sn.name for sn in g if sn.name[:1] == '2']
-        g = ['234']
-        # print(g)
+        g = [sn.name for sn in g]# if sn.name[:1] == '2']
+        # g = ['234']
+        # print(list(g))
         # quit()
         # g = g[::-1]
         # g = [sn for sn in g if sn[:3] == '129' or sn[:3] == '128' or sn[:3] == '127' or sn[:3] == '126']

@@ -28,23 +28,36 @@ def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
     ROI_l = None
     ROI_cols = None
     for i, age in enumerate([1, 2]):
+        # if age != 1:
+        #     continue
         sns = age2sn[age]
-        # sns = ['105']
+        # sns = ['102']
         for sn in sns:
             print(f'Prepping univariate: {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
+            # print(df_sn['obj'])
+            # print(fp)
+            # print(df_sn[fp].iloc[7])
+            # quit()
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=False,
-                                     easy_override=False,
+                                     easy_override=True,
                                      combine_regions=False)
             if ROI_l is None:
                 ROI_l = list(ROI2vecs0.keys())
             ar = []
+
+            # ROI_l = ['1 SFG_L_7_1']
             for ROI in ROI_l:
                 activity = ROI2vecs0[ROI]
                 ar.append(np.nanmean(activity, axis=1))
+                # print(activity.shape)
+                # print(activity[7])
+                # print(ar[-1])
+                # quit()
                 ROI_cols = ['_'.join(x.split()[1:]) for x in ROI_l]
+            # print(ar)
             df_sn_ROI = pd.DataFrame(np.array(ar).T, columns=ROI_cols)
             df_sn = pd.concat([df_sn, df_sn_ROI], axis=1)
             df_sn['age'] = age
@@ -68,10 +81,17 @@ def dd_to_d(dd):
 
 
 def keys_from_formula(formula):
-    formula = formula.split('~')[0]
-    formula = formula.split('+')
-    formula = [x.strip() for x in formula]
-    return formula
+    DV, IV = formula.split('~')
+    DV = DV.replace(' ', '')
+    for key in ['*', '+', '(', '|', ')']:
+        IV = IV.replace(key, ' ')
+    while True:
+        IV = IV.replace('  ', ' ')
+        if '  ' not in IV:
+            break
+    IV = IV.split()
+    IV = [x for x in IV if (x and x != '1')]
+    return [DV] + IV
 
 def mean_or_fist(l):
     if is_numeric_dtype(l):
@@ -93,140 +113,41 @@ def include_shenyang_memory(df):
     return df
 
 def do_univariate_analysis(fp='obj3_fMRI'):
+    pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
                                 kwargs=kwargs, cache_dir='cache',
-                                easy_override=False)
-    # print(df['per_inc14_str'])
-    # quit()
-    # print(df['sn_sh'].unique())
-    # quit()
-    # df = df[~pd.isna(df['per_inc14_str'])]
-    # df = df[df['con_hit'] > 0]
+                                easy_override=True)
     df = df[~pd.isna(df['con_hit'])]
     df = df[~pd.isna(df['per_inc'])]
-    # df = df[(df['per_inc'] == 1) | (df['per_inc'] == 4)]
-    # df_test = df[df['sn'] == '104']
-    # print(df_test['con_hit'])
-    # sns_sh = get_shenyang_subjects()
-    # print(f'{len(sns_sh)=}')
-    # sns_mine = set(df['sn'].unique())
-    # # for sn in sns_sh:
-    # #     if sn not in sns_mine:
-    # #         print(f'shenyang\'s {sn} not in mine')
-    # print('-')
-    # for sn in sns_mine:
-    #     if sn not in sns_sh:
-    #         print(f'my {sn} not in shenyang\'s')
-
-    sns = df['sn'].unique()
-    # print(f'{len(df) + 112 =}')
-    df.dropna(subset=['ATL_R_6_5'], inplace=True)
-    df.sort_values(by=['sn', 'obj'], inplace=True)
-    df.reset_index(inplace=True)
-
     df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
     df = include_shenyang_memory(df)
-    # print(df['con_hit'].value_counts())
-    # quit()
-
-    # df[['sn', 'obj', 'con_hit']].to_csv('C:\PycharmProjects_C\SchemeRep\Shenyang_R\pandas_df.csv')
-    # quit()
-    # df = df[df['sn'] == '105']
-    # pd.set_option('display.max_rows', 115)
-    # print(df[['obj', 'con_resp']])
-    # # quit()
-    #
-    # # print(df['con_hit'].sum())
-    #
-    # for idx, row in df[['sn', 'obj', 'con_hit', 'con_resp', 'enc_run']].iterrows():
-    #     print(dict(row))
-    #     if idx > 100:
-    #         break
-    # quit()
-
-
-    # print(len(sns))
-    # print(f'{len(df)=}')
-    # sns_str = ' '.join(sns)
-    # print(sns_str)
-
     df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
-    #
+
+    # df = df[df['sn'] == '102']
+    # df_pruned = df[['sn', 'obj', 'SFG_L_7_1']]
+    # print(df_pruned)
+    # quit()
+
     from pymer4.models import Lmer
-    #
-    ROI = 'ATL_R_6_5'
-    # formula = f'{ROI} ~ age + (1|sn) + (1|obj)'
-    # formula = f'{ROI} ~ con_hit + (1|sn) + (1|obj)'
-    # formula = f'{ROI} ~ per_inc14_str + (1|sn) + (1|obj)'
-    df = df.dropna(subset=['per_inc14_str'])
-    df.sort_values(by=['con_hit', 'per_inc14_str', 'age'], inplace=True,
-                    ascending=True)
-    formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
-
-    # df['Subject'] = df['sn']
-    # df['Object'] = df['obj']
-    # df['AgeGrp'] = df['age']
-    # df['RCON_Old'] = df['con_hit']
-    # df['Cong_subj_1_4'] = df['per_inc14_str']
-    #
-    # formula = f'{ROI} ~ 1 + AgeGrp * RCON_Old * Cong_subj_1_4 + ' \
-    #           f'(1|Subject) + (1|Object)'
-    model = Lmer(formula, data=df)
-    summary = model.fit(REML=True, verbose=True, summary=True,
-                        control="optimizer='Nelder_Mead', "
-                                "optCtrl = list(FtolAbs=1e-8, XtolRel=1e-8)")
-    print(summary)
-    print(model.anova())
-    quit()
-
-
-    # formula = f'{ROI} ~ con_hit + (1|sn) + (1|obj)'
-    # # formula = f'{ROI} ~ age + (1|sn) + (1|obj)'
-    # model = Lmer(formula, data=df)
-    # summary = model.fit(REML=True, verbose=True, summary=True)
-    #
-    # df[['ATL_R_6_5', 'age', 'per_inc14_str', 'con_hit', 'sn', 'obj']].to_csv(
-    #     'C:\PycharmProjects_C\SchemeRep\Shenyang_R\pandas_df.csv')
-
-    # quit()
-
-    # print(df)
-    # print(list(df.columns))
-    # print(df['obj'])
-    # quit()
-    # print(len(df))
-    # quit()
-
-    # 102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 125 126 127 128 130 132 134 135 136 137
-    # 102 103 104 105 106 107 108 109 110 111 112 113 114 115 117 118 119 120 123 124 126 127 128 129 130 131 132 134 136 137 201 202 203 204 205 206 207 208 209 210 211 214 216 217 218 219 221 222 225 227 230 232 233 235
-
     for ROI in ROI_cols:
         print(f'ROI: {ROI}')
         # if ROI != 'ATL_R_6_5':
         #     continue
         formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
-
-
         keys = keys_from_formula(formula)
-        # print(f'Keys: {keys}')
-
-        model = Lmer(formula, data=df)
+        model = Lmer(formula, data=df[keys].dropna())
         try:
             model.fit(REML=True, verbose=True, summary=True)
         except Exception as e:
             print(f'Error fitting model: {e}')
             continue
-        print(model.anova())
-        continue
-
-        summary = model.coefs
-        print(summary.iloc[1:])
-        t = summary['T-stat'].loc['(Intercept)']
-        p = summary['P-val'].loc['(Intercept)']
-        # print(model.fit())
-        # quit()
+        result = model.anova()
+        print(result)
+        # print(result['Sig'].values)
+        # if '***' in result['Sig'].values:
+        #     print('Has significance!')
 
 
 if __name__ == '__main__':

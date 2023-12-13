@@ -69,6 +69,7 @@ def get_trial_info_(sn, ret=False):
     scn_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/scn'
     obj_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/OBJ'
     scn_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/SCN'
+    cmb_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/CMB'
 
     df_sn_as_l = []
     for run in range(1, 4):
@@ -121,7 +122,7 @@ def get_trial_info_(sn, ret=False):
                 assert len(glob_scn2) == 1
                 fp_scn2 = glob_scn2[0]
 
-            glob_scn3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_scn3 = glob(glob_scn3)
             try:
                 fp_scn3 = glob_scn3[0]
@@ -298,7 +299,7 @@ def include_conceptual(df_sn, sn):
             assert old_new in [0, 1], f'Old new not 0 or 1: {old_new=}'
             obj2old_new[obj] =' new' if old_new else 'old'
             resp = mat_enc['pdata'][0][0][9][0][i][0]
-            print(f'{run}, trial: {i} ({obj}) | {resp=}')
+            # print(f'{run}, trial: {i} ({obj}) | {resp=}')
             obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][10][0][i][0]
             glob_conc = fr'{conc_root}/all_CONruns_sorted/Day3Conceptual_Run{run}_Trial{trial}_*.nii'
