@@ -10,7 +10,11 @@ import pandas as pd
 
 
 def get_bad_sns_fp(fp):
-    if 'obj' in fp or 'scn' in fp:
+    if fp == 'all':
+        bad_sns = {'116', '125', '135', '212'}
+    elif 'obj_' in fp:
+        bad_sns = {'201', '232', '233', '234', '235'}
+    elif 'obj' in fp or 'scn' in fp:
         bad_sns = set()
     elif 'bl' in fp:
         bad_sns = {'135', '212'}
@@ -31,9 +35,9 @@ def get_bad_sns_fp(fp):
     return bad_sns
 
 
-def get_all_sns(fp, sh=False):
+def get_all_sns(fp_fMRI, sh=False):
     age2sn = defaultdict(list)
-    bad_sns = get_bad_sns_fp(fp)
+    bad_sns = get_bad_sns_fp(fp_fMRI)
     sh_sns = get_shenyang_subjects()
 
     # bad_sns = get_bad_sns(ret=ret)
@@ -80,7 +84,7 @@ def get_shenyang_subjects():
     return set(sns_str.split())
 
 if __name__ == '__main__':
-    test_fp('cmb3_fMRI')
+    test_fp('obj4_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)
     # pd.set_option('display.max_rows', 115)

@@ -38,8 +38,7 @@ def get_hrf():
     return signal[:, 0]
     # plt.plot(range(len(signal)), signal)
     # print(len(signal))
-    # plt.show()
-# get_hrf()
+    # plt.sh9
 
 
 def deconvolve_all_signals(regions_signal):

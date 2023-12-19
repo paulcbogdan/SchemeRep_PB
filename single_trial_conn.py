@@ -2,7 +2,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI
-from conn_ERS import ERS_sn, ERS_ROI_pairwise, ERS_ROI
+from conn_ERS import ERS_sn, ERS_ROI_pairwise#, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
 from networks import prep_networks
@@ -104,7 +104,11 @@ def prep_vecs(RSA, semantic):
     return d_vecs
 
 def prep_fps(four_tasks):
-    if four_tasks == '3_4':
+    if four_tasks == '3b_4':
+        fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    elif four_tasks == '3b_3':
+        fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI']
+    elif four_tasks == '3_4':
         fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
     elif four_tasks == '3_3':
         fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
@@ -172,14 +176,17 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     settings = locals().copy()
     print(f'Run settings start: {settings=}')
     d_vecs = prep_vecs(RSA, semantic)
+    # print(f'{atlas=}')
+    # quit()
     if atlas == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=False,
-                          split=split, split_code='xyz')
+                          split=split, split_code='xyz',)
+                          # shenyang='_sh' in atlas)
     fps = prep_fps(four_tasks)
-    age2sn = get_all_sns(ret=True)
+    age2sn = get_all_sns('all', sh=False)
     sns = age2sn[age]
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
@@ -209,13 +216,16 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
 def run_settings_healthy(settings, ISPC=False):
     dir_results = r'cache/conn_RSA'
-    if settings['semantic'] == -1:
-        dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
-    else:
-        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+    # if settings['semantic'] == -1:
+    #     dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
+    # else:
+    #     dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+    #
+    # if 'cross_' in settings['conn']:
+    #     dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
 
-    if 'cross_' in settings['conn']:
-        dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
+    dt_max = datetime(2023, 12, 13, 20, 0, 0, 0)
+
 
     settings1 = settings.copy()
     del settings1['age']
@@ -282,16 +292,17 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
             settings['conn'] = f'cross_{conn}'
             print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 
-    if semantic == -1: # added due to discovered issue at one point with semantic
-        dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
-    else:
-        dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
-
-    if 'cross_' in conn:
-        dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
-
-    if 'plotting' in settings and settings['plotting'] == 'ROIs':
-        dt_max = datetime(2023, 11, 29, 17, 0, 0, 0)
+    # if semantic == -1: # added due to discovered issue at one point with semantic
+    #     dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
+    # else:
+    #     dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
+    #
+    # if 'cross_' in conn:
+    #     dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
+    #
+    # if 'plotting' in settings and settings['plotting'] == 'ROIs':
+    #     dt_max = datetime(2023, 11, 29, 17, 0, 0, 0)
+    dt_max = datetime(2023, 12, 13, 20, 0, 0, 0)
     #
     # settings = {'RSA': True, 'semantic': True, 'do_networks': -1, 'conn': 'euc', 'trial_similarity': 'spear',
     #             'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False,
@@ -325,30 +336,32 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
+    # RDM_method = 'clever_std'
     trial_similarity_toggle = ['spear']
     four_tasks_toggle = ['3_4']
     conn_toggle = ['euc']
     split_toggle = [False]
     # atlas = 'schaefer'
-    atlas = 'BNA'
+    atlas = 'BNA_sh'
     # atlas = None
-    age = 1
+    age = 'healthy'
     # age = 1
     combine_regions = False
     # plotting = 'regions'
-    plotting = 'ROIs_PFC2_ctrl'
+    # plotting = 'ROIs_PFC2_ctrl'
     # plotting = 'ROIs'
-    # plotting = None
+    plotting = None
     # 'ROIs_ctrl' # no ROI is above t=2.1 for whole-brain
     # plotting = 'regions'
     # second_order = 'spear'
     second_order = 'spear'
     # analyses = [(True, True)]
     # analyses = [(True, False)]
-    analyses = [(False, False)]
+    analyses = [(False, False), (True, True), (True, False)]
+    # analyses = [(True, True)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [15]:
+            for do_networks in [14, 15]:
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:

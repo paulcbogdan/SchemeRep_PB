@@ -1,109 +1,14 @@
 import numpy as np
 
 from organize_bhv import get_trial_info
-from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise, prep_for_ROI_analysis, \
-    get_BNA_ROIs, get_mean_conn_trialwise
-
-
-def ERS_ROI(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
-           networks=True, conn='euc', trial_similarity='euc',
-           combine_regions=False,
-            PFC=False, PFC2=False, ROI_ctrl=False):
-    df_sn = get_trial_info(sn)
-    ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
-                                                   fp1=fp1, networks=False,
-                                                   org_by_region=False,
-                                                   cross_region=False,
-                                                   conn=conn,
-                                                   combine_regions=False,)
-    ROI2vecs_enc = prep_for_ROI_analysis(ROI2vecs_enc, PFC, PFC2)
-    # print(list(ROI2vecs_enc))
-    # print(len(ROI2vecs_enc))
-    # quit()
-    ROI2vecs_ret = prep_for_ROI_analysis(ROI2vecs_ret, PFC, PFC2)
-    if len(ROI2vecs_enc) == 997:
-        ROIs_l = get_BNA_ROIs(code='schaefer')
-    elif len(ROI2vecs_enc) == 189:
-        ROIs_l = get_BNA_ROIs(code='PFC_schaef')
-    elif len(ROI2vecs_enc) > 400:
-        ROIs_l = get_BNA_ROIs(code='PFC_8')
-    elif len(ROI2vecs_enc) == 60:
-        ROIs_l = get_BNA_ROIs(code='PFC_ACC')
-    elif len(ROI2vecs_enc) == 54:
-        ROIs_l = get_BNA_ROIs(code='PFC')
-    elif len(ROI2vecs_enc) == 246:
-        ROIs_l = get_BNA_ROIs(code=None)
-    else:
-        raise ValueError(f'Bad get_BNA_ROIs code: {len(ROI2vecs_enc)=}')
-
-    if ROI_ctrl or (not PFC):
-        mean_conn_trialwise_enc = get_mean_conn_trialwise(ROIs_l, ROI2vecs_enc,
-                                                      conn)
-        mean_conn_trialwise_ret = get_mean_conn_trialwise(ROIs_l, ROI2vecs_ret,
-                                                      conn)
-
-    scores = []
-    sizes = []
-    scores_trialwise = []
-    for ROI0 in ROIs_l:
-        vecs0_enc = ROI2vecs_enc[ROI0]
-        vecs0_enc = vecs0_enc[:, None]
-        vecs_else_enc = []
-        vecs0_ret = ROI2vecs_ret[ROI0]
-        vecs0_ret = vecs0_ret[:, None]
-        vecs_else_ret = []
-        for ROI1 in ROIs_l:
-            if ROI1 == ROI0:
-                vecs_else_enc.append(np.full(vecs0_enc.shape[0], np.nan))
-                vecs_else_ret.append(np.full(vecs0_ret.shape[0], np.nan))
-                continue
-            vecs1_enc = ROI2vecs_enc[ROI1]
-            vecs_else_enc.append(vecs1_enc)
-            vecs1_ret = ROI2vecs_ret[ROI1]
-            vecs_else_ret.append(vecs1_ret)
-        vecs_else_enc = np.vstack(vecs_else_enc).T
-        vecs_enc = get_conn_vecs(vecs0_enc, vecs_else_enc, conn=conn)
-        vecs_else_ret = np.vstack(vecs_else_ret).T
-        vecs_ret = get_conn_vecs(vecs0_ret, vecs_else_ret, conn=conn)
-        sizes.append(vecs_else_enc.shape[1])
-        # print(vecs_ret)
-        # quit()
-        # print(trial_similarity)
-        if ROI_ctrl or (not PFC):
-            vecs_enc -= (mean_conn_trialwise_enc.T * 246 - vecs_enc) / 245
-            vecs_ret -= (mean_conn_trialwise_ret.T * 246 - vecs_ret) / 245
-
-        ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
-                                   trial_similarity=trial_similarity)
-        # print(ERS_ar)
-        # quit()
-
-        ERS_sames = np.diag(ERS_ar)
-        ERS_ar_ = ERS_ar.copy()
-        ERS_ar_[np.eye(len(ERS_ar), dtype=bool)] = np.nan
-        ERS_elses = np.nanmean(ERS_ar_, axis=1)
-
-        ERS_dif = ERS_sames - ERS_elses
-        score = np.nanmean(ERS_dif)
-        scores.append(score)
-        scores_trialwise.append(ERS_dif)
-
-    scores = np.array(scores)
-    # print(f'{scores.shape=}')
-    scores_trialwise = np.array(scores_trialwise)
-    # print(f'{scores_trialwise.shape=}')
-    # print(scores)
-    # quit()
-
-    return scores, sizes, scores_trialwise
-
-
+from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise
 
 
 def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
            combine_regions=False):
     df_sn = get_trial_info(sn)
+    df_sn.sort_values('obj', inplace=True)
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
                                                    fp1=fp1, networks=False,
                                                    org_by_region=False,
@@ -179,6 +84,10 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
         conn = conn.replace('cross_', '')
 
     df_sn = get_trial_info(sn)
+    # df_sn.sort_values('obj_trial', inplace=True)
+    sess = fp0.split('_')[0].replace('2', '').replace('3', '')
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
+
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
                                                    fp1=fp1, networks=networks,
                                                    org_by_region=not BOLD,

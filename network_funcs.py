@@ -23,9 +23,11 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     else:
         atlas = get_atlas(combine_regions=False,
                           combine_bilateral=False,
-                          split=split, split_code='xyz')
+                          split=split, split_code='xyz',
+                          new_space='3' in fp)
     coords = atlas['coords']
-    age2sn = get_all_sns(ret=True)
+    print(f'{fp=}')
+    age2sn = get_all_sns(fp, sh=False)
     # age_sn_inc_conn = []
     # age_sn_conn = []
     sn_inc_conn = []
@@ -40,7 +42,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         ROIs_l = get_BNA_ROIs(code=None)
         for sn in sns:
             print(f'Prepping FC: {sn=}')
-            df_sn = get_trial_info(sn, easy_override=True)
+            df_sn = get_trial_info(sn, easy_override=False)
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=False,

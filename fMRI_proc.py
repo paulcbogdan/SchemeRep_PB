@@ -21,6 +21,8 @@ from warnings import filterwarnings
 filterwarnings('ignore', category=RuntimeWarning, message='Mean of empty slice')
 filterwarnings('ignore', category=RuntimeWarning,
                message='Degrees of freedom <= 0')
+filterwarnings('ignore', category=RuntimeWarning,
+               message='NaNs of infinite values are')
 
 def within_run_to_nan(RDM):
     # RDM_ = np.zeros_like(RDM)
@@ -215,6 +217,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     shenyang_key = atlas['shenyang']
+    # shenyang_key = False
     n_ROIs = len(ROIs)
     n_regions = len(np.unique(ROI_regions))
     nan_str = f'_nan{nan_thresh}' if nan_thresh != .25 else ''
@@ -225,10 +228,12 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
         '_Con' if inc == 1 else \
             '_Inc' if inc == 2 else '_Neu'
     combine_str = '_comb' if combine_regions else '_noComb'
+    stim_order = ''.join(df_sn['obj'].values).replace(' ', '')
+    stim_order = stim_order[::len(stim_order) // 10]
     fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
                fr'_reg{n_regions}{org_by_region_str}{nan_str}{combine_str}' \
-               fr'{sh_str}.pkl'
-    # print(f'Load: ... {fp_cache=}')
+               fr'{sh_str}{stim_order}.pkl'
+    print(f'Load ROI2vecs: {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
     r2vecs = pickle_wrap(fp_cache, f, verbose=False,
@@ -237,11 +242,67 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     return r2vecs
 
 
+def get_ROI_vecs_old(df_sn, fp_fMRI_col, atlas,
+                  nan_thresh=.25, org_by_region=False,
+                  drop_nan_voxels=True):
+    n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+    if n_nans:
+        sn = df_sn['sn'].iloc[0]
+        raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
+
+    img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+    # for idx, row in df_sn.iterrows():
+    #     print(row[fp_fMRI_col])
+    # quit()
+    n_nans = np.isnan(img).sum()
+    print(f'Total number of NaNs: {n_nans/114:.1f}')
+    ROIs = atlas['ROIs']
+    ROI_nums = atlas['ROI_nums']
+    ROI_regions = atlas['ROI_regions']
+    ROI2vecs = {}
+    region2vecs = defaultdict(list)
+    for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
+        atlas_roi = atlas['maps'].get_fdata() == ROI_num
+        region_vecs = img[atlas_roi]
+        voxels_w_nan = np.isnan(region_vecs).any(axis=1)
+        if len(voxels_w_nan) < 5: # sometimes even zero
+            continue
+
+        # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
+
+        n_nans_ROI = np.sum(voxels_w_nan)
+        p_nan_any = n_nans_ROI / len(voxels_w_nan)
+        # print(f'{ROI} | {len(voxels_w_nan)=} | {n_nans_ROI=}')
+        # p_nan_overall = np.mean(np.isnan(region_vecs))
+        # the thalamus is entirely dropped basically
+        if p_nan_any > nan_thresh:  # more than 10%
+            # print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
+            continue
+        if drop_nan_voxels:
+            region_vecs = region_vecs[~voxels_w_nan, :]
+        # print(f'({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}. {region_vecs.shape}')
+
+        region_vecs = region_vecs.T
+        ROI2vecs[ROI] = region_vecs
+
+        if org_by_region:
+            region2vecs[region].append(np.nanmean(region_vecs, axis=1))
+
+    region2vecs = dict(region2vecs)
+    for region, l in region2vecs.items():
+        region2vecs[region] = np.array(l).T
+
+    if org_by_region:
+        return region2vecs
+    else:
+        return ROI2vecs
+
+
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
     sn = df_sn['sn'].iloc[0]
-    if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
+    if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI', 'cmb3_fMRI']:
         # Missing a few trials at the end of Run 1
         df_sn_ = df_sn.copy()
         img = np.full((97, 115, 97, 114), np.nan)
@@ -253,7 +314,20 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
         if n_nans:
             raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
-        img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+
+        if fp_fMRI_col[:4] == 'obj_':
+            img = image.load_img(df_sn[fp_fMRI_col])
+            print(f'Resample {fp_fMRI_col} to match ref')
+            fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+                     r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+            img_ref = image.load_img(fp_ref)
+            img = image.resample_to_img(img, img_ref,
+                                        interpolation='nearest')
+            img = img.get_fdata()
+            quit()
+        else:
+            img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+
 
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
@@ -264,7 +338,12 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     region2vecs = defaultdict(list)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
+
         region_vecs = img[atlas_roi]
+        # print(f'{ROI} {region} {region_vecs.shape=}')
+        # quit()
+
+
         if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
             voxels_w_nan = np.isnan(region_vecs[:, non_nan_trials]).any(axis=1)
             voxels_all_nan = \
@@ -276,9 +355,9 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         n_nans_ROI = np.sum(voxels_w_nan)
         p_nan_any = n_nans_ROI / len(voxels_w_nan)
         p_nan_all = 1 - np.sum(voxels_all_nan) / len(voxels_w_nan)
-        if abs(p_nan_all - p_nan_any) > .01:
-            print(f'Divergence in NaNs ({ROI}): {p_nan_all=:.3f}, '
-                  f'{p_nan_any=:.3f}')
+        # if abs(p_nan_all - p_nan_any) > .01:
+        #     print(f'Divergence in NaNs ({ROI}): {p_nan_all=:.3f}, '
+        #           f'{p_nan_any=:.3f}')
 
         if p_nan_any > nan_thresh:  # more than 10%
             # print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
@@ -477,7 +556,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', 'con3_fMRI', 'vis3_fMRI', ]
     atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
-    age2sn = get_all_sns(ret=ret)
+    age2sn = get_all_sns(fp_fMRI_col,)
 
     n_trials = 114 if cin is None else 38
 
@@ -590,15 +669,16 @@ def run_multi_settings():
                 (2, False),
                 # (4, False),
                 # (6, False),
-                (-1, False),
+                (True, False),
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                                    'bl3_fMRI',
-                                    'obj3_fMRI',
+                    'cmb3_fMRI',
+                                    # 'bl3_fMRI',
+                                    # 'obj3_fMRI',
                                     # 'scn3_fMRI',
-                                    'con3_fMRI',
-                                    'vis3_fMRI',
+                                    # 'con3_fMRI',
+                                    # 'vis3_fMRI',
                 ]:
             # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:

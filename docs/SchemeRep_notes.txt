@@ -1,7 +1,54 @@
+I've been working on the RSM vs. IRAF DNN-based simulation. I have been going with the approach that I think we discussed, where I blur some of the images to simulate a condition difference. In your results, have you been finding that the IRAF approach is better? I've tired a few things, and 
+
+
+If the condition influences the model RSM, then RSM x RSM is probably better
+- If the difference is very stark, then RSM x RSM is better
+- I should calculate model RSM before the blur**
+If the condition is independent of the model RSM...
+
+I think something happened with LSS2 for 111. See the later folders (e.g., ENC_sub111_run3_trial10_subset3_pairID27_object)
+
+(1) shrimp egg roll
+(2) pork fried rice
+(3) orange beef
+(4) hot marraige
+
+
+Hi, I looked into the extent that the SchemeRep data changed due to the preprocessing. 
+I compared three single-trial-beta datasets: (1) the ones Shenyang made before this Fall, (2) the ones made in October using an updated version of fmriprep, and (3) the ones made in November after adjusting the anatomical referencing strategy
+I measured the trial-by-trial correlations of beta values. I did this both at the level of individual voxels and in terms of betas averaged within BNA ROIs, although this gave converging results.
+First, it seems that the old ones (1) are very different from the current ones (3). Across most participants, the correlation is weak, r = 0.2-0.5.
+Second, it seems that the middle ones (2) are mostly similar to the new ones (3). For most participants, the correlation is very high (r = .98), but for a handful of participants the correlation is weak (r < .5),  this makes sense if the registration was particularly adjusted for a small handful of people with very bad registrations.
+Overall, this makes sense.
+
+sn110_bl3_fMRI_nROI246_reg27_oByR_nan1.01_noComb
+file created: Dec 3 at 6:50 AM
+
 formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + AgeGrp + (1|Subject) + (1|Object)'
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + AgeGrp * RCON_Old * Cong_subj_1_4 + (1|Subject) + (1|Object)'
+
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + AgeGrp + (1|Subject) + (1|Object)'
+
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + RCON_Old + (1|Subject) + (1|Object)'
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + Cong_subj_1_4+ (1|Subject) + (1|Object)'
+
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + AgeGrp * RCON_Old * Cong_subj_1_4 + (1|Subject) + (1|Object)'
 m <- lmer(formula=formula, data=df_final_univ, 
 	control=lmerControl(optimizer='bobyqa'))
 summary(m)
+
+formula = 'ENC_Act_Obj_BNA_78__STG_R_6_5 ~ 1 + RCON_Old + (1|Subject) + (1|Object)'
+m <- lmer(formula=formula, data=df_final_univ, 
+	control=lmerControl(optimizer='bobyqa'))
+summary(m)
+
+
+
+df_final_univ$ENC_Act_Scene_BNA_1__SFG_L_7_1
+df_final_univ[c('Subject', 'Object', 'ENC_Act_Scene_BNA_1__SFG_L_7_1')]
+
+
+df_final_univ[c('Subject', 'Object', 'RCON_Old')][order(df_final_univ$Subject, df_final_univ$Object),]
 
 		contrasts = list(AgeGrp = contr.dev, Cong_subj_1_4 = contr.dev, RCON_Old = contr.dev),
 

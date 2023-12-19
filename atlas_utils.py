@@ -28,7 +28,6 @@ def get_Schaefer_atlas():
             replace('PFCld', 'PFCl').replace('AntTemp', 'Temp')
             for ROI in ROIs]
 
-
     ROI_nums = [i + 1 for i in range(len(ROIs))]
     n_ROIs = len(ROIs)
     ROI_regions = []
@@ -129,8 +128,10 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
     if shenyang:
         fp_atlas = r'C:\PycharmProjects_C\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
+        print('Shenyang atlas')
     else:
         img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
+        print('Defunct atlas')
 
     fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
     fp_labels = 'cache/BNA_labels_Lifu_ACC.txt'
@@ -170,7 +171,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True,
                          shenyang=shenyang)
     atlas['maps'] = image.resample_to_img(atlas['maps'], img,
                                           interpolation='nearest')
-    atlas['shenyang'] = True
+    atlas['shenyang'] = shenyang
     # atlas['maps'].to_filename('test.nii')
     # print(atlas['maps'].shape)
     # from nilearn import plotting
@@ -306,7 +307,8 @@ def split_BNA(new_space=True, split_code='xyz'):
     return atlas_new
 
 
-def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
+def get_atlas(combine_regions=False, combine_bilateral=False,
+              split=False,
               new_space=True, split_code='xyz', schaefer=False,
               shenyang=True):
     if schaefer:
@@ -320,7 +322,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space,
-                                    shenyang=True)
+                                    shenyang=shenyang)
     return atlas
 
 def org_BNA_coords():

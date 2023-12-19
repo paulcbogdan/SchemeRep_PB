@@ -68,6 +68,8 @@ def get_trial_info_(sn, ret=False):
     obj_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/OBJ'
     scn_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/SCN'
     cmb_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/CMB'
+    obj_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/obj'
+    LSS1b_root4 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS1b/OBJ'
 
     df_sn_as_l = []
     for run in range(1, 4):
@@ -90,6 +92,13 @@ def get_trial_info_(sn, ret=False):
                 fp_obj = None
                 fp_scn = None
 
+            if sn[0] == '2':
+                fp_obj2 = None
+            else:
+                glob_obj2 = fr'{obj_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
+                glob_obj2 = glob(glob_obj2)
+                assert len(glob_obj2) == 1
+                fp_obj2 = glob_obj2[0]
 
             glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_obj3 = glob(glob_obj3)
@@ -116,6 +125,24 @@ def get_trial_info_(sn, ret=False):
                     fp_scn3 = None
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
+
+            glob_obj4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
+            glob_obj4 = glob(glob_obj4)
+            glob_scn4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_scene.nii'
+            glob_scn4 = glob(glob_scn4)
+            try:
+                fp_obj4 = glob_obj4[0]
+                fp_scn4 = glob_scn4[0]
+            except IndexError:
+                if sn == '224' and run == 3:
+                    fp_scn4 = None
+                    fp_obj4 = None
+                elif sn == '234' and run == 1:
+                    fp_scn4 = None
+                    fp_obj4 = None
+                else:
+                    raise IndexError(f'{sn}, {run}, {trial}')
+            print(f'{fp_obj4=} | {fp_scn4=}')
 
             glob_cmb3 = fr'{cmb_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_cmb3 = glob(glob_cmb3)
@@ -155,16 +182,20 @@ def get_trial_info_(sn, ret=False):
                  'enc_trial': trial_full,
                  'obj_trial': trial_full,
                  'scn_trial': trial_full,
+                 'cmb_trial': trial_full,
                  'enc_run': run,
                  'obj_run': run,
                  'scn_run': run,
 
                  'obj_fMRI': fp_obj,
+                 'obj2_fMRI': fp_obj2,
                  'obj3_fMRI': fp_obj3,
+                 'obj4_fMRI': fp_obj4,
                  'scn_fMRI': fp_scn,
                  'scn3_fMRI': fp_scn3,
-                 'cmb3_fMRI': fp_cmb3,
+                 'scn4_fMRI': fp_scn4,
 
+                 'cmb3_fMRI': fp_cmb3,
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,

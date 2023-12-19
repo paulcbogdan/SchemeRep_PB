@@ -1,107 +1,10 @@
 import numpy as np
 
-from modularity import get_partition_matrix, get_BNA_coords, get_main_partitions
-from module_classifiers import conn_similarity, conn_classifier, graph_theory
-from network_funcs import load_FC_for_Lifu, get_ylim_settings, calculate_within_between, reconfiguration, \
-    analyze_subject_specific, subj_specific_repeated
+from modularity import get_partition_matrix, get_main_partitions
+from module_classifiers import graph_theory
+from network_funcs import load_FC_for_Lifu, reconfiguration, \
+    analyze_subject_specific
 from utils import pickle_wrap
-
-
-def Fig15_Table2_analyses(threshold=0.9):
-    fp = 'obj3_fMRI'
-    labels = ['Inc', 'Neu', 'Con']
-    kwargs = {'fp': fp, 'split': False, 'key': 'inc', 'key_vals': (1, 2, 3)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,  #f'cache/FC_data_{fp}.pkl',
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
-    partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
-                                                    threshold=threshold)
-    sn_inc_conn[:, :, ~top_edges_mat] = np.nan
-    i2name = {0.9: {0: 'PFC+', 1: 'MTL+'},
-              0.95: {0: 'MTL+', 2: 'dPFC', 5: 'vPFC'}} # 3: 'PCun', 4: 'SM',
-    ps_good = [partitions[i] for i in i2name[threshold]]
-    y_low_div, y_high_div = get_ylim_settings(sn_inc_conn, age2idxs, ps_good,
-                                              do_division=True)
-    y_low, y_high = get_ylim_settings(sn_inc_conn, age2idxs, ps_good,
-                                      do_division=False)
-    # print(f'{y_low=}, {y_high=}')
-    # quit()
-    for i, p in enumerate(partitions):
-        if i not in i2name[threshold]:
-            continue
-        if len(p) < 5:
-            continue
-        print('-'*50)
-        name = i2name[threshold][i]
-        print(f'Partition: {name} ({i})')
-        calculate_within_between(sn_inc_conn, age2idxs, p, labels,
-                                 do_division=True, suptitle=name,
-                                 y_low=y_low_div, y_high=y_high_div)
-        calculate_within_between(sn_inc_conn, age2idxs, p, labels,
-                                 do_division=False, suptitle=name,
-                                 y_low=y_low, y_high=y_high)
-
-def Fig16a_analyses(threshold=0.9, memory_type='vis_hit'):
-    fp = 'obj3_fMRI'
-    if memory_type == 'vis_hit':
-        labels = ['Vis hit', 'Vis miss']
-    elif memory_type == 'con_hit':
-        labels = ['Con hit', 'Con miss']
-    elif memory_type == 'hit_hit':
-        labels = ['Both hit', 'Either miss']
-    else:
-        raise ValueError(f'Unknown memory type: {memory_type=}')
-    kwargs = {'fp': fp, 'split': False, 'key': memory_type,
-              'key_vals': (False, True)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
-    partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
-                                                    threshold=threshold)
-    sn_inc_conn[:, :, ~top_edges_mat] = np.nan
-    i2name = {0.9: {0: 'PFC+', 1: 'MTL+'},
-              0.95: {0: 'MTL+', 2: 'dPFC', 5: 'vPFC'}}
-    ps_good = [partitions[i] for i in i2name[threshold]]
-    y_low, y_high = get_ylim_settings(sn_inc_conn, age2idxs, ps_good,
-                                      do_division=True)
-    for i, p in enumerate(partitions):
-        if i not in i2name[threshold]:
-            continue
-        if len(p) < 5:
-            continue
-        print('-'*50)
-        name = i2name[threshold][i]
-        print(f'Partition: {name} ({i})')
-        reconfiguration(sn_inc_conn, age2idxs, p,
-                        title=f'{name}, {memory_type}')
-        # quit()
-        calculate_within_between(sn_inc_conn, age2idxs, p, labels,
-                                 y_low, y_high,
-                                 do_division=True, suptitle=name)
-
-def Fig17_analyses(threshold=0.9, plot=True):
-    fp = 'obj3_fMRI'
-    kwargs = {'fp': fp, 'split': False, 'key': 'vis_hit',
-              'key_vals': (False, True)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
-
-
-    partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
-                                                    threshold=threshold)
-    PFC_partition = partitions[0]
-
-    sn_inc_conn = get_partition_matrix(sn_inc_conn, PFC_partition)
-    sn_conn = get_partition_matrix(sn_conn, PFC_partition)
-    PFC_coords = [coord for i, coord in enumerate(get_BNA_coords())
-                  if i in PFC_partition]
-    sub_partitions, top_edges_mat = get_main_partitions(sn_conn, plot=True,
-                                                        threshold=threshold,
-                                                        fn_str='PFC_')
 
 
 def subject_specific(threshold=0.9):
@@ -313,6 +216,18 @@ def variability(threshold=0.9):
         # print()
 
 
+# Omega: age=2, sn=23, inc0=2 | score=-0.175
+# age=2: -0.127 [0.018], -0.085 [0.021], -0.158 [0.024]
+# 	0 vs. 1: t = -1.964
+# 	0 vs. 2: t = 0.973
+# 	1 vs. 2: t = 2.283
+# Young (-0.194) vs. Old (-0.123): t = -3.421, p = 0.001
+# 	Age x Dif (0): t = 1.604, p = 0.115
+# 		Both (0): -0.015 [0.015], t = -1.042
+# 	Age x Dif (1): t = -0.116, p = 0.908
+# 		Both (1): 0.029 [0.018], t = 1.580
+# 	Age x Dif (2): t = -1.480, p = 0.145
+# 		Both (2): 0.044 [0.017], t = 2.537
 
 
 if __name__ == '__main__':

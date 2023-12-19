@@ -1,5 +1,7 @@
 from collections import defaultdict
 
+from matplotlib import pyplot as plt
+
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
@@ -31,7 +33,6 @@ def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
         # if age != 1:
         #     continue
         sns = age2sn[age]
-        # sns = ['102']
         for sn in sns:
             print(f'Prepping univariate: {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
@@ -112,13 +113,13 @@ def include_shenyang_memory(df):
     df['con_hit'] = df.apply(lambda x: d[(x['sn'], x['obj'])], axis=1)
     return df
 
-def do_univariate_analysis(fp='obj3_fMRI'):
+def do_univariate_analysis(fp='cmb3_fMRI'):
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
                                 kwargs=kwargs, cache_dir='cache',
-                                easy_override=True)
+                                easy_override=False)
     df = df[~pd.isna(df['con_hit'])]
     df = df[~pd.isna(df['per_inc'])]
     df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
@@ -129,28 +130,93 @@ def do_univariate_analysis(fp='obj3_fMRI'):
     # df_pruned = df[['sn', 'obj', 'SFG_L_7_1']]
     # print(df_pruned)
     # quit()
+    df['obj'] = df['obj'].astype(str)
+    df.reset_index(inplace=True)
 
     from pymer4.models import Lmer
     for ROI in ROI_cols:
-        print(f'ROI: {ROI}')
         # if ROI != 'ATL_R_6_5':
+        #     continue
+        if 'ITG' not in ROI:
+            continue
+        # if 'EVC_R_5_1' not in ROI:
         #     continue
         formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
         keys = keys_from_formula(formula)
         model = Lmer(formula, data=df[keys].dropna())
         try:
-            model.fit(REML=True, verbose=True, summary=True)
+            model.fit(REML=True, verbose=False, summary=False)
         except Exception as e:
             print(f'Error fitting model: {e}')
             continue
+        # print(model.summary())
         result = model.anova()
-        print(result)
         # print(result['Sig'].values)
         # if '***' in result['Sig'].values:
-        #     print('Has significance!')
+        if True:
+            plt.rcParams.update({'font.size': 12})
+            effect2name = {'con_hit': 'Main effect of conceptual memory',
+                           'age': 'Main effect of age',
+                           'per_inc14_str': 'Main effect of congruency',
+                           'age:per_inc14_str': 'Interaction age x congruency',
+                           'age:con_hit': 'Interaction age x conceptual memory',
+                           'per_inc14_str:con_hit': 'Interaction congruency x conceptual memory',
+                           'age:per_inc14_str:con_hit': '3-way interaction'}
 
+            print('-'*100)
+            print(f'ROI: {ROI}')
+            print(result)
+            effect = result['P-val'].idxmin()
+            effect = effect2name[effect]
+            # quit()
+            df_grp = df.groupby(['sn', 'age', 'per_inc14_str', 'con_hit'])[ROI].mean()
+
+            df_grp_err = df_grp.groupby(['age', 'per_inc14_str', 'con_hit']).sem() * 1.96
+            df_grp_err = df_grp_err.sort_index(axis=0, level=(0, 1),
+                                      ascending=False)
+
+            df_grp_M = df_grp.groupby(['age', 'per_inc14_str', 'con_hit']).mean()
+            df_grp_M = df_grp_M.sort_index(axis=0, level=(0, 1),
+                                        ascending=False)
+
+            plt.bar([-0.15, .85, 1.85, 2.85], df_grp_M.loc[:, :, 'Hit'],
+                    yerr=df_grp_err.loc[:, :, 'Hit'], width=0.25,
+                    label='Hit', color='dodgerblue')
+            # plt.xlabel(['a', 'b', 'c', 'd'])
+            plt.bar([0.15, 1.15, 2.15, 3.15], df_grp_M.loc[:, :, 'Miss'],
+                    yerr=df_grp_err.loc[:, :, 'Miss'], width=0.25,
+                    label='Miss', color='red')
+            # plt.xlabel(['e', 'f', 'g', 'h'])
+            plt.xticks([0, 1, 2, 3], ['(Inc1)\nYA', '(Con4)\nYA',
+                                      '(Inc1)\nOA', ' (Con4)\nOA'])
+
+            # df_grp.loc[:, :, 'Hit'].plot(x=[0, 1, 2, 3], kind='bar',
+            #                              yerr=df_grp_err.loc[:, :, 'Hit'])
+            # df_grp.loc[:, :, 'Miss'].plot(x=[0.25, 1.25, 2.25, 3.25], kind='bar',
+            #                               yerr=df_grp_err.loc[:, :, 'Miss'])
+
+            plt.legend(frameon=False, loc='upper center')
+            plt.ylabel(f'Mean beta: {ROI}')
+            fp2name = {'cmb3_fMRI': 'Scene + object combined model betas',
+                          'scn3_fMRI': 'Scene model betas',
+                          'obj3_fMRI': 'Object model betas'}
+            fp_name = fp2name[fp]
+            title_str = f'{fp_name}\nResult: {effect}'
+            plt.title(title_str)
+            plt.tight_layout()
+            plt.show()
+            # quit()
+        else:
+            print(f'ROI: {ROI} - No significance')
+        #     print('Has significance!')
+        return
 
 if __name__ == '__main__':
     # prep_activation_for_univariate('bl3_fMRI')
-    do_univariate_analysis()
+    do_univariate_analysis(fp='scn3_fMRI')
+    do_univariate_analysis(fp='obj3_fMRI')
+    do_univariate_analysis(fp='cmb3_fMRI')
+
+    # do_univariate_analysis(fp='con3_fMRI')
+
 
