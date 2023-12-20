@@ -1,9 +1,9 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_main_partitions
-from module_classifiers import graph_theory
+from module_classifiers import graph_theory, conn_classifier
 from network_funcs import load_FC_for_Lifu, reconfiguration, \
-    analyze_subject_specific
+    analyze_subject_specific, subj_specific_repeated
 from utils import pickle_wrap
 
 
@@ -22,9 +22,9 @@ def subject_specific(threshold=0.9):
               'odd_even': True}
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
+                                                                  load_FC_for_Lifu, kwargs=kwargs,
+                                                                  verbose=1, easy_override=False,
+                                                                  cache_dir='../cache')
     fp = 'cache/test.pkl'
     partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
         sn_conn, plot=False, threshold=threshold), easy_override=False)
@@ -55,9 +55,9 @@ def INC_reconfig(threshold=0.9):
               # 'key': 'rand',
               'key_vals': (1, 2, 3)}
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
+                                                                  load_FC_for_Lifu, kwargs=kwargs,
+                                                                  verbose=1, easy_override=False,
+                                                                  cache_dir='../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                     threshold=threshold)
     sn_inc_conn[:, :, ~top_edges_mat] = np.nan
@@ -94,9 +94,9 @@ def rand_test(threshold=0.9, way3=False):
                   'key': 'rand',
                   'key_vals': (1, 2, 3) if way3 else (False, True)}
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                     load_FC_for_Lifu, kwargs=kwargs,
-                                                     verbose=1, easy_override=True,
-                                                     cache_dir='cache')
+                                                                      load_FC_for_Lifu, kwargs=kwargs,
+                                                                      verbose=1, easy_override=True,
+                                                                      cache_dir='../cache')
         partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                         threshold=threshold)
         sn_inc_conn[:, :, ~top_edges_mat] = np.nan
@@ -136,6 +136,7 @@ def variability(threshold=0.9):
     fp = 'vis3_fMRI'
     # fp = 'con3_fMRI'
     fp = 'obj3_fMRI'
+    fp = 'obj4_fMRI'
     # fp = 'scn3_fMRI'
     # fp = 'bl3_fMRI'
     # kwargs = {'fp': fp, 'split': False,
@@ -145,15 +146,15 @@ def variability(threshold=0.9):
     #           }
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
-              'key_vals': (1, 2, 3),
+              'key_vals': (1, 3),
               'odd_even': False,
               }
-    # kwargs = {'fp': fp, 'split': False,
+    kwargs = {'fp': fp, 'split': False,
               # 'key': 'hit_hit',
-              # 'key': 'con_hit',
-              # 'key_vals': (False, True),
-              # 'odd_even': False,
-              # 'pad_nan': True}
+              'key': 'con_hit',
+              'key_vals': (False, True),
+              'odd_even': False,
+              'pad_nan': True}
     # kwargs = {'fp': fp, 'split': False,
     #           'key': 'inc_con_hit',
     #           # 'key': 'con_hit',
@@ -163,9 +164,9 @@ def variability(threshold=0.9):
     #           'pad_nan': True}
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                 load_FC_for_Lifu, kwargs=kwargs,
-                                                 verbose=1, easy_override=False,
-                                                 cache_dir='cache')
+                                                                  load_FC_for_Lifu, kwargs=kwargs,
+                                                                  verbose=1, easy_override=False,
+                                                                  cache_dir='../cache')
     sn_inc_activity = np.array(sn_inc_activity)
 
     # partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
@@ -195,21 +196,22 @@ def variability(threshold=0.9):
         print(f'------- {i2name[threshold][i]} -------')
         # print(' Subject-specific:')
         # conn_classifier(p_data, age2idxs, p_top_edges, p)
-        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
-                     measure='shortest')
-        print('-*-*-')
-        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
-                     measure='clustering')
-        print('-*-*-')
-        continue
-        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
-                     measure='omega')
-        print('-*-*-')
+        # continue
+        # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+        # #              measure='shortest')
+        # # print('-*-*-')
+        # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+        # #              measure='clustering')
+        # # print('-*-*-')
+        # # continue
+        # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+        #              measure='omega')
+        # print('-*-*-')
         # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p)
 
 
-        # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
-        #                        variability=False)
+        subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
+                               variability=True)
         # print(' Variability:')
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=True)

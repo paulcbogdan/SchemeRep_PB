@@ -24,7 +24,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         atlas = get_atlas(combine_regions=False,
                           combine_bilateral=False,
                           split=split, split_code='xyz',
-                          new_space='3' in fp)
+                          new_space='3' in fp or '4' in fp)
     coords = atlas['coords']
     print(f'{fp=}')
     age2sn = get_all_sns(fp, sh=False)

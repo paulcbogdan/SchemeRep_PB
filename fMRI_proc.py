@@ -242,67 +242,14 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     return r2vecs
 
 
-def get_ROI_vecs_old(df_sn, fp_fMRI_col, atlas,
-                  nan_thresh=.25, org_by_region=False,
-                  drop_nan_voxels=True):
-    n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
-    if n_nans:
-        sn = df_sn['sn'].iloc[0]
-        raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
-
-    img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
-    # for idx, row in df_sn.iterrows():
-    #     print(row[fp_fMRI_col])
-    # quit()
-    n_nans = np.isnan(img).sum()
-    print(f'Total number of NaNs: {n_nans/114:.1f}')
-    ROIs = atlas['ROIs']
-    ROI_nums = atlas['ROI_nums']
-    ROI_regions = atlas['ROI_regions']
-    ROI2vecs = {}
-    region2vecs = defaultdict(list)
-    for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
-        atlas_roi = atlas['maps'].get_fdata() == ROI_num
-        region_vecs = img[atlas_roi]
-        voxels_w_nan = np.isnan(region_vecs).any(axis=1)
-        if len(voxels_w_nan) < 5: # sometimes even zero
-            continue
-
-        # p_nans_per_trial = np.sum(np.isnan(region_vecs), axis=0) / region_vecs.shape[0]
-
-        n_nans_ROI = np.sum(voxels_w_nan)
-        p_nan_any = n_nans_ROI / len(voxels_w_nan)
-        # print(f'{ROI} | {len(voxels_w_nan)=} | {n_nans_ROI=}')
-        # p_nan_overall = np.mean(np.isnan(region_vecs))
-        # the thalamus is entirely dropped basically
-        if p_nan_any > nan_thresh:  # more than 10%
-            # print(f'Skip ({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}')
-            continue
-        if drop_nan_voxels:
-            region_vecs = region_vecs[~voxels_w_nan, :]
-        # print(f'({region}): {p_nan_any=:.2f}, {p_nan_overall=:.2f}. {region_vecs.shape}')
-
-        region_vecs = region_vecs.T
-        ROI2vecs[ROI] = region_vecs
-
-        if org_by_region:
-            region2vecs[region].append(np.nanmean(region_vecs, axis=1))
-
-    region2vecs = dict(region2vecs)
-    for region, l in region2vecs.items():
-        region2vecs[region] = np.array(l).T
-
-    if org_by_region:
-        return region2vecs
-    else:
-        return ROI2vecs
 
 
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
     sn = df_sn['sn'].iloc[0]
-    if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI', 'cmb3_fMRI']:
+    if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI', 'cmb3_fMRI',
+                                       'obj4_fMRI', 'scn4_fMRI']:
         # Missing a few trials at the end of Run 1
         df_sn_ = df_sn.copy()
         img = np.full((97, 115, 97, 114), np.nan)
@@ -324,8 +271,8 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
             img = image.resample_to_img(img, img_ref,
                                         interpolation='nearest')
             img = img.get_fdata()
-            quit()
         else:
+            # print(df_sn[fp_fMRI_col].values)
             img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
 
 

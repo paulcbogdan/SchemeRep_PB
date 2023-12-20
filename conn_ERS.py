@@ -83,9 +83,9 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
     if 'cross_' in conn:
         conn = conn.replace('cross_', '')
 
-    df_sn = get_trial_info(sn)
+    df_sn = get_trial_info(sn, easy_override=True)
     # df_sn.sort_values('obj_trial', inplace=True)
-    sess = fp0.split('_')[0].replace('2', '').replace('3', '')
+    sess = fp0.split('_')[0].replace('2', '').replace('3', '').replace('4', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
 
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,

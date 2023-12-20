@@ -5,9 +5,8 @@ from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI
 from conn_ERS import ERS_sn, ERS_ROI_pairwise#, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
-from networks import prep_networks
+from networks.networks import prep_networks
 from org_sns import get_all_sns
-from old.plot_gen import plot_connectivity
 import numpy as np
 
 from stim import get_semantic_vectors, get_DNN_vecs
@@ -112,10 +111,15 @@ def prep_fps(four_tasks):
         fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
     elif four_tasks == '3_3':
         fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
-    elif four_tasks:
+    elif four_tasks == '4_3':
+        fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI']
+    elif four_tasks == '4_4':
+        fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    elif four_tasks and isinstance(four_tasks, bool):
         fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
     else:
-        fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+        raise ValueError
+        # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
     return fps
 
 def prep_results_d(settings, networks, atlas, sns):
@@ -338,7 +342,7 @@ def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
     # RDM_method = 'clever_std'
     trial_similarity_toggle = ['spear']
-    four_tasks_toggle = ['3_4']
+    four_tasks_toggle = ['4_4']
     conn_toggle = ['euc']
     split_toggle = [False]
     # atlas = 'schaefer'
@@ -382,6 +386,6 @@ def run_analysis_toggles():
                                 pass
 
 if __name__ == '__main__':
-    EASY_OVERRIDE = True
+    EASY_OVERRIDE = False
     run_analysis_toggles()
 

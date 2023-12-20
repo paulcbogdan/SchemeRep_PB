@@ -70,6 +70,9 @@ def get_trial_info_(sn, ret=False):
     cmb_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/CMB'
     obj_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/obj'
     LSS1b_root4 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS1b/OBJ'
+    LSS1_root5 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS1/OBJ'
+    LSS2_root6 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS2/OBJ'
+
 
     df_sn_as_l = []
     for run in range(1, 4):
@@ -91,14 +94,6 @@ def get_trial_info_(sn, ret=False):
             except IndexError:
                 fp_obj = None
                 fp_scn = None
-
-            if sn[0] == '2':
-                fp_obj2 = None
-            else:
-                glob_obj2 = fr'{obj_root2}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-                glob_obj2 = glob(glob_obj2)
-                assert len(glob_obj2) == 1
-                fp_obj2 = glob_obj2[0]
 
             glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_obj3 = glob(glob_obj3)
@@ -128,21 +123,42 @@ def get_trial_info_(sn, ret=False):
 
             glob_obj4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
             glob_obj4 = glob(glob_obj4)
+            glob_obj5 = fr'{LSS1_root5}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
+            glob_obj5 = glob(glob_obj5)
+            glob_obj6 = fr'{LSS2_root6}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
+            glob_obj6 = glob(glob_obj6)
+
             glob_scn4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_scene.nii'
             glob_scn4 = glob(glob_scn4)
             try:
                 fp_obj4 = glob_obj4[0]
                 fp_scn4 = glob_scn4[0]
+                try:
+                    fp_obj5 = glob_obj5[0]
+                    fp_obj6 = glob_obj6[0]
+                except IndexError:
+                    # These aren't criticall
+                    fp_obj5 = None
+                    fp_obj6 = None
             except IndexError:
                 if sn == '224' and run == 3:
                     fp_scn4 = None
                     fp_obj4 = None
+                    fp_obj5 = None
+                    fp_obj6 = None
                 elif sn == '234' and run == 1:
                     fp_scn4 = None
                     fp_obj4 = None
+                    fp_obj5 = None
+                    fp_obj6 = None
                 else:
+                    print(f'{glob_obj4=}')
+                    print(f'{glob_obj5=}')
+                    print(f'{glob_obj6=}')
+                    print(f'{glob_scn4=}')
                     raise IndexError(f'{sn}, {run}, {trial}')
-            print(f'{fp_obj4=} | {fp_scn4=}')
+            # print(f'{fp_obj4=} | {fp_obj5=}')
+            # quit()
 
             glob_cmb3 = fr'{cmb_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_cmb3 = glob(glob_cmb3)
@@ -188,9 +204,11 @@ def get_trial_info_(sn, ret=False):
                  'scn_run': run,
 
                  'obj_fMRI': fp_obj,
-                 'obj2_fMRI': fp_obj2,
                  'obj3_fMRI': fp_obj3,
                  'obj4_fMRI': fp_obj4,
+                 'obj5_fMRI': fp_obj5,
+                 'obj6_fMRI': fp_obj6,
+
                  'scn_fMRI': fp_scn,
                  'scn3_fMRI': fp_scn3,
                  'scn4_fMRI': fp_scn4,

@@ -57,10 +57,14 @@ def get_partition_matrix(mat, idx, w_zeros=False):
         return mat[slicer]
 
 
-def plot_nichord(corr, coords, fn, title, dir_out='nichord_plots'):
+def plot_nichord(coords, fn, title, dir_out='nichord_plots',
+                 corr=None, edges=None, edge_weights=None):
     from nichord.convert import convert_matrix
     from nichord.coord_labeler import get_idx_to_label
-    edges, edge_weights = convert_matrix(corr)
+    if edges is None and edge_weights is None:
+        assert corr is not None, 'Either corr or edges and edge_weights must ' \
+                                 'be provided'
+        edges, edge_weights = convert_matrix(corr)
     idx_to_label = get_idx_to_label(coords, atlas='yeo')
 
     network_colors = {'Uncertain': 'black', 'Visual': 'purple',
@@ -103,7 +107,7 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             overlap_str = 'conga' if overlapping else 'Dec5'
             fn = f'{overlap_str}_{fn_str}thr{threshold}_p{i}.png'
             title = f'Partition {i}'
-            plot_nichord(M_corr_part, coords, fn, title,
-                         dir_out='result_pics/nichord',)
+            plot_nichord(coords, fn, title, corr=M_corr_part,
+                         dir_out='../result_pics/nichord', )
     partitions = [p for p in partitions]
     return partitions, matrix_mask

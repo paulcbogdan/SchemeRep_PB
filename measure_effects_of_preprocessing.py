@@ -23,6 +23,8 @@ def correlate_activity(fp0='obj3_fMRI', fp1='cmb3_fMRI'):
         sns = age2sn[age]
         rs_all = []
         for sn in sns:
+            if sn == '111':
+                continue
             print(f'Prepping univariate: {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
 
@@ -74,7 +76,7 @@ def correlate_activity(fp0='obj3_fMRI', fp1='cmb3_fMRI'):
 
 
 if __name__ == '__main__':
-    correlate_activity(fp0='obj3_fMRI', fp1='scn3_fMRI')
+    correlate_activity(fp0='obj4_fMRI', fp1='scn4_fMRI')
 
     # correlate_activity(fp0='scn3_fMRI')
 

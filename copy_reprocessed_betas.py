@@ -40,11 +40,12 @@ if __name__ == '__main__':
         g = [sn.name for sn in g]# if sn.name[:1] == '2']
         g = [sn for sn in g if sn[:1] != '3']
 
-        # g = [sn for sn in g if sn != '111']
+        g = [sn for sn in g if sn == '204']
         # g = ['234']
         # print(list(g))
         # quit()
         g = g[::-1]
+
         # g = [sn for sn in g if sn[:3] == '129' or sn[:3] == '128' or sn[:3] == '127' or sn[:3] == '126']
         for sn in tqdm(g, desc=f'Looping sn: {scan}'):
             sn_dir = enc_dir.joinpath(sn)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs, get_ROI_vecs_, get_ROI_vecs_old
+from fMRI_proc import get_ROI_vecs, get_ROI_vecs_
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_DNN_vecs, scipy_dist, prune_RSM_outliers
