@@ -41,8 +41,7 @@ def stratify(X, Y, groups=None):
         return X_new, Y_new, groups_new
 
 def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
-                    p,
-                    variability=True):
+                    p, variability=True):
     # TODO: Double check that the congruent/incongruent labels are correct?
 
     for age in [1, 2]:
@@ -57,9 +56,7 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
             X = []
             Y = []
             sn_act = age_sn_inc_act[sn]
-            # sn_act = stdize(sn_act, axis=1, nans=True)
-            # print(sn_act.shape)
-            # quit()
+
             groups = []
             for inc0 in range(age_sn_inc_act.shape[1]):
                 act0 = sn_act[inc0]
@@ -69,37 +66,18 @@ def conn_classifier(sn_inc_activity, age2idxs, top_edges_mat,
                 act0 = act0[~nan_voxels, :]
                 act0 = act0.T
 
-
-                # print(act0.shape)
-                # quit()
-                # act0 = np.random.normal(size=act0.shape)
-                # act0 = abs(act0[:, None, :] - act0[:, :, None])
-                # act0 = stdize(act0, axis=1, nans=True)
-                # act0 = act0[:, None, :] * act0[:, :, None]
-                # act0 = act0[:, *np.tril_indices(act0.shape[2], k=-1)]
                 trial_sets = []
                 for run in range(3):
                     run_low = run * 38
                     run_high = (run + 1) * 38
                     trial_set = act0[run_low:run_high]
-                    # trial_set = stdize(trial_set, axis=0, nans=True)
-                    # trial_set = trial_set - np.nanmean(trial_set, axis=0)[None, :]
-                    # trial_set = trial_set[:, None, :] * trial_set[:, :, None]
                     trial_set = abs(trial_set[:, None, :] - trial_set[:, :, None])
                     trial_set = trial_set[:, *np.tril_indices(trial_set.shape[2], k=-1)]
 
                     nan_trials = np.all(np.isnan(trial_set), axis=1)
-                    # print(f'{trial_set.shape=}')
-                    # print(f'{inc0=}, {run=}: {nan_trials.sum()=}')
+
                     trial_set = trial_set[~nan_trials]
 
-
-                    # print(f'{trial_set.shape=}')
-                    # print()
-                    # print(nan_trials)
-                    # quit()
-                    # trial_set = np.nanmean(trial_set, axis=0)
-                    # trial_sets.append(trial_set)
                     trial_set = list(trial_set)
                     trial_sets.extend(trial_set)
                     # print(f'{inc0} | {run=}: {len(trial_set)}')

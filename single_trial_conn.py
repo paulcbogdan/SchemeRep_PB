@@ -341,9 +341,9 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
     # RDM_method = 'clever_std'
-    trial_similarity_toggle = ['spear']
-    four_tasks_toggle = ['4_4']
-    conn_toggle = ['euc']
+    trial_similarity_toggle = ['spear', 'corr']
+    four_tasks_toggle = ['4_4', '4_3']
+    conn_toggle = ['euc', 'prod']
     split_toggle = [False]
     # atlas = 'schaefer'
     atlas = 'BNA_sh'

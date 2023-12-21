@@ -467,12 +467,13 @@ def analyze_subject_specific(sn_inc_conn, age2idxs):
         difs_all.append(difs)
         efs_all.append(efs)
     t, p = stats.ttest_ind(efs_all[0], efs_all[1])
-    print(f'\tYoung vs. Old: t = {t:.3f}, p = {p:.3f}')
+    print(f'\tAge x Effect: t = {t:.3f}, p = {p:.3f}')
 
 
 def subj_specific_repeated(sn_inc_activity, age2idxs, top_edges_mat,
                            p,
                            variability=True):
+    # Randomly split each condition into 2 sets. submit to the odd/even analysis
     efs_all = []
     for age in [1, 2]:
         sn_idxs = age2idxs[age]
@@ -493,7 +494,7 @@ def subj_specific_repeated(sn_inc_activity, age2idxs, top_edges_mat,
                 if n_trials < smaller_trial:
                     smaller_trial = n_trials
 
-            for shuffle in range(10):
+            for shuffle in range(100):
                 inc_shuffled_conns = []
                 for inc in range(age_sn_inc_act.shape[1]):
                     act = age_sn_inc_act[sn, inc]
@@ -594,6 +595,9 @@ def subj_specific_repeated(sn_inc_activity, age2idxs, top_edges_mat,
                         difs.append((inc01_a + inc01_b) / 2)
                     else:
                         raise NotImplementedError
+            if np.isnan(np.mean(efs)):
+                print(f'Nan skip: {age=}, {sn=}')
+                continue
             efs_age.append(np.mean(efs))
             sames_age.append(np.mean(sames))
             difs_age.append(np.mean(difs))
@@ -616,4 +620,4 @@ def subj_specific_repeated(sn_inc_activity, age2idxs, top_edges_mat,
         efs_all.append(efs_age)
 
     t, p_val = stats.ttest_ind(efs_all[0], efs_all[1])
-    print(f'\tYoung vs. Old: t = {t:.3f}, p = {p_val:.3f}')
+    print(f'\tAge x Effect: t = {t:.3f}, p = {p_val:.3f}')

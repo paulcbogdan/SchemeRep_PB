@@ -1,7 +1,7 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_main_partitions
-from module_classifiers import graph_theory, conn_classifier
+from classifiers import graph_theory, conn_classifier
 from network_funcs import load_FC_for_Lifu, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
 from utils import pickle_wrap
@@ -133,33 +133,17 @@ def rand_test(threshold=0.9, way3=False):
 
 
 def variability(threshold=0.9):
-    fp = 'vis3_fMRI'
-    # fp = 'con3_fMRI'
-    fp = 'obj3_fMRI'
+
     fp = 'obj4_fMRI'
-    # fp = 'scn3_fMRI'
-    # fp = 'bl3_fMRI'
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'inc',
-    #           'key_vals': (1, 2, 3),
-    #           'odd_even': False,
-    #           }
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    kwargs = {'fp': fp, 'split': False,
-              # 'key': 'hit_hit',
-              'key': 'con_hit',
-              'key_vals': (False, True),
-              'odd_even': False,
-              'pad_nan': True}
     # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'inc_con_hit',
-    #           # 'key': 'con_hit',
-    #           'key_vals': ('10', '11'),
-    #           # 'key_vals': ('30', '31'),
+    #           # 'key': 'hit_hit',
+    #           'key': 'con_hit',
+    #           'key_vals': (False, True),
     #           'odd_even': False,
     #           'pad_nan': True}
 
@@ -194,8 +178,9 @@ def variability(threshold=0.9):
         p_data = sn_inc_activity[..., p, :]
         # print(f'{p=}')
         print(f'------- {i2name[threshold][i]} -------')
+
         # print(' Subject-specific:')
-        # conn_classifier(p_data, age2idxs, p_top_edges, p)
+        conn_classifier(p_data, age2idxs, p_top_edges, p)
         # continue
         # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
         # #              measure='shortest')
@@ -210,26 +195,14 @@ def variability(threshold=0.9):
         # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p)
 
 
-        subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
-                               variability=True)
+        # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
+        #                        variability=False)
         # print(' Variability:')
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=True)
         # print()
 
 
-# Omega: age=2, sn=23, inc0=2 | score=-0.175
-# age=2: -0.127 [0.018], -0.085 [0.021], -0.158 [0.024]
-# 	0 vs. 1: t = -1.964
-# 	0 vs. 2: t = 0.973
-# 	1 vs. 2: t = 2.283
-# Young (-0.194) vs. Old (-0.123): t = -3.421, p = 0.001
-# 	Age x Dif (0): t = 1.604, p = 0.115
-# 		Both (0): -0.015 [0.015], t = -1.042
-# 	Age x Dif (1): t = -0.116, p = 0.908
-# 		Both (1): 0.029 [0.018], t = 1.580
-# 	Age x Dif (2): t = -1.480, p = 0.145
-# 		Both (2): 0.044 [0.017], t = 2.537
 
 
 if __name__ == '__main__':
