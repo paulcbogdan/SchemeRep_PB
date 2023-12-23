@@ -104,8 +104,9 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                 continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            overlap_str = 'conga' if overlapping else 'Dec5'
+            overlap_str = 'conga' if overlapping else 'Dec22'
             fn = f'{overlap_str}_{fn_str}thr{threshold}_p{i}.png'
+            print(f'Plot: {fn=}')
             title = f'Partition {i}'
             plot_nichord(coords, fn, title, corr=M_corr_part,
                          dir_out='../result_pics/nichord', )

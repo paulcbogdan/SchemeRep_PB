@@ -1,7 +1,7 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_main_partitions
-from classifiers import graph_theory, conn_classifier
+from classifiers import partition_classifier
 from network_funcs import load_FC_for_Lifu, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
 from utils import pickle_wrap
@@ -180,7 +180,6 @@ def variability(threshold=0.9):
         print(f'------- {i2name[threshold][i]} -------')
 
         # print(' Subject-specific:')
-        conn_classifier(p_data, age2idxs, p_top_edges, p)
         # continue
         # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
         # #              measure='shortest')
@@ -198,8 +197,8 @@ def variability(threshold=0.9):
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=False)
         # print(' Variability:')
-        # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
-        #                        variability=True)
+        subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
+                               variability=True)
         # print()
 
 

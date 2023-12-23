@@ -60,7 +60,7 @@ def get_trial_info(sn, easy_override=False, ret=True):
                         verbose=False)
     return df_sn
 
-def get_trial_info_(sn, ret=False):
+def get_trial_info_(sn, ret=True):
     renamer = NAME_RENAMER
 
     obj_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
@@ -188,11 +188,32 @@ def get_trial_info_(sn, ret=False):
 
             inc2str = {1: 'incongruent', 2: 'neutral', 3: 'congruent'}
             inc_str = inc2str[inc]
-            per2str = {1: 'incongruent', 4: 'congruent'}
+            per2str = {1: 'incongruent', 2:' neutral',
+                       3: 'neutral', 4: 'congruent'}
 
             trial_full = trial + 38 * (run - 1)
             per_inc14 = resp if resp in [1, 4] else np.nan
+            per_inc_str = np.nan if pd.isna(resp) else per2str[resp]
             per_inc14_str = np.nan if pd.isna(per_inc14) else per2str[per_inc14]
+
+
+            if pd.isna(resp):
+                inc_match14 = inc_match = inc_match14_strict = np.nan
+            elif inc == 1:
+                inc_match14 = resp <= 2
+                inc_match = inc_match14_strict = resp == 1
+            elif inc == 3:
+                inc_match14 = resp >= 3
+                inc_match = inc_match14_strict = resp == 4
+            else:
+                inc_match14 = inc_match14_strict = np.nan
+                inc_match = resp in [2, 3]
+
+            # inc_match14 = np.nan if inc == 2 \
+            #     else inc_str == per_inc14_str
+            # inc_match = inc_str == per_inc_str
+            # print(f'{inc_str}, {per_inc_str} ({resp}) | '
+            #       f'{inc_match14=}, {inc_match14_strict=}, {inc_match=}')
 
             d = {'sn': sn,
                  'enc_trial': trial_full,
@@ -221,12 +242,20 @@ def get_trial_info_(sn, ret=False):
                  'inc': inc,
                  'inc_str': inc_str,
                  'per_inc': resp, # higher (up to 4) = seen as congruent
+                 'per_inc_str': per_inc_str,
                  'per_inc14': per_inc14,
                  'per_inc14_str': per_inc14_str,
+                    'inc_match': inc_match,
+                    'inc_match14': inc_match14,
+                    'inc_match14_strict': inc_match14_strict,
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
-    # add_onset_time(df_sn, sn)
+
+    matches1234 = df_sn['inc_match'].astype(np.float64).sum() # Gives wrong number for 102 if i dont astype??
+    matches14 = df_sn['inc_match14'].astype(np.float64).sum()
+    matches14_strict = df_sn['inc_match14_strict'].astype(np.float64).sum()
+    print(f'{matches1234=}, {matches14=}, {matches14_strict=}')
 
     df_sn = include_BL(df_sn, sn)
     if ret:
@@ -512,3 +541,5 @@ def prep_dif(df, sn):
     print(f'Prepped difs for {sn} in {time() - t:.2f}s')
     return df
 
+if __name__ == '__main__':
+    get_trial_info_('102')

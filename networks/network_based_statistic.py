@@ -72,20 +72,26 @@ def perm_test(sn_inc_conn, age2idxs, alpha_thresh):
         print('------')
     quit()
 
-def do_NBS(threshold=0.9, min_cluster_size=60, alpha_thresh=.001):
+def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
     fp = 'obj4_fMRI'
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
               'key_vals': (1, 3)
               }
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'con_hit',
-    #           'key_vals': (False, True)}
+    kwargs = {'fp': fp, 'split': False,
+              'key': 'vis_hit',
+              'key_vals': (False, True)}
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                                   load_FC_for_Lifu, kwargs=kwargs,
                                                                   verbose=1, easy_override=False,
                                                                   cache_dir='../cache')
+    cnt_trials0 = np.sum(~np.isnan(sn_inc_activity[:, 0, 0, :]))
+    cnt_trials1 = np.sum(~np.isnan(sn_inc_activity[:, 1, 0, :]))
+    ratio = cnt_trials0 / cnt_trials1
+    # print(f'{cnt_trials0=}, {cnt_trials1=} | {ratio=:.3f}')
+    # quit()
+
     # perm_test(sn_inc_conn, age2idxs, alpha_thresh)
     # quit()
 
@@ -165,11 +171,14 @@ def do_NBS(threshold=0.9, min_cluster_size=60, alpha_thresh=.001):
         # for edge, w in zip(edges, edge_weights):
         #     print(f'{edge=}, {w=:.3f} | '
         #           f'M1={M1_graph[edge]:.3f}, M2={M2_graph[edge]:.3f}')
-        fn = f'age_x_inc_NBS_a{alpha_thresh}_c{i}.png'
+        fn = f'age_x_vis_NBS_a{alpha_thresh}_c{i}.png'
         title = f'NBS group: {i}'
         title = f'Main effect of congruency (YA + OA), primary threshold: p < {alpha_thresh}'
+        title = f'Main effect of visual memory (YA + OA), primary threshold: p < {alpha_thresh}'
+
         plot_nichord(coords, fn, title, dir_out=dir_out,
                      edges=edges, edge_weights=edge_weights)
+        print('plotted')
 
 
 if __name__ == '__main__':

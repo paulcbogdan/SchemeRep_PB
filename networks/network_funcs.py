@@ -17,7 +17,8 @@ from utils import stdize
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
-                     key_vals=(1, 2, 3), odd_even=False, pad_nan=False):
+                     key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
+                     do_sort=False, fp_all=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -27,7 +28,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                           new_space='3' in fp or '4' in fp)
     coords = atlas['coords']
     print(f'{fp=}')
-    age2sn = get_all_sns(fp, sh=False)
+    age2sn = get_all_sns('all' if fp_all else fp, sh=False)
     # age_sn_inc_conn = []
     # age_sn_conn = []
     sn_inc_conn = []
@@ -42,7 +43,11 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         ROIs_l = get_BNA_ROIs(code=None)
         for sn in sns:
             print(f'Prepping FC: {sn=}')
-            df_sn = get_trial_info(sn, easy_override=False)
+            df_sn = get_trial_info(sn, easy_override=True)
+            if do_sort:
+                sess = fp.split('_')[0].replace('2', '').replace('3', '').\
+                    replace('4', '')
+                df_sn.sort_values(by=f'{sess}_trial', inplace=True)
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=False,
