@@ -18,8 +18,10 @@ def get_Schaefer_atlas():
     atlas['coords'] = np.array(df_coords[['R', 'A', 'S']])
     print(atlas['coords'].shape)
 
-    fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
-             r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+    # fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+    #          r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+    fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun3/obj/' \
+                 r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     img = image.load_img(fp_ref)
     atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img,
                                           interpolation='nearest')
@@ -75,6 +77,7 @@ def get_Schaefer_atlas():
     # print(f'{tick_labels=}')
 
     # quit()
+    atlas['shenyang'] = False
     atlas['ROI_regions_laterality'] = ROI_regions_laterality
     atlas['ROI2coord'] = dict(zip(ROIs, atlas['coords']))
     return atlas

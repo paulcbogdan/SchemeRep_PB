@@ -1,14 +1,82 @@
+
+dropping bad_sns
+kwargs={'fp': ('obj4_fMRI', 'bl3_fMRI'), 'split': False, 'key': ('vis_hit', 'con_hit'), 'atlas_name': 'BNA', 'key_vals': (False, True), 'odd_even': False, 'pad_nan': True, 'fp_all': True}
+title="('vis_hit', 'con_hit'), ('obj4_fMRI', 'bl3_fMRI'), group=True"
+Young:
+       PFC    Vis     SM    MTL    pSM   PCun
+PFC   0.52  0.515  0.516  0.526  0.525  0.521
+Vis    NaN  0.487  0.494  0.509  0.520  0.505
+SM     NaN    NaN  0.515  0.490  0.489  0.485
+MTL    NaN    NaN    NaN  0.530  0.501  0.506
+pSM    NaN    NaN    NaN    NaN  0.518  0.520
+PCun   NaN    NaN    NaN    NaN    NaN  0.502
+Old:
+        PFC    Vis     SM    MTL    pSM   PCun
+PFC   0.504  0.521  0.527  0.516  0.505  0.511
+Vis     NaN  0.494  0.519  0.516  0.515  0.525
+SM      NaN    NaN  0.487  0.503  0.488  0.506
+MTL     NaN    NaN    NaN  0.523  0.516  0.520
+pSM     NaN    NaN    NaN    NaN  0.522  0.498
+PCun    NaN    NaN    NaN    NaN    NaN  0.499
+
+kwargs={'fp': ('obj4_fMRI',), 'split': False, 'key': ('inc',), 'key_vals': (1, 3), 'odd_even': False}
+title="('inc',), ('obj4_fMRI', 'bl3_fMRI'), group=True"
+Young:
+        PFC    Vis     SM    MTL    pSM   PCun
+PFC   0.542  0.503  0.508  0.464  0.512  0.500
+Vis     NaN  0.516  0.481  0.494  0.528  0.511
+SM      NaN    NaN  0.509  0.481  0.496  0.479
+MTL     NaN    NaN    NaN  0.484  0.487  0.482
+pSM     NaN    NaN    NaN    NaN  0.508  0.523
+PCun    NaN    NaN    NaN    NaN    NaN  0.463
+Old:
+        PFC    Vis     SM    MTL    pSM   PCun
+PFC   0.513  0.515  0.465  0.475  0.519  0.505
+Vis     NaN  0.534  0.480  0.507  0.509  0.502
+SM      NaN    NaN  0.440  0.471  0.519  0.515
+MTL     NaN    NaN    NaN  0.482  0.471  0.478
+pSM     NaN    NaN    NaN    NaN  0.522  0.463
+PCun    NaN    NaN    NaN    NaN    NaN  0.474
+
+
+Do OA show less ERS between BL and OBJ linked to congruency?
+OA gives tons of signif results if not stdizing connectivity?
+
+change radial to rbf, since i think radial can drive results if stdize is used and condition sample sizes are unequal?
+
 13 days * 14g/d * .62/.6 = 188
+
+# Look into 0.95 threshold. Maybe gives a better MTL and maybe a DAN?
 
 1. Open with the classification results
 - Shows that OA are more responsive to schemas
 con_hit has 1:3 miss:hit whereas vis_hit was about 3:5 and his_hit has about 1:1. The imbalanced con could be why its null
+TODO: look into voxelwise activation ERS?
 2. (Fail) Tried looking at the accuracy of participant's congruency responses, but I found nothing
 3. YA show more MTL variability albeit not specific to a condition
 4. ERS with con3 only if congruent
 ------- Vis within activity -------
 ERS effect (1) | cond0: ef = 0.00093 [0.00524], t = 0.18 | cond1: ef = 0.01341 [0.00570], t = 2.35 | interaction: t = -1.65
 ERS effect (2) | cond0: ef = 0.00606 [0.00736], t = 0.82 | cond1: ef = 0.00897 [0.00341], t = 2.63 | interaction: t = -0.34
+
+OAs show an ERS (obj x con) in the PFC if congruent
+------- PFC within activity -------
+ERS effect (1) | cond0: ef = -0.00210 [0.00657], t = -0.32 | cond1: ef = -0.00011 [0.00588], t = -0.02 | interaction: t = -0.21
+ERS effect (2) | cond0: ef = 0.00677 [0.00503], t = 1.35 | cond1: ef = 0.01137 [0.00473], t = 2.41 | interaction: t = -0.75
+------- PFC within conn -------
+ERS effect (1) | cond0: ef = -0.00022 [0.00276], t = -0.08 | cond1: ef = 0.00027 [0.00263], t = 0.10 | interaction: t = -0.12
+ERS effect (2) | cond0: ef = 0.00110 [0.00327], t = 0.34 | cond1: ef = 0.00670 [0.00233], t = 2.88 | interaction: t = -1.57
+
+Reinstatement of scene in OA:
+------- SM within activity -------
+ERS effect (1) | cond0: ef = 0.00418 [0.00366], t = 1.14 | cond1: ef = 0.00335 [0.00552], t = 0.61 | interaction: t = 0.13
+ERS effect (2) | cond0: ef = 0.00925 [0.00441], t = 2.10 | cond1: ef = 0.00548 [0.00330], t = 1.66 | interaction: t = 0.64
+------- SM within conn -------
+
+
+
+
+
 
 
 . here, i'm really having trouble even seeing morsels of an effect. as in, when i run 30,000 t-tests (one per connectivity edge) looking at subsequent conceptual hit vs. miss, and i set some uncorrected threshold (e.g,. p = .005, p = .001, etc), i'm always finding that the number of significant results is roughly equal to the number of false positives that would be expected due to chance.

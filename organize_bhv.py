@@ -542,4 +542,6 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    get_trial_info_('102')
+    df_sn = get_trial_info_('102')
+    print(df_sn['inc_hit_hit'])
+

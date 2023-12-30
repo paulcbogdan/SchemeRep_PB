@@ -14,7 +14,7 @@ from modularity import get_partition_matrix
 from organize_bhv import get_trial_info
 from org_sns import get_all_sns
 from utils import stdize
-
+import pickle
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
@@ -27,7 +27,9 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                           split=split, split_code='xyz',
                           new_space='3' in fp or '4' in fp)
     coords = atlas['coords']
-    print(f'{fp=}')
+    # with open(f'cache/{atlas_name}_coords.pkl', 'wb') as f:
+    #     pickle.dump(coords, f)
+    # quit()
     age2sn = get_all_sns('all' if fp_all else fp, sh=False)
     # age_sn_inc_conn = []
     # age_sn_conn = []
@@ -40,7 +42,10 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     sn_idx = 0
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
-        ROIs_l = get_BNA_ROIs(code=None)
+        # if atlas == 'schaefer':
+        #     ROIs_l = get_BNA_ROIs(code='schaefer')
+        # else:
+        ROIs_l = get_BNA_ROIs(code=atlas_name)
         for sn in sns:
             print(f'Prepping FC: {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
@@ -51,7 +56,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=False,
-                                     easy_override=False,
+                                     easy_override=True if sn == '132' else False,
                                      combine_regions=False)
             activity_ar = []
             for ROI in ROIs_l:

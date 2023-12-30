@@ -15,6 +15,7 @@ def conn_ERS_p(sn_inc_activity0, sn_inc_activity1, age2idxs, edges,
                trial_similarity='corr', activity=False):
     same_Ms_all = []
     dif_Ms_all = []
+    out_strs = []
     for age in [1, 2]:
         sn_idxs = age2idxs[age]
         # print(sn_idxs)
@@ -81,13 +82,16 @@ def conn_ERS_p(sn_inc_activity0, sn_inc_activity1, age2idxs, edges,
         ef_sd = np.nanstd(ef_Ms_age, axis=0)
         ef_se = ef_sd / np.sqrt(ef_Ms_age.shape[0])
         ef_t = ef_gm / ef_se
-        print(f'ERS effect ({age}) | '
-              f'cond0: ef = {ef_gm[0]:.5f} [{ef_se[0]:.5f}], t = {ef_t[0]:.2f} | '
-              f'cond1: ef = {ef_gm[1]:.5f} [{ef_se[1]:.5f}], t = {ef_t[1]:.2f} | '
-              f'interaction: t = {ef_t[2]:.2f}')
+        out_str = f'ERS effect ({age}) | ' \
+              f'cond0: ef = {ef_gm[0]:.5f} [{ef_se[0]:.5f}], t = {ef_t[0]:.2f} | ' \
+              f'cond1: ef = {ef_gm[1]:.5f} [{ef_se[1]:.5f}], t = {ef_t[1]:.2f} | ' \
+              f'interaction: t = {ef_t[2]:.2f}'
+        print(out_str)
 
         same_Ms_all.append(same_Ms_age)
         dif_Ms_all.append(dif_Ms_age)
+        out_strs.append(out_str)
+    return out_strs
 
 
 
@@ -133,9 +137,6 @@ def conn_similarity(sn_inc_activity, age2idxs, top_edges_mat,
                 if n_not_nans < 20:
                     print(f'Not enough non-nans: {n_not_nans=}')
                     break
-
-
-
 
                 act0 = act0.T
                 act0 = abs(act0[:, None, :] - act0[:, :, None])
