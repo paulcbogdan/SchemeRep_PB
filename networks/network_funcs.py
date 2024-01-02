@@ -42,10 +42,12 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     sn_idx = 0
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
+        print(f'{len(sns)=}')
         # if atlas == 'schaefer':
         #     ROIs_l = get_BNA_ROIs(code='schaefer')
         # else:
         ROIs_l = get_BNA_ROIs(code=atlas_name)
+
         for sn in sns:
             print(f'Prepping FC: {sn=}')
             df_sn = get_trial_info(sn, easy_override=True)
@@ -58,10 +60,15 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                                      org_by_region=False,
                                      easy_override=True if sn == '132' else False,
                                      combine_regions=False)
+
             activity_ar = []
             for ROI in ROIs_l:
-                activity_ar.append(np.nanmean(ROI2vecs0[ROI], axis=1))
+                if ROI not in ROI2vecs0:
+                    activity_ar.append(np.full(114, np.nan))
+                else:
+                    activity_ar.append(np.nanmean(ROI2vecs0[ROI], axis=1))
             activity_ar = np.array(activity_ar)
+
             conn_no_cond = np.corrcoef(activity_ar)
             sn_conn.append(conn_no_cond)
             activity_inc = []
@@ -124,6 +131,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             sn_inc_conn.append(conns)
             age2idxs[age].append(sn_idx)
             sn_inc_activity.append(activity_inc)
+
             sn_idx += 1
     sn_inc_conn = np.array(sn_inc_conn)
     sn_conn = np.array(sn_conn)

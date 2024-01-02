@@ -400,7 +400,8 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     df_sn, n_trials, ROI_to_RDM_fMRI, ROIs, ROI_nums = \
         prep_variables(sn, cin, atlas, org_by_region,
                        ret=('vis' in fp_fMRI_col or 'con' in fp_fMRI_col))
-    sess = fp_fMRI_col.split('_')[0].replace('2', '').replace('3', '')
+    sess = fp_fMRI_col.split('_')[0].replace('2', '').replace('3', '').\
+        replace('4', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     if shuffle:
@@ -610,7 +611,7 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     inc = None
     # if True:
-    for age in [2]:
+    for age in [1, 2]:
         for inc in [None]:
             for DNN_layer, semantic in [
                 (2, False),
@@ -620,7 +621,7 @@ def run_multi_settings():
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                    'cmb3_fMRI',
+                    'obj4_fMRI',
                                     # 'bl3_fMRI',
                                     # 'obj3_fMRI',
                                     # 'scn3_fMRI',

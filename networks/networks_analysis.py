@@ -4,6 +4,8 @@ from modularity import get_partition_matrix, get_main_partitions
 from classifiers import partition_classifier
 from network_funcs import load_FC_for_Lifu, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
+from network_clf import generic_prep
+from subject_specific import graph_theory
 from utils import pickle_wrap
 
 
@@ -132,60 +134,67 @@ def rand_test(threshold=0.9, way3=False):
             print(f'{np.mean(difs)=} [{np.std(difs)=})]')
 
 
-def variability(threshold=0.9):
+def variability(threshold=0.99):
 
     fp = 'obj4_fMRI'
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
+              'atlas_name': 'schaefer',
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    # kwargs = {'fp': fp, 'split': False,
-    #           # 'key': 'hit_hit',
-    #           'key': 'con_hit',
-    #           'key_vals': (False, True),
-    #           'odd_even': False,
-    #           'pad_nan': True}
 
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
-    sn_inc_activity = np.array(sn_inc_activity)
+    fp = ('con3_fMRI', 'vis3_fMRI')
+    kwargs = {'fp': fp, 'split': False,
+              'key': 'hit_hit',
+              # 'key': 'con_hit',
+              'atlas_name': 'schaefer',
+              'key_vals': (False, True),
+              'odd_even': False,
+              }
 
+    # sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
+    #                                                               load_FC_for_Lifu, kwargs=kwargs,
+    #                                                               verbose=1, easy_override=False,
+    #                                                               cache_dir='../cache')
+    # sn_inc_activity = np.array(sn_inc_activity)
+    #
+    # # partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
+    # #     sn_conn, plot=True, threshold=threshold, overlapping=True),
+    # #                                         easy_override=True)
+    #
+    # fp = 'cache/test.pkl'
     # partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
-    #     sn_conn, plot=True, threshold=threshold, overlapping=True),
-    #                                         easy_override=True)
+    #     sn_conn, plot=False, threshold=threshold), easy_override=False)
+    #
+    # sn_inc_conn_unthresh = sn_inc_conn.copy()
+    # sn_inc_conn[:, :, ~top_edges_mat] = np.nan
+    #
+    # # partitions = [list(range(246))]
+    #
+    # i2name = {0.9: {0: 'PFC+', 1: 'MTL+'},
+    #           0.95: {0: 'MTL+', 2: 'dPFC', 5: 'vPFC'}}
+    # i2name = {0.9: {0: 'PFC+', 1: 'MTL+',  3: 'Vis'}}
 
-    fp = 'cache/test.pkl'
-    partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
-        sn_conn, plot=False, threshold=threshold), easy_override=False)
-
-    sn_inc_conn_unthresh = sn_inc_conn.copy()
-    sn_inc_conn[:, :, ~top_edges_mat] = np.nan
-
-    # partitions = [list(range(246))]
-
-    i2name = {0.9: {0: 'PFC+', 1: 'MTL+'},
-              0.95: {0: 'MTL+', 2: 'dPFC', 5: 'vPFC'}}
-    i2name = {0.9: {0: 'PFC+', 1: 'MTL+',  3: 'Vis'}}
+    partitions, sn_inc_activity, age2idxs, top_edges_mat, i2name = \
+        generic_prep(kwargs, threshold=threshold)
 
     for i, p in enumerate(partitions):
         # if i < 1: continue
-        if i not in i2name[threshold]:
+        if i not in i2name:
             continue
         p_top_edges = get_partition_matrix(top_edges_mat, p)
         p_data = sn_inc_activity[..., p, :]
         # print(f'{p=}')
-        print(f'------- {i2name[threshold][i]} -------')
+        print(f'------- {i2name[i]} -------')
 
         # print(' Subject-specific:')
         # continue
-        # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
-        # #              measure='shortest')
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+                     measure='shortest')
         # # print('-*-*-')
-        # # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
-        # #              measure='clustering')
+        graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
+                     measure='clustering')
         # # print('-*-*-')
         # # continue
         # graph_theory(sn_inc_activity, age2idxs, p_top_edges, p,
@@ -197,15 +206,15 @@ def variability(threshold=0.9):
         # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
         #                        variability=False)
         # print(' Variability:')
-        subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
-                               variability=True)
+        # subj_specific_repeated(p_data, age2idxs, p_top_edges, p,
+        #                        variability=True)
         # print()
 
 
 
 
 if __name__ == '__main__':
-    THRESHOLD = 0.9
+    # THRESHOLD = 0.9
     # Fig15_Table2_analyses(THRESHOLD)
     # quit()
     # Fig16a_analyses(THRESHOLD, memory_type='vis_hit')

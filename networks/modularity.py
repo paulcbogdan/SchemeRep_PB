@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 
@@ -116,8 +117,11 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             fn = f'{overlap_str}_{fn_str}thr{threshold}_p{i}.png'
             print(f'Plot: {fn=}')
             title = f'Partition {i}'
+            cur_dir = os.getcwd()
+            dir_out = f'{cur_dir}/result_pics/nichord'
+            print(f'\t{dir_out=}')
             plot_nichord(coords, fn, title, corr=M_corr_part,
-                         dir_out='result_pics/nichord', )
+                         dir_out=dir_out,)
     partitions = [p for p in partitions]
     return partitions, matrix_mask
 

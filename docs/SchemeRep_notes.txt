@@ -1,3 +1,36 @@
+What can we really say?
+* We see graph theory differences between YA and OA but these aren't linked to condition
+* Activation-based classification (of??) works in the PFC, Vis, and SM for both YA and OA
+- Schaefer inc atlas suggests OA only on Vis activation. OA also stronger MTL and PFC-MTL
+* Strong tests of connectivity (i.e., segment off 5 trials and use correlations) yield questionable results
+- Stratification_strategy allow
+		stratification_type=1
+		kwargs={'fp': ('obj4_fMRI',), 'split': False, 'key': ('inc',), 'key_vals': (1, 3), 'odd_even': False}
+		title="('inc',), obj4_fMRI, group=False"
+		Young:
+			  activity    PFC    Vis     SM    MTL    pSM   PCun
+		PFC      4.405  2.389  2.094  2.862  1.741  2.733  2.648
+		Vis      2.545    NaN  1.589  2.800  2.837  3.096  1.118
+		SM       3.497    NaN    NaN  3.523  3.421  1.268  2.426
+		MTL      3.049    NaN    NaN    NaN  1.572  1.582  1.636
+		pSM      1.201    NaN    NaN    NaN    NaN  2.954  1.337
+		PCun     2.848    NaN    NaN    NaN    NaN    NaN  0.741
+		Old:
+			  activity    PFC    Vis     SM    MTL    pSM   PCun
+		PFC      4.467  2.068  2.946  4.662  3.642  3.863  3.569
+		Vis      5.486    NaN  3.836  5.101  2.803  3.751  2.524
+		SM       5.796    NaN    NaN  5.262  3.079  2.525  5.403
+		MTL      1.920    NaN    NaN    NaN  2.327  3.232  0.591
+		pSM      2.534    NaN    NaN    NaN    NaN  2.269  1.920
+		PCun     5.141    NaN    NaN    NaN    NaN    NaN  2.010
+
+Go back to the prediction error stuff??
+
+There is a fundamental difference between single-trial connectivity for RSA vs classification
+	For RSA, normalization is possible because i and j can be excluded from mean/std, but
+	because classification cobmines data from all examples, it is not possible there
+	
+Using both ('vis_hit', 'con_hit') keys leads to super high accuracy and i don't know why
 
 dropping bad_sns
 kwargs={'fp': ('obj4_fMRI', 'bl3_fMRI'), 'split': False, 'key': ('vis_hit', 'con_hit'), 'atlas_name': 'BNA', 'key_vals': (False, True), 'odd_even': False, 'pad_nan': True, 'fp_all': True}

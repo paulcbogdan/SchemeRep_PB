@@ -281,7 +281,7 @@ def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
                         biggest = c
 
                 if len(biggest) < 20 and measure != 'len':
-                    print(f'Bad: {age=}, {sn=}, {inc0=}, {len(biggest)=}')
+                    # print(f'Bad: {age=}, {sn=}, {inc0=}, {len(biggest)=}')
                     break
                 if len(biggest) > biggest_of_any:
                     biggest_of_any = len(biggest)
@@ -325,6 +325,7 @@ def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
                 scores_age.append(scores_sn)
         scores_age = np.array(scores_age)
         # print(f'{scores_age.shape=}')
+        # print(f'{scores_age=}')
         age_M = np.nanmean(scores_age, axis=1)
         age_Ms.append(age_M)
 

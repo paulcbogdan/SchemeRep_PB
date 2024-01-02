@@ -67,11 +67,11 @@ def do_ttest(d, key, ROI, wilcox=False):
         M0 = np.nanmean(d['z'][key][ROI] > 0.)
         return M0, t, p, 0
     else:
-        # M0 = np.nanmean(d['z'][key][ROI])
-        # SD = np.nanstd(d['z'][key][ROI])
+        M0 = np.nanmean(d['z'][key][ROI])
+        SD = np.nanstd(d['z'][key][ROI])
 
-        M0 = np.nanmean(d['rxr'][key][ROI])
-        SD = np.nanstd(d['rxr'][key][ROI])
+        # M0 = np.nanmean(d['rxr'][key][ROI])
+        # SD = np.nanstd(d['rxr'][key][ROI])
 
         N = np.sum(~np.isnan(d['z'][key][ROI]))
         SE = SD / np.sqrt(N)
@@ -146,14 +146,14 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
-                 bilateral=False, combine_regions=False,
+def analyze_ROIs(age=2, early=True, semantic=False, inc=None,
+                 bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
-                 org_by_region=True, rxr=False,
+                 org_by_region=False, rxr=False,
                  run_lmer=False,
-                 DNN_layer=2, fp_fMRI_col='obj2_fMRI',
+                 DNN_layer=2, fp_fMRI_col='obj4_fMRI',
                  verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='obj'):
+                 req_all_N=False, key='dif_abs_'):
     if fp is None:
         fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
                         DNN_layer=DNN_layer,
