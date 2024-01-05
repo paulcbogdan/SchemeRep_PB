@@ -15,7 +15,6 @@ from pandas.api.types import is_numeric_dtype
 
 def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
                                    keys=('inc', 'con_hit'),
-                                   # conds=((1, 3), (False, True))
                                    only_sh_sns=False
                                    ):
     atlas = get_atlas(combine_regions=False, combine_bilateral=False,
@@ -110,8 +109,57 @@ def include_shenyang_memory(df):
     d_test = list((x, y) for x, y in df[['sn', 'obj']].values)
     # print(len(d_test))
     # quit()
-    df['con_hit'] = df.apply(lambda x: d[(x['sn'], x['obj'])], axis=1)
+    df['con_hit'] = df.apply(lambda x: d[(x['sn'], x['obj'])] if
+                     (x['sn'], x['obj']) in d else np.nan, axis=1)
     return df
+
+def do_univariate_living(fp='bl3_fMRI'):
+    pd.set_option('display.max_rows', 115)
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'living',
+    #           'conds': (False, True),
+    #           }
+    kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
+              'only_sh_sns': True}
+    df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
+                                kwargs=kwargs, cache_dir='cache',
+                                easy_override=False)
+    # df = include_shenyang_memory(df)
+    # df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
+    # print(df['con_hit'].value_counts())
+    # for sn, df_sn in df.groupby('sn'):
+    #     print(f'{sn=}')
+    #     print(df_sn['con_hit'].value_counts())
+    #     print('--------------------------')
+    # quit()
+    # df = include_shenyang_memory(df)
+    df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
+    df['obj'] = df['obj'].astype(str)
+    df.reset_index(inplace=True)
+
+    from pymer4.models import Lmer
+    for ROI in ROI_cols:
+        print('-'*100)
+        print(f'{ROI=}')
+        # if 'ITG' not in ROI:
+        #     continue
+        # if 'EVC_R_5_1' not in ROI:
+        #     continue
+        formula = f'{ROI} ~ living + (1|sn)'
+        keys = keys_from_formula(formula)
+        model = Lmer(formula, data=df[keys].dropna())
+        try:
+            model.fit(REML=True, verbose=False, summary=False)
+        except Exception as e:
+            print(f'Error fitting model: {e}')
+            continue
+        print(model.summary())
+        result = model.anova()
+        print(result)
+        # quit()
+
+
 
 def do_univariate_analysis(fp='cmb3_fMRI'):
     pd.set_option('display.max_rows', 115)
@@ -213,9 +261,10 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
 
 if __name__ == '__main__':
     # prep_activation_for_univariate('bl3_fMRI')
-    do_univariate_analysis(fp='scn3_fMRI')
-    do_univariate_analysis(fp='obj3_fMRI')
-    do_univariate_analysis(fp='cmb3_fMRI')
+    do_univariate_living()
+    # do_univariate_analysis(fp='scn3_fMRI')
+    # do_univariate_analysis(fp='obj3_fMRI')
+    # do_univariate_analysis(fp='cmb3_fMRI')
 
     # do_univariate_analysis(fp='con3_fMRI')
 

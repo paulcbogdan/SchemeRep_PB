@@ -3,8 +3,10 @@ from nichord import get_idx_to_label
 from nichord.combine import plot_and_combine
 from scipy import stats
 
+from atlas_utils import get_atlas
 from modularity import get_BNA_coords, plot_nichord
 from network_funcs import load_FC_for_Lifu
+from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from NBS import get_NBS_clusters
 import numpy as np
@@ -72,20 +74,57 @@ def perm_test(sn_inc_conn, age2idxs, alpha_thresh):
         print('------')
     quit()
 
-def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
+def plot_M():
     fp = 'obj4_fMRI'
+    fp = 'con3_fMRI'
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
               'key_vals': (1, 3)
               }
-    kwargs = {'fp': fp, 'split': False,
-              'key': 'vis_hit',
-              'key_vals': (False, True)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    print(sn_inc_conn.shape)
+    atlas = get_atlas(schaefer=False)
+    fp2name = {'obj4_fMRI': 'obj. encoding',
+               'con3_fMRI': 'conc. retrieval',
+               'vis3_fMRI': 'vis. retrieval'}
+    M_graph = np.nanmean(sn_inc_conn, axis=(0, 1))
+    plot_connectivity(M_graph,
+                      atlas['ticks'],
+                      atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'{fp2name[kwargs["fp"]]} | mean connectivity (YA + OA)',
+                      # vmin=-4, vmax=4,
+                      cbar_label='t-value')
+
+def ANOVA_edges():
+    pass
+
+def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
+    # TODO: Anova?
+    fp = 'obj4_fMRI'
+    fp = 'bl3_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc',
+              'key_vals': (1, 3)
+              }
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'living',
+              'key_vals': (False, True)
+              }
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'vis_hit',
+    #           'key_vals': (False, True),
+    #           'odd_even': False
+    #           }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
     cnt_trials0 = np.sum(~np.isnan(sn_inc_activity[:, 0, 0, :]))
     cnt_trials1 = np.sum(~np.isnan(sn_inc_activity[:, 1, 0, :]))
     ratio = cnt_trials0 / cnt_trials1
@@ -119,6 +158,9 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
         get_stats_graphs(sn_inc_conn[:, 0, :, :],
                          sn_inc_conn[:, 1, :, :])
 
+    p12_graph = p2_graph
+    z12_graph = z2_graph
+
     # SD12 = ((SD1_graph ** 2) * (N1_graph - 1) +
     #         (SD2_graph ** 2) * (N2_graph - 1)) / \
     #        (N1_graph + N2_graph - 2)
@@ -128,6 +170,10 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
     # z12_graph = -stats.norm.ppf(p12_graph)
     # # p12_graph = p12_graph_
     p12_graph = np.min([p12_graph, 1 - p12_graph], axis=0)
+    bonf_correction = .05 / 30135 * 1000
+    z_bonf = stats.norm.ppf(bonf_correction)
+    print(f'{z_bonf=:.3f}')
+    # z12_graph[p12_graph > bonf_correction] = np.nan
     p1_graph = np.min([p1_graph, 1 - p1_graph], axis=0)
     p2_graph = np.min([p2_graph, 1 - p2_graph], axis=0)
 
@@ -139,25 +185,41 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
     signif_graph = p12_graph < alpha_thresh
     signif_z_graph = z12_graph.copy()
     signif_z_graph[~signif_graph] = np.nan
-    fig, axs = plt.subplots(1, 2)
-    plt.sca(axs[0])
-    plt.imshow(z12_graph)
-    plt.title('z-graph')
-    plt.colorbar()
-    plt.sca(axs[1])
-    plt.imshow(signif_z_graph, interpolation='none', cmap='RdBu')
-    plt.title('p-graph')
-    plt.show()
-    # quit()ZZZZ
+    # fig, axs = plt.subplots(1, 2)
+    # plt.sca(axs[0])
+
+    atlas = get_atlas(schaefer=False)
+    fp2name = {'obj4_fMRI': 'obj. encoding',
+               'con3_fMRI': 'conc. retrieval',
+               'vis3_fMRI': 'vis. retrieval'}
+    plot_connectivity(z12_graph,
+                      atlas['ticks'],
+                      atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'{fp2name[kwargs["fp"]]} | paired t-test, effect of '
+                            f'{kwargs["key"]} (YA + OA)',
+                      vmin=-4, vmax=4,
+                      cbar_label='t-value')
+    # plt.imshow(z12_graph)
+    # plt.title('Main effect of memory')
+    # plt.title('z-graph')
+    # plt.colorbar()
+    # # plt.sca(axs[1])
+    # # plt.imshow(signif_z_graph, interpolation='none', cmap='RdBu')
+    # # plt.title('p-graph')
+    # plt.show()
+    # quit()
 
     num_correction = .05 / alpha_thresh
     num_ROIs = sn_inc_conn.shape[2]
     num_edges = num_ROIs * (num_ROIs - 1) / 2
     expected_FP = num_edges * alpha_thresh * 2
-    print(f'{alpha_thresh=}, {num_correction=} | '
+    alpha_thresh_z = stats.norm.ppf(alpha_thresh)
+    print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
           f'{num_edges=}, {expected_FP=:.2f}')
     print(f'\tNumber of significant edges: {num_signif=}')
-    # quit()
+    quit()
 
     components, biggest_size = get_NBS_clusters(p12_graph, alpha_thresh)
     coords = get_BNA_coords()
@@ -182,6 +244,7 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.001):
 
 
 if __name__ == '__main__':
+    # plot_M()
     do_NBS()
 
 

@@ -1,19 +1,161 @@
+from pathlib import Path
+
 import numpy as np
 from connsearch.report import plot_ROI_scores
 from matplotlib import pyplot as plt
+from sklearn.model_selection import StratifiedGroupKFold, cross_val_score
+from sklearn.svm import SVC
+from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
 from network_clf import generic_prep
 from utils import stdize
 
+def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region):
+    all_conns = []
+    age_accs = []
+    for age in [1, 2]:
+        age_idxs = age2idxs[age]
+        sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
+        sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
+        age_conns = []
+        for i in range(sn_inc_activity_hc_age.shape[0]):
+            act_hc = sn_inc_activity_hc_age[i]
+            act_sch = sn_inc_activity_sch_age[i]
+            sn_conns = []
+            for cond in range(act_hc.shape[0]):
+                act_hc_cond = act_hc[cond]
+                act_hc_cond = stdize(act_hc_cond, axis=1, nans=True)
+                act_sch_cond = act_sch[cond]
+                act_sch_cond = stdize(act_sch_cond, axis=1, nans=True)
+                for run in range(3):
+                    trial_low = run * 38
+                    trial_high = (run + 1) * 38
+                    act_hc_cond0 = act_hc_cond[:, trial_low:trial_high]
+                    act_sch_cond0 = act_sch_cond[:, trial_low:trial_high]
+                    conn0 = act_hc_cond0[None, ...] * act_sch_cond0[:, None, :]
+                    conn0 = np.nanmean(conn0, axis=-1)
+                    sn_conns.append(conn0)
+            age_conns.append(sn_conns)
+        age_conns = np.array(age_conns)
+        age_conns_m = np.nanmean(age_conns, axis=-1)
+        age_conns_m = np.concatenate([np.nanmean(age_conns_m[:, :3], axis=1,
+                                                 keepdims=True),
+                                      np.nanmean(age_conns_m[:, 3:], axis=1,
+                                                 keepdims=True)],
+                                     axis=1)
+        all_conns.append(age_conns_m)
+        dif_conn = age_conns_m[:, 0] - age_conns_m[:, 1]
+        dif_M = np.nanmean(dif_conn, axis=0)
+        dif_std = np.nanstd(dif_conn, axis=0)
+        dif_N = np.sum(~np.isnan(dif_conn), axis=0)
+        dif_se = dif_std / np.sqrt(dif_N)
+        dif_t = dif_M / dif_se
+        n_sn = age_conns.shape[0]
+        for sn in range(n_sn):
+            for i in range(3):
+                age_conns[sn, i, :] = age_conns[sn, i, :] - \
+                                      age_conns[sn, i + 3, :]
+                age_conns[sn, i + 3, :] = -age_conns[sn, i, :]
+
+        X = np.reshape(age_conns, (age_conns.shape[0] * age_conns.shape[1], -1))
+        nans = np.isnan(X).any(axis=0)
+        X = X[:, ~nans]
+
+        Y = [0, 0, 0, 1, 1, 1] * n_sn
+        groups = np.repeat(np.arange(n_sn), 6)
+
+        accs = []
+        for _ in tqdm(range(125)):
+            grps_unq = np.sort(np.unique(groups))
+            grps_unq_ = np.sort(np.unique(groups))
+            np.random.shuffle(grps_unq_)
+            grp_mapper = {}
+            for i, grp in enumerate(grps_unq):
+                grp_mapper[grp] = grps_unq_[i]
+            groups = np.array([grp_mapper[grp] for grp in groups])
+            cv = StratifiedGroupKFold(n_splits=3)
+            linear = True
+            clf = SVC(kernel='linear' if linear else 'rbf')
+            acc = cross_val_score(clf, X, Y, cv=cv, groups=groups)
+            acc = np.mean(acc)
+            accs.append(acc)
+        age2str = {1: 'YA', 2: 'OA'}
+        print(f'{region}, age: {age2str[age]} | '
+              f'{np.mean(accs)=:.3f} [{np.std(accs)=:.3f}]')
+        age_accs.append(np.mean(accs))
+    return age_accs
+
+def HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
+         accs):
+    all_conns = []
+    for age in [1, 2]:
+        age_idxs = age2idxs[age]
+        print(f'{len(age_idxs)=}')
+        sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
+        sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
+        age_conns = []
+        for i in range(sn_inc_activity_hc_age.shape[0]):
+            act_hc = sn_inc_activity_hc_age[i]
+            act_sch = sn_inc_activity_sch_age[i]
+            sn_conns = []
+            for cond in range(act_hc.shape[0]):
+                act_hc_cond = act_hc[cond]
+                act_hc_cond = stdize(act_hc_cond, axis=1, nans=True)
+                act_sch_cond = act_sch[cond]
+                act_sch_cond = stdize(act_sch_cond, axis=1, nans=True)
+                conn = act_hc_cond[None, ...] * act_sch_cond[:, None, :]
+                conn = np.nanmean(conn, axis=-1)
+                sn_conns.append(conn)
+            age_conns.append(sn_conns)
+        age_conns = np.array(age_conns)
+        age_conns_m = np.nanmean(age_conns, axis=-1)
+        all_conns.append(age_conns_m)
+        dif_conn = age_conns_m[:, 0] - age_conns_m[:, 1]
+        dif_M = np.nanmean(dif_conn, axis=0)
+        dif_std = np.nanstd(dif_conn, axis=0)
+        dif_N = np.sum(~np.isnan(dif_conn), axis=0)
+        dif_se = dif_std / np.sqrt(dif_N)
+        dif_t = dif_M / dif_se
+
+        atlas = get_atlas(schaefer=True)
+        coords = atlas['coords']
+        dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
+        age2str = {1: 'YA', 2: 'OA'}
+        fp_pic = f'mass_ttest/{dir_out}/{region}_{age2str[age]}.png'
+        Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
+        acc = accs[region][age-1]
+        plot_ROI_scores(dif_t, coords, fp_out=fp_pic, show=True,
+                        title=f'{region} | {age2str[age]}, {kwargs["key"]}: '
+                              f'Acc = {acc:.1%}')
+
+    dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
+    fp_pic = f'mass_ttest/{dir_out}/{region}_interaction.png'
+    itr_t = run_two_sample_on_2D(all_conns[0][:, 0] - all_conns[0][:, 1],
+                                 all_conns[1][:, 0] - all_conns[1][:, 1])
+    plot_ROI_scores(itr_t, coords, fp_out=fp_pic, show=True,
+                    title=f'{region} | age x {kwargs["key"]}')
+
+    fp_pic = f'mass_ttest/{dir_out}/{region}_age_eff.png'
+    itr_t = run_two_sample_on_2D(all_conns[0][:, 0] + all_conns[0][:, 1],
+                                 all_conns[1][:, 0] + all_conns[1][:, 1])
+    plot_ROI_scores(itr_t, coords, fp_out=fp_pic, show=True,
+                    title=f'{region} | main effect of age')
+
 
 def run_HC_schaef(threshold=0.95):
-    fp = 'obj4_fMRI'
+    fp = 'vis3_fMRI'
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
               'atlas_name': 'schaefer',
               'key_vals': (1, 3),
+              'odd_even': False,
+              }
+    kwargs = {'fp': fp, 'split': False,
+              'key': 'vis_hit',
+              'atlas_name': 'schaefer',
+              'key_vals': (False, True),
               'odd_even': False,
               }
     partitions, sn_inc_activity_sch, age2idxs, top_edges_mat, i2name = \
@@ -29,68 +171,30 @@ def run_HC_schaef(threshold=0.95):
     _, sn_inc_activity_bna, _, _, _ = generic_prep(kwargs1,
                                                    threshold=threshold)
     print(sn_inc_activity_bna.shape)
-    # BNA = get_atlas()
+    BNA = get_atlas()
     ROIs = get_BNA_ROIs()
-    idxs_hc = [i for i, ROI in enumerate(ROIs) if 'Hipp' in ROI]
-    sn_inc_activity_hc = sn_inc_activity_bna[:, :, idxs_hc, :]
-    # idxs_phg = [i for i, ROI in enumerate(ROIs) if 'PhG' in ROI]
-
-    all_conns = []
-    for age in [1, 2]:
-        age_idxs = age2idxs[age]
-        sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
-        sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
-        age_conns = []
-        for i in range(sn_inc_activity_hc_age.shape[0]):
-            act_hc = sn_inc_activity_hc_age[i]
-            act_sch = sn_inc_activity_sch_age[i]
-            # print(act_hc.shape)
-            # print(f'{act_sch.shape=}')
-            # n_nans = np.sum(np.isnan(act_sch[1, :, :]))
-            # n_non_nans = np.sum(~np.isnan(act_sch[1, :, :]))
-            # print(f'{n_nans=}, {n_non_nans=}')
-            # quit()
-            sn_conns = []
-            for cond in range(act_hc.shape[0]):
-                act_hc_cond = act_hc[cond]
-                act_hc_cond = stdize(act_hc_cond, axis=1, nans=True)
-                act_sch_cond = act_sch[cond]
-
-                act_sch_cond = stdize(act_sch_cond, axis=1, nans=True)
-                conn = act_hc_cond[None, ...] * act_sch_cond[:, None, :]
-                conn = np.nanmean(conn, axis=-1)
-                sn_conns.append(conn)
-                # print(conn)
-                # quit()
-            age_conns.append(sn_conns)
-        age_conns = np.array(age_conns)
-        age_conns = np.nanmean(age_conns, axis=-1)
-        all_conns.append(age_conns)
-
-        dif_conn = age_conns[:, 0] - age_conns[:, 1]
-        dif_M = np.nanmean(dif_conn, axis=0)
-        dif_std = np.nanstd(dif_conn, axis=0)
-        dif_N = np.sum(~np.isnan(dif_conn), axis=0)
-        dif_se = dif_std / np.sqrt(dif_N)
-        dif_t = dif_M / dif_se
-        # dif_t = dif_M
-
-        atlas = get_atlas(schaefer=True)
-        coords = atlas['coords']
-        plot_ROI_scores(dif_t, coords, fp_out=fp, show=True,
-                        title=f'age = {age}')
-
-
-    itr_t = run_two_sample_on_2D(all_conns[0][:, 0] - all_conns[0][:, 1],
-                                 all_conns[1][:, 0] - all_conns[1][:, 1])
-    plot_ROI_scores(itr_t, coords, fp_out=fp, show=True,
-                    title=f'age x inc')
+    regions = BNA['tick_labels']
+    # print(regions)
     # quit()
-    itr_t = run_two_sample_on_2D(all_conns[0][:, 0] + all_conns[0][:, 1],
-                                 all_conns[1][:, 0] + all_conns[1][:, 1])
-    plot_ROI_scores(itr_t, coords, fp_out=fp, show=True,
-                    title=f'age eff')
+    # idxs_hc = [i for i, ROI in enumerate(ROIs) if 'Hipp' in ROI]
+    accs = {}
+    for region in regions:
+        idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
+        sn_inc_activity_rg = sn_inc_activity_bna[:, :, idxs, :]
+        accs_rg = HC_clf(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch,
+                         region)
+        accs[region] = accs_rg
+        HC_t(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch, kwargs,
+             region, accs)
+    quit()
 
+    # idxs_hc = [i for i, ROI in enumerate(ROIs) if 'SFG' in ROI]
+    # idxs_phg = [i for i, ROI in enumerate(ROIs) if 'PhG' in ROI]
+    # idxs_hc += idxs_phg
+
+    # sn_inc_activity_hc = sn_inc_activity_bna[:, :, idxs_hc, :]
+    # HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, fp)
+    # HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, fp)
 
 
 def run_two_sample_on_2D(ar0, ar1):

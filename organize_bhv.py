@@ -7,9 +7,138 @@ from scipy import io
 from glob import glob
 import pandas as pd
 import numpy as np
+import os
 from pathlib import Path
 
 # TODO: measure where congruent is more correlated object x scene
+
+STIM_CATEGORY = {'ambulance1.jpg': 'dead_large',
+                 'apple1.jpg': 'living_fruit',
+                 'atm_exemplar1.jpg': 'dead_medium',
+                 'banana_exemplar1.jpg': 'living_fruit',
+                 'beer1.jpg': 'dead_small_food', #??
+                 'bench_exemplar1.jpg': 'dead_medium',
+                 'briefcase_exemplar1.jpg': 'dead_small',
+                 'binderclip1.jpg': 'dead_small',
+                 'bookbag1.jpg': 'dead_small',
+                 'cabin1.jpg': 'dead_large',
+                 'cactus1.jpg': 'living_plant',
+                 'camel_exemplar1.jpg': 'living_animal',
+                 'cashregister1.jpg': 'dead_medium',
+                 'car_exemplar1.jpg': 'dead_large',
+                 'chalice1.jpg': 'dead_small',
+                 'chandelier1.jpg': 'dead_medium',
+                 'cheeseburger_exemplar1.jpg': 'dead_small_food',
+                 'clown_exemplar1.jpg': 'living_human',
+                 'cockroach_exemplar1.jpg': 'living_animal',
+                 'coffeemachine1.jpg': 'dead_small',
+                 'construction_helmet_exemplar1.jpg': 'dead_small',
+                 'cookie1.jpg': 'dead_food',
+                 'cow_exemplar1.jpg': 'living_animal',
+                 'crib_exemplar1.jpg': 'dead_medium',
+                 'cross_exemplar1.jpg': 'dead_small',
+                 'cuttingboard1.jpg': 'dead_small',
+                 'dining_chair_exemplar1.jpg': 'dead_medium',
+                 'dining_table_exemplar1.jpg': 'dead_medium',
+                 'displaycabinet1.jpg': 'dead_medium',
+                 'dogtoy1.jpg': 'dead_small',
+                 'donut_exemplar1.jpg': 'dead_food',
+                 'doorknob_exemplar1.jpg': 'dead_small',
+                 'dragonfly_exemplar1.jpg': 'living_animal',
+                 'dumbbell1.jpg': 'dead_small',
+                 'ferriswheel1.jpg': 'dead_large',
+                 'firetruck_exemplar1.jpg': 'dead_large',
+                 'flower1.jpg': 'living_plant',
+                 'flower_pot_exemplar1.jpg': 'dead_small',
+                 'football_exemplar1.jpg': 'dead_small',
+                 'frame_exemplar1.jpg': 'dead_small',
+                 'game_token_exemplar1.jpg': 'dead_small',
+                 'gas_can_exemplar1.jpg': 'dead_small',
+                 'gavel_exemplar1.jpg': 'dead_small',
+                 'gift_bag_exemplar1.jpg': 'dead_small',
+                 'goggles_exemplar1.jpg': 'dead_small',
+                 'golfclub1.jpg': 'dead_medium',
+                 'grill1.jpg': 'dead_medium',
+                 'haircomb_exemplar1.jpg': 'dead_small',
+                 'hairdryer_exemplar1.jpg': 'dead_small',
+                 'helmet1.jpg': 'dead_small',
+                 'horse_exemplar1.jpg': 'living_animal',
+                 'iceskate1.jpg': 'dead_small',
+                 'jeep1.jpg': 'dead_medium',
+                 'kayak_exemplar1.jpg': 'dead_medium',
+                 'ladder1.jpg': 'dead_medium',
+                 'laundry_hamper_exemplar1.jpg': 'dead_medium',
+                 'lawmower1.jpg': 'dead_medium',
+                 'lei_exemplar1.jpg': 'dead_small',
+                 'log_exemplar1.jpg':'dead_medium',
+                 'loudspeaker1.jpg': 'dead_medium',
+                 'mailbox_exemplar1.jpg': 'dead_medium',
+                 'microscope_exemplar1.jpg': 'dead_small',
+                 'notebook1.jpg': 'dead_small',
+                 'office_chair_exemplar1.jpg': 'dead_medium',
+                 'ostrich1.jpg': 'living_animal',
+                 'oversizetire1.jpg': 'dead_medium',
+                 'palm_tree_exemplar1.jpg': 'living_plant',
+                 'piano_exemplar1.jpg': 'dead_large',
+                 'picnicblanket1.jpg': 'dead_medium',
+                 'pillow_exemplar1.jpg': 'dead_medium',
+                 'pine_exemplar1.jpg': 'living_plant',
+                 'plant_exemplar1.jpg': 'living_plant',
+                 'podium1.jpg': 'dead_medium',
+                 'poker_table_exemplar1.jpg': 'dead_medium',
+                 'polar_bear_exemplar1.jpg': 'living_animal',
+                 'policebaton1.jpg': 'dead_medium',
+                 'policecar1.jpg': 'dead_large',
+                 'popcorn_machine_exemplar1.jpg': 'dead_medium',
+                 'printer_exemplar1.jpg': 'dead_medium',
+                 'raft_exemplar1.jpg': 'dead_large',
+                 'railroad_exemplar1.jpg': 'dead_large',
+                 'reed1.jpg': 'living_plant',
+                 'religious_statue_exemplar1.jpg': 'dead_small',
+                 'rock-climbing_shoe_exemplar1.jpg': 'dead_small',
+                 'rollerskates_exemplar1.jpg': 'dead_small',
+                 'rose11.jpg': 'living_plant',
+                 'ruler1.jpg': 'dead_small',
+                 'sailboat_exemplar1.jpg': 'dead_large',
+                 'schoolbus1.jpg': 'dead_large',
+                 'scorpion_exemplar1.jpg': 'living_animal',
+                 'seagull_exemplar1.jpg': 'living_animal',
+                 'seal1.jpg': 'living_animal',
+                 'seashell_exemplar1.jpg': 'living_animal', # ?
+                 'seatbelt_exemplar1.jpg': 'dead_small',
+                 'sewing_machine_exemplar1.jpg': 'dead_medium',
+                 'shopping_cart_exemplar1.jpg': 'dead_medium',
+                 'ski_exemplar1.jpg': 'dead_medium',
+                 'slide_exemplar1.jpg': 'dead_large',
+                 'soccerball_exemplar1.jpg': 'dead_small',
+                 'spotlight1.jpg': 'dead_medium',
+                 'sprayer1.jpg': 'dead_medium',
+                 'steering-wheel_exemplar1.jpg': 'dead_small',
+                 'surfboard_exemplar1.jpg': 'dead_medium',
+                 'swimsuit_exemplar1.jpg': 'dead_small',
+                 'television_exemplar1.jpg': 'dead_medium',
+                 'tennis_ball_exemplar1.jpg': 'dead_small',
+                 'tile1.jpg': 'dead_small',
+                 'toilet_exemplar1.jpg': 'dead_medium',
+                 'trafficsign1.jpg': 'dead_medium',
+                 'truck1.jpg': 'dead_large',
+                 'violin_exemplar1.jpg': 'dead_small',
+                 'wheat1.jpg': 'living_plant',
+                 'whistle_exemplar1.jpg': 'dead_small',
+                 'wineglass1.jpg': 'dead_small'}
+
+#
+# from pprint import pprint
+# dir_in = r'C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks\updatedObjectsResampled'
+# fns = os.listdir(dir_in)
+# fns = [fn for fn in fns if fn != '.DS_Store']
+# fns.sort()
+# d = {}
+# for fn in fns:
+#     d[fn] = None
+#
+# pprint(d)
+# quit()
 
 NAME_RENAMER = {'inside of a car': 'car',
                'surfing board': 'surfboard', # object
@@ -107,7 +236,6 @@ def get_trial_info_(sn, ret=True):
                     fp_obj3 = None
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
-
 
             glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_scn3 = glob(glob_scn3)
@@ -291,7 +419,24 @@ def get_trial_info_(sn, ret=True):
         lambda row: np.nan if pd.isna(row['con_hit']) else
         f'{row["inc"]}{int(row["con_hit"])}', axis=1)
     # df_sn = prep_dif(df_sn, sn)
+
+    add_fns(df_sn, sn)
+    # print(list(df_sn['obj_cat']))
     return df_sn
+
+def add_fns(df_sn, sn):
+    trial_info = r'single_trial_conn/trial_info_all.csv'
+    df_info = pd.read_csv(trial_info)
+    df_info = df_info[df_info['ObjectTypeLabel_RCON'] == 'Old']
+    df_info_sn = df_info[df_info['Subject'] == int(sn)]
+    obj_l = df_info_sn['Object'].values
+    fns = df_info_sn['ObjectFile'].values
+    obj2fns = dict(zip(obj_l, fns))
+    df_sn['obj_fn'] = df_sn['obj'].map(obj2fns)
+    df_sn['obj_cat'] = df_sn['obj_fn'].map(STIM_CATEGORY)
+    df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
+
+
 
 def add_onset_time(df_sn, sn):
     trial_info = r'single_trial_conn/trial_info_all.csv'

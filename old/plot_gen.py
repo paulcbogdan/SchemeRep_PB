@@ -63,7 +63,8 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
                        'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
                        'Tha']
 
-    plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo')
+    plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo',
+               interpolation='none')
     plt.yticks(ticks, tick_labels, fontsize=10)
     plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
     # for low in tick_lows:
