@@ -101,7 +101,51 @@ def plot_M():
                       cbar_label='t-value')
 
 def ANOVA_edges():
-    pass
+    # fp = 'scn4_fMRI'
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'scn_cat',
+    #           'key_vals': ('indoor', 'outdoor_developed', 'outdoor_nature')
+    #           }
+    fp = 'obj4_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc',
+              'key_vals': (1, 3)
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    # n_vals = sn_inc_conn.shape[0] * sn_inc_conn.shape[1]
+    n_groups = sn_inc_conn.shape[1]
+    n_sn = sn_inc_conn.shape[0]
+    # n_vals = np.sum(~np.isnan(sn_inc_conn), axis=(0, 1))
+    # SST = np.nanvar(sn_inc_conn, axis=(0, 1)) * (n_vals - 1)
+
+    M_total = np.nanmean(sn_inc_conn, axis=(0, 1))
+    M_cond = np.nanmean(sn_inc_conn, axis=0)
+    SSM = np.nansum((M_cond - M_total) ** 2, axis=0) * (n_sn - 1)
+    M_subj = np.nanmean(sn_inc_conn, axis=1)
+    SSW = np.nansum((sn_inc_conn - M_subj[:, None, :, :]) ** 2, axis=(0, 1))
+
+    SSR = SSW - SSM
+    MSM = SSM / (n_groups - 1)
+    MSR = SSR / (n_sn - n_groups)
+    F = MSM / MSR
+    print(f'{F[0, 1]=}')
+
+    t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
+                           nan_policy='omit')
+    print(t**2)
+    # print(np.nanvar(sn_inc_conn, axis=0).shape)
+    # quit()
+    # SSS = np.nansum(np.nanvar(sn_inc_conn, axis=0) * n_groups, axis=0)
+    # print(sn_inc_conn.shape)
+    # print(SST.shape)
+    # print(f'{SST[0, 1]=}')
+    # print(f'{SSM[0, 1]=}')
+    # print(f'{SSW[0, 1]=}')
+    quit()
 
 def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
     # TODO: Anova?
@@ -245,7 +289,8 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
 
 if __name__ == '__main__':
     # plot_M()
-    do_NBS()
+    # do_NBS()
+    ANOVA_edges()
 
 
 

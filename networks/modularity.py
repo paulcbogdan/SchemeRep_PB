@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from nichord.combine import plot_and_combine
 
+from utils import pickle_wrap
+
 
 def get_binary_matrix(matrix, threshold=.9):
     threshold = np.nanquantile(matrix, threshold)
@@ -15,7 +17,6 @@ def get_binary_matrix(matrix, threshold=.9):
     matrix[matrix < threshold] = 0
     return matrix_binary, matrix_mask
 
-
 def get_modules(matrix_thresh):
     import leidenalg
     import igraph as ig
@@ -24,27 +25,20 @@ def get_modules(matrix_thresh):
                                     seed=0)
     return part
 
-def get_modules_overlapping(matrix_thresh):
+def get_modules_overlapping(matrix_thresh, algo='angel'):
     import networkx as nx
     import matplotlib.pyplot as plt
-    G = nx.from_numpy_array(matrix_thresh)
-    # plt.imshow(matrix_thresh)
-    # plt.show()
-    # quit()
     from cdlib import algorithms
-    nodecluster_obj = algorithms.conga(G, number_communities=50)
-    # nodecluster_obj = algorithms.congo(G, number_communities=20)
-    print(nodecluster_obj)
+    G = nx.from_numpy_array(matrix_thresh)
+    if algo == 'conga':
+        nodecluster_obj = algorithms.conga(G, number_communities=50)
+    elif algo == 'angel':
+        print('Angel...')  # Angel yields results!
+        nodecluster_obj = algorithms.angel(G, min_community_size=10,
+                                           threshold=0.9)
+    else:
+        raise NotImplementedError
     return nodecluster_obj.communities
-    # print(com)
-    print('Angel...') # Angel yields results!
-    nodecluster_obj = algorithms.angel(G, min_community_size=30, threshold=0.9)
-    return nodecluster_obj.communities
-    # # print(com)
-    # for com in nodecluster_obj.communities:
-    #     print(com)
-    #     print(f'{len(com)=}')
-    # quit()
 
 def get_partition_matrix(mat, idx, w_zeros=False):
     if w_zeros:
@@ -81,7 +75,6 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                      network_order=network_order, network_colors=network_colors,
                      title=title, chord_kwargs={'alphas': .5})
 
-
 def get_BNA_coords(code='BNA'):
     if code == 'BNA':
         coords = [[-5, 15, 54], [7, 16, 54], [-18, 24, 53], [22, 26, 51], [-11, 49, 40], [13, 48, 40], [-18, -1, 65],
@@ -93,7 +86,6 @@ def get_BNA_coords(code='BNA'):
         raise NotImplementedError(f'Unknown code: {code}')
     return coords
 
-
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                         threshold=.95, fn_str='', overlapping=False):
     if coords is None:
@@ -104,26 +96,30 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                                                      threshold=threshold)
     M_conn_masked = M_conn * matrix_mask
     if overlapping:
-        partitions = get_modules_overlapping(matrix_binary)
+        partitions = get_modules_overlapping(matrix_binary, algo=overlapping)
     else:
         partitions = get_modules(matrix_binary)
+    print(f'{partitions=}')
     if plot:
         for i, p in enumerate(partitions):
             if len(p) < 5:
                 continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            overlap_str = 'conga' if overlapping else 'Dec22'
-            fn = f'{overlap_str}_{fn_str}thr{threshold}_p{i}.png'
+            # overlap_str = 'conga' if overlapping else 'Dec22'
+            # overlap_str = overlapping if overlapping else 'Jan5'
+            fn = f'{fn_str}thr{threshold}_p{i}_Jan5.png'
             print(f'Plot: {fn=}')
             title = f'Partition {i}'
             cur_dir = os.getcwd()
-            dir_out = f'{cur_dir}/result_pics/nichord'
+            if overlapping:
+                dir_out = f'{cur_dir}/result_pics/nichord/{overlapping}'
+            else:
+                dir_out = f'{cur_dir}/result_pics/nichord'
             print(f'\t{dir_out=}')
             plot_nichord(coords, fn, title, corr=M_corr_part,
                          dir_out=dir_out,)
     partitions = [p for p in partitions]
     return partitions, matrix_mask
-
 
 

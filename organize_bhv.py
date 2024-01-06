@@ -127,9 +127,123 @@ STIM_CATEGORY = {'ambulance1.jpg': 'dead_large',
                  'whistle_exemplar1.jpg': 'dead_small',
                  'wineglass1.jpg': 'dead_small'}
 
-#
+SCENE_CATEGORY =  {'Airport1.jpg': 'outdoor_developed',
+ 'amphitheater1.jpg': 'outdoor_developed',
+ 'amusementpark1.jpg': 'outdoor_developed',
+ 'apartment1.jpg': 'outdoor_developed',
+ 'aquarium1.jpg': 'indoor',
+ 'arcade1.jpg': 'indoor',
+ 'arch1.jpg': 'outdoor_nature',
+ 'attic1.jpg': 'indoor',
+ 'bakery1.jpg': 'indoor',
+ 'balcony1.jpg': 'outdoor_developed',
+ 'bank1.jpg': 'outdoor_developed',
+ 'bar4.jpg': 'indoor',
+ 'barn_2.jpg': 'outdoor_developed',
+ 'bathroom2.jpg': 'indoor',
+ 'beach_2.jpg': 'outdoor_nature',
+ 'bedroom1.jpg': 'indoor',
+ 'bikerack.jpg': 'outdoor_developed',
+ 'bridge1.jpg': 'outdoor_developed',
+ 'buffet1.jpg': 'indoor',
+ 'bus2.jpg': 'indoor',
+ 'busstop1.jpg': 'outdoor_developed',
+ 'campsite1.jpg': 'outdoor_nature',
+ 'canal3.jpg': 'outdoor_developed',
+ 'canyon_1.jpg': 'outdoor_nature',
+ 'carinside1.jpg': 'indoor',
+ 'casino1.jpg': 'indoor',
+ 'castle1.jpg': 'outdoor_developed',
+ 'cemetery3.jpg': 'outdoor_developed',
+ 'church_1.jpg': 'outdoor_developed',
+ 'circusinside1.jpg': 'indoor',
+ 'classroom1.jpg': 'indoor',
+ 'climbingwall1.jpg': 'indoor', # ish
+ 'coast1.jpg': 'outdoor_nature',
+ 'coffeeshop2.jpg': 'indoor',
+ 'collegequad1.jpg': 'outdoor_developed',
+ 'conferenceroom1.jpg': 'indoor',
+ 'constructionsite1.jpg': 'outdoor_developed',
+ 'countryroad2.jpg': 'nature',
+ 'courtroom_3.jpg': 'indoor',
+ 'deli1.jpg': 'indoor',
+ 'desert1.jpg': 'outdoor_nature',
+ 'door1.jpg': 'outdoor_developed',
+ 'driveway1.jpg': 'outdoor_developed',
+ 'dump1.jpg': 'outdoor_developed',
+ 'eiffeltower2.jpg': 'outdoor_developed',
+ 'firestation1.jpg': 'outdoor_developed',
+ 'flowershop1.jpg': 'outdoor_developed',
+ 'footballfield2.jpg': 'outdoor_developed',
+ 'garage1.jpg': 'indoor',
+ 'garden1.jpg': 'outdoor_nature',
+ 'gasstation4.jpg': 'outdoor_developed',
+ 'golfcourse1.jpg': 'outdoor_nature', # ish
+ 'grassland1.jpg': 'outdoor_nature',
+ 'greenhouse1.jpg': 'indoor',
+ 'grocerystore1.jpg': 'indoor',
+ 'gym1.jpg': 'indoor',
+ 'hairsalon3.jpg': 'indoor',
+ 'homeoffice1.jpg': 'indoor',
+ 'hospital1.jpg': 'indoor',
+ 'hotellobby1.jpg': 'indoor',
+ 'house1.jpg': 'outdoor_developed',
+ 'iceberg1.jpg': 'outdoor_nature',
+ 'icestadium1.jpg': 'indoor',
+ 'islands1.jpg': 'outdoor_nature',
+ 'kitchen1.jpg': 'indoor',
+ 'lab3.jpg': 'indoor',
+ 'laundryroom1.jpg': 'indoor',
+ 'lecturehall1.jpg': 'indoor',
+ 'library1.jpg': 'indoor',
+ 'livingroom1.jpg': 'indoor',
+ 'mall2.jpg': 'indoor',
+ 'market1.jpg': 'outdoor_developed',
+ 'mcdonalds.jpg': 'outdoor_developed',
+ 'monstertruck1.jpg': 'indoor',
+ 'mountainssnow1.jpg': 'outdoor_nature',
+ 'movietheater3.jpg': 'indoor',
+ 'museum4.jpg': 'indoor',
+ 'musicstudio10.jpg': 'indoor',
+ 'nursery1.jpg': 'indoor',
+ 'office1.jpg': 'indoor',
+ 'orchard1.jpg': 'outdoor_nature',
+ 'orchestra2.jpg': 'indoor',
+ 'park1.jpg': 'outdoor_nature',
+ 'petstore1.jpg': 'outdoor_developed',
+ 'pier1.jpg': 'outdoor_nature',
+ 'playground1.jpg': 'outdoor_nature',
+ 'policestation1.jpg': 'outdoor_developed',
+ 'pond1.jpg': 'outdoor_nature',
+ 'postoffice1.jpg': 'outdoor_developed',
+ 'prison1.jpg': 'indoor',
+ 'pyramid1.jpg': 'outdoor_nature',
+ 'racetrack1.jpg': 'outdoor_nature',
+ 'restaurant1.jpg': 'indoor',
+ 'restroom-stall1.jpg': 'indoor',
+ 'rollerrink1.jpg': 'indoor',
+ 'sauna1.jpg': 'indoor',
+ 'seaport1.jpg': 'outdoor_developed',
+ 'sewingroom1.jpg': 'indoor',
+ 'shopfront1.jpg': 'indoor',
+ 'soccerfield1.jpg': 'outdoor_nature',
+ 'stage1.jpg': 'indoor',
+ 'swamp1.jpg': 'outdoor_nature',
+ 'swimmingpool1.jpg': 'indoor',
+ 'temple1.jpg': 'outdoor_developed',
+ 'tenniscourt1.jpg': 'outdoor_developed',
+ 'trainstation1.jpg': 'indoor',
+ 'treehouse1.jpg': 'outdoor_nature',
+ 'tropicalvolcano1.jpg': 'outdoor_nature',
+ 'volleyballcourt1.jpg': 'outdoor_developed',
+ 'waterfall1.jpg': 'outdoor_nature',
+ 'waves_1.jpg': 'outdoor_nature',
+ 'winery1.jpg': 'indoor',
+ 'woods1.jpg': 'outdoor_nature',
+ 'zoo1.jpg': 'outdoor_developed'}
+
 # from pprint import pprint
-# dir_in = r'C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks\updatedObjectsResampled'
+# dir_in = r'C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks\updatedScenesResampled'
 # fns = os.listdir(dir_in)
 # fns = [fn for fn in fns if fn != '.DS_Store']
 # fns.sort()
@@ -419,6 +533,10 @@ def get_trial_info_(sn, ret=True):
         lambda row: np.nan if pd.isna(row['con_hit']) else
         f'{row["inc"]}{int(row["con_hit"])}', axis=1)
     # df_sn = prep_dif(df_sn, sn)
+    df_sn['true'] = True
+
+    df_sn['i_nc'] = df_sn['inc'].apply(lambda x: 'i' if x == 1 else 'nc')
+    df_sn['in_c'] = df_sn['inc'].apply(lambda x: 'c' if x == 3 else 'in')
 
     add_fns(df_sn, sn)
     # print(list(df_sn['obj_cat']))
@@ -431,9 +549,13 @@ def add_fns(df_sn, sn):
     df_info_sn = df_info[df_info['Subject'] == int(sn)]
     obj_l = df_info_sn['Object'].values
     fns = df_info_sn['ObjectFile'].values
+    fns_scn = df_info_sn['SceneFile'].values
     obj2fns = dict(zip(obj_l, fns))
+    obj2fns_scn = dict(zip(obj_l, fns_scn))
     df_sn['obj_fn'] = df_sn['obj'].map(obj2fns)
+    df_sn['scn_fn'] = df_sn['scene'].map(obj2fns_scn)
     df_sn['obj_cat'] = df_sn['obj_fn'].map(STIM_CATEGORY)
+    df_sn['scn_cat'] = df_sn['scn_fn'].map(SCENE_CATEGORY)
     df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
 
 
