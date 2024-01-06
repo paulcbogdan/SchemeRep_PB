@@ -101,12 +101,19 @@ def plot_M():
                       cbar_label='t-value')
 
 def ANOVA_edges():
-    # fp = 'scn4_fMRI'
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'scn_cat',
-    #           'key_vals': ('indoor', 'outdoor_developed', 'outdoor_nature')
-    #           }
+    fp = 'scn4_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'scn_cat',
+              'key_vals': ('indoor', 'outdoor_developed', 'outdoor_nature')
+              }
+    fp = 'obj4_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'obj_cat',
+              'key_vals': ('living_animal', 'dead_small', 'dead_large',
+                           'living_plant', 'dead_medium')
+              }
     fp = 'obj4_fMRI'
     kwargs = {'fp': fp,
               'split': False,
@@ -116,36 +123,82 @@ def ANOVA_edges():
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
-    # n_vals = sn_inc_conn.shape[0] * sn_inc_conn.shape[1]
-    n_groups = sn_inc_conn.shape[1]
-    n_sn = sn_inc_conn.shape[0]
-    # n_vals = np.sum(~np.isnan(sn_inc_conn), axis=(0, 1))
-    # SST = np.nanvar(sn_inc_conn, axis=(0, 1)) * (n_vals - 1)
+    nans = np.sum(np.isnan(sn_inc_conn))
+    non_nans = np.sum(~np.isnan(sn_inc_conn))
 
+    # # n_vals = sn_inc_conn.shape[0] * sn_inc_conn.shape[1]
+    # n_groups = sn_inc_conn.shape[1]
+    # n_sn = sn_inc_conn.shape[0]
+    # # n_vals = np.sum(~np.isnan(sn_inc_conn), axis=(0, 1))
+    # # SST = np.nanvar(sn_inc_conn, axis=(0, 1)) * (n_vals - 1)
+    #
+    # M_total = np.nanmean(sn_inc_conn, axis=(0, 1))
+    # M_cond = np.nanmean(sn_inc_conn, axis=0)
+    # SSM = np.nansum((M_cond - M_total) ** 2, axis=0) * (n_sn - 1)
+    # M_subj = np.nanmean(sn_inc_conn, axis=1)
+    # SSW = np.nansum((sn_inc_conn - M_subj[:, None, :, :]) ** 2, axis=(0, 1))
+    #
+    # SSR = SSW - SSM
+    # MSM = SSM / (n_groups - 1)
+    # MSR = SSR / (n_sn - n_groups)
+    # F = MSM / MSR
+    # print(f'working: {F[0, 1]=}')
+    # t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
+    #                        nan_policy='omit')
+    # print(f'work: {t**2}')
+
+    n_groups = sn_inc_conn.shape[1]
+    n_sn = np.sum(~np.isnan(sn_inc_conn[:, 0, :, :]), axis=0)
     M_total = np.nanmean(sn_inc_conn, axis=(0, 1))
     M_cond = np.nanmean(sn_inc_conn, axis=0)
-    SSM = np.nansum((M_cond - M_total) ** 2, axis=0) * (n_sn - 1)
+    SSM = np.nansum((M_cond - M_total) ** 2, axis=0) * n_sn
     M_subj = np.nanmean(sn_inc_conn, axis=1)
     SSW = np.nansum((sn_inc_conn - M_subj[:, None, :, :]) ** 2, axis=(0, 1))
 
     SSR = SSW - SSM
     MSM = SSM / (n_groups - 1)
-    MSR = SSR / (n_sn - n_groups)
+    MSR = SSR / ((n_sn - 1) * (n_groups - 1))
+    print(f'{n_sn[0, 1]=}')
     F = MSM / MSR
+    # p = 1 - stats.f.cdf(F, n_groups - 1, n_sn - n_groups)
+    # print(f'ANOVA: {p[0, 1]=}')
     print(f'{F[0, 1]=}')
+    # z = stats.norm.ppf(p)
+
+
+    dif = sn_inc_conn[:, 0, :, :] - sn_inc_conn[:, 1, :, :]
+    M_dif = np.nanmean(dif, axis=0)
+    SE_dif = np.nanstd(dif, axis=0, ddof=1) / np.sqrt(58)
+    t_dif = M_dif / SE_dif
+    print(f'{t_dif[0, 1]**2=}')
+    # p = 1 - stats.t.cdf(t_dif, n_sn - 1)
+    # print(f'paired t-test: {p[0, 1]=}')
+    # F = t_dif ** 2
+    # print(f'{F[0, 1]=}')
 
     t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
                            nan_policy='omit')
     print(t**2)
-    # print(np.nanvar(sn_inc_conn, axis=0).shape)
-    # quit()
-    # SSS = np.nansum(np.nanvar(sn_inc_conn, axis=0) * n_groups, axis=0)
-    # print(sn_inc_conn.shape)
-    # print(SST.shape)
-    # print(f'{SST[0, 1]=}')
-    # print(f'{SSM[0, 1]=}')
-    # print(f'{SSW[0, 1]=}')
     quit()
+    # z = stats.norm.ppf(p)
+    # z = t_dif
+    # F = t_dif ** 2
+
+
+    atlas = get_atlas(schaefer=False)
+    fp2name = {'obj4_fMRI': 'obj. encoding',
+               'con3_fMRI': 'conc. retrieval',
+               'vis3_fMRI': 'vis. retrieval'}
+    plot_connectivity(z,
+                      atlas['ticks'],
+                      atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'scene betas | paired t-test, effect of '
+                            f'{kwargs["key"]} (YA + OA)',
+                      vmin=0, vmax=4,
+                      cbar_label='F-value')
+
 
 def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
     # TODO: Anova?

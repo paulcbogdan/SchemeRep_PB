@@ -13,10 +13,10 @@ from pathlib import Path
 # TODO: measure where congruent is more correlated object x scene
 
 STIM_CATEGORY = {'ambulance1.jpg': 'dead_large',
-                 'apple1.jpg': 'living_fruit',
+                 'apple1.jpg': 'living_plant',
                  'atm_exemplar1.jpg': 'dead_medium',
-                 'banana_exemplar1.jpg': 'living_fruit',
-                 'beer1.jpg': 'dead_small_food', #??
+                 'banana_exemplar1.jpg': 'living_plant',
+                 'beer1.jpg': 'dead_small', #??
                  'bench_exemplar1.jpg': 'dead_medium',
                  'briefcase_exemplar1.jpg': 'dead_small',
                  'binderclip1.jpg': 'dead_small',
@@ -28,12 +28,12 @@ STIM_CATEGORY = {'ambulance1.jpg': 'dead_large',
                  'car_exemplar1.jpg': 'dead_large',
                  'chalice1.jpg': 'dead_small',
                  'chandelier1.jpg': 'dead_medium',
-                 'cheeseburger_exemplar1.jpg': 'dead_small_food',
-                 'clown_exemplar1.jpg': 'living_human',
+                 'cheeseburger_exemplar1.jpg': 'dead_small',
+                 'clown_exemplar1.jpg': 'living_animal',
                  'cockroach_exemplar1.jpg': 'living_animal',
                  'coffeemachine1.jpg': 'dead_small',
                  'construction_helmet_exemplar1.jpg': 'dead_small',
-                 'cookie1.jpg': 'dead_food',
+                 'cookie1.jpg': 'dead_small',
                  'cow_exemplar1.jpg': 'living_animal',
                  'crib_exemplar1.jpg': 'dead_medium',
                  'cross_exemplar1.jpg': 'dead_small',
@@ -42,7 +42,7 @@ STIM_CATEGORY = {'ambulance1.jpg': 'dead_large',
                  'dining_table_exemplar1.jpg': 'dead_medium',
                  'displaycabinet1.jpg': 'dead_medium',
                  'dogtoy1.jpg': 'dead_small',
-                 'donut_exemplar1.jpg': 'dead_food',
+                 'donut_exemplar1.jpg': 'dead_small',
                  'doorknob_exemplar1.jpg': 'dead_small',
                  'dragonfly_exemplar1.jpg': 'living_animal',
                  'dumbbell1.jpg': 'dead_small',
@@ -553,7 +553,7 @@ def add_fns(df_sn, sn):
     obj2fns = dict(zip(obj_l, fns))
     obj2fns_scn = dict(zip(obj_l, fns_scn))
     df_sn['obj_fn'] = df_sn['obj'].map(obj2fns)
-    df_sn['scn_fn'] = df_sn['scene'].map(obj2fns_scn)
+    df_sn['scn_fn'] = df_sn['obj'].map(obj2fns_scn)
     df_sn['obj_cat'] = df_sn['obj_fn'].map(STIM_CATEGORY)
     df_sn['scn_cat'] = df_sn['scn_fn'].map(SCENE_CATEGORY)
     df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
