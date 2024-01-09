@@ -44,11 +44,11 @@ def random_interaction_stuff(d, d2):
         print('-'*100)
     quit()
 
-def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
-                 bilateral=False, combine_regions=False, vec_prod=False,
+def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
+                 bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, PCA_obj=True):
     fn = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                    fp_fMRI_col='obj_fMRI',
+                    fp_fMRI_col='scn4_fMRI',
                     bilateral=bilateral, combine_regions=combine_regions,
                     vec_prod=vec_prod, org_by_region=org_by_region,
                     PCA_obj=PCA_obj)
@@ -57,7 +57,7 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
         d = pickle.load(file)
 
     fn2 = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                     fp_fMRI_col='obj_fMRI',
+                     fp_fMRI_col='obj4_fMRI',
                      bilateral=bilateral, combine_regions=combine_regions,
                      vec_prod=vec_prod, org_by_region=org_by_region,
                      PCA_obj=PCA_obj)
@@ -69,61 +69,19 @@ def test_IRAF_x_activity(age=1, early=True, semantic=False, cin=None,
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       combine_bilateral=bilateral or org_by_region)
     # Can correlated dif_abs IRAF x obj IRAF, both for obj_fMRI?
-    key = 'obj'
+    key = 'scn'
     # left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
     left = [np.array(d2['activity'][roi0]) for roi0 in atlas['ROIs']]
-
-    # bottom = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
-    # bottom = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-
-    #
-    # left = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    # bottom = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    #
-    # left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
-    # bottom = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-
-
-
-
-    # IRAFs = [np.array(d['activity'][roi1]) for roi1 in atlas['ROIs']]
-
-    # activity = [np.array(d['IRAFs_ROI']['dif_abs'][roi1]) for roi1 in atlas['ROIs']]
-    # activity = [np.array(d2['activity'][roi1]) for roi1 in atlas['ROIs']]
-
-    # activity = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-
-    # activity = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
-    # random_interaction_stuff(d, d2)
-    # quit()
-    # activity = [np.array(d2['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
-    # activity = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
-
-    # IRAFs = np.array(IRAFs)
-    # for i in range(31):
-    #     for j in range(5, 20):
-    #         IRAFs[j, i, :] = np.arange(114)
-    #
-    #
-    #
-    #
-    # activity = np.array(activity)
-    # for i in range(31):
-    #     activity[5:10, i, :] = np.arange(114) + np.random.random(114) * .0001
-
-
+    # left = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
+    bottom = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
+    # bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
     bottom = replace_w_nan_if_needed(bottom)
-
     r_Ms, r_SDs, t, _ = bulk_correlate(left, bottom, nans=True)
-    # print(r_Ms.shape)
-    # quit()
-    # t[np.diag_indices_from(t)] = np.nan
     title = make_title_str('', key, age, early, semantic, cin)
-    plot_connectivity(r_Ms, atlas['ticks'], atlas['tick_labels'],
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title, no_avg=True,
-                      cbar_label='t-value', vmin=-0.3, vmax=1)
+                      cbar_label='t-value')
     # vmin=-3
 
 def bulk_correlate(vals0, vals1, nans=False):
@@ -158,6 +116,7 @@ def bulk_correlate(vals0, vals1, nans=False):
 
     n_nans = np.sum(~np.isnan(rs), axis=-1)
     t = r_Ms / r_SDs * np.sqrt(n_nans)
+    t[np.diag_indices_from(t)] = np.nan
     return r_Ms, r_SDs, t, rs
     # print(rs.shape)
     # quit()

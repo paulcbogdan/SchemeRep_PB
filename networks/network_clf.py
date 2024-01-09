@@ -384,8 +384,8 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
 if __name__ == '__main__':
 
     # run_clf()
-    loop_over_ROIs(0.95, group=False)
-    # module_based_clf(group=True)
+    # loop_over_ROIs(0.95, group=False)
+    module_based_clf(group=False)
 
 
 

@@ -26,7 +26,10 @@ def regress_out_multi(X, y):
 def stdize(v, axis=None, nans=False):
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
-    if axis == 2:
+    if axis == 3:
+        return (v - m(v, axis=axis)[:, :, :, None]) / \
+            s(v, axis=axis)[:, :, :, None]
+    elif axis == 2:
         return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
     elif axis == 1:
         return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
@@ -126,7 +129,9 @@ def get_RSA_name(key):
     if key == 'obj':
         key_str = 'Object RSA'
     elif key == 'scn':
-        key_str = 'Scene RSA'
+        key_str = 'Scene stim RSA'
+    elif key == 'scn_':
+        key_str = 'Scene stim RSA (regressed obj. effect)\n'
     elif key == 'scn_abs':
         key_str = 'Abs-scene RSA'
     elif key == 'dif':
@@ -147,10 +152,13 @@ def get_RSA_name(key):
         key_str = 'Abs-product RSA'
     else:
         key_str = ''
+    if key != 'scn_':
+        key_str += '.'
     return key_str
 
-def make_title_str(pre_str, key, age, early, semantic, cin=None,
-                   short=False):
+def make_title_str(pre_str, key, age, early, semantic,
+                   fp=None,
+                   cin=None, short=False):
     key_str = get_RSA_name(key)
     age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
     if semantic:
@@ -162,7 +170,14 @@ def make_title_str(pre_str, key, age, early, semantic, cin=None,
     else:
         inc_str = 'Con, Inc, & Neu' if cin is None else \
             'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
-    out_str = f'{pre_str} {key_str}. {age_str}. {rsa_str}. {inc_str}'
+    if fp:
+        fp2str = {'obj4_fMRI': 'Object betas',
+                  'scn4_fMRI': 'Scene betas'}
+        fp_str = fp2str[fp] + '. '
+    else:
+        fp_str = ''
+
+    out_str = f'{pre_str} {key_str} {fp_str}{age_str}. {rsa_str}. {inc_str}'
     return out_str
 
 

@@ -12,7 +12,8 @@ from conn_utils import get_BNA_ROIs
 from network_clf import generic_prep
 from utils import stdize
 
-def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region):
+def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
+           n_repeats=100):
     all_conns = []
     age_accs = []
     for age in [1, 2]:
@@ -67,7 +68,7 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region):
         groups = np.repeat(np.arange(n_sn), 6)
 
         accs = []
-        for _ in tqdm(range(125)):
+        for _ in tqdm(range(n_repeats)):
             grps_unq = np.sort(np.unique(groups))
             grps_unq_ = np.sort(np.unique(groups))
             np.random.shuffle(grps_unq_)
@@ -88,8 +89,11 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region):
     return age_accs
 
 def HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
-         accs):
+         accs, atlas):
     all_conns = []
+    age2t = {}
+    vmin = 1e6
+    vmax = -1e6
     for age in [1, 2]:
         age_idxs = age2idxs[age]
         print(f'{len(age_idxs)=}')
@@ -111,6 +115,7 @@ def HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
             age_conns.append(sn_conns)
         age_conns = np.array(age_conns)
         age_conns_m = np.nanmean(age_conns, axis=-1)
+
         all_conns.append(age_conns_m)
         dif_conn = age_conns_m[:, 0] - age_conns_m[:, 1]
         dif_M = np.nanmean(dif_conn, axis=0)
@@ -118,17 +123,23 @@ def HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
         dif_N = np.sum(~np.isnan(dif_conn), axis=0)
         dif_se = dif_std / np.sqrt(dif_N)
         dif_t = dif_M / dif_se
+        age2t[age] = dif_t
+        vmin = min(vmin, np.nanquantile(dif_t, 0.025))
+        vmax = max(vmax, np.nanquantile(dif_t, 0.975))
+        print(f'Test: {np.nanquantile(dif_t, 0.975)}')
 
-        atlas = get_atlas(schaefer=True)
+
+    for age in [1, 2]:
         coords = atlas['coords']
         dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
         age2str = {1: 'YA', 2: 'OA'}
         fp_pic = f'mass_ttest/{dir_out}/{region}_{age2str[age]}.png'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
         acc = accs[region][age-1]
-        plot_ROI_scores(dif_t, coords, fp_out=fp_pic, show=True,
+        plot_ROI_scores(age2t[age], coords, fp_out=fp_pic, show=True,
                         title=f'{region} | {age2str[age]}, {kwargs["key"]}: '
-                              f'Acc = {acc:.1%}')
+                              f'Acc = {acc:.1%}',
+                        vmin=vmin, vmax=vmax)
 
     dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
     fp_pic = f'mass_ttest/{dir_out}/{region}_interaction.png'
@@ -143,28 +154,68 @@ def HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
     plot_ROI_scores(itr_t, coords, fp_out=fp_pic, show=True,
                     title=f'{region} | main effect of age')
 
+def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
+           atlas):
+    age2gm = {}
+    vmin = 1e6
+    vmax = -1e6
+    for age in [1, 2]:
+        age_idxs = age2idxs[age]
+        print(f'{len(age_idxs)=}')
+        sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
+        sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
+        age_conns = []
+        for i in range(sn_inc_activity_hc_age.shape[0]):
+            act_hc = sn_inc_activity_hc_age[i]
+            act_sch = sn_inc_activity_sch_age[i]
+            sn_conns = []
+            for cond in range(act_hc.shape[0]):
+                act_hc_cond = act_hc[cond]
+                act_hc_cond = stdize(act_hc_cond, axis=1, nans=True)
+                act_sch_cond = act_sch[cond]
+                act_sch_cond = stdize(act_sch_cond, axis=1, nans=True)
+                conn = act_hc_cond[None, ...] * act_sch_cond[:, None, :]
+                conn = np.nanmean(conn, axis=-1)
+                sn_conns.append(conn)
+            age_conns.append(sn_conns)
+        age_conns = np.array(age_conns)
+        age_conns_m = np.nanmean(age_conns, axis=-1)
+        age_GM = np.nanmean(age_conns_m, axis=(0, 1))
+        age2gm[age] = age_GM
+        vmin = min(vmin, np.nanquantile(age_GM, 0.025))
+        vmax = max(vmax, np.nanquantile(age_GM, 0.975))
+
+    coords = atlas['coords']
+    dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
+    age2str = {0: 'YA & OA', 1: 'YA', 2: 'OA'}
+    GGM = np.nanmean([age2gm[1], age2gm[2]], axis=0)
+    age2gm[0] = GGM
+    for age in [0, 1, 2]:
+        fp_pic = f'mass_M/{dir_out}/{region}_{age2str[age]}.png'
+        Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
+        fp_pic = f'mass_M/{dir_out}/{region}_{age2str[age]}.png'
+        Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
+        plot_ROI_scores(list(age2gm[age]), coords, fp_out=fp_pic, show=True,
+                        title=f'{region} | {age2str[age]}',
+                        vmin=vmin, vmax=vmax, cmap='viridis')
+
 
 def run_HC_schaef(threshold=0.95):
-    fp = 'vis3_fMRI'
+    fp = 'obj4_fMRI'
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
               'atlas_name': 'schaefer',
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    kwargs = {'fp': fp, 'split': False,
-              'key': 'vis_hit',
-              'atlas_name': 'schaefer',
-              'key_vals': (False, True),
-              'odd_even': False,
-              }
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'vis_hit',
+    #           'atlas_name': 'schaefer',
+    #           'key_vals': (False, True),
+    #           'odd_even': False,
+    #           }
     partitions, sn_inc_activity_sch, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
-    # print(sn_inc_activity_sch.shape)
-    # n_nans = np.sum(np.isnan(sn_inc_activity_sch[:, 0]))
-    # n_non_nans = np.sum(~np.isnan(sn_inc_activity_sch[:, 0]))
-    # print(f'{n_nans=}, {n_non_nans=}')
-    # quit()
 
     kwargs1 = kwargs.copy()
     kwargs1['atlas_name'] = 'BNA'
@@ -174,27 +225,25 @@ def run_HC_schaef(threshold=0.95):
     BNA = get_atlas()
     ROIs = get_BNA_ROIs()
     regions = BNA['tick_labels']
-    # print(regions)
-    # quit()
-    # idxs_hc = [i for i, ROI in enumerate(ROIs) if 'Hipp' in ROI]
     accs = {}
+    atlas_sf = get_atlas(schaefer=True)
+
     for region in regions:
+        # if region != 'LOC':
+        #     continue
+
         idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
         sn_inc_activity_rg = sn_inc_activity_bna[:, :, idxs, :]
+        # plot_M(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch, kwargs,
+        #        region, atlas_sf)
+        # continue
         accs_rg = HC_clf(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch,
-                         region)
+                         region, n_repeats=10)
         accs[region] = accs_rg
         HC_t(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch, kwargs,
-             region, accs)
+             region, accs, atlas_sf)
     quit()
 
-    # idxs_hc = [i for i, ROI in enumerate(ROIs) if 'SFG' in ROI]
-    # idxs_phg = [i for i, ROI in enumerate(ROIs) if 'PhG' in ROI]
-    # idxs_hc += idxs_phg
-
-    # sn_inc_activity_hc = sn_inc_activity_bna[:, :, idxs_hc, :]
-    # HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, fp)
-    # HC_t(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, fp)
 
 
 def run_two_sample_on_2D(ar0, ar1):

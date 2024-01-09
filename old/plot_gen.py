@@ -26,11 +26,11 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         M_connect = conn
     # M_connect = np.nanmedian(conn, axis=0)
     if vmin is None:
-        # vmin = np.nanquantile(M_connect, .001)
-        vmin = np.nanmin(M_connect)
-        # vmax = np.nanquantile(M_connect, .999)
+        vmin = np.nanquantile(M_connect, .001)
+        # vmin = np.nanmin(M_connect)
+        vmax = np.nanquantile(M_connect, .999)
         # vmax = max(vmax, 4)
-        vmax = np.nanmax(M_connect)
+        # vmax = np.nanmax(M_connect)
 
     print(f'vmin: {vmin}, vmax: {vmax}')
     # vmin = .2
@@ -162,7 +162,9 @@ def my_plot_surf(Ms, atlas, title):
     # thresh = 2.45
     # thresh = 1
     # thresh = 2.05
-    thresh = 1.65 # p = .05
+    # thresh = 1.65 # p = .05
+    thresh = 2
+    vmax = 4
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     print(f'{thresh=} | {num_above_thresh=}')
     print(Ms)
@@ -216,7 +218,8 @@ def my_plot_surf(Ms, atlas, title):
     # plotting.plot_glass_brain(img, threshold=thresh,
     #                           vmin=thresh, vmax=vabs,)
     fig = plotting.plot_img_on_surf(img, threshold=thresh,
-                                    cmap=cmap, title=title,)
+                                    cmap=cmap, title=title,
+                                    vmax=vmax)
 
     # fig[1][4].set_xticklabels([-2.5, None, 2.5])
     plotting.show()

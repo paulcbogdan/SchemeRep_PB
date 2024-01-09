@@ -18,7 +18,8 @@ import pickle
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
-                     do_sort=False, fp_all=False):
+                     do_sort=False, fp_all=False, voxelwise=False,
+                     regionwise=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -40,6 +41,9 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     # age_l = []
     age2idxs = defaultdict(list)
     sn_idx = 0
+    ROI2act = defaultdict(list)
+    Y = []
+    grp_idxs = []
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
         print(f'{len(sns)=}')
@@ -50,6 +54,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
 
         for sn in sns:
             print(f'Prepping FC: {sn=}')
+            print(sn_idx)
             df_sn = get_trial_info(sn, easy_override=True)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
@@ -57,9 +62,28 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
-                                     org_by_region=False,
-                                     easy_override=True if sn == '132' else False,
+                                     org_by_region=regionwise,
+                                     easy_override=True if sn == '132'
+                                                        else False,
                                      combine_regions=False)
+            print(list(ROI2vecs0))
+            if voxelwise or regionwise:
+                for ROI in ROI2vecs0:
+                # for ROI in ROIs_l:
+                    ROI2act[ROI].append(ROI2vecs0[ROI])
+                y = []
+                for v in df_sn[key]:
+                    for i, key_val in enumerate(key_vals):
+                        if v == key_val:
+                            y.append(i)
+                            break
+                    else:
+                        y.append(np.nan)
+                Y.extend(y)
+                grp_idxs.extend([sn_idx]*114)
+                age2idxs[age].append(sn_idx)
+                sn_idx += 1
+                continue
 
             activity_ar = []
             for ROI in ROIs_l:
@@ -68,7 +92,6 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                 else:
                     activity_ar.append(np.nanmean(ROI2vecs0[ROI], axis=1))
             activity_ar = np.array(activity_ar)
-
             conn_no_cond = np.corrcoef(activity_ar)
             sn_conn.append(conn_no_cond)
             activity_inc = []
@@ -100,17 +123,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                             matching_trials_odd.append(False)
                     activity_inc.append([activity_ar[:, matching_trials_even],
                                             activity_ar[:, matching_trials_odd]])
-                    # matching_even = stdize(activity_ar[:, matching_trials_even],
-                    #                    axis=1)
-                    # conn_even = matching_even[:, None, :] - \
-                    #             matching_even[None, :, :]
-                    # conn_even = np.nanmean(conn_even, axis=-1)
-                    # matching_odd = stdize(activity_ar[:, matching_trials_odd],
-                    #                         axis=1)
-                    # conn_odd = matching_odd[:, None, :] - \
-                    #            matching_odd[None, :, :]
-                    # conn_odd = np.nanmean(conn_odd, axis=-1)
-                    # conns.append([conn_even, conn_odd])
+
                     conns.append([np.corrcoef(activity_ar[:, matching_trials_even]),
                                   np.corrcoef(activity_ar[:, matching_trials_odd])])
                 else:
@@ -118,30 +131,28 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                     activity_ar_matched[:, matching_trials] = \
                         activity_ar[:, matching_trials]
                     activity_inc.append(activity_ar_matched)
-                    # activity_inc.append(activity_ar[:, matching_trials])
-                    # if pad_nan:
-                    #     n_ROIs = activity_inc[-1].shape[0]
-                    #     n_trials = activity_inc[-1].shape[-1]
-                    #     nan_pad = np.full((n_ROIs, 114-n_trials), np.nan)
-                    #     activity_inc[-1] = np.hstack([activity_inc[-1],
-                    #                                   nan_pad])
+
                     conn_inc = np.corrcoef(activity_ar[:, matching_trials])
                     conns.append(conn_inc)
             conns = np.array(conns)
             sn_inc_conn.append(conns)
-            age2idxs[age].append(sn_idx)
             sn_inc_activity.append(activity_inc)
-
+            age2idxs[age].append(sn_idx)
             sn_idx += 1
-    sn_inc_conn = np.array(sn_inc_conn)
-    sn_conn = np.array(sn_conn)
 
-    diag = np.diag_indices(sn_inc_conn.shape[-1])
-    sn_inc_conn[..., diag[0], diag[1]] = np.nan
-    sn_conn[..., diag[0], diag[1]] = np.nan
-    sn_inc_activity = np.array(sn_inc_activity)
-
-    return sn_inc_conn, sn_conn, age2idxs, sn_inc_activity
+    if voxelwise:
+        for ROI, vals in ROI2act.items():
+            ROI2act[ROI] = np.array(vals)
+            print(f'{ROI}, {ROI2act[ROI].shape=}')
+        return ROI2act, Y, grp_idxs, age2idxs
+    else:
+        sn_inc_conn = np.array(sn_inc_conn)
+        sn_conn = np.array(sn_conn)
+        diag = np.diag_indices(sn_inc_conn.shape[-1])
+        sn_inc_conn[..., diag[0], diag[1]] = np.nan
+        sn_conn[..., diag[0], diag[1]] = np.nan
+        sn_inc_activity = np.array(sn_inc_activity)
+        return sn_inc_conn, sn_conn, age2idxs, sn_inc_activity
 
 
 def get_ylim_settings(sn_inc_conn, age2idxs, ps, do_division=True):

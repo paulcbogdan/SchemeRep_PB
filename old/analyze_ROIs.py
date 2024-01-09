@@ -146,14 +146,14 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def analyze_ROIs(age=2, early=True, semantic=False, inc=None,
+def analyze_ROIs(age=2, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
                  org_by_region=False, rxr=False,
                  run_lmer=False,
                  DNN_layer=2, fp_fMRI_col='obj4_fMRI',
                  verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='dif_abs_'):
+                 req_all_N=False, key='obj'):
     if fp is None:
         fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
                         DNN_layer=DNN_layer,
@@ -189,7 +189,8 @@ def analyze_ROIs(age=2, early=True, semantic=False, inc=None,
         colors.append(color)
         if verbose: print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
     if verbose:
-        title_short = make_title_str('', key, age, early, semantic, short=True)
+        title_short = make_title_str('', key, age, early, semantic, short=True,
+                                     fp=fp_fMRI_col)
         my_plot_surf(np.array(ts), atlas, title_short)
         title = make_title_str('', key, age, early, semantic, inc)
         do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
