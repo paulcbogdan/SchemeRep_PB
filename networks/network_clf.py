@@ -100,7 +100,7 @@ def shuffle(sn_inc_activity):
             #     shuffler = np.array([1, 0])
             sn_inc_activity[i, :, :, k] = sn_inc_activity[i, shuffler, :, k]
 
-def loop_over_ROIs(threshold=0.9):
+def loop_over_ROIs(threshold=0.9, group=True):
     fp = 'obj4_fMRI'
     # fp = 'vis3_fMRI'
     # fp = ('obj4_fMRI', 'bl3_fMRI')
@@ -113,7 +113,8 @@ def loop_over_ROIs(threshold=0.9):
               }
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
-              'atlas_name': 'schaefer',
+              # 'atlas_name': 'schaefer',
+              'atlas_name': 'BNA',
               'key_vals': (1, 3),
               'odd_even': False,
               }
@@ -176,9 +177,33 @@ def loop_over_ROIs(threshold=0.9):
         edges = [(i, j) for j in range(len(ROIs)) if j != i]
         # edges = [(0, 1), (0, 2), (0, 3)]
         # shuffle(sn_inc_activity)
-        t_YA, t_OA = partition_classifier(sn_inc_activity, age2idxs, edges,
-                                          trial_mapper=trial_mapper,
-                                          stratification_strategy=1)
+        # t_YA, t_OA = partition_classifier(sn_inc_activity, age2idxs, edges,
+        #                                   trial_mapper=trial_mapper,
+        #                                   stratification_strategy=1)
+        fp_pkl = f'cache/p_clf_act_{threshold}_roi{ROI}_' \
+                 f'{group}_ln{True}_' \
+                 f'{kwargs["key"]}_{kwargs["fp"]}_{kwargs["key_vals"]}.pkl'
+        if group:
+            # Weirdly givingg so much with respectable accuracy...?
+            f = lambda: partition_group_clf(sn_inc_activity, age2idxs, edges,
+                                            trial_mapper=trial_mapper,
+                                            stratification_strategy=1,
+                                            linear=True)
+            t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
+        else:
+            print('Conn:')
+            f = lambda: partition_classifier(sn_inc_activity, age2idxs, edges,
+                                             trial_mapper=trial_mapper,
+                                             stratification_strategy=1,
+                                             linear=True)
+            t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
+        print(f'{t_YA=:.2f}, {t_OA=:.2f}')
+
+
+
+
+
+
         print(f'{ROI} ({i}) | {t_YA=:.2f}, {t_OA=:.2f}')
         ts_YA.append(t_YA)
         ts_OA.append(t_OA)
@@ -188,13 +213,15 @@ def loop_over_ROIs(threshold=0.9):
     key = kwargs['key']
     coords = coords[:len(ts_OA)]
     fp = fr'nichord_plots/ROI_clf/YA_{key}.png'
+    vmin = 0.51 if group else 2
+    vmax = 0.6 if group else 4
     plot_ROI_scores(ts_YA, coords, fp_out=fp, show=True,
-                    vmin=2, vmax=4, title='Younger adults')
+                    vmin=vmin, vmax=vmax, title='Younger adults')
     fp = fr'nichord_plots/ROI_clf/OA_{key}.png'
     plot_ROI_scores(ts_OA, coords, fp_out=fp, show=True,
-                    vmin=2, vmax=4, title='Older adults')
+                    vmin=vmin, vmax=vmax, title='Older adults')
 
-def module_based_clf(threshold=0.99, group=True, linear=False):
+def module_based_clf(threshold=0.95, group=True, linear=False):
     # fp = 'obj4_fMRI'
     fp = ('con3_fMRI', 'vis3_fMRI')
     fp = ('obj4_fMRI', 'bl3_fMRI')
@@ -204,7 +231,7 @@ def module_based_clf(threshold=0.99, group=True, linear=False):
     print(f'{group=} ({threshold=})')
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
-              'atlas_name': 'schaefer',
+              # 'atlas_name': 'BNA',
               'key_vals': (1, 3),
               'odd_even': False,
               }
@@ -308,7 +335,7 @@ def module_based_clf(threshold=0.99, group=True, linear=False):
                                                     linear=linear
                                                     )
                     t_YA_act, t_OA_act = pickle_wrap(fp_pkl, f,
-                                                     easy_override=True)
+                                                     easy_override=False)
                     results_YA[i2col[i], 0] = round(t_YA_act, 3)
                     results_OA[i2col[i], 0] = round(t_OA_act, 3)
                     print(f'{t_YA_act=:.2f}, {t_OA_act=:.2f}')
@@ -324,7 +351,7 @@ def module_based_clf(threshold=0.99, group=True, linear=False):
                                               trial_mapper=trial_mapper,
                                               stratification_strategy=1,
                                                 linear=linear)
-                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=True)
+                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
             else:
                 print('Conn:')
                 f = lambda: partition_classifier(sn_inc_activity, age2idxs, edges,
@@ -357,8 +384,8 @@ def module_based_clf(threshold=0.99, group=True, linear=False):
 if __name__ == '__main__':
 
     # run_clf()
-    # loop_over_ROIs(0.95)
-    module_based_clf(group=False)
+    loop_over_ROIs(0.95, group=False)
+    # module_based_clf(group=True)
 
 
 

@@ -114,40 +114,18 @@ def ANOVA_edges():
               'key_vals': ('living_animal', 'dead_small', 'dead_large',
                            'living_plant', 'dead_medium')
               }
-    fp = 'obj4_fMRI'
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'inc',
-              'key_vals': (1, 3)
-              }
+    # fp = 'obj4_fMRI'
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc',
+    #           'key_vals': (1, 3)
+    #           }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
-    nans = np.sum(np.isnan(sn_inc_conn))
-    non_nans = np.sum(~np.isnan(sn_inc_conn))
-
-    # # n_vals = sn_inc_conn.shape[0] * sn_inc_conn.shape[1]
-    # n_groups = sn_inc_conn.shape[1]
-    # n_sn = sn_inc_conn.shape[0]
-    # # n_vals = np.sum(~np.isnan(sn_inc_conn), axis=(0, 1))
-    # # SST = np.nanvar(sn_inc_conn, axis=(0, 1)) * (n_vals - 1)
-    #
-    # M_total = np.nanmean(sn_inc_conn, axis=(0, 1))
-    # M_cond = np.nanmean(sn_inc_conn, axis=0)
-    # SSM = np.nansum((M_cond - M_total) ** 2, axis=0) * (n_sn - 1)
-    # M_subj = np.nanmean(sn_inc_conn, axis=1)
-    # SSW = np.nansum((sn_inc_conn - M_subj[:, None, :, :]) ** 2, axis=(0, 1))
-    #
-    # SSR = SSW - SSM
-    # MSM = SSM / (n_groups - 1)
-    # MSR = SSR / (n_sn - n_groups)
-    # F = MSM / MSR
-    # print(f'working: {F[0, 1]=}')
-    # t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
-    #                        nan_policy='omit')
-    # print(f'work: {t**2}')
 
     n_groups = sn_inc_conn.shape[1]
+    print(f'{n_groups=}')
     n_sn = np.sum(~np.isnan(sn_inc_conn[:, 0, :, :]), axis=0)
     M_total = np.nanmean(sn_inc_conn, axis=(0, 1))
     M_cond = np.nanmean(sn_inc_conn, axis=0)
@@ -158,30 +136,59 @@ def ANOVA_edges():
     SSR = SSW - SSM
     MSM = SSM / (n_groups - 1)
     MSR = SSR / ((n_sn - 1) * (n_groups - 1))
-    print(f'{n_sn[0, 1]=}')
+    # print(f'{n_sn[0, 1]=}')
     F = MSM / MSR
-    # p = 1 - stats.f.cdf(F, n_groups - 1, n_sn - n_groups)
-    # print(f'ANOVA: {p[0, 1]=}')
-    print(f'{F[0, 1]=}')
-    # z = stats.norm.ppf(p)
-
-
-    dif = sn_inc_conn[:, 0, :, :] - sn_inc_conn[:, 1, :, :]
-    M_dif = np.nanmean(dif, axis=0)
-    SE_dif = np.nanstd(dif, axis=0, ddof=1) / np.sqrt(58)
-    t_dif = M_dif / SE_dif
-    print(f'{t_dif[0, 1]**2=}')
-    # p = 1 - stats.t.cdf(t_dif, n_sn - 1)
-    # print(f'paired t-test: {p[0, 1]=}')
-    # F = t_dif ** 2
     # print(f'{F[0, 1]=}')
+    p = 1 - stats.f.cdf(F, n_groups - 1, (n_sn - 1) * (n_groups - 1))
+    # print(f'{p[0, 1]=}')
+    z = stats.norm.ppf(p)
+    # z[p < .99] = np.nan
 
-    t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
-                           nan_policy='omit')
-    print(t**2)
-    quit()
-    # z = stats.norm.ppf(p)
-    # z = t_dif
+    # dif = sn_inc_conn[:, 0, :, :] - sn_inc_conn[:, 1, :, :]
+    # M_dif = np.nanmean(dif, axis=0)
+    # SE_dif = np.nanstd(dif, axis=0, ddof=1) / np.sqrt(n_sn)
+    # t = abs(M_dif / SE_dif)
+    # print(f'{t[0, 1]=}')
+    # p = 1 - stats.t.cdf(t, n_sn - 1)
+    # print(f'{p[0, 1]=}')
+
+    alpha_thresh = .05
+    num_signif = np.sum(p < alpha_thresh) // 2
+    num_correction = .05 / alpha_thresh
+    num_ROIs = sn_inc_conn.shape[2]
+    num_edges = num_ROIs * (num_ROIs - 1) / 2
+    expected_FP = num_edges * alpha_thresh
+    alpha_thresh_z = stats.norm.ppf(alpha_thresh)
+    median_F = np.nanmedian(F)
+    print(f'{median_F=:.3f}')
+    # plt.hist(F.flatten(), bins=100, range=(0, 10))
+    # plt.show()
+    # quit()
+    print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
+          f'{num_edges=}, {expected_FP=:.2f}')
+    print(f'\tNumber of significant edges: {num_signif=}')
+    # quit()
+
+    # t = np.sqrt(F)
+    # plt.title(f'{np.nanmedian(F)=:.3f}')
+    # plt.hist(t.flatten())
+    # plt.show()
+    # # p = 1 - stats.f.cdf(F, n_groups - 1, (n_sn - 1) * (n_groups - 1))
+    # # z = stats.norm.ppf(p)
+    #
+
+    # # print(f'{t_dif[0, 1]**2=}')
+    # p = 1 - stats.t.cdf(t, n_sn - 1)
+    # # print(f'paired t-test: {p[0, 1]=}')
+    # # F = t_dif ** 2
+    # # print(f'{F[0, 1]=}')
+    #
+    # # t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
+    # #                        nan_policy='omit')
+    # # print(t**2)
+    # # quit()
+    # t = stats.norm.ppf(1 - p)
+
     # F = t_dif ** 2
 
 
@@ -200,20 +207,20 @@ def ANOVA_edges():
                       cbar_label='F-value')
 
 
-def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
+def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     # TODO: Anova?
     fp = 'obj4_fMRI'
-    fp = 'bl3_fMRI'
+    # fp = 'bl3_fMRI'
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
               'key_vals': (1, 3)
               }
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'living',
-              'key_vals': (False, True)
-              }
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'living',
+    #           'key_vals': (False, True)
+    #           }
     # kwargs = {'fp': fp, 'split': False,
     #           'key': 'vis_hit',
     #           'key_vals': (False, True),
@@ -275,9 +282,10 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
     p2_graph = np.min([p2_graph, 1 - p2_graph], axis=0)
 
 
-    # p12_graph[p1_graph > .01] = 0.999
+    z12_graph[p12_graph > .05] = np.nan
 
     # p1_graph = np.min([p1_graph, 1 - p1_graph], axis=0)
+    # // 2 accounts for bottom triangle
     num_signif = np.sum(p12_graph < alpha_thresh) // 2
     signif_graph = p12_graph < alpha_thresh
     signif_z_graph = z12_graph.copy()
@@ -298,6 +306,22 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
                             f'{kwargs["key"]} (YA + OA)',
                       vmin=-4, vmax=4,
                       cbar_label='t-value')
+    # alpha_thresh = .05
+    # num_signif = np.sum(p < alpha_thresh) // 2
+    num_correction = .05 / alpha_thresh
+    num_ROIs = sn_inc_conn.shape[2]
+    num_edges = num_ROIs * (num_ROIs - 1) / 2
+    expected_FP = num_edges * alpha_thresh
+    alpha_thresh_z = stats.norm.ppf(alpha_thresh)
+
+    # plt.hist(F.flatten(), bins=100, range=(0, 10))
+    # plt.show()
+    # quit()
+    print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
+          f'{num_edges=}, {expected_FP=:.2f}')
+    print(f'\tNumber of significant edges: {num_signif=}')
+    quit()
+    # quit()
     # plt.imshow(z12_graph)
     # plt.title('Main effect of memory')
     # plt.title('z-graph')
@@ -342,8 +366,8 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.01):
 
 if __name__ == '__main__':
     # plot_M()
-    # do_NBS()
-    ANOVA_edges()
+    do_NBS()
+    # ANOVA_edges()
 
 
 

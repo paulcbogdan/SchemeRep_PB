@@ -1,3 +1,16 @@
+In OA:
+* Congruency = greater PFC-IPL connectivity
+* Incongruency = greater IPL-ventral stream connectivity
+- Prediction error?
+
+
+
+
+For object categories ('living_animal', 'dead_small', 'dead_large', 'living_plant', 'dead_medium')
+	There is action going on (2000 p < .05 vs. 1500 expected), but nothing visable by eye
+	No scene effect ('indoor', 'outdoor_developed', 'outdoor_nature')
+Okay, i double-checked the proportion of t-values that were significant, and it is indeed above chance level. My mistake was looking at 1-sided vs 2-sided
+
 What can we really say?
 * We see graph theory differences between YA and OA but these aren't linked to condition
 * Activation-based classification (of??) works in the PFC, Vis, and SM for both YA and OA
