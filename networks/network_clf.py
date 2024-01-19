@@ -60,7 +60,10 @@ def generic_prep(kwargs, threshold=0.9):
     # print(top_edges_mat.shape)
     # quit()
     sn_inc_conn_unthresh = sn_inc_conn.copy()
-    sn_inc_conn[:, :, ~top_edges_mat] = np.nan
+    try:
+        sn_inc_conn[:, :, ~top_edges_mat] = np.nan
+    except IndexError: # laziness, need to make compatible with combine regions
+        pass
     if atlas_name == 'BNA':
         i2name = {0.9: {0: 'PFC', 1: 'SM', 2: 'Vis', 3: 'MTL',
                         4: 'pSM', 5: 'PCun', 6: 'Limbic'},

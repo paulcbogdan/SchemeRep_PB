@@ -373,6 +373,7 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
         print('plotted')
 
 
+
 def ttest_modularity():
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp,

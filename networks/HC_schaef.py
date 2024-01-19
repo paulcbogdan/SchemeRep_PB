@@ -14,14 +14,14 @@ from old.plot_gen import my_plot_surf
 from utils import stdize
 from connsearch import print_list_stats
 
-def get_many_samples(act_seed_cond, act_tar_cond, n_samples=10):
-    for run in range(3):
-        trial_low = run * 38
-        trial_high = (run + 1) * 38
-        act_seed_cond[:, trial_low:trial_high] -= \
-            np.nanmean(act_seed_cond[:, trial_low:trial_high])
-        act_tar_cond[:, trial_low:trial_high] -= \
-            np.nanmean(act_tar_cond[:, trial_low:trial_high])
+def get_many_samples(act_seed_cond, act_tar_cond, n_samples=50):
+    # for run in range(3):
+    #     trial_low = run * 38
+    #     trial_high = (run + 1) * 38
+    #     act_seed_cond[:, trial_low:trial_high] -= \
+    #         np.nanmean(act_seed_cond[:, trial_low:trial_high])
+    #     act_tar_cond[:, trial_low:trial_high] -= \
+    #         np.nanmean(act_tar_cond[:, trial_low:trial_high])
 
     conn0s = []
     for _ in range(n_samples):
@@ -33,31 +33,21 @@ def get_many_samples(act_seed_cond, act_tar_cond, n_samples=10):
             non_nans = np.argwhere(~np.isnan(
                 act_seed_cond0[0, trial_low:trial_high]))
             non_nans = non_nans.flatten()
-            non_nan_random = np.random.choice(non_nans, size=non_nans.shape[0],
-                                              replace=True)
+            non_nan_random = np.random.choice(non_nans,
+                                              size=non_nans.shape[0],
+                                              replace=False)
             non_nan_random += trial_low
-            # act_seed_cond0[:, trial_low:trial_high]
-            # print(non_nans)
-            # print(non_nan_random)
-            # quit()
-            # non_nans_shuffled
-            # print(non_nans)
-            # quit()
-            # act_seed_cond0[:, trial_low:trial_high] = \
-            #     np.random.permutation(act_seed_cond0[:, trial_low:trial_high])
-            # act_tar_cond0[:, trial_low:trial_high] = \
-            #     np.random.permutation(act_tar_cond0[:, trial_low:trial_high])
-            # seed_run = act_seed_cond0[:, trial_low:trial_high]
-            # tar_run = act_tar_cond0[:, trial_low:trial_high]
             seed_run = act_seed_cond0[:, non_nan_random]
             tar_run = act_tar_cond0[:, non_nan_random]
-            # act_seed_cond0[:, trial_low:trial_high] = (act_seed_cond0[:, trial_low:trial_high])
-            # act_tar_cond0[:, trial_low:trial_high] = (act_tar_cond0[:, trial_low:trial_high])
             conn0 = seed_run[None, ...] * tar_run[:, None, :]
             conn0 = np.nanmean(conn0, axis=-1)
             conn0s.append(conn0)
-        break
-    return conn0s
+            n_nans = np.sum(np.isnan(conn0))
+            n_non_nans = np.sum(~np.isnan(conn0))
+            if n_nans > n_non_nans:
+                bad_sn = True
+                return [], bad_sn
+    return conn0s, False
 
 def shuffle_Y_within_subject(Y, groups):
     # Shuffles Y in-place
@@ -77,6 +67,7 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
         sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
         sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
         age_conns = []
+        num_bads = 0
         for i in range(sn_inc_activity_hc_age.shape[0]):
             act_hc = sn_inc_activity_hc_age[i]
             act_sch = sn_inc_activity_sch_age[i]
@@ -88,7 +79,9 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
                 act_tar_cond = act_sch[cond]
                 act_tar_cond = stdize(act_tar_cond, axis=1, nans=True)
                 if super_sample:
-                    conn0s = get_many_samples(act_seed_cond, act_tar_cond)
+                    conn0s, bad_sn = get_many_samples(act_seed_cond, act_tar_cond)
+                    if bad_sn:
+                        break
                     sn_conns.extend(conn0s)
                 else:
                     for run in range(3):
@@ -104,6 +97,7 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
                             bad_sn = True
                         sn_conns.append(conn0)
             if bad_sn:
+                num_bads += 1
                 continue
             age_conns.append(sn_conns)
         age_conns = np.array(age_conns)
@@ -122,6 +116,8 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
 
         Y = ([0] * n_cond_ex + [1] * n_cond_ex) * n_sn
         Y = np.array(Y)
+        # print(f'{len(Y)=}')
+        # quit()
         # Y = [0, 0, 0, 1, 1, 1] * n_sn
         groups = np.repeat(np.arange(n_sn), n_cond_ex*2)
         if perm:
@@ -145,6 +141,25 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
                 X_ = X
                 Y_ = Y
                 groups_ = groups
+            if super_sample:
+                Y_new = []
+                X_new = []
+                groups_new = []
+                for grp in np.unique(groups):
+                    for label in [0, 1]:
+                        idxs = np.argwhere((groups == grp) &
+                                           (Y == label)).flatten()
+                        idx = np.random.choice(idxs, size=50)
+                        X_new.append(X[idx])
+                        Y_new.append(Y[idx])
+                        groups_new.append([grp]*len(idx))
+                X_ = np.concatenate(X_new)
+                Y_ = np.concatenate(Y_new)
+                groups_ = np.concatenate(groups_new)
+            # print(f'{X_.shape=}')
+            # print(f'{Y_.shape=}')
+            # print(f'{groups_.shape=}')
+            # print(f'{np.unique(groups)=}')
             cv = StratifiedGroupKFold(n_splits=2)
             linear = True
             clf = SVC(kernel='linear' if linear else 'rbf')
@@ -153,7 +168,8 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
             accs.append(acc)
         age2str = {1: 'YA', 2: 'OA'}
         print(f'{region}, age: {age2str[age]} | '
-              f'{np.mean(accs)=:.3f} [{np.std(accs)=:.3f}]')
+              f'{np.mean(accs)=:.3f} [{np.std(accs)=:.3f}, n = {len(accs)}], '
+              f'num bad sn: {num_bads}')
         age_accs.append(np.mean(accs))
     return age_accs
 
@@ -340,12 +356,12 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'con_hit',
-    #           'atlas_name': 'BNA',
-    #           'key_vals': (False, True)
-    #           }
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'con_hit',
+              'atlas_name': 'BNA',
+              'key_vals': (False, True)
+              }
     # kwargs = {'fp': fp,
     #           'split': False,
     #           'key': 'inc_hit_hit',
@@ -377,8 +393,8 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
 
     specific_region = 'IPL'
     for region in regions:
-        if specific_region and (specific_region not in region):
-            continue
+        # if specific_region and (specific_region not in region):
+        #     continue
         idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
         sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
         if perm:
