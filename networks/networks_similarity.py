@@ -3,6 +3,7 @@ from network_clf import generic_prep
 from utils import stdize
 import numpy as np
 
+np.random.seed(0)
 
 def ar2conn(ar, flat=True):
     ar = stdize(ar, axis=2, nans=True)
@@ -119,14 +120,15 @@ def do_similarity_analysis(threshold=0.95):
         generic_prep(kwargs, threshold=threshold)
 
     atlas = get_atlas(combine_regions=kwargs['combine_regions'])
-    # keep_regions = ['IPL', 'MFG', 'IFG', 'SFG']
+    keep_regions = ['IPL', 'MFG', 'IFG', 'SFG']
     # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL']
-    #
-    # keep_idxs = [i for region in keep_regions
-    #              for (i, name) in enumerate(atlas['ROIs'])
-    #              if region in name]
-    # sn_inc_activity0 = sn_inc_activity0[:, :, keep_idxs]
-    # sn_inc_activity1 = sn_inc_activity1[:, :, keep_idxs]
+    # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL',
+    #                 'IPL', 'MFG', 'IFG', 'SFG']
+    keep_idxs = [i for region in keep_regions
+                 for (i, name) in enumerate(atlas['ROIs'])
+                 if region in name]
+    sn_inc_activity0 = sn_inc_activity0[:, :, keep_idxs]
+    sn_inc_activity1 = sn_inc_activity1[:, :, keep_idxs]
 
     similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
                         sn_inc_activity0[:, 1],
