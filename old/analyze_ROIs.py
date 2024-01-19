@@ -148,14 +148,14 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def analyze_ROIs(age=2, early=True, semantic=False, inc=None,
+def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
                  org_by_region=False, rxr=False,
                  run_lmer=False,
-                 DNN_layer=2, fp_fMRI_col='obj4_fMRI',
+                 DNN_layer=2, fp_fMRI_col='scn7_fMRI',
                  verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='obj'):
+                 req_all_N=False, key='scn'):
     if fp is None:
         fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
                         DNN_layer=DNN_layer,

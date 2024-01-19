@@ -12,9 +12,64 @@ from conn_utils import get_BNA_ROIs
 from network_clf import generic_prep
 from old.plot_gen import my_plot_surf
 from utils import stdize
+from connsearch import print_list_stats
+
+def get_many_samples(act_seed_cond, act_tar_cond, n_samples=10):
+    for run in range(3):
+        trial_low = run * 38
+        trial_high = (run + 1) * 38
+        act_seed_cond[:, trial_low:trial_high] -= \
+            np.nanmean(act_seed_cond[:, trial_low:trial_high])
+        act_tar_cond[:, trial_low:trial_high] -= \
+            np.nanmean(act_tar_cond[:, trial_low:trial_high])
+
+    conn0s = []
+    for _ in range(n_samples):
+        act_seed_cond0 = act_seed_cond.copy()
+        act_tar_cond0 = act_tar_cond.copy()
+        for run in range(3):
+            trial_low = run * 38
+            trial_high = (run + 1) * 38
+            non_nans = np.argwhere(~np.isnan(
+                act_seed_cond0[0, trial_low:trial_high]))
+            non_nans = non_nans.flatten()
+            non_nan_random = np.random.choice(non_nans, size=non_nans.shape[0],
+                                              replace=True)
+            non_nan_random += trial_low
+            # act_seed_cond0[:, trial_low:trial_high]
+            # print(non_nans)
+            # print(non_nan_random)
+            # quit()
+            # non_nans_shuffled
+            # print(non_nans)
+            # quit()
+            # act_seed_cond0[:, trial_low:trial_high] = \
+            #     np.random.permutation(act_seed_cond0[:, trial_low:trial_high])
+            # act_tar_cond0[:, trial_low:trial_high] = \
+            #     np.random.permutation(act_tar_cond0[:, trial_low:trial_high])
+            # seed_run = act_seed_cond0[:, trial_low:trial_high]
+            # tar_run = act_tar_cond0[:, trial_low:trial_high]
+            seed_run = act_seed_cond0[:, non_nan_random]
+            tar_run = act_tar_cond0[:, non_nan_random]
+            # act_seed_cond0[:, trial_low:trial_high] = (act_seed_cond0[:, trial_low:trial_high])
+            # act_tar_cond0[:, trial_low:trial_high] = (act_tar_cond0[:, trial_low:trial_high])
+            conn0 = seed_run[None, ...] * tar_run[:, None, :]
+            conn0 = np.nanmean(conn0, axis=-1)
+            conn0s.append(conn0)
+        break
+    return conn0s
+
+def shuffle_Y_within_subject(Y, groups):
+    # Shuffles Y in-place
+    group_uniques = np.unique(groups)
+    for group in group_uniques:
+        idxs = np.argwhere(groups == group).flatten()
+        Y_group = Y[idxs]
+        np.random.shuffle(Y_group) # in place. can't shuffle Y[idxs] directly
+        Y[idxs] = Y_group
 
 def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
-           n_repeats=100, super_sample=True):
+           n_repeats=100, super_sample=False, perm=False):
     all_conns = []
     age_accs = []
     for age in [1, 2]:
@@ -26,50 +81,54 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
             act_hc = sn_inc_activity_hc_age[i]
             act_sch = sn_inc_activity_sch_age[i]
             sn_conns = []
+            bad_sn = False
             for cond in range(act_hc.shape[0]):
-                act_hc_cond = act_hc[cond]
-                act_hc_cond = stdize(act_hc_cond, axis=1, nans=True)
-                act_sch_cond = act_sch[cond]
-                act_sch_cond = stdize(act_sch_cond, axis=1, nans=True)
-                for run in range(3):
-                    trial_low = run * 38
-                    trial_high = (run + 1) * 38
-                    act_hc_cond0 = act_hc_cond[:, trial_low:trial_high]
-                    act_sch_cond0 = act_sch_cond[:, trial_low:trial_high]
-                    conn0 = act_hc_cond0[None, ...] * act_sch_cond0[:, None, :]
-                    conn0 = np.nanmean(conn0, axis=-1)
-                    sn_conns.append(conn0)
+                act_seed_cond = act_hc[cond]
+                act_seed_cond = stdize(act_seed_cond, axis=1, nans=True)
+                act_tar_cond = act_sch[cond]
+                act_tar_cond = stdize(act_tar_cond, axis=1, nans=True)
+                if super_sample:
+                    conn0s = get_many_samples(act_seed_cond, act_tar_cond)
+                    sn_conns.extend(conn0s)
+                else:
+                    for run in range(3):
+                        trial_low = run * 38
+                        trial_high = (run + 1) * 38
+                        act_hc_cond0 = act_seed_cond[:, trial_low:trial_high]
+                        act_sch_cond0 = act_tar_cond[:, trial_low:trial_high]
+                        conn0 = act_hc_cond0[None, ...] * act_sch_cond0[:, None, :]
+                        conn0 = np.nanmean(conn0, axis=-1)
+                        n_nans = np.sum(np.isnan(conn0))
+                        n_non_nans = np.sum(~np.isnan(conn0))
+                        if n_nans > n_non_nans:
+                            bad_sn = True
+                        sn_conns.append(conn0)
+            if bad_sn:
+                continue
             age_conns.append(sn_conns)
         age_conns = np.array(age_conns)
-        age_conns_m = np.nanmean(age_conns, axis=-1)
-        age_conns_m = np.concatenate([np.nanmean(age_conns_m[:, :3], axis=1,
-                                                 keepdims=True),
-                                      np.nanmean(age_conns_m[:, 3:], axis=1,
-                                                 keepdims=True)],
-                                     axis=1)
-        all_conns.append(age_conns_m)
-        dif_conn = age_conns_m[:, 0] - age_conns_m[:, 1]
-        dif_M = np.nanmean(dif_conn, axis=0)
-        dif_std = np.nanstd(dif_conn, axis=0)
-        dif_N = np.sum(~np.isnan(dif_conn), axis=0)
-        dif_se = dif_std / np.sqrt(dif_N)
-        dif_t = dif_M / dif_se
         n_sn = age_conns.shape[0]
-        for sn in range(n_sn): # PB special (each example is x0 - x1 or vice versa)
-            for i in range(3):
-                age_conns[sn, i, :] = age_conns[sn, i, :] - \
-                                      age_conns[sn, i + 3, :]
-                age_conns[sn, i + 3, :] = -age_conns[sn, i, :]
+        if not super_sample:
+            for sn in range(n_sn): # PB special (each example is x0 - x1 or vice versa)
+                for i in range(3):
+                    age_conns[sn, i, :] = age_conns[sn, i, :] - \
+                                          age_conns[sn, i + 3, :]
+                    age_conns[sn, i + 3, :] = -age_conns[sn, i, :]
+        n_cond_ex = age_conns.shape[1] // 2
 
         X = np.reshape(age_conns, (age_conns.shape[0] * age_conns.shape[1], -1))
         nans = np.isnan(X).any(axis=0)
         X = X[:, ~nans]
 
-        Y = [0, 0, 0, 1, 1, 1] * n_sn
-        groups = np.repeat(np.arange(n_sn), 6)
+        Y = ([0] * n_cond_ex + [1] * n_cond_ex) * n_sn
+        Y = np.array(Y)
+        # Y = [0, 0, 0, 1, 1, 1] * n_sn
+        groups = np.repeat(np.arange(n_sn), n_cond_ex*2)
+        if perm:
+            shuffle_Y_within_subject(Y, groups)
 
         accs = []
-        for _ in tqdm(range(n_repeats)):
+        for _ in range(n_repeats):
             grps_unq = np.sort(np.unique(groups))
             grps_unq_ = np.sort(np.unique(groups))
             np.random.shuffle(grps_unq_)
@@ -77,10 +136,19 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
             for i, grp in enumerate(grps_unq):
                 grp_mapper[grp] = grps_unq_[i]
             groups = np.array([grp_mapper[grp] for grp in groups])
-            cv = StratifiedGroupKFold(n_splits=3)
+            if len(np.unique(groups)) % 2 == 1:
+                rand_group = np.random.choice(groups)
+                X_ = X[groups != rand_group]
+                Y_ = Y[groups != rand_group]
+                groups_ = groups[groups != rand_group]
+            else:
+                X_ = X
+                Y_ = Y
+                groups_ = groups
+            cv = StratifiedGroupKFold(n_splits=2)
             linear = True
             clf = SVC(kernel='linear' if linear else 'rbf')
-            acc = cross_val_score(clf, X, Y, cv=cv, groups=groups)
+            acc = cross_val_score(clf, X_, Y_, cv=cv, groups=groups_)
             acc = np.mean(acc)
             accs.append(acc)
         age2str = {1: 'YA', 2: 'OA'}
@@ -88,6 +156,26 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
               f'{np.mean(accs)=:.3f} [{np.std(accs)=:.3f}]')
         age_accs.append(np.mean(accs))
     return age_accs
+
+def stratify(X, Y, groups):
+    X_new = []
+    Y_new = []
+    groups_new = []
+    for grp in groups.unique():
+        n_exs = []
+        for cond in [0, 1]:
+            n_ex = len(np.argwhere((groups == grp) & (Y == cond)).flatten())
+            n_exs.append(n_ex)
+        n_ex = min(n_exs)
+        X_new.append(X[(groups == grp) & (Y == 0)][:n_ex])
+        X_new.append(X[(groups == grp) & (Y == 1)][:n_ex])
+        Y_new.append([0] * n_ex + [1] * n_ex)
+        groups_new.append([grp] * (n_ex * 2))
+    X_new = np.concatenate(X_new)
+    Y_new = np.concatenate(Y_new)
+    groups_new = np.concatenate(groups_new)
+    return X_new, Y_new, groups_new
+
 
 def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
          accs, atlas):
@@ -97,7 +185,6 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
     vmax = -1e6
     for age in [1, 2]:
         age_idxs = age2idxs[age]
-        print(f'{len(age_idxs)=}')
         seed_age = sn_inc_activity_seed[age_idxs]
         seed_age = np.nanmean(seed_age, axis=2)
         tar_age = sn_inc_activity_sch[age_idxs]
@@ -109,7 +196,6 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
 
             for cond in range(seed_age_sn.shape[0]):
                 seed_age_sn_cond = seed_age_sn[cond]
-                # print(seed_age_sn_cond.shape)
                 tar_age_sn_cond = tar_age_sn[cond]
                 tar_age_sn_cond = stdize(tar_age_sn_cond, axis=1, nans=True)
                 conn = seed_age_sn_cond[None, :] * tar_age_sn_cond
@@ -127,7 +213,6 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         age2t[age] = dif_t
         vmin = min(vmin, np.nanquantile(dif_t, 0.025))
         vmax = max(vmax, np.nanquantile(dif_t, 0.975))
-        print(f'Test: {np.nanquantile(dif_t, 0.975)}')
 
 
     for age in [1, 2]:
@@ -146,7 +231,7 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
             pos = 'Inc'
             title_str = f'{region} | {age2str[age]} (Acc = {acc:.1%}) \n' \
                         f'Congruent (blue) vs. Incongruent (red)'
-        elif kwargs['key'] == ('hit_hit', ):
+        elif kwargs['key'] in [('hit_hit', ), ('con_hit', )]:
             neg = 'Miss'
             pos = 'Hit'
             title_str = f'{region} | {age2str[age]} (Acc = {acc:.1%}) \n' \
@@ -159,7 +244,7 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         itr_title = f'{region}\nAge x Congruency'
         neg = 'OA\n↑Con'
         pos = 'OA\n↑Inc'
-    elif kwargs['key'] == ('hit_hit', ):
+    elif kwargs['key'] in [('hit_hit', ), ('con_hit', )]:
         itr_title = f'{region}\nAge x Hit-Hit'
         neg = 'OA\n↑Miss'
         pos = 'OA\n↑Hit'
@@ -191,7 +276,6 @@ def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
     age2cond1m = {}
     for age in [1, 2]:
         age_idxs = age2idxs[age]
-        print(f'{len(age_idxs)=}')
         sn_inc_activity_hc_age = sn_inc_activity_hc[age_idxs]
         # sn_inc_activity_hc_age = sn_inc_activity_hc_age[:, :, [0], :]
         sn_inc_activity_sch_age = sn_inc_activity_sch[age_idxs]
@@ -248,7 +332,7 @@ def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
                         vmin=vmin, vmax=vmax, cmap='viridis')
 
 
-def run_HC_schaef(threshold=0.95):
+def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
@@ -256,55 +340,86 @@ def run_HC_schaef(threshold=0.95):
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'hit_hit',
-              'atlas_name': 'BNA',
-              'key_vals': (False, True)
-              }
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'inc_hit_hit',
-              'atlas_name': 'BNA',
-              'key_vals': ('30', '31')
-              }
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'con_hit',
+    #           'atlas_name': 'BNA',
+    #           'key_vals': (False, True)
+    #           }
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc_hit_hit',
+    #           'atlas_name': 'BNA',
+    #           'key_vals': ('30', '31')
+    #           }
     # kwargs = {'fp': fp, 'split': False,
     #           'key': 'vis_hit',
     #           'atlas_name': 'schaefer',
     #           'key_vals': (False, True),
     #           'odd_even': False,
     #           }
-    partitions, sn_inc_activity_sch, age2idxs, top_edges_mat, i2name = \
+    partitions, sn_inc_activity_tar, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
 
     kwargs1 = kwargs.copy()
     kwargs1['atlas_name'] = 'BNA'
     _, sn_inc_activity_bna, _, _, _ = generic_prep(kwargs1,
                                                    threshold=threshold)
-    print(sn_inc_activity_bna.shape)
     BNA = get_atlas()
     ROIs = get_BNA_ROIs()
     regions = BNA['tick_labels']
+    if laterality:
+        regions = [f'{r}_{lr}' for r in regions for lr in ['L', 'R']]
+
     accs = {}
     atlas_sf = get_atlas(schaefer=kwargs['atlas_name'] == 'schaefer')
     atlas_sf['name'] = kwargs['atlas_name']
 
-    specific_region = None
+    specific_region = 'IPL'
     for region in regions:
-        if specific_region and (region != specific_region):
+        if specific_region and (specific_region not in region):
             continue
         idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
-        sn_inc_activity_rg = sn_inc_activity_bna[:, :, idxs, :]
-        # plot_M(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch, kwargs,
-        #        region, atlas_sf)
-        accs_rg = HC_clf(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch,
-                         region, n_repeats=10)
+        sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
+        if perm:
+            OA_accs = []
+            YA_accs = []
+            for nsim in range(100):
+                YA_acc, OA_acc = HC_clf(age2idxs, sn_inc_activity_seed,
+                                        sn_inc_activity_tar,
+                                        region, n_repeats=10, perm=True,
+                                        super_sample=False,)
+                OA_accs.append(OA_acc)
+                YA_accs.append(YA_acc)
+                if nsim % 5 == 0:
+                    print_list_stats(OA_accs)
+                    print_list_stats(YA_accs)
+            continue
+        else:
+            accs_rg = HC_clf(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar,
+                             region, n_repeats=100, super_sample=True)
+            continue
         accs[region] = accs_rg
-        HC_t(age2idxs, sn_inc_activity_rg, sn_inc_activity_sch, kwargs,
+        HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
              region, accs, atlas_sf)
     quit()
 
+# Number of items: 96
+# Mean item: 0.503
+# Median item: 0.502
+# Min item: 0.425
+# Max item: 0.572
+# p(under 50%): 0.469 | p(above 50%): 0.531
+# Percentile: Accuracy | 1.0: 0.4248, 0.75: 0.4752, 0.5: 0.5019, 0.25: 0.5271, 0.1: 0.5584, 0.05: 0.5667, 0.01: 0.5719, 0.005: 0.5719, 0.001: 0.5719
 
+# Super sample:
+# Number of items: 96
+# Mean item: 0.500
+# Median item: 0.501
+# Min item: 0.470
+# Max item: 0.534
+# p(under 50%): 0.469 | p(above 50%): 0.531
+# Percentile: Accuracy | 1.0: 0.4697, 0.75: 0.4905, 0.5: 0.5006, 0.25: 0.5101, 0.1: 0.5194, 0.05: 0.5286, 0.01: 0.5342, 0.005: 0.5342, 0.001: 0.5342
 
 def run_two_sample_on_2D(ar0, ar1):
     YA_M = np.nanmean(ar0, axis=0)

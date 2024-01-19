@@ -32,9 +32,6 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         # vmax = max(vmax, 4)
         # vmax = np.nanmax(M_connect)
 
-    print(f'vmin: {vmin}, vmax: {vmax}')
-    # vmin = .2
-    # vmax = .8
     if ax is None:
         plt.figure(figsize=(10, 10))
     else:
@@ -49,8 +46,6 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         plt.ylabel('Baseline IRAF (object)')
         plt.ylabel('Encoding object presentation (abs-dif IRAF)')
         plt.ylabel(ylabel)
-    print(f'{len(ticks)=} | {ticks=}')
-    print(f'{len(tick_labels)=} | {tick_labels=}')
 
     if M_connect.shape[0] == 52:
         ticks = 0.5 + np.arange(26) * 2
@@ -119,31 +114,21 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     import scipy.stats as stats
     from nilearn import plotting
     atlas['coords'] = np.array(atlas['coords'])
-    # print(atlas['coords'])
-    # print(coords_not_nans)
-    # quit()
+
     Ms[np.isinf(Ms)] = np.nan
     n_non_nans = np.sum(~np.isnan(Ms))
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
-    # thresh = 2.45 # p = .01
-    # thresh = 2.45
-    # thresh = 1
-    # thresh = 2.05
-    # thresh = 1.65 # p = .05
+
     thresh = 1.65
     vmax = 4
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
-    print(f'{thresh=} | {num_above_thresh=}')
-    print(Ms)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
         above_thresh = np.abs(val) > thresh
         continue
         if above_thresh:
-            # print(f'{i=}, {val=:.3f}')
-            # continue
             mat = np.zeros((n_non_nans, n_non_nans))
             mat[i, :] = 1
             mat[:, i] = 1
@@ -160,26 +145,17 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                      title=f'i = {i}',
                                      )
             plotting.show()
-    # quit()
 
     vabs = np.nanmax(np.abs(Ms))
-    Ms = np.array(Ms)
-
-    Ms_clean = Ms[~np.isnan(Ms)]
-    ps = [stats.t.sf(np.abs(m), 29) for m in Ms_clean]
-    #
-    rej, ps_corr, alpha_sidak, alpha_conf = \
-        multipletests(ps, alpha=0.05, method='fdr_bh')
-
+    # Ms = np.array(Ms)
+    # Ms_clean = Ms[~np.isnan(Ms)]
+    # ps = [stats.t.sf(np.abs(m), 29) for m in Ms_clean]
+    # rej, ps_corr, alpha_sidak, alpha_conf = \
+    #     multipletests(ps, alpha=0.05, method='fdr_bh')
 
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
-    # cmap = get_split_cmap(vabs, thresh, 'Reds')
-
-
     img = image.new_img_like(atlas['maps'], img_data)
-    # print(f'{thresh=}')
-    # plotting.plot_glass_brain(img, threshold=thresh,
-    #                           vmin=thresh, vmax=vabs,)
+
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                     cmap=cmap, title=title,
                                     vmax=vmax)
@@ -189,16 +165,11 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                           [f'({neg})',
                            '-2', '2',
                            f'({pos})'], fontsize=8)
-        plt.tight_layout()
-
-        # axs[4].set_xticklabels([f'{-2.5}\n{neg}',
-        #                            '',
-        #                            f'{2.5}\n{pos}'])
     if fp_out is None:
         plotting.show()
     else:
         fig.savefig(fp_out)
-        plt.gcf()
+        plt.clf()
 
 
 
@@ -214,19 +185,15 @@ if __name__ == '__main__':
         if '_L' in roi and ('SFG' in roi or 'IFG' in roi or 'MFG' in roi or
                             'OrG' in roi or 'ACC' in roi):
             L_SFG_coords.append(atlas['coords'][i])
-            # node_colors.append('r')
             node_colors.append('g')
             L_SFG_idxs.append(idx)
-            # print(f'{i=}', atlas['coords'][i])
             idx += 1
         elif '_R' in roi and ('SFG' in roi or 'IFG' in roi or 'MFG' in roi or
                               'OrG' in roi or 'ACC' in roi):
             R_IFG_coords.append(atlas['coords'][i])
-            # node_colors.append('b')
             node_colors.append('g')
             R_IFG_idxs.append(idx)
             idx += 1
-            print(f'R: {roi}')
 
     coords = list(L_SFG_coords) + list(R_IFG_coords)
     n_rois = len(coords)
@@ -235,9 +202,6 @@ if __name__ == '__main__':
     mat[mesh] = 1
     mesh = np.meshgrid(R_IFG_idxs, L_SFG_idxs)
     mat[mesh] = 1
-    # plotting.plot_markers([1], [[-27, 43, 31]])
-    # plotting.show()
-    # quit()
     plotting.plot_connectome(mat, coords,
                              edge_threshold=0.1,
                              edge_kwargs={'linewidth': 0.1,

@@ -81,23 +81,10 @@ def generic_prep(kwargs, threshold=0.9):
 
 
 def shuffle(sn_inc_activity):
-    # print(sn_inc_activity[0, :, 0, :])
-    # print(sn_inc_activity.shape)
-    # quit()
     shuffler = np.array(list(range(sn_inc_activity.shape[1])))
-
     for i in range(sn_inc_activity.shape[0]):
-        # for j in range(sn_inc_activity.shape[2]):
-        # rand_splitter = np.random.choice(list(range(sn_inc_activity.shape[3])),
-        #                                  size=sn_inc_activity.shape[3] // 2,
-        #                                  replace=False)
-
         for k in range(sn_inc_activity.shape[3]):
             np.random.shuffle(shuffler)
-            # if i in rand_splitter:
-            #     shuffler = np.array([0, 1])
-            # else:
-            #     shuffler = np.array([1, 0])
             sn_inc_activity[i, :, :, k] = sn_inc_activity[i, shuffler, :, k]
 
 def loop_over_ROIs(threshold=0.9, group=True):

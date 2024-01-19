@@ -209,7 +209,7 @@ def ANOVA_edges():
 
 def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     # TODO: Anova?
-    fp = 'obj7_fMRI'
+    fp = 'scn7_fMRI'
     # fp = 'bl3_fMRI'
     # kwargs = {'fp': fp,
     #           'split': False,
@@ -219,8 +219,9 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
 
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'vis_hit',
+              'key': 'con_hit',
               'key_vals': (False, True),
+              'combine_regions': True
               }
     # kwargs = {'fp': fp,
     #           'split': False,
@@ -288,7 +289,7 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     p2_graph = np.min([p2_graph, 1 - p2_graph], axis=0)
 
 
-    z12_graph[p12_graph > .05] = np.nan
+    # z12_graph[p12_graph > .05] = np.nan
 
     # p1_graph = np.min([p1_graph, 1 - p1_graph], axis=0)
     # // 2 accounts for bottom triangle
@@ -305,7 +306,7 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
                'vis3_fMRI': 'vis. retrieval',
                'obj7_fMRI': 'obj. encoding',
                'scn7_fMRI': 'scene encoding'}
-    plot_connectivity(z12_graph,
+    plot_connectivity(z1_graph,
                       atlas['ticks'],
                       atlas['tick_labels'],
                       atlas['tick_lows'],
@@ -376,7 +377,7 @@ def ttest_modularity():
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'inc_hit_hit',
+              'key': 'inc',
               'key_vals': (1, 3)
               }
 
@@ -392,10 +393,10 @@ def ttest_modularity():
                          sn_inc_conn[age2idxs[2], 1, :, :])
     threshold = .95
     partitions, matrix_mask = get_main_partitions(t2_graph, coords=None,
-                                                  plot=False,
+                                                  plot=True,
                         threshold=threshold, fn_str='', overlapping=False,
-                        dir_out=f'OA_ttest_modules_-thr{threshold}.png')
-
+                        dir_out=f'OA2_ttest_modules_-thr{threshold}.png')
+    quit()
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp,
               'split': False,

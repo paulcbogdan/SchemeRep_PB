@@ -604,7 +604,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 def run_multi_settings():
     # semantic = False
-    combine_regions = True
+    combine_regions = False
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
     PCA_obj = True
@@ -657,7 +657,7 @@ def run_multi_settings():
                                                PCA_obj=PCA_obj,
                                                shuffle=False
                                                )
-                    d = pickle_wrap(fp_out, f, easy_override=True,
+                    d = pickle_wrap(fp_out, f, easy_override=False,
                                     verbose=True)
 
 

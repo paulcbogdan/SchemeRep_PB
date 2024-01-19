@@ -172,7 +172,9 @@ def make_title_str(pre_str, key, age, early, semantic,
             'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
     if fp:
         fp2str = {'obj4_fMRI': 'Object betas',
-                  'scn4_fMRI': 'Scene betas'}
+                  'scn4_fMRI': 'Scene betas',
+                  'obj7_fMRI': 'Object betas',
+                  'scn7_fMRI': 'Scene betas',}
         fp_str = fp2str[fp] + '. '
     else:
         fp_str = ''
