@@ -93,7 +93,8 @@ def get_split_cmap(vabs, thresh, cmap):
     n = 1000
     prop_black = thresh / vabs
     if prop_black > 1:
-        raise ValueError(f'{prop_black=}')
+        prop_black = 1
+        # raise ValueError(f'{prop_black=}')
     n_black = int(n * prop_black)
     vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
                          axis=1).T
@@ -105,47 +106,15 @@ def get_split_cmap(vabs, thresh, cmap):
     vals = np.concatenate([vals_low, vals_black, vals_high])
 
 
-
-    # n = 256
-    # vals = cmap(np.linspace(0., 1., n))
-    # vals_low = vals[:int(n/2)]
-    # vals_high = vals[int(n/2):]
-    # # vabs = np.min([vabs, 5.])
-    #
-    #
-    #
-    # vabs_minus_thresh = (vabs - thresh)
-    # # print(f'{vabs_minus_thresh=}')
-    # # print(f'{thresh=}')
-    # # print(f'{n=}')
-    # size_mid = int(vabs_minus_thresh / thresh * n / 2)
-    # # size_mid = int(vabs_minus_thresh / thresh * n)# * 2)
-    # # print(f'{size_mid=}, {vabs_minus_thresh=:.3f} {thresh} {n}')
-    # # print()
-    #
-    #
-    # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], size_mid,
-    #                      axis=1).T
-    # vals = np.concatenate([vals_low, vals_black, vals_high])
-    # print(vals_mid.shape)
-
-    # print(vals.shape)
-    # quit()
-
     cmap = ListedColormap(vals)
 
     # print(vals)
     return cmap
 
-    # quit()
-    cmap = ListedColormap(cmap(np.linspace(-vabs, vabs, 128)))
 
 
-    print(cmap)
-    quit()
-
-
-def my_plot_surf(Ms, atlas, title):
+def my_plot_surf(Ms, atlas, title, fp_out=None,
+                 neg='', pos=''):
     from statsmodels.stats.multitest import multipletests
     import scipy.stats as stats
     from nilearn import plotting
@@ -163,7 +132,7 @@ def my_plot_surf(Ms, atlas, title):
     # thresh = 1
     # thresh = 2.05
     # thresh = 1.65 # p = .05
-    thresh = 2
+    thresh = 1.65
     vmax = 4
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     print(f'{thresh=} | {num_above_thresh=}')
@@ -194,7 +163,6 @@ def my_plot_surf(Ms, atlas, title):
     # quit()
 
     vabs = np.nanmax(np.abs(Ms))
-    print(f'{vabs=}')
     Ms = np.array(Ms)
 
     Ms_clean = Ms[~np.isnan(Ms)]
@@ -202,13 +170,8 @@ def my_plot_surf(Ms, atlas, title):
     #
     rej, ps_corr, alpha_sidak, alpha_conf = \
         multipletests(ps, alpha=0.05, method='fdr_bh')
-    #
-    print(f'{Ms_clean=}')
-    print(f'{ps=}')
-    print(f'{ps_corr=}')
-    #
-    #
-    # quit()
+
+
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
     # cmap = get_split_cmap(vabs, thresh, 'Reds')
 
@@ -217,12 +180,25 @@ def my_plot_surf(Ms, atlas, title):
     # print(f'{thresh=}')
     # plotting.plot_glass_brain(img, threshold=thresh,
     #                           vmin=thresh, vmax=vabs,)
-    fig = plotting.plot_img_on_surf(img, threshold=thresh,
+    fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                     cmap=cmap, title=title,
                                     vmax=vmax)
 
-    # fig[1][4].set_xticklabels([-2.5, None, 2.5])
-    plotting.show()
+    if neg:
+        axs[4].set_xticks([-4, -2, 2, 4],
+                          [f'({neg})',
+                           '-2', '2',
+                           f'({pos})'], fontsize=8)
+        plt.tight_layout()
+
+        # axs[4].set_xticklabels([f'{-2.5}\n{neg}',
+        #                            '',
+        #                            f'{2.5}\n{pos}'])
+    if fp_out is None:
+        plotting.show()
+    else:
+        fig.savefig(fp_out)
+        plt.gcf()
 
 
 

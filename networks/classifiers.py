@@ -105,8 +105,13 @@ def partition_group_clf(sn_inc_activity, age2idxs, edges,
                         non_nan_bool = ~np.isnan(trial_set[:, 0])
                         non_nan_trials = np.argwhere(non_nan_bool).squeeze()
                         for spl in range(split):
-                            non_nan_trials_spl = non_nan_trials[
+                            try:
+                                non_nan_trials_spl = non_nan_trials[
                                 spl::split]
+                            except IndexError:
+                                bad = True
+                                break
+
                             # quit()
                             trial_set_ = trial_set[non_nan_trials_spl]
                             if acttivity:
@@ -117,7 +122,8 @@ def partition_group_clf(sn_inc_activity, age2idxs, edges,
                                 trial_set_ = trial_set_[:, None, :] * trial_set_[:, :, None]
                                 trial_set_ = np.nanmean(trial_set_, axis=0)
                                 trial_mapper[(age, sn, inc0, run, spl)] = trial_set_
-
+                    if bad:
+                        break
                     trial_set = []
                     for spl in range(split):
                         trial_set.append(trial_mapper[(age, sn, inc0, run, spl)])
@@ -141,7 +147,7 @@ def partition_group_clf(sn_inc_activity, age2idxs, edges,
                     # trial_set = list(trial_set)
                     # trial_sets.extend(trial_set)
                     n_nans = np.sum(np.isnan(trial_set))
-                    if n_nans > 10:
+                    if n_nans > 200:
                         # TODO: see if there's a way to avoid so many drops
                         print(f'Bad! {age} : {sn}, {run}, {inc0} = {n_nans}')
                         bad = True
@@ -172,6 +178,7 @@ def partition_group_clf(sn_inc_activity, age2idxs, edges,
         # X = X[:, :2]
         X = np.random.normal(size=X.shape)
         print(f'{X.shape=}')
+
 
         Y = np.array(Y)
         groups = np.array(groups)

@@ -7,6 +7,7 @@ from nichord.combine import plot_and_combine
 
 from utils import pickle_wrap
 
+import matplotlib.pyplot as plt
 
 def get_binary_matrix(matrix, threshold=.9):
     threshold = np.nanquantile(matrix, threshold)
@@ -87,7 +88,8 @@ def get_BNA_coords(code='BNA'):
     return coords
 
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
-                        threshold=.95, fn_str='', overlapping=False):
+                        threshold=.95, fn_str='', overlapping=False,
+                        dir_out=None):
     if coords is None:
         coords = get_BNA_coords()
     M_conn = np.nanmean(sn_inc_conn,
@@ -112,13 +114,16 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             print(f'Plot: {fn=}')
             title = f'Partition {i}'
             cur_dir = os.getcwd()
-            if overlapping:
-                dir_out = f'{cur_dir}/result_pics/nichord/{overlapping}'
+            # if not dir_out:
+            if dir_out:
+                dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
+            elif overlapping:
+                dir_out_ = f'{cur_dir}/result_pics/nichord/{overlapping}'
             else:
-                dir_out = f'{cur_dir}/result_pics/nichord'
-            print(f'\t{dir_out=}')
+                dir_out_ = f'{cur_dir}/result_pics/nichord'
+            print(f'\t{dir_out_=}')
             plot_nichord(coords, fn, title, corr=M_corr_part,
-                         dir_out=dir_out,)
+                         dir_out=dir_out_,)
     partitions = [p for p in partitions]
     return partitions, matrix_mask
 

@@ -84,7 +84,8 @@ def get_shenyang_subjects():
     return set(sns_str.split())
 
 if __name__ == '__main__':
-    test_fp('obj4_fMRI')
+    test_fp('obj7_fMRI')
+    test_fp('scn7_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)
     # pd.set_option('display.max_rows', 115)

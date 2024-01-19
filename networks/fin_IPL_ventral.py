@@ -87,7 +87,7 @@ def run_IPL_bars(threshold=0.95):
     region0 = 'ATL'
     idxs0 = [i for i, ROI in enumerate(ROIs) if region0 in ROI]
     regions1 = ['sOcG', 'EVC', 'LOC', 'FuG',
-                'ITG', 'PhG', 'MTG', 'Hipp', 'ATL',
+                'ITG', 'PhG', 'MTG', 'Hipp', 'IPL',
                 'IFG', 'MFG', 'SFG', 'OrG']
     # regions1 = ['IFG']
     for region1 in regions1:

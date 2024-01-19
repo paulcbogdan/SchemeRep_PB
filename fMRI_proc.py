@@ -249,7 +249,8 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   drop_nan_voxels=True):
     sn = df_sn['sn'].iloc[0]
     if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI', 'cmb3_fMRI',
-                                       'obj4_fMRI', 'scn4_fMRI']:
+                                       'obj4_fMRI', 'scn4_fMRI',
+                                       'obj7_fMRI', 'scn7_fMRI']:
         # Missing a few trials at the end of Run 1
         df_sn_ = df_sn.copy()
         img = np.full((97, 115, 97, 114), np.nan)
@@ -285,10 +286,9 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     region2vecs = defaultdict(list)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
-
+        # print(f'{img.shape=}')
+        # print(f'{atlas_roi.shape=}')
         region_vecs = img[atlas_roi]
-        # print(f'{ROI} {region} {region_vecs.shape=}')
-        # quit()
 
 
         if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
@@ -317,6 +317,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
             region2vecs[region].append(np.nanmean(region_vecs, axis=1))
 
     region2vecs = dict(region2vecs)
+
     for region, l in region2vecs.items():
         region2vecs[region] = np.array(l).T
 
@@ -401,7 +402,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
         prep_variables(sn, cin, atlas, org_by_region,
                        ret=('vis' in fp_fMRI_col or 'con' in fp_fMRI_col))
     sess = fp_fMRI_col.split('_')[0].replace('2', '').replace('3', '').\
-        replace('4', '')
+        replace('4', '').replace('7', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     if shuffle:
@@ -624,8 +625,8 @@ def run_multi_settings():
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                    'scn4_fMRI',
-                    'obj4_fMRI',
+                    'scn7_fMRI',
+                    'obj7_fMRI',
                                     # 'bl3_fMRI',
                                     # 'obj3_fMRI',
                                     # 'scn3_fMRI',

@@ -255,14 +255,14 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
     #           'odd_even': False,
     #           'pad_nan': True}
 
-    # kwargs = {'fp': fp, 'split': False,
-    #           # 'key': 'hit_hit',
-    #           # 'key': ('vis_hit', 'con_hit'),
-    #           'key': 'hit_hit',
-    #           'atlas_name': 'schaefer',
-    #           'key_vals': (False, True),
-    #           'odd_even': False,
-    #           'pad_nan': True}
+    kwargs = {'fp': fp, 'split': False,
+              # 'key': 'hit_hit',
+              # 'key': ('vis_hit', 'con_hit'),
+              'key': 'hit_hit',
+              # 'atlas_name': 'BNA',
+              'key_vals': (False, True),
+              'odd_even': False,
+              'pad_nan': True}
 
     # kwargs = {'fp': fp, 'split': False,
     #           # 'key': 'hit_hit',
@@ -293,14 +293,25 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
 
     results_YA = np.full((len(cols)-1, len(cols)), np.nan)
     results_OA = np.full((len(cols)-1, len(cols)), np.nan)
+
+    i2name = {0: 'ventral_con', 1: 'dorsal_con'}
+    partitions = [[35, 36, 37, 49, 69, 70, 71, 72, 73, 75, 76, 77, 79, 83, 87, 88, 90, 91, 93, 102, 103, 104, 105,
+                   107, 108, 109, 110, 112, 115, 148, 149, 163, 166, 168, 171, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 202, 203, 204, 207, 211, 212, 213, 215, 217, 220, 221, 225, 226, 227, 229, 231, 236, 237, 243],
+                  [0, 1, 2, 3, 4, 5, 10, 12, 13, 16, 18, 20, 21, 22, 23, 24, 26, 28, 29, 30, 31, 32, 33, 34, 38, 42, 43, 44, 45, 48, 50, 51, 62, 80, 81, 96, 99, 100, 101, 113, 119, 134, 136, 137, 140, 142, 146, 150, 152, 153, 162, 174, 175, 180, 181, 208, 209, 214, 233, 235, 238, 240, 242]]
+
     for i, p0 in enumerate(partitions):
         if i not in i2name:
             continue
         name0 = i2name[i]
+        # if name0 == 'Vis':
+        #     print(p0)
+        #     quit()
         for j, p1 in enumerate(partitions):
             if j  not in i2name:
                 continue
             name1 = i2name[j]
+            # if j > i:
+            #     continue
             if j < i:
                 continue
             elif i == j:
@@ -335,7 +346,7 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
                                                     linear=linear
                                                     )
                     t_YA_act, t_OA_act = pickle_wrap(fp_pkl, f,
-                                                     easy_override=False)
+                                                     easy_override=True)
                     results_YA[i2col[i], 0] = round(t_YA_act, 3)
                     results_OA[i2col[i], 0] = round(t_OA_act, 3)
                     print(f'{t_YA_act=:.2f}, {t_OA_act=:.2f}')
@@ -351,7 +362,7 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
                                               trial_mapper=trial_mapper,
                                               stratification_strategy=1,
                                                 linear=linear)
-                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
+                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=True)
             else:
                 print('Conn:')
                 f = lambda: partition_classifier(sn_inc_activity, age2idxs, edges,

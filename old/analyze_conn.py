@@ -71,8 +71,9 @@ def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
     # Can correlated dif_abs IRAF x obj IRAF, both for obj_fMRI?
     key = 'scn'
     # left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
-    left = [np.array(d2['activity'][roi0]) for roi0 in atlas['ROIs']]
+    left = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
     # left = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
+    # bottom = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
     bottom = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
     # bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
     bottom = replace_w_nan_if_needed(bottom)

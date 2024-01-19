@@ -1,10 +1,23 @@
+Howtf does github copilot know how to .transpose my data
+
+100 repeats:
+age=1
+Number of items: 229
+Mean item: 0.502
+Median item: 0.502
+Min item: 0.482
+Max item: 0.540
+p(under 50%): 0.437 | p(above 50%): 0.563
+Percentile: Accuracy | 1.0: 0.4819, 0.75: 0.4965, 0.5: 0.5016, 0.25: 0.5066, 0.1: 0.5118, 0.05: 0.5154, 0.01: 0.5248, 0.005: 0.5398, 0.001: 0.5398
+
+Result 1: Visual-visual more in OA for congruency
+Result 2: IPL-ventral more in OA for congruency
+Result 3: IPL-PFC more in OA for congruency
+
 In OA:
 * Congruency = greater PFC-IPL connectivity
 * Incongruency = greater IPL-ventral stream connectivity
 - Prediction error?
-
-
-
 
 For object categories ('living_animal', 'dead_small', 'dead_large', 'living_plant', 'dead_medium')
 	There is action going on (2000 p < .05 vs. 1500 expected), but nothing visable by eye

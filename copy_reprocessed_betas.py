@@ -17,7 +17,8 @@ if __name__ == '__main__':
         # 'ENC__full__regBPtrue__scene_obj_combined',
         # 'ENC__full__regBPtrue__scene_obj_LSS1',
         # 'ENC__full__regBPtrue__scene_obj_LSS2',
-        'ENC__full__regBPfalse__scene_obj_LSS1',
+        # 'ENC__full__regBPfalse__scene_obj_LSS1',
+        'ENC__full__regBPfalse__scene_obj_LSS1'
     ]
 
     details = [
@@ -29,7 +30,7 @@ if __name__ == '__main__':
         # ('b_SceneObject.nii', 'ENC_rerun3', 'CMB')
         # ('b_trial.nii', 'ENC_LSS1', 'LSS1')
         # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
-        ('b_trial.nii', 'ENC_LSS1b', 'LSS1')
+        ('b_trial.nii', 'ENC_GM20_LLS1_bpF_full', 'LSS1')
     ]
 
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
         g = [sn.name for sn in g]# if sn.name[:1] == '2']
         g = [sn for sn in g if sn[:1] != '3']
 
-        g = [sn for sn in g if sn == '204']
+        # g = [sn for sn in g if sn == '204']
         # g = ['234']
         # print(list(g))
         # quit()
@@ -61,8 +62,6 @@ if __name__ == '__main__':
                     else:
                         print(f'{str(fp_obj)=}')
                         raise ValueError
-                # continue
-
                 fn_obj_out = trial.name + '.nii'
                 dir_enc_out = Path(dir_out).joinpath(sn).joinpath(detail[1])
                 fp_obj_out = dir_enc_out.joinpath(detail[2]).joinpath(fn_obj_out)
@@ -70,8 +69,7 @@ if __name__ == '__main__':
                     continue
                 fp_obj_out.parent.mkdir(exist_ok=True, parents=True)
                 shutil.copyfile(fp_obj, fp_obj_out)
-                # print(f'{fp_obj_out}')
-                # quit()
+
                 continue
 
                 fp_obj = trial.joinpath('b_Object.nii')

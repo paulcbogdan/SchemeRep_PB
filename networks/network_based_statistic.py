@@ -4,7 +4,7 @@ from nichord.combine import plot_and_combine
 from scipy import stats
 
 from atlas_utils import get_atlas
-from modularity import get_BNA_coords, plot_nichord
+from modularity import get_BNA_coords, plot_nichord, get_main_partitions, get_partition_matrix
 from network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
@@ -209,12 +209,18 @@ def ANOVA_edges():
 
 def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     # TODO: Anova?
-    fp = 'obj4_fMRI'
+    fp = 'obj7_fMRI'
     # fp = 'bl3_fMRI'
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc_hit_hit',
+    #           'key_vals': ('10', '11')
+    #           }
+
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'inc',
-              'key_vals': (1, 3)
+              'key': 'vis_hit',
+              'key_vals': (False, True),
               }
     # kwargs = {'fp': fp,
     #           'split': False,
@@ -296,7 +302,9 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     atlas = get_atlas(schaefer=False)
     fp2name = {'obj4_fMRI': 'obj. encoding',
                'con3_fMRI': 'conc. retrieval',
-               'vis3_fMRI': 'vis. retrieval'}
+               'vis3_fMRI': 'vis. retrieval',
+               'obj7_fMRI': 'obj. encoding',
+               'scn7_fMRI': 'scene encoding'}
     plot_connectivity(z12_graph,
                       atlas['ticks'],
                       atlas['tick_labels'],
@@ -364,7 +372,62 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
         print('plotted')
 
 
+def ttest_modularity():
+    fp = 'obj7_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc_hit_hit',
+              'key_vals': (1, 3)
+              }
+
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+
+    M1_graph, SD1_graph, SE1_graph, N1_graph, t1_graph, p1_graph, z1_graph = \
+        get_stats_graphs(sn_inc_conn[age2idxs[1], 0, :, :],
+                         sn_inc_conn[age2idxs[1], 1, :, :])
+    M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_graph = \
+        get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
+                         sn_inc_conn[age2idxs[2], 1, :, :])
+    threshold = .95
+    partitions, matrix_mask = get_main_partitions(t2_graph, coords=None,
+                                                  plot=False,
+                        threshold=threshold, fn_str='', overlapping=False,
+                        dir_out=f'OA_ttest_modules_-thr{threshold}.png')
+
+    fp = 'obj7_fMRI'
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc_hit_hit',
+              'key_vals': (False, True)
+              }
+
+    sn_inc_conn_mem, _, _, _ = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    sn_inc_conn_mem[:, :, matrix_mask == 0] = np.nan
+    for i, p0 in enumerate(partitions):
+        pmat = get_partition_matrix(sn_inc_conn_mem, p0)
+        M_conn = np.nanmean(pmat, axis=(-2, -1))
+        for age in [1, 2]:
+            M_conn_age = M_conn[age2idxs[age], :]
+            t, p = stats.ttest_rel(M_conn_age[:, 1], M_conn_age[:, 0],
+                                   nan_policy='omit')
+            print(f'partition {i}, {age=}: {t=:.2f}')
+
+    # quit()
+    #
+    #
+    # threshold = .95
+    # partitions, matrix_mask = get_main_partitions(-t1_graph, coords=None,
+    #                                               plot=False,
+    #                     threshold=threshold, fn_str='', overlapping=False,
+    #                     dir_out=f'YA_ttest_modules_-thr{threshold}.png')
+
+
 if __name__ == '__main__':
+    # ttest_modularity()
     # plot_M()
     do_NBS()
     # ANOVA_edges()

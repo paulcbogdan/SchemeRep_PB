@@ -19,15 +19,17 @@ import pickle
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
                      do_sort=False, fp_all=False, voxelwise=False,
-                     regionwise=False):
+                     regionwise=False, combine_regions=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
-        atlas = get_atlas(combine_regions=False,
+        atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=False,
                           split=split, split_code='xyz',
-                          new_space='3' in fp or '4' in fp)
+                          new_space='3' in fp or '4' in fp or '7' in fp)
     coords = atlas['coords']
+    # print(atlas['maps'].shape)
+    # quit()
     # with open(f'cache/{atlas_name}_coords.pkl', 'wb') as f:
     #     pickle.dump(coords, f)
     # quit()
@@ -50,7 +52,10 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         # if atlas == 'schaefer':
         #     ROIs_l = get_BNA_ROIs(code='schaefer')
         # else:
-        ROIs_l = get_BNA_ROIs(code=atlas_name)
+        if combine_regions:
+            ROIs_l = get_BNA_ROIs(code='BNA_region')
+        else:
+            ROIs_l = get_BNA_ROIs(code=atlas_name)
 
         for sn in sns:
             print(f'Prepping FC: {sn=}')
@@ -63,10 +68,8 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=regionwise,
-                                     easy_override=True if sn == '132'
-                                                        else False,
-                                     combine_regions=False)
-            print(list(ROI2vecs0))
+                                     easy_override=True if sn == '132' else False,
+                                     combine_regions=combine_regions)
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:
                 # for ROI in ROIs_l:
@@ -134,13 +137,14 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
 
                     conn_inc = np.corrcoef(activity_ar[:, matching_trials])
                     conns.append(conn_inc)
+
             conns = np.array(conns)
             sn_inc_conn.append(conns)
             sn_inc_activity.append(activity_inc)
             age2idxs[age].append(sn_idx)
             sn_idx += 1
 
-    if voxelwise:
+    if voxelwise or regionwise:
         for ROI, vals in ROI2act.items():
             ROI2act[ROI] = np.array(vals)
             print(f'{ROI}, {ROI2act[ROI].shape=}')
