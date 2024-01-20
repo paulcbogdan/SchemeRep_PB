@@ -1,3 +1,26 @@
+Results:
+* object beta
+- Con_hit (for OA): num_singif 167 vs expected 72. Vis_hit isn't distinguished
+- Con_hit (for OA & YA): num signif 172. YA only is 194
+
+TODO: 
+- Examine distance between hit/miss x inc/con
+- Could look at individual differneces?
+
+Ask simon:
+* Do we need to rule out that older adults are simply being more focused on the task at hand?
+
+* i need to host these SchemeRep meetings
+* Perceptual RSA for scene bet. double-dissociation 
+* Need to explain why OA do as well as YA on a memory task
+* Do a direct comparison in RSA effect for perceptual between YA vs. OA
+* Go from the ROI nightplots to blobs***
+- Include blob plots for the YA too
+* Roberto sees this main effect as resources
+* Try to look at YA congruency vs incongruency
+* Rerun the analysis using the new betas with a more liberal mask
+NRSA
+
 Howtf does github copilot know how to .transpose my data
 
 100 repeats:

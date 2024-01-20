@@ -6,7 +6,7 @@ from connsearch.report import plot_ROI_scores
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from modularity import get_partition_matrix, get_main_partitions, get_BNA_coords
+from modularity import get_partition_matrix, get_main_partitions, get_BNA_coords, get_binary_matrix
 from classifiers import partition_classifier, partition_group_clf
 from network_funcs import load_FC_for_Lifu, reconfiguration, \
     analyze_subject_specific, subj_specific_repeated
@@ -79,7 +79,12 @@ def generic_prep(kwargs, threshold=0.9):
                          7: 'vPFC', 8: 'iVis'}}
     i2name = i2name[threshold]
 
-    return partitions, sn_inc_activity, age2idxs, top_edges_mat, i2name
+    M_conn = np.nanmean(sn_inc_conn,
+                        axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
+    matrix_binary, matrix_mask = get_binary_matrix(M_conn,
+                                                     threshold=threshold)
+    # top_edges_mat
+    return partitions, sn_inc_activity, age2idxs, matrix_mask, i2name
 
 
 

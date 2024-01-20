@@ -102,7 +102,7 @@ def test_vectors(semantic=True, DNN_layer=4):
 
 def test_U_memory(DV='con_hit'):
     low_acc_sns = {'104', '109', '115', '119'}
-    age2sn = get_all_sns(ret=False)
+    age2sn = get_all_sns('obj4_fMRI')
     df_l = []
     for sn in age2sn[1]:
         if sn in low_acc_sns:
@@ -150,9 +150,9 @@ def test_U_memory(DV='con_hit'):
     print('-'*100)
 
 
-    df_M = df.groupby(['sn', 'per_con'])[DV].mean()
-    df_SE = df_M.groupby(['per_con']).sem()
-    df_M = df_M.groupby(['per_con']).mean()
+    df_M = df.groupby(['sn', 'per_inc'])[DV].mean()
+    df_SE = df_M.groupby(['per_inc']).sem()
+    df_M = df_M.groupby(['per_inc']).mean()
     key2name = {1: '1\n(Perceived\nincongruent)',
                 2: '2',
                 3: '3',
@@ -176,8 +176,8 @@ def test_U_memory(DV='con_hit'):
     plt.show()
 
 if __name__ == '__main__':
-    test_vectors()
-    quit()
+    # test_vectors()
+    # quit()
     for dv in ['con_hit', 'vis_hit', 'hit_hit']:
         test_U_memory(dv)
 

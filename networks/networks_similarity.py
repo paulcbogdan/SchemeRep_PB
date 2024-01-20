@@ -1,3 +1,5 @@
+from connsearch import print_list_stats
+
 from atlas_utils import get_atlas
 from network_clf import generic_prep
 from utils import stdize
@@ -5,13 +7,15 @@ import numpy as np
 
 np.random.seed(0)
 
-def ar2conn(ar, flat=True):
+def ar2conn(ar, flat=True, mask=None):
     ar = stdize(ar, axis=2, nans=True)
     conn = ar[..., None, :] * ar[..., None, :, :]
     conn = np.nanmean(conn, axis=-1)
+    if mask is not None:
+        conn[..., ~mask] = np.nan
     k = conn.shape[-1]
     if flat:
-        idxs = np.tril_indices(k, k=1)
+        idxs = np.tril_indices(k, k=-1)
         conn = conn[..., idxs[0], idxs[1]]
     return conn
 
@@ -41,24 +45,83 @@ def stratify(ar10, ar11):
             ar11[sn, :, non_nan_trials1_idxs] = np.nan
     return ar10, ar11
 
+def stratify2(ar00, ar01, ar10, ar11):
+    ars = [ar00, ar01, ar10, ar11]
+    for sn in range(ar00.shape[0]):
+        ar_goods = []
+        for i, ar in enumerate(ars):
+            ar_sn = ar[sn]
+            nan_trials = np.all(np.isnan(ar_sn), axis=0)
+            goods = np.argwhere(~nan_trials).flatten()
+            ar_goods.append(goods)
 
+        intersect00 = np.intersect1d(ar_goods[0], ar_goods[2])
+        intersect01 = np.intersect1d(ar_goods[0], ar_goods[3])
+        dif = len(intersect00) - len(intersect01)
+        # print(f'{sn=}, first {dif=}')
+        if dif > 0:
+            intersect00 = np.random.choice(intersect00, size=dif,
+                                           replace=False)
+            ar00[sn, :, intersect00] = np.nan
+        elif dif < 0:
+            intersect01 = np.random.choice(intersect01, size=-dif,
+                                           replace=False)
+            ar01[sn, :, intersect01] = np.nan
+        intersect10 = np.intersect1d(ar_goods[1], ar_goods[2])
+        intersect11 = np.intersect1d(ar_goods[1], ar_goods[3])
+        dif = len(intersect10) - len(intersect11)
+        if dif > 0:
+            intersect10 = np.random.choice(intersect10, size=dif,
+                                           replace=False)
+            ar10[sn, :, intersect10] = np.nan
+        elif dif < 0:
+            intersect11 = np.random.choice(intersect11, size=-dif,
+                                           replace=False)
+            ar11[sn, :, intersect11] = np.nan
+    return ar00, ar01, ar10, ar11
 
-def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11):
+def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11, mask=None):
+    # ar00_l = []
+    # ar01_l = []
     ar10_l = []
     ar11_l = []
     for i in range(10):
         ar10_, ar11_ = stratify(ar10.copy(), ar11.copy())
+    #     # ar00_, ar01_, ar10_, ar11_ = stratify2(ar00.copy(), ar01.copy(),
+    #     #                                        ar10.copy(), ar11.copy())
+    #     ar00_l.append(ar00_)
+    #     ar01_l.append(ar01_)
         ar10_l.append(ar10_)
         ar11_l.append(ar11_)
-    ar10 = np.concatenate(ar10_l, axis=-1)
-    ar11 = np.concatenate(ar11_l, axis=-1)
-    print('Finished stratifying')
-    conn00 = ar2conn(ar00)
-    conn01 = ar2conn(ar01)
-    conn10 = ar2conn(ar10)
-    conn11 = ar2conn(ar11)
+    # ar00 = np.concatenate(ar00_l, axis=-1)
+    # ar01 = np.concatenate(ar01_l, axis=-1)
+    # ar10 = np.concatenate(ar10_l, axis=-1)
+    # ar11 = np.concatenate(ar11_l, axis=-1)
+    # print('Finished stratifying')
+    conn00 = ar2conn(ar00, mask=mask)
+    # print(f'{ar00.shape=}')
+    # print(f'{conn00.shape=}')
+    # quit()
+    conn01 = ar2conn(ar01, mask=mask)
+    # conn00 = np.nanmean(conn00, axis=1)
+    # conn01 = np.nanmean(conn01, axis=1)
+
+    # print(f'{conn00.shape=}')
+    # print(ar10.shape)
+    conn10 = ar2conn(ar10, mask=mask)
+    # conn10 = np.nanmean(conn10, axis=1)
+    # conn10 = conn10[:, 1]
+    conn11 = ar2conn(ar11, mask=mask)
+    # conn11 = np.nanmean(conn11, axis=1)
+    # conn11 = conn11[:, 1]
+
+    # conn00 = ar2conn(ar00[..., :57])
+    # conn01 = ar2conn(ar01[..., :57])
+    # conn10 = ar2conn(ar10[..., 57:])
+    # conn11 = ar2conn(ar11[..., 57:])
     print('Finished making connectomes')
 
+    ts = []
     for age in [1, 2]:
         idxs = age2idxs[age]
         conn00_ = conn00[idxs]
@@ -71,6 +134,8 @@ def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11):
         file1 = stdize(file1, axis=2, nans=True)
         similarity_mats = file0[:, None, ...] * file1[None, ...]
         similarity_mats = np.nanmean(similarity_mats, axis=-1)
+        similarity_mats = np.arctanh(similarity_mats)
+
         for cond0 in [0, 1]:
             for cond1 in [0, 1]:
                 M = np.nanmean(similarity_mats[cond0, cond1])
@@ -79,7 +144,7 @@ def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11):
                 SE = SD / np.sqrt(N)
                 print(f'{age=}, (cond {cond0}x{cond1}): {M:.3f} +/- {SE:.3f}')
         itr = similarity_mats[0, 0] - similarity_mats[0, 1] - \
-                similarity_mats[1, 0] + similarity_mats[1, 1]
+              similarity_mats[1, 0] + similarity_mats[1, 1]
         itr_M = np.nanmean(itr)
         itr_SD = np.nanstd(itr)
         itr_N = np.sum(~np.isnan(itr))
@@ -93,6 +158,8 @@ def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11):
         con_SE = con_SD / np.sqrt(con_N)
         con_t = con_M / con_SE
         print(f'{age=}, (con): {con_M:.3f} +/- {con_SE:.3f} | {con_t=:.2f}')
+        ts.append(itr_t)
+    return ts
 
 
 def do_similarity_analysis(threshold=0.95):
@@ -112,28 +179,104 @@ def do_similarity_analysis(threshold=0.95):
               'split': False,
               'key': 'hit_hit',
               'atlas_name': 'BNA',
-              # 'key_vals': ('30', '31'),
+              # 'key_vals': ('10', '20', '30',
+              #              '11', '21', '31'),
               'key_vals': (False, True),
               'combine_regions': False,
               }
+    # fp = 'obj7_fMRI'
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc_hit_hit',
+    #           'atlas_name': 'BNA',
+    #           'key_vals': ('20', '21'),
+    #           'combine_regions': False,
+    #           }
     partitions, sn_inc_activity1, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
 
+
+    # print(sn_inc_activity1.shape)
+    # for i in range(6):
+    #     n_non_nans = np.sum(~np.isnan(sn_inc_activity1[:, i, 0, :]))
+    #     print(f'{i}: {n_non_nans / 114:.3f}')
+    # quit()
+
     atlas = get_atlas(combine_regions=kwargs['combine_regions'])
-    keep_regions = ['IPL', 'MFG', 'IFG', 'SFG']
+    rois = atlas['ROIs']
+    keep_idxs = list(range(len(rois)))
+    #
+    keep_regions = ['IPL', 'pSTS', 'MFG', 'IFG', 'SFG']
+    # keep_regions = atlas['tick_labels']
+    bad_regions = ['Tha', 'Str']
     # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL']
     # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL',
     #                 'IPL', 'MFG', 'IFG', 'SFG']
-    keep_idxs = [i for region in keep_regions
-                 for (i, name) in enumerate(atlas['ROIs'])
-                 if region in name]
+    # print(f'{len(keep_idxs)=}')
+    for idx in list(keep_idxs):
+        name = rois[idx]
+        if not any(region in name for region in keep_regions):
+            keep_idxs.remove(idx)
+            continue
+        if any(region in name for region in bad_regions):
+            keep_idxs.remove(idx)
+            continue
+    keep_idxs = sorted(list(set(keep_idxs)))
+    top_edges_mat = top_edges_mat[keep_idxs, :][:, keep_idxs]
+
     sn_inc_activity0 = sn_inc_activity0[:, :, keep_idxs]
     sn_inc_activity1 = sn_inc_activity1[:, :, keep_idxs]
-
     similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
-                        sn_inc_activity0[:, 1],
-                        sn_inc_activity1[:, 0],
-                        sn_inc_activity1[:, 1])
+                                     sn_inc_activity0[:, 1],
+                                     sn_inc_activity1[:, 0],
+                                     sn_inc_activity1[:, 1],
+                        mask=None)
+    # t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+    #                                  sn_inc_activity0[:, 1],
+    #                                  sn_inc_activity1[:, 1],
+    #                                  sn_inc_activity1[:, 4])
+    print('----------------------')
+    ts_YA = []
+    ts_OA = []
+    for _ in range(100):
+        sn_inc_activity0, sn_inc_activity1 = \
+            shuffle_similarity_analysis(sn_inc_activity0, sn_inc_activity1)
+        t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+                            sn_inc_activity0[:, 1],
+                            sn_inc_activity1[:, 0],
+                            sn_inc_activity1[:, 1],
+                                         mask=top_edges_mat)
+        # t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+        #                     sn_inc_activity0[:, 1],
+        #                     sn_inc_activity1[:, 1],
+        #                     sn_inc_activity1[:, 4],)
+        ts_YA.append(t_YA)
+        ts_OA.append(t_OA)
+        print_list_stats(ts_OA)
+    # similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+    #                     sn_inc_activity0[:, 1],
+    #                     sn_inc_activity1[:, :3],
+    #                     sn_inc_activity1[:, 3:])
+    # similarity_analysis(age2idxs, sn_inc_activity1[:, [0, 3]],
+    #                     sn_inc_activity1[:, [2, 5]],
+    #                     sn_inc_activity1[:, :3],
+    #                     sn_inc_activity1[:, 3:])
+
+def shuffle_similarity_analysis(ar0, ar1):
+    rng = np.random.default_rng()
+    ar_both = np.concatenate([ar0, ar1], axis=1)
+    ar_combined = np.nanmean(ar_both, axis=1)
+    rng.shuffle(ar_combined, axis=-1)
+    ar_both = np.transpose(ar_both, (1, 0, 2, 3))
+    for cond in range(ar_both.shape[0]):
+        non_nan = ~np.isnan(ar_both[cond])
+        # print(ar_combined.shape)
+        ar_both[cond, non_nan] = ar_combined[non_nan]
+    ar_both = np.transpose(ar_both, (1, 0, 2, 3))
+    ar0 = ar_both[:, :ar0.shape[1]]
+    ar1 = ar_both[:, ar0.shape[1]:]
+    return ar0, ar1
+
 
 
 if __name__ == '__main__':
