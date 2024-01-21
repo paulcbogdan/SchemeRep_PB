@@ -100,13 +100,13 @@ def test_vectors(semantic=True, DNN_layer=4, age=1):
     plt.show()
 
 def test_U_memory(DV='inc_rt', age=1):
-    low_acc_sns = {'104', '109', '115', '119'}
+    # low_acc_sns = {'104', '109', '115', '119'}
     age2sn = get_all_sns('obj7_fMRI')
     df_l = []
     for sn in age2sn[age]:
-        if sn in low_acc_sns:
-            continue
-        df_sn = get_trial_info(sn, easy_override=False)
+        # if sn in low_acc_sns:
+        #     continue
+        df_sn = get_trial_info(sn, easy_override=True)
         df_l.append(df_sn)
         print(df_sn[DV])
 
@@ -136,7 +136,7 @@ def test_U_memory(DV='inc_rt', age=1):
             capsize=2)
     plt.ylabel(dv2name[DV])
     if DV == 'inc_rt':
-        plt.ylim(1.5, 2.5)
+        plt.ylim(1.6, 2.6)
     else:
         plt.ylim(0, 1)
     plt.gca().spines['top'].set_visible(False)
@@ -178,9 +178,9 @@ if __name__ == '__main__':
     # test_vectors()
     # quit()
     dv = 'inc_rt'
-    test_U_memory(dv, age=1)
-    test_U_memory(dv, age=2)
-    quit()
+    # test_U_memory(dv, age=1)
+    # test_U_memory(dv, age=2)
+    # quit()
     for dv in ['con_hit', 'vis_hit', 'hit_hit']:
         test_U_memory(dv, age=1)
         test_U_memory(dv, age=2)
