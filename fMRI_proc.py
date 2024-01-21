@@ -253,7 +253,8 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                                        'obj7_fMRI', 'scn7_fMRI']:
         # Missing a few trials at the end of Run 1
         df_sn_ = df_sn.copy()
-        img = np.full((97, 115, 97, 114), np.nan)
+        print(f'{len(df_sn_)=}')
+        img = np.full((97, 115, 97, len(df_sn_)), np.nan)
         non_nan_trials = ~pd.isna(df_sn_[fp_fMRI_col])
         df_sn_.dropna(subset=[fp_fMRI_col], inplace=True)
         img[..., non_nan_trials] = \
@@ -520,12 +521,12 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     stim_keys = ['obj', 'obj_abs',
                  'scn', 'scn_abs',
                  'dif', 'dif_abs',
-                 'prd', 'prd_abs',
-                 'add', 'add_abs',
-                 'lifu', 'lifu_sem']
-    stim_keys = ['obj', #'obj_abs',
-                 'scn', #'scn_abs',
-                 ]#'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
+                 # 'prd', 'prd_abs',
+                 # 'add', 'add_abs',
+                 ]#'lifu', 'lifu_sem']
+    # stim_keys = ['obj', #'obj_abs',
+    #              'scn', #'scn_abs',
+    #              ]#'dif_abs']#, 'scn' , 'dif_abs', 'lifu', 'lifu_sem']
     # stim_keys = ['obj', 'scn']#, 'dif_abs']
     triple_z = {}
     # rxr_all = {}
@@ -604,7 +605,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 def run_multi_settings():
     # semantic = False
-    combine_regions = False
+    combine_regions = True
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
     PCA_obj = True
@@ -615,7 +616,7 @@ def run_multi_settings():
     inc = None
     # if True:
     for age in [1, 2]:
-        for inc in [None]:
+        for inc in [2]:
             for DNN_layer, semantic in [
                 (2, False),
                 (-1, False),
@@ -657,7 +658,7 @@ def run_multi_settings():
                                                PCA_obj=PCA_obj,
                                                shuffle=False
                                                )
-                    d = pickle_wrap(fp_out, f, easy_override=False,
+                    d = pickle_wrap(fp_out, f, easy_override=True,
                                     verbose=True)
 
 

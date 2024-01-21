@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 from collections import defaultdict
 
 import numpy as np
@@ -13,6 +16,7 @@ import scipy.stats as stats
 
 from tqdm import tqdm
 import pandas as pd
+
 
 def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
     if semantic:
@@ -30,10 +34,11 @@ def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
     return RDM_stims
 
 
-def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
+def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI', semantic=False, DNN_layer=2):
     df_sn = get_trial_info(sn)
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn,
-                            nan_thresh=.25, org_by_region=False, inc=None)
+                            nan_thresh=.25, org_by_region=False,
+                            inc=None)
     if ROI2vecs is None:
         print('None subject')
         return None
@@ -49,6 +54,7 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
              '45 OrG_L_6_3', '46 OrG_R_6_3',
              '47 OrG_L_6_4', '48 OrG_R_6_4',
              '49 OrG_L_6_5', '50 OrG_R_6_5'}
+    visual_keys = ['LOC', 'EVC', 'sOcG', 'FuG', 'PCun', 'IPL']
     for ROI, vecs in ROI2vecs.items():
         # print(ROI)
         if ROI in vmPFC or ROI in dmPFC:
@@ -59,8 +65,12 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
         #     continue
         # if 'SFG' in ROI:
         #     PFC_vecs.append(vecs)
-        if 'IFG' in ROI or 'MFG' in ROI:
-            PFC_vecs.append(np.nanmean(vecs, axis=1)[:, None])
+        # if 'IFG' in ROI or 'MFG' in ROI:
+        # if 'LOC' in ROI or 'EVC' in ROI or 'sOcG' in ROI:
+        for key in visual_keys:
+            if key in ROI:
+                PFC_vecs.append(np.nanmean(vecs, axis=1)[:, None])
+                break
             # PFC_vecs.append(vecs)
         # if 'Hipp' in ROI:
         #     PFC_vecs.append(vecs)
@@ -71,7 +81,7 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
     # PFC_vecs = PFC_vecs_prod[:, idxs[0], idxs[1]]
 
     RDM_fMRI = np.corrcoef(PFC_vecs)
-    RDM_stims = get_stim_RDMs(df_sn, semantic=False, DNN_layer=2)
+    RDM_stims = get_stim_RDMs(df_sn, semantic=semantic, DNN_layer=DNN_layer)
     key2z = {}
     RDM_fMRI = within_run_to_nan(RDM_fMRI)
     # RDM_fMRI = regress_out_within_across(RDM_fMRI)
@@ -86,22 +96,30 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI'):
         key2z[key] = z
         IRAFs = get_IRAFs(RDM_fMRI, RDM_stim, df_sn)
         key2IRAF_df[key] = pd.DataFrame({'IRAF': IRAFs,
-                                         'hit_hit': df_sn['hit_hit']}).dropna()
+                                         'hit_hit': df_sn['hit_hit'],
+                                         'inc': df_sn['inc']}).dropna()
         key2IRAF_df[key]['sn'] = sn
     return key2z, key2IRAF_df
 
-def analyze_all_sn(age=1):
+def analyze_all_sn(fp_fMRI_col='scn7_fMRI', age=2, semantic=True, DNN_layer=2):
     atlas = get_BN_and_resample(combine_bilateral=False)
-    age2sn = get_all_sns()
+    age2sn = get_all_sns(fp_fMRI_col)
     key2z_all = defaultdict(list)
     key2IRAF_df_all = defaultdict(lambda: pd.DataFrame())
     for i, sn in tqdm(enumerate(age2sn[age]), desc='PFC looping sn'):
-        key2z, key2IRAF_df  = analyze_sn(sn, atlas)
+        try:
+            key2z, key2IRAF_df  = analyze_sn(sn, atlas, fp_fMRI_col=fp_fMRI_col,
+                                             semantic=semantic,
+                                             DNN_layer=DNN_layer)
+        except ValueError as e:
+            print(f'bad sn ({sn}): {e=}')
+            continue
         if key2z is None:
             continue
         for key, z in key2z.items():
             key2z_all[key].append(z)
-            key2IRAF_df_all[key] = pd.concat([key2IRAF_df_all[key], key2IRAF_df[key]])
+            key2IRAF_df_all[key] = \
+                pd.concat([key2IRAF_df_all[key], key2IRAF_df[key]])
 
     key2z_all['dif_abs_'] = utils.regress_out_multi([#key2z_all['obj_abs'],
                                                      #key2z_all['scn_abs'],
@@ -126,11 +144,12 @@ def analyze_all_sn(age=1):
         print(f'{key}: M={M:.3f}, SD={SD:.3f}, SE={SE:.3f}, t={t:.3f}, p={p:.3f}')
 
         from pymer4.models import Lmer
-        formula = f'IRAF ~ 1 + (1 | sn)'
+        formula = f'IRAF ~ 1 + inc + (1 | sn)'
         if len(key2IRAF_df_all[key]) == 0:
             continue
         df = key2IRAF_df_all[key]
-        df = df[df['hit_hit'] > 0]
+        # df = df[df['hit_hit'] > 0]
+        df = df[df['inc'] != 2]
         model = Lmer(formula, data=df)
         model.fit(REML=True, verbose=False, summary=False)
         summary = model.coefs

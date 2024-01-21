@@ -127,13 +127,13 @@ def pb_outer_double_multi(a, b, flat=False):
 
 def get_RSA_name(key):
     if key == 'obj':
-        key_str = 'Object RSA'
+        key_str = 'Object stim,'
     elif key == 'scn':
-        key_str = 'Scene stim RSA'
+        key_str = 'Scene stim,'
     elif key == 'scn_':
-        key_str = 'Scene stim RSA (regressed obj. effect)\n'
+        key_str = 'Scene stim (regressed obj. effect)\n'
     elif key == 'scn_abs':
-        key_str = 'Abs-scene RSA'
+        key_str = 'Abs-scene,'
     elif key == 'dif':
         key_str = 'Difference RSA'
     elif key == 'dif_':
@@ -152,34 +152,44 @@ def get_RSA_name(key):
         key_str = 'Abs-product RSA'
     else:
         key_str = ''
-    if key != 'scn_':
-        key_str += '.'
+    # if key != 'scn_':
+    #     key_str += '.'
     return key_str
 
-def make_title_str(pre_str, key, age, early, semantic,
+def make_title_str(pre_str, key, age, DNN_layer, semantic,
                    fp=None,
                    cin=None, short=False):
-    key_str = get_RSA_name(key)
-    age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else 'OA'
+    age_str = 'YA & OA' if age == 'healthy' else 'YA' if age == 1 else \
+        'OA' if age == 2 else age
     if semantic:
-        rsa_str = 'word2vec'
+        rsa_str = 'word2vec RSA'
     else:
-        rsa_str = '1st-layer DNN' if early else 'late-layer DNN'
+        if DNN_layer == 2:
+            rsa_str = '1st-layer DNN RSA'
+        elif DNN_layer == -1:
+            rsa_str = 'last-layer DNN RSA'
     if short:
         inc_str = ''
     else:
         inc_str = 'Con, Inc, & Neu' if cin is None else \
-            'Con' if cin == 1 else 'Inc' if cin == 2 else 'Neu'
+            'Con' if cin == 1 else 'Inc' if cin == 2 else \
+                'Neu' if cin == 3 else cin
+
     if fp:
         fp2str = {'obj4_fMRI': 'Object betas',
                   'scn4_fMRI': 'Scene betas',
                   'obj7_fMRI': 'Object betas',
                   'scn7_fMRI': 'Scene betas',}
-        fp_str = fp2str[fp] + '. '
+        fp_str = fp2str[fp]
     else:
         fp_str = ''
+    stim_str = get_RSA_name(key)
 
-    out_str = f'{pre_str} {key_str} {fp_str}{age_str}. {rsa_str}. {inc_str}'
+    # print(f'{fp=}')
+    # print(f'{fp_str=}')
+    # quit()
+
+    out_str = f'{pre_str} {fp_str}, {stim_str} {rsa_str}.\n{age_str}. {inc_str}'
     return out_str
 
 

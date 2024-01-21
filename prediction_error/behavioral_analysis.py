@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 import pandas as pd
 
 from organize_bhv import get_trial_info
@@ -23,12 +26,12 @@ def stdize_vecs(d_vecs):
         d_vecs[img] = (vec - M) / SD
 
 
-def test_vectors(semantic=True, DNN_layer=4):
+def test_vectors(semantic=True, DNN_layer=4, age=1):
     age2sn = get_all_sns(ret=False)
     pairs_all = []
     inc2pairs = defaultdict(set)
     inc2resps = defaultdict(list)
-    for sn in age2sn[1]:
+    for sn in age2sn[age]:
         df_sn = get_trial_info(sn, easy_override=False)
         for inc, obj, scn, resp in zip(df_sn['inc'], df_sn['obj'],
                                        df_sn['scene'], df_sn['per_con']):
@@ -88,10 +91,6 @@ def test_vectors(semantic=True, DNN_layer=4):
     plt.bar(['Incongruent', 'Neutral', 'Congruent'], Ms, yerr=SEs,
             color=['red', 'purple', 'blue'])
     plt.ylabel('Mean of abs(obj - scene) vector')
-    # plt.yticks([0, 0.05, 0.1, 0.15, 0.2])
-    # plt.ylim(104, 110)
-    # plt.title('Perceptual')
-    plt.ylim(0.14, 0.19)
     plt.title('Semantic')
 
     plt.tight_layout()
@@ -100,30 +99,22 @@ def test_vectors(semantic=True, DNN_layer=4):
     # plt.errorbar([0, 1, 2], Ms, yerr=SDs, fmt='o')
     plt.show()
 
-def test_U_memory(DV='con_hit'):
+def test_U_memory(DV='inc_rt', age=1):
     low_acc_sns = {'104', '109', '115', '119'}
-    age2sn = get_all_sns('obj4_fMRI')
+    age2sn = get_all_sns('obj7_fMRI')
     df_l = []
-    for sn in age2sn[1]:
+    for sn in age2sn[age]:
         if sn in low_acc_sns:
             continue
         df_sn = get_trial_info(sn, easy_override=False)
-        # df_sn['inc'] = df_sn['per_inc']
         df_l.append(df_sn)
-        # is_in = 'con_hit' in df_sn.columns
-        # print(is_in)
-        # print(df_sn.columns)
+        print(df_sn[DV])
 
-        # print(df_sn['con_hit'])
-        # quit()
     df = pd.concat(df_l)
-    # print(df['con_hit'].value_counts(dropna=False))
-    # print(df['hit_hit'].value_counts(dropna=False))
-
-    print(list(df.columns))
     dv2name = {'con_hit': 'Conceptual hit',
                'vis_hit': 'Visual hit',
-               'hit_hit': 'Both hit'}
+               'hit_hit': 'Both hit',
+               'inc_rt': 'Encoding RT (s)',}
 
     df_M = df.groupby(['sn', 'inc'])[DV].mean()
     df_SE = df_M.groupby(['inc']).sem()
@@ -141,13 +132,21 @@ def test_U_memory(DV='con_hit'):
         incs.append(key2name[inc])
     font = {'size': 14}
     matplotlib.rc('font', **font)
-    plt.bar(incs, Ms, yerr=SEs, color=['red', 'purple', 'blue'])
+    plt.bar(incs, Ms, yerr=SEs, color=['red', 'purple', 'blue'],
+            capsize=2)
     plt.ylabel(dv2name[DV])
+    if DV == 'inc_rt':
+        plt.ylim(1.5, 2.5)
+    else:
+        plt.ylim(0, 1)
     plt.gca().spines['top'].set_visible(False)
     plt.gca().spines['right'].set_visible(False)
+    age2str = {1: 'YA', 2: 'OA'}
+    plt.title(f'{age2str[age]}')
     plt.tight_layout()
     plt.show()
     print('-'*100)
+    return
 
 
     df_M = df.groupby(['sn', 'per_inc'])[DV].mean()
@@ -178,7 +177,12 @@ def test_U_memory(DV='con_hit'):
 if __name__ == '__main__':
     # test_vectors()
     # quit()
+    dv = 'inc_rt'
+    test_U_memory(dv, age=1)
+    test_U_memory(dv, age=2)
+    quit()
     for dv in ['con_hit', 'vis_hit', 'hit_hit']:
-        test_U_memory(dv)
+        test_U_memory(dv, age=1)
+        test_U_memory(dv, age=2)
 
 

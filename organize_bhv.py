@@ -297,7 +297,7 @@ NAME_RENAMER = {'inside of a car': 'car',
 def get_trial_info(sn, easy_override=False, ret=True):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
-    fp = fr'cache/trial_info/{sn}{ret_str}.pkl'
+    fp = fr'C:\PycharmProjects_C\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
     df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn, ret),
                         easy_override=easy_override,
                         verbose=False)
@@ -435,6 +435,7 @@ def get_trial_info_(sn, ret=True):
             scene = mat_enc['pdata'][0][0][8][0][i][0]
             inc = mat_enc['pdata'][0][0][9][0][i][0][0]
             resp = mat_enc['pdata'][0][0][11][0][i][0][0]
+            rt = mat_enc['pdata'][0][0][12][0][i][0][0]
 
             if obj in renamer:
                 obj_rename = renamer[obj]
@@ -502,6 +503,7 @@ def get_trial_info_(sn, ret=True):
                  'scene_rename': scene_rename,
                  'inc': inc,
                  'inc_str': inc_str,
+                 'inc_rt': rt,
                  'per_inc': resp, # higher (up to 4) = seen as congruent
                  'per_inc_str': per_inc_str,
                  'per_inc14': per_inc14,

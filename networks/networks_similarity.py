@@ -2,7 +2,9 @@ from connsearch import print_list_stats
 
 from atlas_utils import get_atlas
 from network_clf import generic_prep
-from utils import stdize
+from network_based_statistic import get_stats_graphs
+from network_funcs import load_FC_for_Lifu
+from utils import stdize, pickle_wrap
 import numpy as np
 
 np.random.seed(0)
@@ -161,6 +163,15 @@ def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11, mask=None):
         ts.append(itr_t)
     return ts
 
+def get_p_mask(kwargs):
+    kwargs = kwargs.copy()
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_graph = \
+        get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
+                         sn_inc_conn[age2idxs[2], 1, :, :])
+    return p2_graph < 0.05
 
 def do_similarity_analysis(threshold=0.95):
     fp = 'obj7_fMRI'
@@ -171,17 +182,21 @@ def do_similarity_analysis(threshold=0.95):
               'odd_even': False,
               'combine_regions': False,
               }
-    partitions, sn_inc_activity0, age2idxs, top_edges_mat, i2name = \
+    mask = get_p_mask(kwargs)
+
+    partitions, sn_inc_activity0, age2idxs, _, i2name = \
         generic_prep(kwargs, threshold=threshold)
+
+
 
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'hit_hit',
+              'key': 'inc_hit_hit',
               'atlas_name': 'BNA',
-              # 'key_vals': ('10', '20', '30',
-              #              '11', '21', '31'),
-              'key_vals': (False, True),
+              'key_vals': ('10', '20', '30',
+                           '11', '21', '31'),
+              # 'key_vals': (False, True),
               'combine_regions': False,
               }
     # fp = 'obj7_fMRI'
@@ -192,7 +207,7 @@ def do_similarity_analysis(threshold=0.95):
     #           'key_vals': ('20', '21'),
     #           'combine_regions': False,
     #           }
-    partitions, sn_inc_activity1, age2idxs, top_edges_mat, i2name = \
+    partitions, sn_inc_activity1, age2idxs, _, i2name = \
         generic_prep(kwargs, threshold=threshold)
 
 
@@ -206,8 +221,8 @@ def do_similarity_analysis(threshold=0.95):
     rois = atlas['ROIs']
     keep_idxs = list(range(len(rois)))
     #
-    keep_regions = ['IPL', 'pSTS', 'MFG', 'IFG', 'SFG']
-    # keep_regions = atlas['tick_labels']
+    # keep_regions = ['IPL', 'pSTS', 'MFG', 'IFG', 'SFG']
+    keep_regions = atlas['tick_labels']
     bad_regions = ['Tha', 'Str']
     # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL']
     # keep_regions = ['LOC', 'sOcG', 'EVC', 'FuG', 'ATL',
@@ -222,20 +237,22 @@ def do_similarity_analysis(threshold=0.95):
             keep_idxs.remove(idx)
             continue
     keep_idxs = sorted(list(set(keep_idxs)))
-    top_edges_mat = top_edges_mat[keep_idxs, :][:, keep_idxs]
+    mask = mask[keep_idxs, :][:, keep_idxs]
 
     sn_inc_activity0 = sn_inc_activity0[:, :, keep_idxs]
     sn_inc_activity1 = sn_inc_activity1[:, :, keep_idxs]
-    similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
-                                     sn_inc_activity0[:, 1],
-                                     sn_inc_activity1[:, 0],
-                                     sn_inc_activity1[:, 1],
-                        mask=None)
-    # t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+    # similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
     #                                  sn_inc_activity0[:, 1],
+    #                                  sn_inc_activity1[:, 0],
     #                                  sn_inc_activity1[:, 1],
-    #                                  sn_inc_activity1[:, 4])
+    #                     mask=None)
+    t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
+                                     sn_inc_activity0[:, 1],
+                                     sn_inc_activity1[:, 1],
+                                     sn_inc_activity1[:, 4],
+                                     mask=mask)
     print('----------------------')
+    quit()
     ts_YA = []
     ts_OA = []
     for _ in range(100):
@@ -245,7 +262,7 @@ def do_similarity_analysis(threshold=0.95):
                             sn_inc_activity0[:, 1],
                             sn_inc_activity1[:, 0],
                             sn_inc_activity1[:, 1],
-                                         mask=top_edges_mat)
+                                         mask=None)
         # t_YA, t_OA = similarity_analysis(age2idxs, sn_inc_activity0[:, 0],
         #                     sn_inc_activity0[:, 1],
         #                     sn_inc_activity1[:, 1],

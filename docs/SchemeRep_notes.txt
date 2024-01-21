@@ -2,10 +2,18 @@ Results:
 * object beta
 - Con_hit (for OA): num_singif 167 vs expected 72. Vis_hit isn't distinguished
 - Con_hit (for OA & YA): num signif 172. YA only is 194
+* Looking at inc hit similarity
+- tried thresholding to just high connectivity
+- tried thresholding based on inc t-test
+- tried thresholding based on regions
+
+Ask SH about testing lmer false positive rate with only random intercept
 
 TODO: 
 - Examine distance between hit/miss x inc/con
-- Could look at individual differneces?
+- Could look at individual differneces? ****
+	* Stronger inc effect = more accuracy?
+- look at RT?
 
 Ask simon:
 * Do we need to rule out that older adults are simply being more focused on the task at hand?

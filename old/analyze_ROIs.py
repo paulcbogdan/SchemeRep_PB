@@ -1,3 +1,6 @@
+import sys
+sys.path.append(f'C:\PycharmProjects_C\SchemeRep')
+
 import pickle
 from collections import defaultdict
 
@@ -95,8 +98,8 @@ def setup_colors(atlas):
     return region2color
 
 def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
-    font = {'size': 14}
-    matplotlib.rc('font', **font)
+    # font = {'size': 14}
+    # matplotlib.rc('font', **font)
     alpha = .10
     sigs, p_corr, alpha_sidak, alpha_bon = multipletests(ps, alpha=alpha,
                                                          method='fdr_bh')
@@ -126,6 +129,7 @@ def do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color):
     for i in range(len(atlas['ticks'])):
         plt.gca().get_xticklabels()[i].set_color(
             region2color[atlas['tick_labels'][i]])
+    plt.tight_layout()
     plt.show()
 
 def prune_bad_sns(d, drop_ret=False):
@@ -148,7 +152,7 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
+def analyze_ROIs(age=1, early=True, semantic=True, inc=1,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
                  org_by_region=False, rxr=False,
@@ -191,93 +195,66 @@ def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
         colors.append(color)
         if verbose: print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
     if verbose:
-        title_short = make_title_str('', key, age, early, semantic, short=True,
-                                     fp=fp_fMRI_col)
+        title_short = make_title_str('', key, age, DNN_layer, semantic,
+                                     short=True, fp=fp_fMRI_col)
         my_plot_surf(np.array(ts), atlas, title_short)
-        title = make_title_str('', key, age, early, semantic, inc)
-        do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
+        do_pb_ROI_plot(ps, ts, colors, atlas, title_short, region2color)
     return ts, num_sns
 
-def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
+def ROI_YA_vs_OA(semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
-                 org_by_region=False, rxr=False,
-                 run_lmer=False,
-                 DNN_layer=2, fp_fMRI_col='obj4_fMRI',
-                 verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='scn'):
-    if fp is None:
-        fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
-                        DNN_layer=DNN_layer,
-                         fp_fMRI_col=fp_fMRI_col, PCA_obj=PCA_obj,
-                         bilateral=bilateral, combine_regions=combine_regions,
-                         vec_prod=vec_prod, org_by_region=org_by_region,
-                         )
-        fp = fr'cache/RSA/{fn}.pkl'
+                 org_by_region=False,
+                 DNN_layer=2, fp_fMRI_col='scn7_fMRI',
+                 key='scn'):
+    fn_YA = get_RSA_fn(inc=inc, age=1, semantic=semantic,
+                    DNN_layer=DNN_layer,
+                     fp_fMRI_col=fp_fMRI_col, PCA_obj=PCA_obj,
+                     bilateral=bilateral, combine_regions=combine_regions,
+                     vec_prod=vec_prod, org_by_region=org_by_region,
+                     )
+    fp_YA = fr'cache/RSA/{fn_YA}.pkl'
+    with open(fp_YA, 'rb') as file:
+        d_YA = pickle.load(file)
+    fp_OA = fp_YA.replace('YA', 'OA')
+    with open(fp_OA, 'rb') as file:
+        d_OA = pickle.load(file)
 
-    with open(fp, 'rb') as file:
-        d = pickle.load(file)
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       combine_bilateral=bilateral or org_by_region)
-
-    df_as_d = defaultdict(list)
-    # print(list(d['IRAFs_ROI'][key]))
-    IRAFs = d['IRAFs_ROI'][key]['IPL_L']
-    n_trials = IRAFs.shape[-1]
-    sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
-    sns = np.reshape(sns, -1)
-    df_as_d['sn'] = sns
-    bhv_cols = ['hit_hit', 'vis_hit', 'con_hit', 'inc']
-    for col in bhv_cols:
-        df_as_d[col].extend(list(np.reshape(d['bhv'][col], -1)))
-    df = pd.DataFrame(df_as_d)
+    ts = []
+    ps = []
+    colors = []
+    region2color = setup_colors(atlas)
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
-        IRAFs = d['IRAFs_ROI'][key][ROI]
-        IRAFs = np.reshape(IRAFs, -1)
-        df[ROI] = IRAFs
-        if f'{region}_R' in df.columns:
-            df[region] = df[f'{region}_L'] + df[f'{region}_R']
-    # df['inc'] = df['inc'].apply(lambda x: 'i' if x == 1 else
-    #                                   'n' if x == 2 else 'c')
-    df = df[df['inc'] != 2]
+        t, p = stats.ttest_ind(d_OA['z'][key][ROI], d_YA['z'][key][ROI],
+                               nan_policy='omit')
+        n_YA = np.sum(~np.isnan(d_YA['z'][key][ROI]))
+        n_OA = np.sum(~np.isnan(d_OA['z'][key][ROI]))
+        print(f'two sample: {ROI}: {t=:.3f}, {p=:.3f} ({n_YA=}, {n_OA=})')
+        ts.append(t)
+        ps.append(p)
+        color = region2color[region]
+        colors.append(color)
 
-    from pymer4.models import Lmer
-    formula = f'inc ~ IPL*MFG + LOC*ATL + (1 | sn)'
-    # formula = f'vis_hit ~ inc + (1 + inc | sn)'
-    cols = get_formula_cols(df, formula)
-    df.dropna(subset=cols, inplace=True)
-    x_cols = get_formula_cols(df, formula.split('~')[1])
-    for col in x_cols:
-        if isinstance(df[col].iloc[0], str):
-            df[col] = df[col].astype('category')
-            continue
-        n_nans = np.sum(pd.isna(df[col]))
-        print(f'{col}: {n_nans=} | {df[col].dtypes}')
-        df[col] = stats.zscore(df[col], nan_policy='omit')
-    # plt.scatter(df['MFG'], df['IPL'])
-    # plt.show()
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=False, summary=True)
-    summary = model.coefs
-    print(summary)
+    title = make_title_str('', key, 'OA (N = 33) - YA (N = 25)',
+                           DNN_layer, semantic, fp=fp_fMRI_col, cin='')
 
-def get_formula_cols(df, formula):
-    import re
-    formula = re.split(' |[*]', formula)
-    cols = []
-    for col in df.columns:
-        if col in formula:
-            cols.append(col)
-    return cols
-
-
+    do_pb_ROI_plot(ps, ts, colors, atlas, title, region2color)
 
 if __name__ == '__main__':
 
     # Test connectivity within region between ROIs as nodes
-    analyze_ROIs()
-    # export_IRAF_csv()
-
+    SEMANTIC = True
+    DNN_LAYER = -1
+    FP_FMRI_COL = 'scn7_fMRI'
+    KEY = 'scn'
+    analyze_ROIs(age=1, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
+                 DNN_layer=DNN_LAYER)
+    analyze_ROIs(age=2, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
+                 DNN_layer=DNN_LAYER)
+    ROI_YA_vs_OA(semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
+                 DNN_layer=DNN_LAYER)
     # analyze_ROIs(early=True, semantic=False, cin=None,
     #              bilateral=False, combine_regions=False, vec_prod=True,
     #              org_by_region=True, rxr=False)
