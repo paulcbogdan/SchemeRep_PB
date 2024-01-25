@@ -613,6 +613,7 @@ def include_conceptual(df_sn, sn):
     obj2fp = {}
     obj2fp2 = {}
     obj2fp3 = {}
+    obj2fp7 = {}
     obj2trial = {}
     # obj2run = {}
     for run in range(1, 4):
@@ -647,8 +648,17 @@ def include_conceptual(df_sn, sn):
                 assert len(glob_conc3) == 1
                 obj2fp3[obj] = glob_conc3[0]
             else:
-                if len(glob_conc) < 1:
+                if len(glob_conc3) < 1:
                     obj2fp3[obj] = None
+
+            glob_conc7 = fr'{conc_root}/CON_rerun7/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_conc7 = glob(glob_conc7)
+            if len(glob_conc7):
+                assert len(glob_conc7) == 1
+                obj2fp3[obj] = glob_conc7[0]
+            else:
+                if len(glob_conc7) < 1:
+                    obj2fp7[obj] = None
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['con_hit'] = df_sn['con_resp'].apply(
@@ -656,6 +666,7 @@ def include_conceptual(df_sn, sn):
         df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['con2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['con3_fMRI'] = df_sn['obj'].map(obj2fp3)
+        df_sn['con7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
@@ -669,6 +680,7 @@ def include_vis(df_sn, sn):
     obj2fp = {}
     obj2fp2 = {}
     obj2fp3 = {}
+    obj2fp7 = {}
     obj2rt = {}
     obj2run = {}
     obj2trial = {}
@@ -711,19 +723,26 @@ def include_vis(df_sn, sn):
             if sn[0] == '2':
                 obj2fp2[obj] = None
             else:
-                glob_vic2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-                glob_vic2 = glob(glob_vic2)
-                if len(glob_vic2):
-                    obj2fp2[obj] = glob_vic2[0]
+                glob_vis2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+                glob_vis2 = glob(glob_vis2)
+                if len(glob_vis2):
+                    obj2fp2[obj] = glob_vis2[0]
                 else:
                     obj2fp2[obj] = None
 
-            glob_vic3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            glob_vic3 = glob(glob_vic3)
-            if len(glob_vic3):
-                obj2fp3[obj] = glob_vic3[0]
+            glob_vis3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+            glob_vis3 = glob(glob_vis3)
+            if len(glob_vis3):
+                obj2fp3[obj] = glob_vis3[0]
             else:
                 obj2fp3[obj] = None
+
+            glob_vis7 = fr'{vis_root}/VIS_rerun7/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+            glob_vis7 = glob(glob_vis7)
+            if len(glob_vis7):
+                obj2fp7[obj] = glob_vis7[0]
+            else:
+                obj2fp7[obj] = None
     else:
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
@@ -733,6 +752,7 @@ def include_vis(df_sn, sn):
         df_sn['vis_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['vis2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
+        df_sn['vis7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
@@ -758,6 +778,7 @@ def include_BL(df_sn, sn):
     obj2fp = {}
     obj2fp2 = {}
     obj2fp3 = {}
+    obj2fp7 = {}
     obj2trial = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/bl/S{sn}_run{run}.mat'
@@ -788,11 +809,20 @@ def include_BL(df_sn, sn):
                 obj2fp3[obj] = glob_BL3[0]
             else:
                 obj2fp3[obj] = None
+
+            glob_BL7 = fr'{bl_root}/BL_rerun7/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_BL7 = glob(glob_BL7)
+            assert len(glob_BL7) == 1 or len(glob_BL) == 1, f'Bad bl7 missing'
+            if len(glob_BL7):
+                obj2fp7[obj] = glob_BL7[0]
+            else:
+                obj2fp7[obj] = None
     else:
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['bl2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['bl3_fMRI'] = df_sn['obj'].map(obj2fp3)
+        df_sn['bl7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn

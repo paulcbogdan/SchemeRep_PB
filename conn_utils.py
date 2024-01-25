@@ -164,66 +164,15 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       conn=None, combine_regions=False,
                       easy_override=False):
     assert not (combine_regions and org_by_region)
-    # sn = '110'
-    # easy_override = False
-    # print(df_sn[fp0])
 
-    # df_sn = get_trial_info(sn, easy_override=False)
-    # print(list(df_sn.columns))
-    # # quit()
-    # print(df_sn[fp0].values)
-    # quit()
-
-    # atlas = get_atlas(shenyang=False)
-    # atlas = get_atlas()
-    # from nilearn import plotting
-    # plotting.plot_roi(atlas['maps'])
-    # plotting.show()
-
-    # atlas2 = get_atlas(schaefer=False, shenyang=False)
-    # atlas2 = get_atlas(combine_bilateral=True)
-    # atlas2['maps'] = atlas3['maps']
-    # fp0 = 'obj3_fMRI'
-    # org_by_region = True
-    # TODO: Big problems related to sorting df_sn for RSA but not ERS
     easy_override = True
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                              drop_nan_voxels=False,
                              org_by_region=org_by_region,
                              easy_override=easy_override,
                              combine_regions=combine_regions)
-    # ROI2vecs0 = get_ROI_vecs_old(df_sn, fp0, atlas,
-    #               nan_thresh=1.01, org_by_region=org_by_region,
-    #               drop_nan_voxels=False)
+
     key = 'SFG'
-    # l = []
-    # for ROI, vecs in ROI2vecs0.items():
-    #     if key in ROI:
-    #         l.append(np.nanmean(vecs, axis=1))
-    # test = np.array(l).T
-
-    # key = '1 SFG_L_7_1'
-    test = ROI2vecs0[key]
-    #
-    # print(f'{len(ROI2vecs0)=}')
-    # print(f'{sn=}, {fp0=}, {test.shape=}')
-    # print(test[:,0])
-    # quit()
-    # # data = atlas['maps'].get_fdata()
-    # # max_data = np.max(data)
-    # # print(max_data)
-    # # quit()
-    # org_by_region = True
-
-    # # test0 = ROI2vecs['SFG']
-    # test0 = ROI2vecs[key]
-    # print(f'{len(ROI2vecs)=}')
-    # print(f'{sn=}, {fp0=}, {test0.shape=}')
-    # # for i in range(14):
-    # print(test0[:,0])
-    # r, p = stats.spearmanr(test[:,0], test0[:,0])
-    # print(f'{r=:.3f}, {p=:.3f}')
-    # quit()
 
     if fp1 is not None:
         ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,

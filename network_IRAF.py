@@ -49,21 +49,33 @@ def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
     for col in bhv_cols:
         df_as_d[col].extend(list(np.reshape(d['bhv'][col], -1)))
     df = pd.DataFrame(df_as_d)
+    all_regions = []
     for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
         IRAFs = d['IRAFs_ROI'][key][ROI]
         IRAFs = np.reshape(IRAFs, -1)
         df[ROI] = IRAFs
         if f'{region}_R' in df.columns:
             df[region] = df[f'{region}_L'] + df[f'{region}_R']
+            all_regions.append(region)
     # df['inc'] = df['inc'].apply(lambda x: 'i' if x == 1 else
     #                                   'n' if x == 2 else 'c')
+
+    all_regions_str = '+ '.join(all_regions)
     df = df[df['inc'] != 2]
 
     from pymer4.models import Lmer
     formula = f'hit_hit ~ IPL*MFG*LOC*ATL + (1 | sn)'
+    # formula = f'inc ~ 1 + {all_regions_str} + (1 | sn)'
+    # formula = f'inc ~ 1 + (1 | sn)'
+
+    # df.dropna(subset=['hit_hit'], inplace=True)
+    df.dropna(subset=all_regions, inplace=True)
+
     # formula = f'vis_hit ~ inc + (1 + inc | sn)'
-    cols = get_formula_cols(df, formula)
-    df.dropna(subset=cols, inplace=True)
+    # cols = get_formula_cols(df, formula)
+    # cols = list(set(cols).union({'IPL', 'MFG', 'LOC', 'ATL'}))
+    # print(cols)
+    # df.dropna(subset=cols, inplace=True)
     x_cols = get_formula_cols(df, formula.split('~')[1])
     for col in x_cols:
         if isinstance(df[col].iloc[0], str):
@@ -75,7 +87,7 @@ def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
     # plt.scatter(df['MFG'], df['IPL'])
     # plt.show()
     model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=False, summary=True)
+    model.fit(REML=False, verbose=False, summary=True)
     summary = model.coefs
     print(summary)
 

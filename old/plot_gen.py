@@ -109,20 +109,18 @@ def get_split_cmap(vabs, thresh, cmap):
 
 
 def my_plot_surf(Ms, atlas, title, fp_out=None,
-                 neg='', pos=''):
+                 neg='', pos='', thresh=1.65, vmax=4):
     from statsmodels.stats.multitest import multipletests
     import scipy.stats as stats
     from nilearn import plotting
     atlas['coords'] = np.array(atlas['coords'])
-
+    Ms = np.array(Ms)
     Ms[np.isinf(Ms)] = np.nan
     n_non_nans = np.sum(~np.isnan(Ms))
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
 
-    thresh = 1.65
-    vmax = 4
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
@@ -161,7 +159,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                     vmax=vmax)
 
     if neg:
-        axs[4].set_xticks([-4, -2, 2, 4],
+        axs[4].set_xticks([-vmax, -2, 2, vmax],
                           [f'({neg})',
                            '-2', '2',
                            f'({pos})'], fontsize=8)

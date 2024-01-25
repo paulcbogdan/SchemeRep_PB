@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 from pathlib import Path
 
 import numpy as np
@@ -67,7 +70,7 @@ def plot_bars(vals, title):
         labelbottom=True)
 
     plt.ylim(bottom=y_low, top=highest_line)
-    plt.title(title)
+    plt.title(title, fontsize=14)
     plt.ylabel('Connectivity')
     plt.show()
 
@@ -80,7 +83,7 @@ def run_IPL_bars(threshold=0.95):
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    partitions, sn_inc_activity_sch, age2idxs, top_edges_mat, i2name = \
+    partitions, sn_inc_act, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
 
     ROIs = get_BNA_ROIs()
@@ -94,9 +97,9 @@ def run_IPL_bars(threshold=0.95):
         idxs1 = [i for i, ROI in enumerate(ROIs) if region1 in ROI]
         vals = []
         for age in [1, 2]:
-            print(sn_inc_activity_sch.shape)
+            print(sn_inc_act.shape)
             print(idxs0)
-            sn_inc_act_age = sn_inc_activity_sch[age2idxs[age]]
+            sn_inc_act_age = sn_inc_act[age2idxs[age]]
             sn_inc_act0 = sn_inc_act_age[:, :, idxs0, :]
             sn_inc_act0 = stdize(sn_inc_act0, axis=3, nans=True)
 
@@ -118,7 +121,61 @@ def run_IPL_bars(threshold=0.95):
         Ns = np.array([np.sum(~np.isnan(cond_M)) for cond_M in vals])
         SEs = SDs / np.sqrt(Ns)
 
+def conn_a_lot(threshold=.95):
+    fp = 'obj4_fMRI'
+    kwargs = {'fp': fp, 'split': False,
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 3),
+              'odd_even': False,
+              }
+    partitions, sn_inc_act, age2idxs, top_edges_mat, i2name = \
+        generic_prep(kwargs, threshold=threshold)
+    ROIs = get_BNA_ROIs()
+
+    # regions0 = ['IPL', 'pSTS']
+    regions0 = ['MFG', 'IFG']
+    # regions0 = ['EVC', 'LOC']
+    regions1 = ['ATL']
+
+    # regions1 = ['EVC', 'LOC', 'FuG', 'ITG', 'ATL']
+    idxs0 = []
+    for r0 in regions0:
+        idxs0_r = [i for i, ROI in enumerate(ROIs) if r0 in ROI]
+        idxs0 += idxs0_r
+    idxs1 = []
+    for r1 in regions1:
+        idxs1_r = [i for i, ROI in enumerate(ROIs) if r1 in ROI]
+        idxs1 += idxs1_r
+
+    vals = []
+    for age in [1, 2]:
+        sn_inc_act_age = sn_inc_act[age2idxs[age]]
+        sn_inc_act0 = sn_inc_act_age[:, :, idxs0, :]
+        print(f'{sn_inc_act0.shape=}')
+        sn_inc_act0 = stdize(sn_inc_act0, axis=3, nans=True)
+
+        sn_inc_act1 = sn_inc_act_age[:, :, idxs1, :]
+        print(f'{sn_inc_act1.shape=}')
+        sn_inc_act1 = stdize(sn_inc_act1, axis=3, nans=True)
+
+        conn = sn_inc_act0[..., None, :] * sn_inc_act1[..., None, :, :]
+        conn = np.nanmean(conn, axis=-1)
+        conn_M = np.nanmean(conn, axis=(-1, -2))
+
+        cond0_M = conn_M[:, 0]
+        cond1_M = conn_M[:, 1]
+        vals += [cond0_M, cond1_M]
+    title = f'{regions0} x\n {regions1}'
+    plot_bars(vals, title)
+    quit()
+
+    Ms = np.array([np.nanmean(cond_M) for cond_M in vals])
+    SDs = np.array([np.nanstd(cond_M) for cond_M in vals])
+    Ns = np.array([np.sum(~np.isnan(cond_M)) for cond_M in vals])
+    SEs = SDs / np.sqrt(Ns)
+
 
 if __name__ == '__main__':
-    run_IPL_bars()
-
+    # run_IPL_bars()
+    conn_a_lot()

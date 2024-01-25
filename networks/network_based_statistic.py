@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 from matplotlib import pyplot as plt
 from nichord import get_idx_to_label
 from nichord.combine import plot_and_combine
@@ -393,11 +396,18 @@ def ttest_modularity():
         get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
                          sn_inc_conn[age2idxs[2], 1, :, :])
     threshold = .95
-    partitions, matrix_mask = get_main_partitions(t2_graph, coords=None,
+    flip_t = False
+    z2_graph = -z2_graph if flip_t else z2_graph
+    plot_thresh = np.nanquantile(z2_graph, .999)
+    z2_graph[z2_graph >= plot_thresh] = plot_thresh
+    # print(plot_thresh)
+    # quit()
+    partitions, matrix_mask = get_main_partitions(z2_graph, coords=None,
                                                   plot=True,
-                        threshold=threshold, fn_str='', overlapping=False,
-                        dir_out=f'OA2_ttest_modules_-thr{threshold}.png')
-    quit()
+                        threshold=.95, fn_str='', overlapping=False,
+                        dir_out=f'OA2_ttest_modules_thr{threshold}'
+                                f'_flip{flip_t}.png')
+
     fp = 'obj7_fMRI'
     kwargs = {'fp': fp,
               'split': False,
@@ -429,9 +439,9 @@ def ttest_modularity():
 
 
 if __name__ == '__main__':
-    # ttest_modularity()
+    ttest_modularity()
     # plot_M()
-    do_NBS()
+    # do_NBS()
     # ANOVA_edges()
 
 

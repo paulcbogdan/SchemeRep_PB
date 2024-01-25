@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +17,7 @@ from old.plot_gen import my_plot_surf
 from utils import stdize
 from connsearch import print_list_stats
 
-def get_many_samples(act_seed_cond, act_tar_cond, n_samples=50):
+def get_many_samples(act_seed_cond, act_tar_cond, n_samples=50, size=7):
     # for run in range(3):
     #     trial_low = run * 38
     #     trial_high = (run + 1) * 38
@@ -33,14 +36,24 @@ def get_many_samples(act_seed_cond, act_tar_cond, n_samples=50):
             non_nans = np.argwhere(~np.isnan(
                 act_seed_cond0[0, trial_low:trial_high]))
             non_nans = non_nans.flatten()
+            if len(non_nans) < size + 1:
+                bad_sn = True
+                return [], bad_sn
             non_nan_random = np.random.choice(non_nans,
-                                              size=non_nans.shape[0],
+                                              size=size, #non_nans.shape[0],
                                               replace=False)
             non_nan_random += trial_low
             seed_run = act_seed_cond0[:, non_nan_random]
             tar_run = act_tar_cond0[:, non_nan_random]
+            # print(seed_run.shape)
+
+            seed_run = stdize(seed_run, axis=1, nans=True)
+            tar_run = stdize(tar_run, axis=1, nans=True)
             conn0 = seed_run[None, ...] * tar_run[:, None, :]
+
             conn0 = np.nanmean(conn0, axis=-1)
+            # print(f'{conn0[0, 1]=}')
+            # quit()
             conn0s.append(conn0)
             n_nans = np.sum(np.isnan(conn0))
             n_non_nans = np.sum(~np.isnan(conn0))
@@ -74,21 +87,24 @@ def HC_clf(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, region,
             sn_conns = []
             bad_sn = False
             for cond in range(act_hc.shape[0]):
-                act_seed_cond = act_hc[cond]
-                act_seed_cond = stdize(act_seed_cond, axis=1, nans=True)
-                act_tar_cond = act_sch[cond]
-                act_tar_cond = stdize(act_tar_cond, axis=1, nans=True)
+
                 if super_sample:
-                    conn0s, bad_sn = get_many_samples(act_seed_cond, act_tar_cond)
+                    conn0s, bad_sn = get_many_samples(act_hc[cond], act_sch[cond])
                     if bad_sn:
                         break
                     sn_conns.extend(conn0s)
                 else:
+                    act_seed_cond = act_hc[cond]
+                    # act_seed_cond = stdize(act_seed_cond, axis=1, nans=True)
+                    act_tar_cond = act_sch[cond]
+                    # act_tar_cond = stdize(act_tar_cond, axis=1, nans=True)
                     for run in range(3):
                         trial_low = run * 38
                         trial_high = (run + 1) * 38
                         act_hc_cond0 = act_seed_cond[:, trial_low:trial_high]
+                        act_hc_cond0 = stdize(act_hc_cond0, axis=1, nans=True)
                         act_sch_cond0 = act_tar_cond[:, trial_low:trial_high]
+                        act_sch_cond0 = stdize(act_sch_cond0, axis=1, nans=True)
                         conn0 = act_hc_cond0[None, ...] * act_sch_cond0[:, None, :]
                         conn0 = np.nanmean(conn0, axis=-1)
                         n_nans = np.sum(np.isnan(conn0))
@@ -316,7 +332,7 @@ def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
         age2cond0m[age] = np.nanmean(age_conns_m[:, 0], axis=0)
         age2cond1m[age] = np.nanmean(age_conns_m[:, 1], axis=0)
         vmin = min(vmin, np.nanquantile(age_GM, 0.025))
-        vmax = max(vmax, np.nanquantile(age_GM, 0.975))
+        vmax = max(vmax, np.nanquantile(age_GM, 0.9))
 
     coords = atlas['coords']
     dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
@@ -327,26 +343,60 @@ def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
     for age in [0, 1, 2]:
         fp_pic = f'mass_M/{dir_out}_{atlas_name}/{region}_{age2str[age]}.png'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
-        plot_ROI_scores(list(age2gm[age]), coords, fp_out=fp_pic, show=False,
-                        title=f'{region} | {age2str[age]}, Inc & Con',
-                        vmin=vmin, vmax=vmax, cmap='viridis')
+        # plot_ROI_scores(list(age2gm[age]), coords, fp_out=fp_pic, show=False,
+        #                 title=f'{region} | {age2str[age]}, Inc & Con',
+        #                 vmin=vmin, vmax=vmax, cmap='viridis')
+        my_plot_surf(np.array(list(age2gm[age])), atlas,
+                     f'{region} | {age2str[age]}, Inc & Con',
+                     thresh=0.1, vmax=vmax,
+                     fp_out=fp_pic)
         if age == 0:
             continue
 
         fp_pic = f'mass_M/{dir_out}_{atlas_name}/' \
                  f'{region}_{age2str[age]}_cond0.png'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
-        plot_ROI_scores(list(age2cond0m[age]), coords, fp_out=fp_pic, show=False,
-                        title=f'{region} | {age2str[age]}, Inc',
-                        vmin=vmin, vmax=vmax, cmap='viridis')
+        # plot_ROI_scores(list(age2cond0m[age]), coords, fp_out=fp_pic, show=False,
+        #                 title=f'{region} | {age2str[age]}, Inc',
+        #                 vmin=vmin, vmax=vmax, cmap='viridis')
+        my_plot_surf(np.array(list(age2cond0m[age])), atlas,
+                     f'{region} | {age2str[age]}, Inc',
+                     thresh=0.1, vmax=vmax,
+                     fp_out=fp_pic)
 
         fp_pic = f'mass_M/{dir_out}_{atlas_name}/' \
                  f'{region}_{age2str[age]}_cond1.png'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
-        plot_ROI_scores(list(age2cond1m[age]), coords, fp_out=fp_pic, show=False,
-                        title=f'{region} | {age2str[age]}, Con',
-                        vmin=vmin, vmax=vmax, cmap='viridis')
+        # plot_ROI_scores(list(age2cond1m[age]), coords, fp_out=fp_pic, show=False,
+        #                 title=f'{region} | {age2str[age]}, Con',
+        #                 vmin=vmin, vmax=vmax, cmap='viridis')
+        my_plot_surf(np.array(list(age2cond1m[age])), atlas,
+                     f'{region} | {age2str[age]}, Con',
+                     thresh=0.1, vmax=vmax,
+                     fp_out=fp_pic)
+    print(f'Plotted M: {region=}')
 
+def get_keep_idxs(combine_regions=False):
+    atlas = get_atlas(combine_regions=combine_regions)
+    rois = atlas['ROIs']
+    keep_idxs = list(range(len(rois)))
+    keep_regions = atlas['tick_labels']
+    bad_regions = ['Tha', 'Str']
+    drop_idxs = []
+
+    for idx in list(keep_idxs):
+        name = rois[idx]
+        if not any(region in name for region in keep_regions):
+            keep_idxs.remove(idx)
+            drop_idxs.append(idx)
+            continue
+        if any(region in name for region in bad_regions):
+            keep_idxs.remove(idx)
+            drop_idxs.append(idx)
+            continue
+    keep_idxs = sorted(list(set(keep_idxs)))
+    drop_idxs = sorted(list(set(drop_idxs)))
+    return keep_idxs, drop_idxs
 
 def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
     fp = 'obj7_fMRI'
@@ -356,12 +406,18 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
               'key_vals': (1, 3),
               'odd_even': False,
               }
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'con_hit',
-              'atlas_name': 'BNA',
-              'key_vals': (False, True)
-              }
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'con_hit',
+    #           'atlas_name': 'BNA',
+    #           'key_vals': (False, True)
+    #           }
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'hit_hit',
+    #           'atlas_name': 'BNA',
+    #           'key_vals': (False, True)
+    #           }
     # kwargs = {'fp': fp,
     #           'split': False,
     #           'key': 'inc_hit_hit',
@@ -376,11 +432,16 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
     #           }
     partitions, sn_inc_activity_tar, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
+    keep_idxs, drop_idxs = get_keep_idxs()
+    # sn_inc_activity_tar = sn_inc_activity_tar[:, :, keep_idxs, :]
+    sn_inc_activity_tar[:, :, drop_idxs, :] = np.nan
 
     kwargs1 = kwargs.copy()
     kwargs1['atlas_name'] = 'BNA'
     _, sn_inc_activity_bna, _, _, _ = generic_prep(kwargs1,
                                                    threshold=threshold)
+
+
     BNA = get_atlas()
     ROIs = get_BNA_ROIs()
     regions = BNA['tick_labels']
@@ -388,23 +449,29 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
         regions = [f'{r}_{lr}' for r in regions for lr in ['L', 'R']]
 
     accs = {}
-    atlas_sf = get_atlas(schaefer=kwargs['atlas_name'] == 'schaefer')
-    atlas_sf['name'] = kwargs['atlas_name']
+    atlas_tar = get_atlas(schaefer=kwargs['atlas_name'] == 'schaefer')
+    atlas_tar['name'] = kwargs['atlas_name']
+    # atlas_tar['coords'] = [atlas_tar['coords'][i] for i in keep_idxs]
 
-    specific_region = 'IPL'
+    specific_region = None
     for region in regions:
-        # if specific_region and (specific_region not in region):
-        #     continue
+        if specific_region and (specific_region not in region):
+            continue
         idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
         sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
+        # plot_M(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs, region,
+        #        atlas_tar)
+        # continue
+
         if perm:
             OA_accs = []
             YA_accs = []
             for nsim in range(100):
+                print(f'PERM: {region} | {nsim}')
                 YA_acc, OA_acc = HC_clf(age2idxs, sn_inc_activity_seed,
                                         sn_inc_activity_tar,
                                         region, n_repeats=10, perm=True,
-                                        super_sample=False,)
+                                        super_sample=True,)
                 OA_accs.append(OA_acc)
                 YA_accs.append(YA_acc)
                 if nsim % 5 == 0:
@@ -413,29 +480,20 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
             continue
         else:
             accs_rg = HC_clf(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar,
-                             region, n_repeats=100, super_sample=True)
-            continue
+                             region, n_repeats=10, super_sample=True)
         accs[region] = accs_rg
         HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
-             region, accs, atlas_sf)
+             region, accs, atlas_tar)
     quit()
 
 # Number of items: 96
-# Mean item: 0.503
-# Median item: 0.502
-# Min item: 0.425
-# Max item: 0.572
-# p(under 50%): 0.469 | p(above 50%): 0.531
-# Percentile: Accuracy | 1.0: 0.4248, 0.75: 0.4752, 0.5: 0.5019, 0.25: 0.5271, 0.1: 0.5584, 0.05: 0.5667, 0.01: 0.5719, 0.005: 0.5719, 0.001: 0.5719
-
-# Super sample:
-# Number of items: 96
 # Mean item: 0.500
-# Median item: 0.501
-# Min item: 0.470
-# Max item: 0.534
-# p(under 50%): 0.469 | p(above 50%): 0.531
-# Percentile: Accuracy | 1.0: 0.4697, 0.75: 0.4905, 0.5: 0.5006, 0.25: 0.5101, 0.1: 0.5194, 0.05: 0.5286, 0.01: 0.5342, 0.005: 0.5342, 0.001: 0.5342
+# Median item: 0.500
+# Min item: 0.494
+# Max item: 0.511
+# p(under 50%): 0.521 | p(above 50%): 0.479
+# Percentile: Accuracy | 1.0: 0.4939, 0.75: 0.4976, 0.5: 0.4998, 0.25: 0.5027, 0.1: 0.5040, 0.05: 0.5049, 0.01: 0.5108, 0.005: 0.5108, 0.001: 0.5108
+
 
 def run_two_sample_on_2D(ar0, ar1):
     YA_M = np.nanmean(ar0, axis=0)

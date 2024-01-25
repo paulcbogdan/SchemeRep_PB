@@ -1,3 +1,6 @@
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 import random
 from collections import defaultdict
 from itertools import combinations
@@ -19,7 +22,7 @@ import pickle
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
                      do_sort=False, fp_all=False, voxelwise=False,
-                     regionwise=False, combine_regions=False):
+                     regionwise=False, combine_regions=False, get_df_sn=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -46,6 +49,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     ROI2act = defaultdict(list)
     Y = []
     grp_idxs = []
+    df_sns = []
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
         print(f'{len(sns)=}')
@@ -142,6 +146,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             sn_inc_conn.append(conns)
             sn_inc_activity.append(activity_inc)
             age2idxs[age].append(sn_idx)
+            df_sns.append(df_sn)
             sn_idx += 1
 
     if voxelwise or regionwise:
@@ -156,7 +161,10 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         sn_inc_conn[..., diag[0], diag[1]] = np.nan
         sn_conn[..., diag[0], diag[1]] = np.nan
         sn_inc_activity = np.array(sn_inc_activity)
-        return sn_inc_conn, sn_conn, age2idxs, sn_inc_activity
+        if get_df_sn:
+            return sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns
+        else:
+            return sn_inc_conn, sn_conn, age2idxs, sn_inc_activity
 
 
 def get_ylim_settings(sn_inc_conn, age2idxs, ps, do_division=True):

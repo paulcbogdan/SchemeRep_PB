@@ -10,7 +10,8 @@ from utils import pickle_wrap
 import matplotlib.pyplot as plt
 
 def get_binary_matrix(matrix, threshold=.9):
-    threshold = np.nanquantile(matrix, threshold)
+    if threshold < 1:
+        threshold = np.nanquantile(matrix, threshold)
     matrix_binary = matrix.copy()
     matrix_mask = matrix > threshold
     matrix_binary[matrix_binary < threshold] = 0

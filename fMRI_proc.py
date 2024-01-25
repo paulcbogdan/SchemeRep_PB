@@ -626,8 +626,8 @@ def run_multi_settings():
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                    'scn7_fMRI',
-                    'obj7_fMRI',
+                    # 'scn7_fMRI',
+                    # 'obj7_fMRI',
                                     # 'bl3_fMRI',
                                     # 'obj3_fMRI',
                                     # 'scn3_fMRI',
