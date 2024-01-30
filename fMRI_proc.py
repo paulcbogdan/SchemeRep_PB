@@ -261,7 +261,10 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
             image.load_img(df_sn_[fp_fMRI_col]).get_fdata()
     else:
         n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+
         if n_nans:
+            print(df_sn[fp_fMRI_col])
+            print(f'{len(df_sn)=}')
             raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
 
         if fp_fMRI_col[:4] == 'obj_':
@@ -615,8 +618,8 @@ def run_multi_settings():
     # fp_fMRI_col = 'scn_fMRI'
     inc = None
     # if True:
-    for age in [1, 2]:
-        for inc in [2]:
+    for age in [1]:
+        for inc in [None]:
             for DNN_layer, semantic in [
                 (2, False),
                 (-1, False),
@@ -628,11 +631,9 @@ def run_multi_settings():
                 for fp_fMRI_col in [
                     # 'scn7_fMRI',
                     # 'obj7_fMRI',
-                                    # 'bl3_fMRI',
-                                    # 'obj3_fMRI',
-                                    # 'scn3_fMRI',
-                                    # 'con3_fMRI',
-                                    # 'vis3_fMRI',
+                    # 'bl7_fMRI',
+                    'con7_fMRI',
+                    'vis7_fMRI',
                 ]:
             # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
@@ -658,7 +659,7 @@ def run_multi_settings():
                                                PCA_obj=PCA_obj,
                                                shuffle=False
                                                )
-                    d = pickle_wrap(fp_out, f, easy_override=True,
+                    d = pickle_wrap(fp_out, f, easy_override=False,
                                     verbose=True)
 
 

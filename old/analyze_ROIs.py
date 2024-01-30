@@ -152,7 +152,7 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
-def analyze_ROIs(age=1, early=True, semantic=True, inc=1,
+def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
                  org_by_region=False, rxr=False,
@@ -247,12 +247,13 @@ if __name__ == '__main__':
     # Test connectivity within region between ROIs as nodes
     SEMANTIC = True
     DNN_LAYER = -1
-    FP_FMRI_COL = 'scn7_fMRI'
+    FP_FMRI_COL = 'vis7_fMRI'
     KEY = 'scn'
     analyze_ROIs(age=1, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
                  DNN_layer=DNN_LAYER)
     analyze_ROIs(age=2, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
                  DNN_layer=DNN_LAYER)
+    quit()
     ROI_YA_vs_OA(semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
                  DNN_layer=DNN_LAYER)
     # analyze_ROIs(early=True, semantic=False, cin=None,

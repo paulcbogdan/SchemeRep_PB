@@ -6,6 +6,7 @@ from scipy import stats as stats
 
 from datetime import datetime
 from time import time
+from pickle import UnpicklingError
 
 def regress_out(x, y):
     x = np.array(x)
@@ -179,7 +180,9 @@ def make_title_str(pre_str, key, age, DNN_layer, semantic,
         fp2str = {'obj4_fMRI': 'Object betas',
                   'scn4_fMRI': 'Scene betas',
                   'obj7_fMRI': 'Object betas',
-                  'scn7_fMRI': 'Scene betas',}
+                  'scn7_fMRI': 'Scene betas',
+                  'con7_fMRI': 'Concept ret. betas',
+                  'vis7_fMRI': 'Visual ret. betas',}
         fp_str = fp2str[fp]
     else:
         fp_str = ''
@@ -318,7 +321,8 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
 
     if verbose:
         print('Filepath:', filepath)
-        print('\tFunction:', getVariableName(callback, globalVariables=globals().copy()))
+        print('\tFunction:', getVariableName(callback,
+                                             globalVariables=globals().copy()))
 
     if os.path.isfile(filepath):
         made = os.path.getmtime(filepath)
@@ -332,37 +336,36 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
             easy_override = True
             print(f'File ({fn}) was made: {made}')
             print('\tFile is old, overriding')
-        # print(dt > dt_max)
-        # now = datetime.now()
-        # print(f'{made=}')
-        # print(f'{dt=}')
-        # print(f'{now=}')
-        # quit()
 
     if os.path.isfile(filepath) and not easy_override:
-        # if verbose: print(f'Loading...')
-        start = time()
-        with open(filepath, "rb") as file:
-            pk = pickle.load(file)
-            if verbose: print(f'\tLoad time: {time()-start:.3f} s')
-            return pk
+        try:
+            start = time()
+            with open(filepath, "rb") as file:
+                pk = pickle.load(file)
+                if verbose: print(f'\tLoad time: {time()-start:.3f} s')
+                return pk
+        except UnpicklingError as e:
+            print(f'{e=}')
+            print(f'\t{callback=}')
+            print(f'\t{filepath=}')
+
+    if verbose: print('Callback:', getVariableName(callback,
+                                                   globalVariables=globals().copy()))
+    start = time()
+    if args:
+        output = callback(*args)
+    elif kwargs:
+        output = callback(**kwargs)
     else:
-        if verbose: print('Callback:', getVariableName(callback, globalVariables=globals().copy()))
-        start = time()
-        if args:
-            output = callback(*args)
-        elif kwargs:
-            output = callback(**kwargs)
-        else:
-            output = callback()
-        if verbose:
-            print(f'\tFunction time: {time()-start:.3f} s')
-            # print('\tDumping to file name:', filepath)
-        start = time()
-        with open(filepath, "wb") as new_file:
-            pickle.dump(output, new_file)
-        if verbose: print(f'\tDump time: {time()-start:.3f} s')
-        return output
+        output = callback()
+    if verbose:
+        print(f'\tFunction time: {time()-start:.3f} s')
+        # print('\tDumping to file name:', filepath)
+    start = time()
+    with open(filepath, "wb") as new_file:
+        pickle.dump(output, new_file)
+    if verbose: print(f'\tDump time: {time()-start:.3f} s')
+    return output
 
 if __name__ == '__main__':
     a = np.array([[np.nan, 1, 2, 4, 2.2, 113]])

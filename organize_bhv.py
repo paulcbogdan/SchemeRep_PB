@@ -655,7 +655,7 @@ def include_conceptual(df_sn, sn):
             glob_conc7 = glob(glob_conc7)
             if len(glob_conc7):
                 assert len(glob_conc7) == 1
-                obj2fp3[obj] = glob_conc7[0]
+                obj2fp7[obj] = glob_conc7[0]
             else:
                 if len(glob_conc7) < 1:
                     obj2fp7[obj] = None
