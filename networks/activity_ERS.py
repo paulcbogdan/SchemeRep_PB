@@ -76,7 +76,7 @@ def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
     df_sn['sn'] = sn
     return df_sn, cols
 
-def make_ERS_df(fp0='scn7_fMRI', fp1='con7_fMRI', combine_regions=True):
+def make_ERS_df(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
     age2sn = get_all_sns('all', sh=False)
     sns = age2sn[2]
     dfs = []
@@ -85,24 +85,29 @@ def make_ERS_df(fp0='scn7_fMRI', fp1='con7_fMRI', combine_regions=True):
         cmb_str = '_cmb' if combine_regions else ''
         fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}.pkl'
         df_sn, ERS_cols = pickle_wrap(fp_pkl, lambda: do_activity_ERS_sn(sn,
-                combine_regions=combine_regions, fp0=fp0, fp1=fp1,
-                                                                         ),
-                                      easy_override=True)
+                combine_regions=combine_regions, fp0=fp0, fp1=fp1,),
+                                      easy_override=False)
         df_sn['sn'] = sn
         dfs.append(df_sn)
         # if len(dfs) > 5:
         #     break
     df = pd.concat(dfs, axis=0)
+    # df.dropna(subset=['vis_hit'], inplace=True)
     for col in ERS_cols:
         df_grp = df.groupby(['sn', 'inc'])[col].mean()
+        # df_grp = df.groupby(['sn', 'inc'])[col].mean()
         t, p = stats.ttest_rel(df_grp.loc[:, 1], df_grp.loc[:, 3],
                                nan_policy='omit')
         df_grp = df.groupby(['sn'])[col].mean()
         t0, p0 = stats.ttest_1samp(df_grp, 0, nan_policy='omit')
+        print(f'{col} | Above zero: {t0=:.2f}, {p0=:.3f} | {t=:.2f}')
+        continue
+
         if (p < .01) | (p0 < .01):
-            print(f'{col=}')
-            print(f'\t Inc effect: {t=:.2f}, {p=:.3f}')
-            print(f'\t Above zero: {t0=:.2f}, {p0=:.3f}')
+            # print(f'{col=}')
+            # print(f'\t Inc effect: {t=:.2f}, {p=:.3f}')
+            print(f'{col}, Above zero: {t0=:.2f}, {p0=:.3f}')
+            # print(df_grp)
         continue
         formula = f'{col} ~ 1 + inc + (1 | sn)'
         keys = keys_from_formula(formula)

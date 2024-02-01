@@ -10,6 +10,7 @@ from network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 import seaborn as sns
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
@@ -98,6 +99,7 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     incs = ['Inc'] * n_sn + ['Con'] * n_sn
     ages = (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
     wbs = ['Within'] * (2 * n_sn)
+    subj_nums = list(range(n_sn)) * 2
 
     # conn_dv = get_partition_cross(sn_inc_conn, p_dorsal, p_ventral)
     # flat_dv = np.reshape(conn_dv, (conn_dv.shape[0], conn_dv.shape[1], -1))
@@ -115,11 +117,12 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     incs *= 2
     ages *= 2
     wbs += ['Between'] * (2 * n_sn)
+    subj_nums *= 2
 
     print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
 
     df_agg = pd.DataFrame({'vals': vals, 'inc': incs, 'within_between': wbs,
-                           'age': ages})
+                           'age': ages, 'subj_num': subj_nums})
 
     df_agg.dropna(inplace=True)
 
@@ -157,9 +160,11 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
           linewidth=1)
 
     sns.move_legend(
-        plt.gca(), "lower center",
-        bbox_to_anchor=(.5, 1), ncol=3, title=None, frameon=False,
+        g, "lower center",
+        bbox_to_anchor=(0.9, 0.5), ncol=1,
+        title=None, frameon=False,
     )
+    # plt.legend(loc="upper center", bbox_to_anchor=(0.5, 2))
     # plt.xlabel('')
     # pairs = [
     #     (("Male", "Yes"), ("Male", "No")),
@@ -167,8 +172,8 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     # ]
     #
     pairs=[
-        [('Inc', 'Within'), ('Con', 'Within')],
         [('Inc', 'Between'), ('Con', 'Between')],
+        [('Inc', 'Within'), ('Con', 'Within')],
         # [('Inc', 'Within'), ('Con', 'Within')],
     ]
 
@@ -187,25 +192,44 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
         annot.apply_and_annotate()
 
 
-    plt.suptitle('TOAST TOAST')
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0, 0.85, 0.95))
 
-    # import statannot
-    #
-    # statannot.add_stat_annotation(
-    #     ax,
-    #     data=df_agg,
-    #     x='inc',
-    #     y='vals',
-    #     hue='within_between',
-    #     box_pairs=[
-    #         # ('Inc', 'Con'),
-    #         (('Inc', 'Within'), ('Con', 'Within')),
-    #     ],
-    #     test="t-test_ind",
-    #     text_format="star",
-    #     loc="outside",
-    # )
+    df_pivot = df_agg.pivot_table(index=['age', 'subj_num'],
+                                  columns=['inc', 'within_between'],
+                                  values='vals', aggfunc='mean')
+    df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
+                                df_pivot[('Inc', 'Between')]
+    df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
+                                df_pivot[('Inc', 'Within')]
+    df_pivot['two_way'] = df_pivot['between_ef'] - df_pivot['within_ef']
+    print('-'*50)
+    t_wit, p_wit = stats.ttest_ind(df_pivot.loc['OA', :]['within_ef'],
+                                   df_pivot.loc['YA', :]['within_ef'])
+    M_OA_wit = df_pivot.loc['OA', :]['within_ef'].mean()
+    M_YA_wit = df_pivot.loc['YA', :]['within_ef'].mean()
+    print(f'Within, age x congruency: '
+          f'{t_wit=:.2f}, {p_wit=:.4f} | '
+          f'Effects: {M_OA_wit=:.3f}, {M_YA_wit=:.3f}')
+    t_three, p_three = stats.ttest_ind(df_pivot.loc['OA', :]['two_way'],
+                                       df_pivot.loc['YA', :]['two_way'])
+
+    t_bet, p_bet = stats.ttest_ind(df_pivot.loc['OA', :]['between_ef'],
+                                   df_pivot.loc['YA', :]['between_ef'])
+    M_OA_bet = df_pivot.loc['OA', :]['between_ef'].mean()
+    M_YA_bet = df_pivot.loc['YA', :]['between_ef'].mean()
+    print(f'Between, age x congruency: '
+          f'{t_bet=:.2f}, {p_bet=:.4f} | '
+          f'Effects: {M_OA_bet=:.3f}, {M_YA_bet=:.3f}')
+
+    t_two_OA, p_two_OA = stats.ttest_1samp(df_pivot.loc['OA', :]['two_way'], 0)
+    print(f'\t{t_two_OA=:.2f}, {p_two_OA=:.4f}')
+    t_two_YA, p_two_YA = stats.ttest_1samp(df_pivot.loc['YA', :]['two_way'], 0)
+    print(f'\t{t_two_YA=:.2f}, {p_two_YA=:.4f}')
+    print(f'\t{t_three=:.2f}, {p_three=:.4f}')
+
+    # supt = f'Within connectivity Age x Congruency two-way: {p_two_YA}'
+    supt = f'Three way interaction: p = {p_three:.3f}\n'
+    plt.suptitle(supt)
 
     plt.show()
 
