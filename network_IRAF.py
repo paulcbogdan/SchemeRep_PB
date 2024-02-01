@@ -16,6 +16,7 @@ import scipy.stats as stats
 
 
 
+
 def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
@@ -39,9 +40,7 @@ def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
                       combine_bilateral=bilateral or org_by_region)
 
     df_as_d = defaultdict(list)
-    # print(list(d['IRAFs_ROI'][key]))
-    IRAFs = d['IRAFs_ROI'][key]['IPL_L']
-    n_trials = IRAFs.shape[-1]
+    n_trials = d['IRAFs_ROI'][key]['IPL_L'].shape[-1]
     sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
     sns = np.reshape(sns, -1)
     df_as_d['sn'] = sns
@@ -93,7 +92,7 @@ def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
 
 def get_formula_cols(df, formula):
     import re
-    formula = re.split(' |[*]', formula)
+    formula = re.split(' |[*]|\)|\(', formula)
     cols = []
     for col in df.columns:
         if col in formula:

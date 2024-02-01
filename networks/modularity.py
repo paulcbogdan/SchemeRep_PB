@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 def get_binary_matrix(matrix, threshold=.9):
     if threshold < 1:
         threshold = np.nanquantile(matrix, threshold)
+    print(f'Binary threshold: {threshold=:.3f}')
     matrix_binary = matrix.copy()
     matrix_mask = matrix > threshold
     matrix_binary[matrix_binary < threshold] = 0
@@ -49,11 +50,13 @@ def get_partition_matrix(mat, idx, w_zeros=False):
         return mat_new
     else:
         meshy = np.ix_(idx, idx)
-        # print(f'{idx=}')
-        # return mat[..., meshy[0], meshy[1]]
         slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
         return mat[slicer]
 
+def get_partition_cross(mat, idx0, idx1):
+    meshy = np.ix_(idx0, idx1)
+    slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
+    return mat[slicer]
 
 def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                  corr=None, edges=None, edge_weights=None):
