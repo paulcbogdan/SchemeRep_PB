@@ -1,6 +1,10 @@
 import os
 
+from tqdm import tqdm
+
 from network_IRAF import get_formula_cols
+from activity_ERS import do_activity_ERS_sn
+from org_sns import get_all_sns
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
@@ -251,7 +255,23 @@ def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
     df_sns = pd.concat(df_sns_l)
     return df_sns, new_cols
 
-
+def get_df_ERS(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
+    age2sn = get_all_sns('all', sh=False)
+    sns = age2sn[2]
+    dfs = []
+    ERS_cols = []
+    for sn in tqdm(sns, desc='Making ERS dfs'):
+        cmb_str = '_cmb' if combine_regions else ''
+        fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}.pkl'
+        df_sn, ERS_cols = pickle_wrap(fp_pkl, lambda: do_activity_ERS_sn(sn,
+                combine_regions=combine_regions, fp0=fp0, fp1=fp1,),
+                                      easy_override=False)
+        df_sn['sn'] = sn
+        dfs.append(df_sn)
+        # if len(dfs) > 5:
+        #     break
+    df = pd.concat(dfs, axis=0)
+    return df, ERS_cols
 
 def do_RSA_x_vendor():
     # kwargs = {
@@ -268,17 +288,19 @@ def do_RSA_x_vendor():
     }
     df_RSA, ROIs = pickle_wrap(None, get_trialwise_RSA, kwargs=kwargs,
                                cache_dir='cache', easy_override=False)
-    # TODO: Try very many ROIs...
-
     df_RSA.set_index(['sn', 'obj'], inplace=True)
+
+    df_ERS, ERS_ROIs = pickle_wrap(None, get_df_ERS, kwargs={},
+                               cache_dir='cache', easy_override=False)
+    df_ERS.set_index(['sn', 'obj'], inplace=True)
+    df_RSA = df_RSA.join(df_ERS[ERS_ROIs])
+
     df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor,
                                       kwargs={'group_exemplar': True},
                          cache_dir='cache', easy_override=False)
 
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
-    # plt.hist(df_ss_vdr['smlr_ci'])
-    # plt.show()
 
     df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={},
                          cache_dir='cache', easy_override=False)
@@ -301,7 +323,7 @@ def do_RSA_x_vendor():
                 #'ATL',
                 # 'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
                 # 'IPL', 'Pcun', 'PCC',
-                'LOC', 'sOcG'
+                'LOC', 'sOcG', #'EVC'
                 ]
     ROIs_vnd = []
     for ROI in ROIs:
@@ -321,14 +343,14 @@ def do_RSA_x_vendor():
     df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
     df_agg = df.groupby('sn').mean()
     df_agg = df_agg[['smlr_ci', 'vnd_RSA', 'vendor', 'age']]
-    # print(df_agg.corr())
+    print(df_agg.corr())
     # quit()
 
     ROIs = ['vnd_RSA'] + ROIs
 
     pd.set_option('display.precision', 3)
 
-    formula_gen = 'vendor ~ 1 + {ROI} + (1 | sn)'
+    formula_gen = 'ERS_sc_vi_LOC_L ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'dv_ant ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'd ~ 1 + {ROI} + (1 | sn)'
