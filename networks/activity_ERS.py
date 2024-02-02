@@ -15,7 +15,7 @@ from old.plot_gen import my_plot_surf
 from org_sns import get_all_sns
 from organize_bhv import get_trial_info
 from univariate_activity import keys_from_formula
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 import numpy as np
 
 from functools import wraps
@@ -59,6 +59,10 @@ def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
         assert 'SFG_L' in ROI2vecs1, f'{ROI2vecs1.keys()=}'
     ERSs = []
     cols = []
+    for ROI, vecs in ROI2vecs0.items():
+        ROI2vecs0[ROI] = stdize(vecs, axis=0, nans=True)
+        ROI2vecs1[ROI] = stdize(ROI2vecs1[ROI], axis=0, nans=True)
+
     for ROI, vecs0 in ROI2vecs0.items():
         vecs1 = ROI2vecs1[ROI]
         corr = vecs0[None, :, :] * vecs1[:, None, :]
@@ -78,29 +82,45 @@ def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
 
 def make_ERS_df(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
     age2sn = get_all_sns('all', sh=False)
-    sns = age2sn[2]
+    sns = age2sn['healthy'] # 2
+    # sns = age2sn[2]
     dfs = []
     ERS_cols = []
     for sn in tqdm(sns, desc='Making ERS dfs'):
         cmb_str = '_cmb' if combine_regions else ''
-        fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}.pkl'
+        fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}_fixed.pkl'
         df_sn, ERS_cols = pickle_wrap(fp_pkl, lambda: do_activity_ERS_sn(sn,
                 combine_regions=combine_regions, fp0=fp0, fp1=fp1,),
                                       easy_override=False)
+        df_sn['age'] = int(sn[0])
+        # print(df_sn['ERS_sc_vi_EVC_L'].describe())
+        # quit()
         df_sn['sn'] = sn
         dfs.append(df_sn)
         # if len(dfs) > 5:
         #     break
     df = pd.concat(dfs, axis=0)
+    # print(df.columns)
+    # quit()
     # df.dropna(subset=['vis_hit'], inplace=True)
     for col in ERS_cols:
         df_grp = df.groupby(['sn', 'inc'])[col].mean()
         # df_grp = df.groupby(['sn', 'inc'])[col].mean()
-        t, p = stats.ttest_rel(df_grp.loc[:, 1], df_grp.loc[:, 3],
+        t_inc, p = stats.ttest_rel(df_grp.loc[:, 1], df_grp.loc[:, 3],
                                nan_policy='omit')
-        df_grp = df.groupby(['sn'])[col].mean()
+
+        df_age = df.groupby(['sn', 'age'])[col].mean()
+        # df_grp = df.groupby(['sn', 'inc'])[col].mean()
+        try:
+            t_age, p = stats.ttest_ind(df_age.loc[:, 1], df_age.loc[:, 2],
+                                   nan_policy='omit')
+            df_grp = df.groupby(['sn'])[col].mean()
+        except KeyError:
+            t_age = 0
+            pass
         t0, p0 = stats.ttest_1samp(df_grp, 0, nan_policy='omit')
-        print(f'{col} | Above zero: {t0=:.2f}, {p0=:.3f} | {t=:.2f}')
+        print(f'{col} | Above zero: {t0=:.2f}, {p0=:.3f} | '
+              f'{t_age=:.2f}, {t_inc=:.2f}')
         continue
 
         if (p < .01) | (p0 < .01):
