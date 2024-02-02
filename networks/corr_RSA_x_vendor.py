@@ -18,6 +18,7 @@ from collections import defaultdict
 from functools import wraps
 from time import time
 import scipy.stats as stats
+import matplotlib.pyplot as plt
 
 def timing(f):
     # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
@@ -144,8 +145,8 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
-    # conn_trials = np.repeat(matrix_mask[None, None, ..., None],
-    #                         conn_trials.shape[-1], axis=4) * conn_trials[..., :]
+    conn_trials = np.repeat(matrix_mask[None, None, ..., None],
+                            conn_trials.shape[-1], axis=4) * conn_trials[..., :]
                             # idk why I can't just broadcast matrix_mask
 
     sn_inc_act_M_pos_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],
@@ -187,13 +188,24 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     df_sns = pd.concat(df_sns_l)
     return df_sns
 
-def get_trialwise_ss_vendor():
-    kwargs = {'fp': 'obj7_fMRI',
-              'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 2, 3),
-              'get_df_sn': True,
-              }
+@timing
+def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
+    if memory:
+        kwargs = {'fp': 'obj7_fMRI',
+                  'key': 'hit_hit',
+                  'atlas_name': 'BNA',
+                  'key_vals': (False, False, True),
+                  'get_df_sn': True,
+                  }
+    else:
+        kwargs = {'fp': 'obj7_fMRI',
+                  'key': 'inc',
+                  'atlas_name': 'BNA',
+                  'key_vals': (1, 2, 3),
+                  'get_df_sn': True,
+                  }
+
+    # TODO: could swap this for a subsequent memory effect?
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
@@ -201,14 +213,14 @@ def get_trialwise_ss_vendor():
         get_vendor_partitions(sn_inc_conn, age2idxs)
 
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
-    # p_dorsal_ = np.zeros(sn_inc_activity_std.shape[2], dtype=bool)
-    # p_dorsal_[p_dorsal] = True
-    # sn_inc_activity_std[:, :, ~p_dorsal_, :] = np.nan
+    p_dorsal_ = np.zeros(sn_inc_activity_std.shape[2], dtype=bool)
+    p_dorsal_[p_dorsal] = True
+    sn_inc_activity_std[:, :, ~p_dorsal_, :] = np.nan
 
     z_trials = sn_inc_activity_std[..., None, :] * \
                sn_inc_activity_std[..., None, :, :]
-    z_trials = np.repeat(matrix_mask[None, None, ..., None],
-                         z_trials.shape[-1], axis=4) * z_trials[..., :]
+    # z_trials = np.repeat(matrix_mask[None, None, ..., None],
+    #                      z_trials.shape[-1], axis=4) * z_trials[..., :]
 
     trils = np.tril_indices(z_trials.shape[-2], k=-1)
     z_flat_trials = z_trials[:, :, trils[0], trils[1], :]
@@ -218,8 +230,10 @@ def get_trialwise_ss_vendor():
 
     cond_conn = np.nanmean(z_trials, axis=-1)
     cond_flat = cond_conn[:, :, trils[0], trils[1]]
-    cond_flat_std = stdize(cond_flat, axis=2, nans=True)
+    if group_exemplar:
+        cond_flat = np.nanmean(cond_flat, axis=0)[None, :, :]
 
+    cond_flat_std = stdize(cond_flat, axis=2, nans=True)
     corr_trials = z_flat_trials_broad_std * cond_flat_std[:, :, :, None]
     corr_trials = np.nanmean(corr_trials, axis=2)
     prev_cols = set(df_sns_l[0].columns)
@@ -235,9 +249,15 @@ def get_trialwise_ss_vendor():
 
 
 def do_RSA_x_vendor():
+    # kwargs = {
+    #     'fp_fMRI_col': 'scn7_fMRI',
+    #     'key': 'scn',
+    #     'semantic': True,
+    #     'combine_regions': False
+    # }
     kwargs = {
-        'fp_fMRI_col': 'scn7_fMRI',
-        'key': 'scn',
+        'fp_fMRI_col': 'obj7_fMRI',
+        'key': 'obj',
         'semantic': True,
         'combine_regions': True
     }
@@ -247,9 +267,12 @@ def do_RSA_x_vendor():
 
     df_RSA.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor, kwargs={},
-                         cache_dir='cache', easy_override=True)
+                         cache_dir='cache', easy_override=False)
+
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
+    # plt.hist(df_ss_vdr['smlr_ci'])
+    # plt.show()
 
     df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={},
                          cache_dir='cache', easy_override=False)
@@ -257,8 +280,8 @@ def do_RSA_x_vendor():
     df = df_RSA.join(df_vdr)
     df = df.join(df_ss_vdr)
     df.reset_index(inplace=True, drop=False)
-    df = df[df['age'] == 2]
-    df = df[df['inc'] == 3]
+    # df = df[df['age'] == 2]
+    # df = df[df['inc'] == 3]
 
     from pymer4 import Lmer
 
@@ -268,26 +291,39 @@ def do_RSA_x_vendor():
     # print(model.summary())
     # quit()
 
-    ROIs_vnd = ['MFG_L', 'MFG_R', 'IFG_L', 'IFG_R',
-                'ATL_L', 'ATL_R',
-                # 'FuG_L', 'FuG_R', 'PhG_L', 'PhG_R',
-                'pSTS_L', 'pSTS_R', 'IPL_L', 'IPL_R', # 'SPL_L', 'SPL_R',
-                # 'Pcun_L', 'Pcun_R', 'PCC_L', 'PCC_R',
-                'EVC_L', 'EVC_R', 'LOC_L', 'LOC_R', 'sOcG_L', 'sOcG_R',
-                 ]
+    ROI_keys = [#'MFG', 'IFG',
+                #'ATL',
+                'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
+                'IPL', 'Pcun', 'PCC',
+                'EVC', 'LOC', 'sOcG'
+                ]
+    ROIs_vnd = []
+    for ROI in ROIs:
+        for ROI_key in ROI_keys:
+            if ROI_key in ROI:
+                ROIs_vnd.append(ROI)
+                break
+    print(f'{len(ROIs_vnd)=}')
+    # ROIs_vnd = ['MFG_L', 'MFG_R', 'IFG_L', 'IFG_R',
+    #             'ATL_L', 'ATL_R',
+    #             # 'FuG_L', 'FuG_R', 'PhG_L', 'PhG_R',
+    #             'pSTS_L', 'pSTS_R', 'IPL_L', 'IPL_R', # 'SPL_L', 'SPL_R',
+    #             # 'Pcun_L', 'Pcun_R', 'PCC_L', 'PCC_R',
+    #             'EVC_L', 'EVC_R', 'LOC_L', 'LOC_R', 'sOcG_L', 'sOcG_R',
+    #              ]
     df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
     # print(ROIs)
     # quit()
-    ROIs = ['vnd_RSA']
+    ROIs = ['vnd_RSA'] + ROIs
 
     pd.set_option('display.precision', 3)
 
     # formula_gen = 'vendor ~ 1 + {ROI} + pd_M + ad_M + pv_M + av_M + (1 | sn)'
-    formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
-    formula_gen = 'd_M ~ 1 + {ROI} + (1 | sn)'
-    formula_gen = 'smlr_ci ~ 1 + {ROI} + (1 | sn)'
+    # formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
+    # formula_gen = 'dv_ant ~ 1 + {ROI} + (1 | sn)'
+    # formula_gen = 'd ~ 1 + {ROI} + (1 | sn)'
 
-    # formula_gen = 'vendor ~ {ROI} +  (1 | sn)'
+    formula_gen = 'smlr_ci ~ {ROI} + (1 | sn)'
     # print(f'{formula_gen=}')
     for ROI in ROIs:
         # print(f'{ROI=}')
