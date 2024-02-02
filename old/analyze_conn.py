@@ -48,7 +48,7 @@ def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
                  bilateral=False, combine_regions=True, vec_prod=False,
                  org_by_region=False, PCA_obj=True):
     fn = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                    fp_fMRI_col='scn4_fMRI',
+                    fp_fMRI_col='obj7_fMRI',
                     bilateral=bilateral, combine_regions=combine_regions,
                     vec_prod=vec_prod, org_by_region=org_by_region,
                     PCA_obj=PCA_obj)
@@ -57,7 +57,7 @@ def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
         d = pickle.load(file)
 
     fn2 = get_RSA_fn(inc=cin, age=age, semantic=semantic, DNN_layer=2,
-                     fp_fMRI_col='obj4_fMRI',
+                     fp_fMRI_col='scn7_fMRI',
                      bilateral=bilateral, combine_regions=combine_regions,
                      vec_prod=vec_prod, org_by_region=org_by_region,
                      PCA_obj=PCA_obj)
@@ -70,12 +70,12 @@ def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
                       combine_bilateral=bilateral or org_by_region)
     # Can correlated dif_abs IRAF x obj IRAF, both for obj_fMRI?
     key = 'scn'
-    # left = [np.array(d['IRAFs_ROI']['dif_abs_'][roi0]) for roi0 in atlas['ROIs']]
+    # left = [np.array(d['IRAFs_ROI']['obj'][roi0]) for roi0 in atlas['ROIs']]
     left = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
     # left = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
     # bottom = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
     bottom = [np.array(d2['IRAFs_ROI']['scn'][roi0]) for roi0 in atlas['ROIs']]
-    # bottom = [np.array(d['activity'][roi0]) for roi0 in atlas['ROIs']]
+    # bottom = [np.array(d2['activity'][roi0]) for roi0 in atlas['ROIs']]
     bottom = replace_w_nan_if_needed(bottom)
     r_Ms, r_SDs, t, _ = bulk_correlate(left, bottom, nans=True)
     title = make_title_str('', key, age, early, semantic, cin)

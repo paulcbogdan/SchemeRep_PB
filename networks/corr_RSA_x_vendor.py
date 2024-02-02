@@ -157,6 +157,7 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
                                     axis=(1, 2))
     sn_inc_act_M_ant_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :],
                                     axis=(1, 2))
+    sn_inc_act_M_overall = np.nanmean(sn_inc_activity, axis=(1, 2))
 
     sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                     p_d_pos, p_d_ant)
@@ -175,6 +176,7 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
         df_sn['av_M'] = sn_inc_act_M_ant_v[i, :]
         df_sn['v_M'] = df_sn['pv_M'] + df_sn['av_M']
         df_sn['all_M'] = df_sn['d_M'] + df_sn['v_M']
+        df_sn['brain_M'] = sn_inc_act_M_overall[i, :]
 
         df_sn['dd'] = sn_agg_trials_dd[i, :]
         df_sn['vv'] = sn_agg_trials_vv[i, :]
@@ -232,6 +234,9 @@ def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
     cond_flat = cond_conn[:, :, trils[0], trils[1]]
     if group_exemplar:
         cond_flat = np.nanmean(cond_flat, axis=0)[None, :, :]
+    # print(cond_flat.shape)
+    # quit()
+    cond_flat -= np.nanmean(cond_flat, axis=1)[:, None]
 
     cond_flat_std = stdize(cond_flat, axis=2, nans=True)
     corr_trials = z_flat_trials_broad_std * cond_flat_std[:, :, :, None]
@@ -256,8 +261,8 @@ def do_RSA_x_vendor():
     #     'combine_regions': False
     # }
     kwargs = {
-        'fp_fMRI_col': 'obj7_fMRI',
-        'key': 'obj',
+        'fp_fMRI_col': 'scn7_fMRI',
+        'key': 'scn',
         'semantic': True,
         'combine_regions': True
     }
@@ -266,7 +271,8 @@ def do_RSA_x_vendor():
     # TODO: Try very many ROIs...
 
     df_RSA.set_index(['sn', 'obj'], inplace=True)
-    df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor, kwargs={},
+    df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor,
+                                      kwargs={'group_exemplar': True},
                          cache_dir='cache', easy_override=False)
 
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
@@ -281,7 +287,7 @@ def do_RSA_x_vendor():
     df = df.join(df_ss_vdr)
     df.reset_index(inplace=True, drop=False)
     # df = df[df['age'] == 2]
-    # df = df[df['inc'] == 3]
+    # df = df[df['inc'] == 2]
 
     from pymer4 import Lmer
 
@@ -291,11 +297,11 @@ def do_RSA_x_vendor():
     # print(model.summary())
     # quit()
 
-    ROI_keys = [#'MFG', 'IFG',
+    ROI_keys = [#'MFG', 'IFG', 'SFG',
                 #'ATL',
-                'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
-                'IPL', 'Pcun', 'PCC',
-                'EVC', 'LOC', 'sOcG'
+                # 'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
+                # 'IPL', 'Pcun', 'PCC',
+                'LOC', 'sOcG'
                 ]
     ROIs_vnd = []
     for ROI in ROIs:
@@ -303,6 +309,7 @@ def do_RSA_x_vendor():
             if ROI_key in ROI:
                 ROIs_vnd.append(ROI)
                 break
+    # ROIs_vnd = ROIs
     print(f'{len(ROIs_vnd)=}')
     # ROIs_vnd = ['MFG_L', 'MFG_R', 'IFG_L', 'IFG_R',
     #             'ATL_L', 'ATL_R',
@@ -312,18 +319,22 @@ def do_RSA_x_vendor():
     #             'EVC_L', 'EVC_R', 'LOC_L', 'LOC_R', 'sOcG_L', 'sOcG_R',
     #              ]
     df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
-    # print(ROIs)
+    df_agg = df.groupby('sn').mean()
+    df_agg = df_agg[['smlr_ci', 'vnd_RSA', 'vendor', 'age']]
+    # print(df_agg.corr())
     # quit()
+
     ROIs = ['vnd_RSA'] + ROIs
 
     pd.set_option('display.precision', 3)
 
-    # formula_gen = 'vendor ~ 1 + {ROI} + pd_M + ad_M + pv_M + av_M + (1 | sn)'
+    formula_gen = 'vendor ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'dv_ant ~ 1 + {ROI} + (1 | sn)'
     # formula_gen = 'd ~ 1 + {ROI} + (1 | sn)'
 
-    formula_gen = 'smlr_ci ~ {ROI} + (1 | sn)'
+    # df['all_M'] -= df['brain_M']
+    # formula_gen = '{ROI} ~ age + (1 | sn)'
     # print(f'{formula_gen=}')
     for ROI in ROIs:
         # print(f'{ROI=}')
@@ -342,6 +353,8 @@ def do_RSA_x_vendor():
         p = summary['P-val'].loc[ROI]
         t = summary['T-stat'].loc[ROI]
         print(f'{ROI}: {p=:.4f}, {t=:+.3f}')
+        # print(summary)
+
         if p < .05:
             print(model.summary())
             print('-'*100)

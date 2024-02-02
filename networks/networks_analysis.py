@@ -136,22 +136,22 @@ def rand_test(threshold=0.9, way3=False):
 
 def variability(threshold=0.99):
 
-    fp = 'obj4_fMRI'
+    fp = 'obj7_fMRI'
     kwargs = {'fp': fp, 'split': False,
               'key': 'inc',
-              'atlas_name': 'schaefer',
+              'atlas_name': 'BNA',
               'key_vals': (1, 3),
               'odd_even': False,
               }
 
-    fp = ('con3_fMRI', 'vis3_fMRI')
-    kwargs = {'fp': fp, 'split': False,
-              'key': 'hit_hit',
-              # 'key': 'con_hit',
-              'atlas_name': 'schaefer',
-              'key_vals': (False, True),
-              'odd_even': False,
-              }
+    # fp = ('con3_fMRI', 'vis3_fMRI')
+    # kwargs = {'fp': fp, 'split': False,
+    #           'key': 'hit_hit',
+    #           # 'key': 'con_hit',
+    #           'atlas_name': 'schaefer',
+    #           'key_vals': (False, True),
+    #           'odd_even': False,
+    #           }
 
     # sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
     #                                                               load_FC_for_Lifu, kwargs=kwargs,
