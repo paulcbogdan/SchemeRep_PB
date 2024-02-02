@@ -41,7 +41,7 @@ def get_vendor_partitions(sn_inc_conn, age2idxs, age=2, thr=.95, flip=False):
     p_v_ant, p_v_pos = anterior_posterior_split(p_ventral, coords)
     assert len(p_d_ant) + len(p_d_pos) == len(p_dorsal)
     assert len(p_v_ant) + len(p_v_pos) == len(p_ventral)
-    return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos
+    return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
 def anterior_posterior_split(p_dorsal, coords):
     p_dorsal_ys = [coords[i][1] for i in p_dorsal]

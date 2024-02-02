@@ -1,3 +1,8 @@
+Results (2/1/2024):
+* activity_ERS.py We see significant SCN beta x visual beta ERS in the visual stream
+
+
+
 Results:
 * object beta
 - Con_hit (for OA): num_singif 167 vs expected 72. Vis_hit isn't distinguished

@@ -99,9 +99,9 @@ def get_trialwise_RSA(semantic=True, inc=None, bilateral=False,
     return df, ROIs
 
 
-def get_module_trialwise_z(sn_inc_activity_std, p_module):
-    sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
-                         sn_inc_activity_std[..., None, :, :]
+def get_module_trialwise_z(sn_inc_conn_trials, p_module):
+    # sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
+    #                      sn_inc_activity_std[..., None, :, :]
     sn_inc_conn_trials = np.transpose(sn_inc_conn_trials, (0, 1, 4, 2, 3))
     sn_inc_conn_trials_dd = get_partition_matrix(sn_inc_conn_trials, p_module)
     tridx_dd = np.tril_indices(sn_inc_conn_trials_dd.shape[-1], k=-1)
@@ -111,9 +111,9 @@ def get_module_trialwise_z(sn_inc_activity_std, p_module):
     sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
     return sn_agg_trials_dd
 
-def get_module_cross_trialwise_z(sn_inc_activity_std, p_mod0, p_mod1):
-    conn_trials = sn_inc_activity_std[..., None, :] * \
-                         sn_inc_activity_std[..., None, :, :]
+def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1):
+    # conn_trials = sn_inc_activity_std[..., None, :] * \
+    #                      sn_inc_activity_std[..., None, :, :]
     # conn_trials = sn_inc_activity_std[..., None, :] + \
     #                      sn_inc_activity_std[..., None, :, :]
     conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
@@ -137,13 +137,16 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos = \
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(sn_inc_conn, age2idxs)
 
+    matrix_mask[~matrix_mask] = np.nan
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
-
-    # sn_agg_trials_dd = get_module_trialwise_z(sn_inc_activity_std, p_dorsal)
-    # sn_agg_trials_vv = get_module_trialwise_z(sn_inc_activity_std, p_ventral)
+    conn_trials = sn_inc_activity_std[..., None, :] * \
+                  sn_inc_activity_std[..., None, :, :]
+    # conn_trials = np.repeat(matrix_mask[None, None, ..., None],
+    #                         conn_trials.shape[-1], axis=4) * conn_trials[..., :]
+                            # idk why I can't just broadcast matrix_mask
 
     sn_inc_act_M_pos_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],
                                     axis=(1, 2))
@@ -154,14 +157,14 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     sn_inc_act_M_ant_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :],
                                     axis=(1, 2))
 
-    sn_agg_trials_dd = get_module_cross_trialwise_z(sn_inc_activity_std,
-                                                        p_d_pos, p_d_ant)
-    sn_agg_trials_vv = get_module_cross_trialwise_z(sn_inc_activity_std,
-                                                        p_v_pos, p_v_ant)
+    sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
+                                                    p_d_pos, p_d_ant)
+    sn_agg_trials_vv = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
+                                                    p_v_pos, p_v_ant)
 
-    sn_agg_trials_dv_ant = get_module_cross_trialwise_z(sn_inc_activity_std,
+    sn_agg_trials_dv_ant = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                         p_d_ant, p_v_ant)
-    sn_agg_trials_dv_pos = get_module_cross_trialwise_z(sn_inc_activity_std,
+    sn_agg_trials_dv_pos = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                         p_d_pos, p_v_pos)
     for i, df_sn in enumerate(df_sns_l):
         df_sn['pd_M'] = sn_inc_act_M_pos_d[i, :]
@@ -184,6 +187,51 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     df_sns = pd.concat(df_sns_l)
     return df_sns
 
+def get_trialwise_ss_vendor():
+    kwargs = {'fp': 'obj7_fMRI',
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True,
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(sn_inc_conn, age2idxs)
+
+    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+    # p_dorsal_ = np.zeros(sn_inc_activity_std.shape[2], dtype=bool)
+    # p_dorsal_[p_dorsal] = True
+    # sn_inc_activity_std[:, :, ~p_dorsal_, :] = np.nan
+
+    z_trials = sn_inc_activity_std[..., None, :] * \
+               sn_inc_activity_std[..., None, :, :]
+    z_trials = np.repeat(matrix_mask[None, None, ..., None],
+                         z_trials.shape[-1], axis=4) * z_trials[..., :]
+
+    trils = np.tril_indices(z_trials.shape[-2], k=-1)
+    z_flat_trials = z_trials[:, :, trils[0], trils[1], :]
+    z_flat_trials = np.nanmean(z_flat_trials, axis=1)
+    z_flat_trials_broad = z_flat_trials[:, None, :, :]
+    z_flat_trials_broad_std = stdize(z_flat_trials_broad, axis=2, nans=True)
+
+    cond_conn = np.nanmean(z_trials, axis=-1)
+    cond_flat = cond_conn[:, :, trils[0], trils[1]]
+    cond_flat_std = stdize(cond_flat, axis=2, nans=True)
+
+    corr_trials = z_flat_trials_broad_std * cond_flat_std[:, :, :, None]
+    corr_trials = np.nanmean(corr_trials, axis=2)
+    prev_cols = set(df_sns_l[0].columns)
+    for i, df_sn in enumerate(df_sns_l):
+        df_sn['smlr_i'] = corr_trials[i, 0, :]
+        df_sn['smlr_n'] = corr_trials[i, 1, :]
+        df_sn['smlr_c'] = corr_trials[i, 2, :]
+        df_sn['smlr_ci'] = df_sn['smlr_c'] - df_sn['smlr_i']
+    new_cols = set(df_sns_l[0].columns) - prev_cols
+    df_sns = pd.concat(df_sns_l)
+    return df_sns, new_cols
+
 
 
 def do_RSA_x_vendor():
@@ -198,27 +246,48 @@ def do_RSA_x_vendor():
     # TODO: Try very many ROIs...
 
     df_RSA.set_index(['sn', 'obj'], inplace=True)
+    df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor, kwargs={},
+                         cache_dir='cache', easy_override=True)
+    df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
+    df_ss_vdr = df_ss_vdr[new_cols]
+
     df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={},
                          cache_dir='cache', easy_override=False)
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     df = df_RSA.join(df_vdr)
+    df = df.join(df_ss_vdr)
     df.reset_index(inplace=True, drop=False)
     df = df[df['age'] == 2]
+    df = df[df['inc'] == 3]
 
     from pymer4 import Lmer
 
-    # formula_mem = 'hit_hit ~ 1 + vendor + (1 | sn)'
+    # formula_mem = 'vendor ~ 1 + smlr_ci + (1 | sn)'
     # model = Lmer(formula_mem, data=df)
     # model.fit(REML=True, verbose=False, summary=False)
     # print(model.summary())
     # quit()
 
+    ROIs_vnd = ['MFG_L', 'MFG_R', 'IFG_L', 'IFG_R',
+                'ATL_L', 'ATL_R',
+                # 'FuG_L', 'FuG_R', 'PhG_L', 'PhG_R',
+                'pSTS_L', 'pSTS_R', 'IPL_L', 'IPL_R', # 'SPL_L', 'SPL_R',
+                # 'Pcun_L', 'Pcun_R', 'PCC_L', 'PCC_R',
+                'EVC_L', 'EVC_R', 'LOC_L', 'LOC_R', 'sOcG_L', 'sOcG_R',
+                 ]
+    df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
+    # print(ROIs)
+    # quit()
+    ROIs = ['vnd_RSA']
+
     pd.set_option('display.precision', 3)
 
-    # formula_gen = 'dd ~ 1 + {ROI} + pd_M + ad_M + pv_M + av_M + (1 | sn)'
-    # formula_gen = 'd_M ~ 1 + {ROI} + (1 | sn)'
+    # formula_gen = 'vendor ~ 1 + {ROI} + pd_M + ad_M + pv_M + av_M + (1 | sn)'
+    formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
+    formula_gen = 'd_M ~ 1 + {ROI} + (1 | sn)'
+    formula_gen = 'smlr_ci ~ 1 + {ROI} + (1 | sn)'
 
-    formula_gen = 'vendor ~ {ROI} + inc + (1 | sn)'
+    # formula_gen = 'vendor ~ {ROI} +  (1 | sn)'
     # print(f'{formula_gen=}')
     for ROI in ROIs:
         # print(f'{ROI=}')
