@@ -3,7 +3,7 @@ import os
 from tqdm import tqdm
 
 from network_IRAF import get_formula_cols
-from activity_ERS import do_activity_ERS_sn
+from activity_ERS import do_activity_ERS_sn, get_df_ERS, get_df_trialwise_MVPA
 from org_sns import get_all_sns
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
@@ -255,23 +255,8 @@ def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
     df_sns = pd.concat(df_sns_l)
     return df_sns, new_cols
 
-def get_df_ERS(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
-    age2sn = get_all_sns('all', sh=False)
-    sns = age2sn['healthy']
-    dfs = []
-    ERS_cols = []
-    for sn in tqdm(sns, desc='Making ERS dfs'):
-        cmb_str = '_cmb' if combine_regions else ''
-        fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}_fixed.pkl'
-        df_sn, ERS_cols = pickle_wrap(fp_pkl, lambda: do_activity_ERS_sn(sn,
-                combine_regions=combine_regions, fp0=fp0, fp1=fp1,),
-                                      easy_override=False)
-        df_sn['sn'] = sn
-        dfs.append(df_sn)
-        # if len(dfs) > 5:
-        #     break
-    df = pd.concat(dfs, axis=0)
-    return df, ERS_cols
+
+
 
 def do_RSA_x_vendor():
     # kwargs = {
@@ -290,10 +275,20 @@ def do_RSA_x_vendor():
                                cache_dir='cache', easy_override=False)
     df_RSA.set_index(['sn', 'obj'], inplace=True)
 
-    df_ERS, ERS_ROIs = pickle_wrap(None, get_df_ERS, kwargs={},
+    df_ERS, ERS_ROIs, _ = pickle_wrap(None, get_df_ERS, kwargs={},
                                cache_dir='cache', easy_override=True)
     df_ERS.set_index(['sn', 'obj'], inplace=True)
-    df_RSA = df_RSA.join(df_ERS[ERS_ROIs])
+
+    df_ERS_obj, ERS_obj_ROIs, _ = pickle_wrap(None, get_df_ERS,
+                                           kwargs={'fp0': 'obj7_fMRI'},
+                               cache_dir='cache', easy_override=True)
+    df_ERS_obj.set_index(['sn', 'obj'], inplace=True)
+    df_ERS = df_ERS.join(df_ERS_obj[ERS_obj_ROIs])
+    # print(f'{ERS_ROIs=}')
+    # print(f'{ERS_obj_ROIs=}')
+    # quit()
+
+    df_RSA = df_RSA.join(df_ERS[ERS_ROIs + ERS_obj_ROIs])
 
     df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor,
                                       kwargs={'group_exemplar': True},
@@ -307,9 +302,15 @@ def do_RSA_x_vendor():
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     df = df_RSA.join(df_vdr)
     df = df.join(df_ss_vdr)
+
+    df_MVPA, ROIs_mvpa, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
+                                                  vals=(1, 3),
+                                                  combine_regions=True)
+    df_MVPA.set_index(['sn', 'obj'], inplace=True)
+    df = df.join(df_MVPA[ROIs_mvpa])
     df.reset_index(inplace=True, drop=False)
     # df = df[df['age'] == 2]
-    # df = df[df['inc'] == 2]
+    # df = df[df['inc'] == 3]
 
     from pymer4 import Lmer
 
@@ -322,63 +323,66 @@ def do_RSA_x_vendor():
     ROI_keys = [#'MFG', 'IFG', 'SFG',
                 #'ATL',
                 # 'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
-                # 'IPL', 'Pcun', 'PCC',
-                'LOC', 'sOcG', #'FuG', 'ITG' # 'EVC', EVC is toxic?
+                #'IPL', 'Pcun', 'PCC',
+                'LOC', 'EVC' #'FuG', 'EVC', #EVC is toxic?
                 ]
+    ROI_keys2 = ['SFG', 'MFG' , 'IPL', 'ATL', 'FuG', 'ITG']
     ROIs_vnd = []
     ROIs_ERS_vnd = []
+    ROIs_mvpa_vnd = []
     for ROI in ROIs:
         for ROI_key in ROI_keys:
             if ROI_key in ROI:
                 ROIs_vnd.append(ROI)
                 break
-    for ROI in ERS_ROIs:
+
+    for ROI in ERS_obj_ROIs:
         for ROI_key in ROI_keys:
             if ROI_key in ROI:
                 ROIs_ERS_vnd.append(ROI)
                 break
-    # ROIs_vnd = ROIs
-    print(f'{len(ROIs_vnd)=}')
-    # ROIs_vnd = ['MFG_L', 'MFG_R', 'IFG_L', 'IFG_R',
-    #             'ATL_L', 'ATL_R',
-    #             # 'FuG_L', 'FuG_R', 'PhG_L', 'PhG_R',
-    #             'pSTS_L', 'pSTS_R', 'IPL_L', 'IPL_R', # 'SPL_L', 'SPL_R',
-    #             # 'Pcun_L', 'Pcun_R', 'PCC_L', 'PCC_R',
-    #             'EVC_L', 'EVC_R', 'LOC_L', 'LOC_R', 'sOcG_L', 'sOcG_R',
-    #              ]
+    for ROI in ROIs_mvpa:
+        for ROI_key in ROI_keys2:
+            if ROI_key in ROI:
+                ROIs_mvpa_vnd.append(ROI)
+                break
+
+    print(f'{ROIs_mvpa_vnd=}')
     print(f'{ROIs_ERS_vnd=}')
     df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
     df['vnd_ERS'] = df[ROIs_ERS_vnd].mean(axis=1)
-    # plt.hist(df['vnd_ERS'], range=(-3, 3), bins=10)
-    # plt.show()
-    # quit()
-    # quit()
+    df['vnd_MVPA'] = df[ROIs_mvpa_vnd].mean(axis=1)
+
     df_agg = df.groupby('sn').mean()
     df_agg['RSA_ERS'] = df_agg['vnd_RSA'] + df_agg['vnd_ERS']
-    df_agg = df_agg[['smlr_ci', 'vnd_RSA', 'vnd_ERS', 'vendor', 'age',
-                     ]]
-    print(df_agg.corr())
-    quit()
+    df_agg = df_agg[['smlr_ci', 'vnd_RSA', 'vnd_ERS', 'vnd_MVPA',
+                     'vendor', 'age']]
 
     ROIs = ['vnd_RSA'] + ROIs
     ERS_ROIs = ['vnd_ERS'] + ERS_ROIs
 
     pd.set_option('display.precision', 3)
 
-    formula_gen = 'vendor ~ 1 + {ROI} + (1 | sn)'
-    # formula_gen = 'v_M ~ 1 + {ROI} + (1 | sn)'
-    # formula_gen = 'dv_ant ~ 1 + {ROI} + (1 | sn)'
-    # formula_gen = 'd ~ 1 + {ROI} + (1 | sn)'
+    # vnd_MVPA + vnd_RSA
+    #  + all_M + brain_M  + dv_pos + dv_ant
+    # formula_gen = 'vnd_MVPA ~ 1 + dd + vv + d_M + v_M + brain_M  + dv_pos + dv_ant' \
+    #               ' + (1 | sn)'
+    formula_gen = 'vendor ~ 1 + vnd_ERS' \
+                  ' + (1 | sn)'
+    cols = get_formula_cols(df, formula_gen)
+    df_vals = df[cols].dropna()
+    model = Lmer(formula_gen, data=df_vals)
+    model.fit(REML=True, verbose=False, summary=False)
+    summary = model.coefs
+    print(summary)
+    quit()
 
-    # df['all_M'] -= df['brain_M']
-    # formula_gen = '{ROI} ~ age + (1 | sn)'
-    # print(f'{formula_gen=}')
-    for ROI in ERS_ROIs:
-        # print(f'{ROI=}')
-        # formula = f'pd_M ~ 1 + {ROI} + (1 | sn)'
+
+    for ROI in ROIs:
         formula = formula_gen.format(ROI=ROI)
 
         cols = get_formula_cols(df, formula)
+
         df_vals = df[cols].dropna()
         for col in cols:
             if col in ['inc', 'sn']:
@@ -391,7 +395,7 @@ def do_RSA_x_vendor():
         p = summary['P-val'].loc[ROI]
         t = summary['T-stat'].loc[ROI]
         print(f'{ROI}: {p=:.4f}, {t=:+.3f}')
-        quit()
+        # quit()
 
         if p < .05:
             print(model.summary())

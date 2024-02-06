@@ -1,3 +1,4 @@
+from collections import defaultdict
 from time import time
 
 from nilearn import image
@@ -318,6 +319,7 @@ def get_trial_info_(sn, ret=True):
     new_GM_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_GM20_LLS1_bpF_full/OBJ'
 
     df_sn_as_l = []
+    inc_run_cnt = defaultdict(lambda: 0)
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/ENC/S{sn}_run{run}.mat'
         mat_enc = io.loadmat(fp_bhv)
@@ -474,6 +476,8 @@ def get_trial_info_(sn, ret=True):
             # inc_match = inc_str == per_inc_str
             # print(f'{inc_str}, {per_inc_str} ({resp}) | '
             #       f'{inc_match14=}, {inc_match14_strict=}, {inc_match=}')
+            inc_run = run * 10 + int(inc)
+            inc_run_cnt[inc_run] += 1
 
             d = {'sn': sn,
                  'enc_trial': trial_full,
@@ -496,12 +500,15 @@ def get_trial_info_(sn, ret=True):
                  'scn4_fMRI': fp_scn4,
                  'scn7_fMRI': fp_scn7,
 
+
                  'cmb3_fMRI': fp_cmb3,
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
                  'scene_rename': scene_rename,
                  'inc': inc,
+                 'inc_run': inc_run,
+                 'inc_run_cnt': inc_run_cnt[inc_run] - 1,
                  'inc_str': inc_str,
                  'inc_rt': rt,
                  'per_inc': resp, # higher (up to 4) = seen as congruent

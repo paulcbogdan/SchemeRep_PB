@@ -1,6 +1,12 @@
+TODO (2/5/2024):
+* Confirm that scene vs beta is interpreted in the right direction
+* Ask Shenyang, what does a negative average single trial beta mean? Surely presenting a stimulus can't lower the BOLD response?
+- I'm finding that the response is negative in many regions
+
 Results (2/1/2024):
 * activity_ERS.py We see significant SCN beta x visual beta ERS in the visual stream
-
+- The ERS correlates with the scene IRAF. So this is real
+* See link between RSA and activation
 
 
 Results:

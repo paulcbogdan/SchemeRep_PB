@@ -150,6 +150,7 @@ def do_univariate_living(fp='bl3_fMRI'):
         result = model.anova()
         print(result)
 
+
 def do_obj_vs_scn():
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': 'obj7_fMRI', 'key': 'inc', 'conds': (1, 3),
@@ -160,6 +161,10 @@ def do_obj_vs_scn():
     df['cat'] = 'obj'
     kwargs = {'fp': 'scn7_fMRI', 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True}
+    # df = df[df['sn'] == '102']
+    # print(df['pSTS_L_2_1'])
+    # quit()
+
     df_scn, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
                                    kwargs=kwargs, cache_dir='cache',
                                    easy_override=False)
@@ -174,40 +179,96 @@ def do_obj_vs_scn():
     df['obj'] = df['obj'].astype(str)
     df.reset_index(inplace=True)
     from pymer4.models import Lmer
-    ts = []
-    for ROI in ROI_cols:
-        # if 'PhG' not in ROI and 'FuG' not in ROI:
-        #     continue
 
-        # if 'EVC_R_5_1' not in ROI:
-        #     continue
-        formula = f'{ROI} ~ cat + (1 + cat |sn)'
+    df_all = df
+    for age in ['YA', 'OA', ]:
+        ts = []
+        ts_obj = []
+        ts_scn = []
+        df = df_all[df_all['age'] == age]
+        for ROI in ROI_cols:
+            # if 'PhG' not in ROI and 'FuG' not in ROI:
+            #     continue
 
-        # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
-        keys = keys_from_formula(formula)
-        model = Lmer(formula, data=df[keys].dropna())
-        try:
-            model.fit(REML=True, verbose=False, summary=False)
-        except Exception as e:
-            print(f'Error fitting model: {e}')
-            continue
-        res = model.coefs
-        ts.append(res['T-stat'].iloc[1])
-        if res['P-val'].iloc[1] < .01:
-            print(f'Sig: {ROI=}')
-            print(model.summary())
-        else:
-            print('Insignificant')
-    atlas = get_atlas(combine_regions=False)
-    fp_pic = f'mass_ttest/scn_vs_obj.png'
-    vmax = np.nanquantile(np.abs(ts), 0.95)
-    # thresh = np.nanquantile(np.abs(ts), 0.5)
-    thresh = 3
-    ts = np.array(ts)
+            # if 'EVC_R_5_1' not in ROI:
+            #     continue
+            # formula = f'{ROI} ~ cat + (1 + cat |sn)'
+            #
+            # # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
+            # keys = keys_from_formula(formula)
+            # model = Lmer(formula, data=df[keys].dropna())
+            # try:
+            #     model.fit(REML=True, verbose=False, summary=False)
+            # except Exception as e:
+            #     print(f'Error fitting model: {e}')
+            #     continue
+            # print(df.groupby('cat')[ROI].mean())
+            # print(model.summary())
+            # # quit()
+            #
+            # res = model.coefs
+            # ts.append(res['T-stat'].iloc[1])
+            # if res['P-val'].iloc[1] < .01:
+            #     print(f'Sig: {ROI=}')
+            #     print(model.summary())
+            # else:
+            #     print('Insignificant')
+            # print(ROI)
+            # if ROI != 'pSTS_L_2_1':
+            #     continue
+            # print(df[df['cat'] == 'obj'])
+            # print(df[df['cat'] == 'obj'].groupby('sn')[ROI].mean())
+            # quit()
+            obj_s = df[df['cat'] == 'obj'].groupby('sn')[ROI].mean()
+            scn_s = df[df['cat'] == 'scn'].groupby('sn')[ROI].mean()
+            M_obj = obj_s.mean()
+            M_scn = scn_s.mean()
+            t_obj, _ = stats.ttest_1samp(obj_s, 0)
+            t_scn, _ = stats.ttest_1samp(scn_s, 0)
+            t, _ = stats.ttest_rel(obj_s, scn_s)
+            dif = obj_s - scn_s
+            test = pd.concat([obj_s, scn_s, dif], axis=1)
+            # print(test)
+            print(f'{ROI} | {t_obj=:.2f}, {t_scn=:.2f}, {t=:.2f}, '
+                  f'[{M_obj=:.3f}, {M_scn=:.3f}]')
+            # quit()
+            ts_obj.append(t_obj)
+            ts_scn.append(t_scn)
+            ts.append(t)
 
-    my_plot_surf(ts, atlas, 'Object vs. Scene',
-                 fp_out=fp_pic, neg='Obj', pos='Scn',
-                 vmax=vmax, thresh=thresh)
+        # obj x scn correlation (244 ROIs) is r = .93
+        df_cross = pd.DataFrame({'obj': ts_obj, 'scn': ts_scn})
+        df_cross.dropna(inplace=True)
+        print(f'{len(df_cross)=}')
+        cross, p = stats.spearmanr(df_cross['obj'], df_cross['scn'])
+        print(f'{age=}, {cross=:.2f}, {p=:.3f}')
+        # quit()
+
+        age2str = {'OA': 'Older adults', 'YA': 'Younger adults'}
+        atlas = get_atlas(combine_regions=False)
+        fp_pic = f'mass_ttest/scn_vs_obj_{age}.png'
+        vmax = np.nanquantile(np.abs(ts), 0.95)
+        # thresh = np.nanquantile(np.abs(ts), 0.5)
+        thresh = 2
+        ts = np.array(ts)
+        my_plot_surf(ts, atlas, f'Object vs. Scene ({age2str[age]}), t-test',
+                     fp_out=fp_pic, neg='Scn', pos='Obj',
+                     vmax=vmax, thresh=thresh)
+
+        fp_pic = f'mass_ttest/obj_beta_{age}.png'
+        vmax = np.nanquantile(np.abs(ts_obj), 0.95)
+        ts_obj = np.array(ts_obj)
+        my_plot_surf(ts_obj, atlas, f'Object betas ({age2str[age]}), t-test',
+                        fp_out=fp_pic, neg='Neg', pos='Pos',
+                        vmax=vmax, thresh=thresh)
+
+        fp_pic = f'mass_ttest/scn_beta_{age}.png'
+        vmax = np.nanquantile(np.abs(ts_scn), 0.95)
+        ts_scn = np.array(ts_scn)
+        my_plot_surf(ts_scn, atlas, f'Scene betas ({age2str[age]}), t-test',
+                        fp_out=fp_pic, neg='Neg', pos='Pos',
+                        vmax=vmax, thresh=thresh)
+
 
 def simple_effect(df, ROI_cols, key, fp):
     df_grp = df.groupby(['age', 'sn', 'inc'])[ROI_cols].mean()
@@ -326,6 +387,8 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
         return
 
 if __name__ == '__main__':
+    do_obj_vs_scn()
+    quit()
     # prep_activation_for_univariate('bl3_fMRI')
     # do_univariate_living()
     # do_obj_vs_scn()
