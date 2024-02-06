@@ -223,12 +223,13 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     sess = fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').\
         replace('7', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
-    # df_sn.reset_index(inplace=True)
+    df_sn.reset_index(inplace=True)
     lowest_cnt = 100
     for run in range(3):
-        trial_low = run * len(df_sn) // 3
-        trial_high = (run + 1) * len(df_sn) // 3
-        df_run = df_sn.iloc[trial_low:trial_high, :]
+        # trial_low = run * len(df_sn) // 3
+        # trial_high = (run + 1) * len(df_sn) // 3
+        # df_run = df_sn.iloc[trial_low:trial_high, :]
+        df_run = df_sn[df_sn[f'{sess}_run'] == run + 1]
         # df_run = df_run.sample(frac=1)
         cnt = df_run[key].value_counts()
         # print(cnt)
@@ -239,13 +240,19 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     # quit()
     # print(f'{lowest_cnt=}')
     # lowest_cnt = 100
-    num_bads = sum(df_sn['cum_count'] > lowest_cnt)
-    print(f'{num_bads=}')
+    # num_bads = sum(df_sn['cum_count'] >= lowest_cnt)
+    pd.set_option('display.max_rows', None)
+
+    # print(df_sn[[key, 'cum_count', f'{sess}_trial']])
+    #
+    # print(f'{num_bads=}')
     # if num_bads >
     df_sn.loc[df_sn['cum_count'] >= lowest_cnt, key] = np.nan # TODO: toggle
+    # df_sn.iloc[:len(df_sn) // 3]
+    # quit()
 
     # df_sn.loc[df_sn['inc_run_cnt'] > 9, 'inc_run'] = np.nan
-    print(df_sn[key].value_counts())
+    # print(df_sn[key].value_counts())
     # quit()
 
     kwargs0 = {
@@ -262,12 +269,15 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     ROI2vecs = get_ROI_vecs(**kwargs0)
     MVPA_cols = []
     MVPA_cols_simp = []
+    MVPA_cols_alt = []
     for ROI, vecs in ROI2vecs.items():
         ROI_clean = ROI.replace(' ', '_')
         col = f'MVPA_{fp[:2]}_{ROI_clean}'
         col_simple = f'MVPA_{fp[:2]}_{ROI_clean}_simp'
+        col_alt = f'MVPA_{fp[:2]}_{ROI_clean}_alt'
         MVPA_cols.append(col)
         MVPA_cols_simp.append(col_simple)
+        MVPA_cols_alt.append(col_alt)
         val2variants = {}
         val2x_vals = {}
         val2M = {}
@@ -317,6 +327,9 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
             M = np.nanmean(x_val, axis=0)
             M_variants = (M[None, :] * n_vals[None, :] - x_val * 1) / n_v_m[None, :]
             val2x_vals[val] = x_val
+            # M_variants = x_val[0, :][None, :].copy() # TODO: stop
+            # print(x_val.shape)
+            # quit()
             val2variants[val] = M_variants
             val2M[val] = M
             np.set_printoptions(precision=3, suppress=True)
@@ -327,6 +340,7 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
 
         for i, val in enumerate(vals):
             x_val = val2x_vals[val]
+            # x_val[0, :] = np.nan
             M_variants = val2variants[val]
             # M_alt_l = []
             # for i_alt, val_alt in enumerate(vals):
@@ -351,9 +365,14 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
 
             df_sn.loc[df_sn[key] == val, col] = rs - rs_alt
             df_sn.loc[df_sn[key] == val, col_simple] = rs
+            df_sn.loc[df_sn[key] == val, col_alt] = rs_alt
+            # print(rs)
+            # quit()
+
             # print(f'{ROI=} {val=}, {np.mean(rs - rs_alt)=:.5f}')
             # quit()
-    return df_sn, MVPA_cols, MVPA_cols_simp
+
+    return df_sn, MVPA_cols, MVPA_cols_simp, MVPA_cols_alt
 
 def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
                           combine_regions=False):
@@ -362,12 +381,15 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
     dfs = []
     cols = []
     cols_bl = []
+    cols_simp = []
+    cols_alt = []
     for sn in tqdm(sns, desc='Making ERS dfs'):
         cmb_str = '_cmb' if combine_regions else ''
         fp_pkl = f'cache/smlr_MVPA_df_{sn}_{fp}_{cmb_str}.pkl'
         f = lambda: do_activity_corr_sn(sn, fp, key=key, vals=vals,
                                         combine_regions=combine_regions)
-        df_sn, cols, cols_simp = pickle_wrap(fp_pkl, f, easy_override=True)
+        df_sn, cols, cols_simp, cols_alt = pickle_wrap(fp_pkl, f,
+                                                       easy_override=True)
         # print(f'{cols=}')
         # print(df_sn.columns)
         # quit()
@@ -384,8 +406,18 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
         dfs.append(df_sn)
         # if len(dfs) > 5:
         #     break
+
+
     df = pd.concat(dfs, axis=0)
-    return df, cols, cols_bl
+    plt.scatter(df[cols_simp[0]], df[cols_simp[0]] - df[cols_alt[0]])
+    plt.xlabel('Same')
+    plt.ylabel('Effect')
+    plt.plot([0, 1], [0, 0], color='k')
+    plt.title(f'{fp=}')
+    plt.show()
+
+
+    return df, cols, cols_bl, cols_alt
 
 def do_trialwise_MVPA_analysis(fp='bl7_fMRI', key='inc', vals=(1, 3)
                                # key='inc_run', vals=(11, 13, 21, 23, 31, 33)
@@ -393,8 +425,9 @@ def do_trialwise_MVPA_analysis(fp='bl7_fMRI', key='inc', vals=(1, 3)
     warnings.simplefilter(action='ignore',
                           category=pd.errors.PerformanceWarning)
 
-    df, cols, cols_bl = get_df_trialwise_MVPA(fp, combine_regions=True,
-                                              key=key, vals=vals)
+    df, cols, cols_bl, cols_alt = get_df_trialwise_MVPA(fp,
+                                                        combine_regions=True,
+                                                        key=key, vals=vals)
     for col in cols:
         df_grp = df.groupby(['sn', 'inc'])[col].mean()
         # df_grp = df.groupby(['sn', 'inc'])[col].mean()
@@ -434,11 +467,7 @@ def do_activity_MVPA(fp='scn7_fMRI', key='inc', vals=(1, 3),
         cmb_str = '_cmb' if combine_regions else ''
         corr_str = '_corr' if corr else ''
         fp_pkl = f'cache/ERS_df_{sn}_{fp}_{key}_{vals}{cmb_str}{corr_str}.pkl'
-        # if corr:
-        #     accs, ROIs = pickle_wrap(fp_pkl,
-        #                              lambda: do_activity_corr_sn(sn, fp),
-        #                              easy_override=True)
-        # else:
+
         accs, ROIs = pickle_wrap(fp_pkl, lambda: do_activity_MVPA_sn(sn, fp))
         accs_l.append(accs)
         df_sn = pd.DataFrame([accs], columns=ROIs, index=[sn])
@@ -452,8 +481,8 @@ def do_activity_MVPA(fp='scn7_fMRI', key='inc', vals=(1, 3),
         ts.append(t)
         if p < .05:
             print(f'{ROI=}, {M_acc=:.3f} ({t=:.2f})')
-    print('pop')
-    quit()
+    # print('pop')
+    # quit()
     atlas = get_atlas(combine_regions=combine_regions)
     fp_pic = f'mass_ttest/activity_ss-MVPA/{fp}_{key}_{age}.png'
     Path(fp_pic).parent.mkdir(parents=True, exist_ok=True)
