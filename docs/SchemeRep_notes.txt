@@ -1,7 +1,36 @@
+Correlations are lame af because 
+
+Older adults show a greater use of prior knowledge when processing incoming stimuli. This dimension of aging is a common focus of memory research, which has demonstrate that older adults have reduced memory for stimuli that is meaningless and/or diverges from previously encountered stimuli. These behavioral effects of aging are well established, although the neural correlates of older adults' use of prior knowledge (i.e., schemas) is less clear. Some previous fMRI studies have shown that older adults primarily represent stimuli in terms of their semantic features (Loris/Lifu papers), but these results are primarily an investigation of the outcomes of applying schemas to incoming information. We instead sought to investigate the process of how older adults apply schemas to incoming information.
+
+Hypothesis...
+
+Scene representation result: Presenting older adults with a schema-related cue leads to a greater activation of representations corresponding to existing semantic knowledge. Activation of representation is seen particularly in the ventral visual stream and the PCC but also the parietal lobe and PFC. These results demonstrate how older adults' are more susceptible to priming...?
+
+VENDOR Result: We demonstrate that older adults preference for processing incoming information in terms of schemas should be understood in terms of two wide-scale connectivity modules (VEN & DOR)... The VEN results speak to earlier research on the ventral visual processing pathway... The DOR results speak to earlier research on the DMN and FPCN... [Maybe we can find some results which suggest that the VEN-DOR pair also emerges in YA applying schemas to incoming information but it is just weaker for them? This would allow us to make claims about a general congruency-processing network that is important beyond just in aging research]
+
+
+
+
+Recent papers investigating the effect of aging on memory have focused on this point, showing how older adults show greater encoding 
+
+
+
+* IRAF paper instead of just being about IRAF could also be about trialwise ERS or MVPA
+
+2/6/2024 (11:08 AM)
+    formula_gen = 'vnd_MVPA ~ 1 + dd + vv + dv_pos + dv_ant + (1 | sn)'
+             Estimate  2.5_ci    97.5_ci  ...  T-stat      P-val  Sig
+(Intercept)     0.015   0.011  1.949e-02  ...   6.794  8.043e-09  ***
+dd             -0.010  -0.020 -7.585e-04  ...  -2.113  3.465e-02    *
+vv             -0.021  -0.032 -9.103e-03  ...  -3.501  4.686e-04  ***
+dv_pos         -0.004  -0.013  5.079e-03  ...  -0.874  3.821e-01     
+dv_ant         -0.012  -0.022 -1.290e-03  ...  -2.200  2.785e-02    *
+
 TODO (2/5/2024):
-* Confirm that scene vs beta is interpreted in the right direction
+* Confirm that scene vs beta is interpreted in the right direction (yes it is)
 * Ask Shenyang, what does a negative average single trial beta mean? Surely presenting a stimulus can't lower the BOLD response?
 - I'm finding that the response is negative in many regions
+*** Is the extent of scene representation linked to the extent of a congruency response? As measured with MVPA
 
 Results (2/1/2024):
 * activity_ERS.py We see significant SCN beta x visual beta ERS in the visual stream

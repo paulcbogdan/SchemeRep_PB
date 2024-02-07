@@ -222,20 +222,20 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     df_sn = get_trial_info(sn, easy_override=False)
     sess = fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').\
         replace('7', '')
-    df_sn.sort_values(by=f'{sess}_trial', inplace=True)
-    df_sn.reset_index(inplace=True)
-    lowest_cnt = 100
-    for run in range(3):
-        # trial_low = run * len(df_sn) // 3
-        # trial_high = (run + 1) * len(df_sn) // 3
-        # df_run = df_sn.iloc[trial_low:trial_high, :]
-        df_run = df_sn[df_sn[f'{sess}_run'] == run + 1]
-        # df_run = df_run.sample(frac=1)
-        cnt = df_run[key].value_counts()
-        # print(cnt)
-        lowest_cnt = min(lowest_cnt, cnt.min())
-        df_sn.loc[df_run.index, 'cum_count'] = \
-            df_run.groupby(key).cumcount()
+    # df_sn.sort_values(by=f'{sess}_trial', inplace=True)
+    # df_sn.reset_index(inplace=True)
+    # lowest_cnt = 100
+    # for run in range(3):
+    #     # trial_low = run * len(df_sn) // 3
+    #     # trial_high = (run + 1) * len(df_sn) // 3
+    #     # df_run = df_sn.iloc[trial_low:trial_high, :]
+    #     df_run = df_sn[df_sn[f'{sess}_run'] == run + 1]
+    #     # df_run = df_run.sample(frac=1)
+    #     cnt = df_run[key].value_counts()
+    #     # print(cnt)
+    #     lowest_cnt = min(lowest_cnt, cnt.min())
+    #     df_sn.loc[df_run.index, 'cum_count'] = \
+    #         df_run.groupby(key).cumcount()
     # print(df_sn['cum_count'])
     # quit()
     # print(f'{lowest_cnt=}')
@@ -247,7 +247,7 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     #
     # print(f'{num_bads=}')
     # if num_bads >
-    df_sn.loc[df_sn['cum_count'] >= lowest_cnt, key] = np.nan # TODO: toggle
+    # df_sn.loc[df_sn['cum_count'] >= lowest_cnt, key] = np.nan # TODO: toggle
     # df_sn.iloc[:len(df_sn) // 3]
     # quit()
 
@@ -289,88 +289,111 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
         if vecs.shape[1] < 100:
             print(f'Few voxels | {sn}, {ROI}: {vecs.shape=}')
 
+        # val2odd = {}
+        # val2even = {}
         for i, val in enumerate(vals):
             x_val = vecs[df_sn[key] == val, :]
-            # print(f'{x_val.shape=}')
-            # print(f'{x_val=}')
-            # quit()
+            # x_val_even = x_val[::2, :].mean(axis=0)
+            # val2even[val] = x_val_even
+            # x_val_odd = x_val[1::2, :].mean(axis=0)
+            # print(x_val_odd.shape)
+        #     # quit()
+        #     val2odd[val] = x_val_odd
+        # key0 = vals[0]
+        # key1 = vals[1]
+
+        # r00 = stats.spearmanr(val2even[key0], val2odd[key0])[0]
+        # r11 = stats.spearmanr(val2even[key1], val2odd[key1])[0]
+        # r01 = stats.spearmanr(val2even[key0], val2odd[key1])[0]
+        # r10 = stats.spearmanr(val2even[key1], val2odd[key0])[0]
+        # df_sn[col_simple] = r00 + r11
+        # df_sn[col_alt] = r01 + r10
+        # df_sn[col] = r00 + r11 - r01 - r10
 
 
-            # print(f'{x_val.shape=}')
-            # n_vals = np.sum(~np.isnan(x_val), axis=0)
-            # x_val = x_val[:, n_vals > 19]
-            nans_per_trial = np.sum(np.isnan(x_val), axis=1)
-
-            n_vals = np.sum(~np.isnan(x_val), axis=0)
-            lowest_n_vals = np.min(n_vals)
-            # if ROI == 'FuG_L':
-            #     print(np.unique(n_vals))
-            # print(ROI)
-            # quit()
-            # if lowest_n_vals < 10:
-            #     print(f'Few trials | {sn}, {ROI}: {lowest_n_vals=} | '
-            #           f'{np.mean(n_vals)=}')
-            # if x_val.shape[1] < 100:
-            #     print(f'Few voxels | {sn}, {ROI}: {x_val.shape=}')
-            # if np.mean(n_vals) < 37:
-            #     print(f'Some missing trials | {sn}, {ROI}: {np.mean(n_vals)=}')
-            #     print(sorted(nans_per_trial))
-            #     plt.imshow(np.isnan(x_val),
-            #                extent=[0, x_val.shape[0], 0, x_val.shape[0]])
-            #     plt.show()
-            #     quit()
-            # if x_val.shape[]
-            # print(f'{x_val.shape=}')
-            # print(x_val.shape)
-            # quit()
-            n_v_m = (n_vals - 1)# / n_vals
-            M = np.nanmean(x_val, axis=0)
-            M_variants = (M[None, :] * n_vals[None, :] - x_val * 1) / n_v_m[None, :]
-            val2x_vals[val] = x_val
-            # M_variants = x_val[0, :][None, :].copy() # TODO: stop
-            # print(x_val.shape)
-            # quit()
-            val2variants[val] = M_variants
-            val2M[val] = M
-            np.set_printoptions(precision=3, suppress=True)
-
-        ks = list(val2M.keys())
-        assert val2M[ks[0]].shape == val2M[ks[1]].shape, \
-            f'{val2M[1].shape=} {val2M[3].shape=}'
-
-        for i, val in enumerate(vals):
-            x_val = val2x_vals[val]
-            # x_val[0, :] = np.nan
-            M_variants = val2variants[val]
-            # M_alt_l = []
-            # for i_alt, val_alt in enumerate(vals):
-            #     if val_alt == val:
-            #         continue
-            #     M_alt = val2M[val_alt]
-            #     M_alt_l.append(M_alt)
-            # M_alt = np.mean(M_alt_l, axis=0)[None, :]
-            i_alt = 1 if i == 0 else 0
-            M_alt = val2variants[vals[i_alt]]
-
-            np.set_printoptions(precision=3, suppress=True)
-
-            x_val_std = stdize(x_val, axis=1, nans=True)
-            M_variants_std = stdize(M_variants, axis=1, nans=True)
-            # M_variants_std = stdize(M_core[None, :], axis=1, nans=True)
-
-            rs = np.nanmean(x_val_std * M_variants_std, axis=1)
-
-            M_alt_std = stdize(M_alt, axis=1, nans=True)
-            rs_alt = np.nanmean(x_val_std * M_alt_std, axis=1)
-
-            df_sn.loc[df_sn[key] == val, col] = rs - rs_alt
-            df_sn.loc[df_sn[key] == val, col_simple] = rs
-            df_sn.loc[df_sn[key] == val, col_alt] = rs_alt
-            # print(rs)
-            # quit()
-
-            # print(f'{ROI=} {val=}, {np.mean(rs - rs_alt)=:.5f}')
-            # quit()
+        #
+        #     print(x_val.shape)
+        #     quit()
+        #     # print(f'{x_val.shape=}')
+        #     # print(f'{x_val=}')
+        #     # quit()
+        #
+        #
+        #     # print(f'{x_val.shape=}')
+        #     # n_vals = np.sum(~np.isnan(x_val), axis=0)
+        #     # x_val = x_val[:, n_vals > 19]
+        #     nans_per_trial = np.sum(np.isnan(x_val), axis=1)
+        #
+        #     n_vals = np.sum(~np.isnan(x_val), axis=0)
+        #     lowest_n_vals = np.min(n_vals)
+        #     # if ROI == 'FuG_L':
+        #     #     print(np.unique(n_vals))
+        #     # print(ROI)
+        #     # quit()
+        #     # if lowest_n_vals < 10:
+        #     #     print(f'Few trials | {sn}, {ROI}: {lowest_n_vals=} | '
+        #     #           f'{np.mean(n_vals)=}')
+        #     # if x_val.shape[1] < 100:
+        #     #     print(f'Few voxels | {sn}, {ROI}: {x_val.shape=}')
+        #     # if np.mean(n_vals) < 37:
+        #     #     print(f'Some missing trials | {sn}, {ROI}: {np.mean(n_vals)=}')
+        #     #     print(sorted(nans_per_trial))
+        #     #     plt.imshow(np.isnan(x_val),
+        #     #                extent=[0, x_val.shape[0], 0, x_val.shape[0]])
+        #     #     plt.show()
+        #     #     quit()
+        #     # if x_val.shape[]
+        #     # print(f'{x_val.shape=}')
+        #     # print(x_val.shape)
+        #     # quit()
+        #     n_v_m = (n_vals - 1)# / n_vals
+        #     M = np.nanmean(x_val, axis=0)
+        #     M_variants = (M[None, :] * n_vals[None, :] - x_val * 1) / n_v_m[None, :]
+        #     val2x_vals[val] = x_val
+        #     # M_variants = x_val[0, :][None, :].copy() # TODO: stop
+        #     # print(x_val.shape)
+        #     # quit()
+        #     val2variants[val] = M_variants
+        #     val2M[val] = M
+        #     np.set_printoptions(precision=3, suppress=True)
+        #
+        # ks = list(val2M.keys())
+        # assert val2M[ks[0]].shape == val2M[ks[1]].shape, \
+        #     f'{val2M[1].shape=} {val2M[3].shape=}'
+        #
+        # for i, val in enumerate(vals):
+        #     x_val = val2x_vals[val]
+        #     # x_val[0, :] = np.nan
+        #     M_variants = val2variants[val]
+        #     # M_alt_l = []
+        #     # for i_alt, val_alt in enumerate(vals):
+        #     #     if val_alt == val:
+        #     #         continue
+        #     #     M_alt = val2M[val_alt]
+        #     #     M_alt_l.append(M_alt)
+        #     # M_alt = np.mean(M_alt_l, axis=0)[None, :]
+        #     i_alt = 1 if i == 0 else 0
+        #     M_alt = val2variants[vals[i_alt]]
+        #
+        #     np.set_printoptions(precision=3, suppress=True)
+        #
+        #     x_val_std = stdize(x_val, axis=1, nans=True)
+        #     M_variants_std = stdize(M_variants, axis=1, nans=True)
+        #     # M_variants_std = stdize(M_core[None, :], axis=1, nans=True)
+        #
+        #     rs = np.nanmean(x_val_std * M_variants_std, axis=1)
+        #
+        #     M_alt_std = stdize(M_alt, axis=1, nans=True)
+        #     rs_alt = np.nanmean(x_val_std * M_alt_std, axis=1)
+        #
+        #     df_sn.loc[df_sn[key] == val, col] = rs - rs_alt
+        #     df_sn.loc[df_sn[key] == val, col_simple] = rs
+        #     df_sn.loc[df_sn[key] == val, col_alt] = rs_alt
+        #     # print(rs)
+        #     # quit()
+        #
+        #     # print(f'{ROI=} {val=}, {np.mean(rs - rs_alt)=:.5f}')
+        #     # quit()
 
     return df_sn, MVPA_cols, MVPA_cols_simp, MVPA_cols_alt
 
@@ -419,7 +442,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
 
     return df, cols, cols_bl, cols_alt
 
-def do_trialwise_MVPA_analysis(fp='bl7_fMRI', key='inc', vals=(1, 3)
+def do_trialwise_MVPA_analysis(fp='obj7_fMRI', key='inc', vals=(1, 3)
                                # key='inc_run', vals=(11, 13, 21, 23, 31, 33)
                                ):
     warnings.simplefilter(action='ignore',
@@ -437,7 +460,7 @@ def do_trialwise_MVPA_analysis(fp='bl7_fMRI', key='inc', vals=(1, 3)
         # df_grp = df.groupby(['sn', 'inc'])[col].mean()
         try:
             t_age, p = stats.ttest_ind(df_age.loc[:, 1], df_age.loc[:, 2],
-                                   nan_policy='omit')
+                                       nan_policy='omit')
         except KeyError:
             t_age = 0
             pass
