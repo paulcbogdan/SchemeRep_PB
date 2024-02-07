@@ -303,7 +303,7 @@ def do_RSA_x_vendor():
     df = df_RSA.join(df_vdr)
     df = df.join(df_ss_vdr)
 
-    df_MVPA, ROIs_mvpa, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
+    df_MVPA, ROIs_mvpa, _, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
                                                   vals=(1, 3),
                                                   combine_regions=True)
     df_MVPA.set_index(['sn', 'obj'], inplace=True)
@@ -367,7 +367,7 @@ def do_RSA_x_vendor():
     #  + all_M + brain_M  + dv_pos + dv_ant
     # formula_gen = 'vnd_MVPA ~ 1 + dd + vv + d_M + v_M + brain_M  + dv_pos + dv_ant' \
     #               ' + (1 | sn)'
-    formula_gen = 'vendor ~ 1 + vnd_ERS' \
+    formula_gen = 'vendor ~ 1 + vnd_MVPA' \
                   ' + (1 | sn)'
     cols = get_formula_cols(df, formula_gen)
     df_vals = df[cols].dropna()

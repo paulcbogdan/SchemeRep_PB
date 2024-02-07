@@ -387,14 +387,14 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
         return
 
 if __name__ == '__main__':
-    do_obj_vs_scn()
-    quit()
+    # do_obj_vs_scn()
+    # quit()
     # prep_activation_for_univariate('bl3_fMRI')
     # do_univariate_living()
     # do_obj_vs_scn()
 
     # do_univariate_analysis(fp='con7_fMRI')
     # do_univariate_analysis(fp='vis7_fMRI')
-    do_univariate_analysis(fp='obj7_fMRI')
+    do_univariate_analysis(fp='con7_fMRI')
 
 
