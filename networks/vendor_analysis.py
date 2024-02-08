@@ -16,10 +16,11 @@ import pandas as pd
 from atlas_utils import get_atlas
 from old.modularity import get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
-from plot_3way_bar import get_vendor_partitions
+from vendor_partitioning import get_vendor_partitions
 from utils import timing, pickle_wrap, stdize
 from collections import Counter
 from copy import copy
+import scipy.stats as stats
 
 
 def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1):
@@ -72,7 +73,7 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
 
     if plot:
         dir_out = r'C:\PycharmProjects_C\SchemeRep\nichord_plots\vendor'
-        fn_glass = r'glass_first_scrub_colored.png'
+        fn_glass = r'glass_first_scrub_colored2.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
         # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
         coords = atlas['coords']
@@ -108,13 +109,13 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
                 node_sizes[i] = 0
                 node_sizes_copy[i] = max(node_sizes)
 
-        fp_glass = fr'{dir_out}\glass_first_original.png'
+        fp_glass = fr'{dir_out}\glass_first_original2.png'
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes_copy, linewidths=15,
                         network_colors=network_colors,)
 
 
-        fp_glass = fr'{dir_out}\glass_first_scrubbed.png'
+        fp_glass = fr'{dir_out}\glass_first_scrubbed2.png'
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
@@ -143,13 +144,17 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
                     easy_override=False, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(sn_inc_conn, age2idxs)
+        get_vendor_partitions(age='healthy', flip=True)
 
     if scrub:
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
                                                           p_v_ant, p_v_pos,
-                                                          # scrub=scrub,
+                                                          scrub=scrub,
                                                           plot=True)
+    print(f'{p_d_ant=}')
+    print(f'{p_d_pos=}')
+    print(f'{p_v_ant=}')
+    print(f'{p_v_pos=}')
 
     # plot_ROI_scores(ts, results_coords, fp_out='trash.png', show=True,
     #                 vmin=0, vmax=2, title='all')
@@ -215,12 +220,15 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
 
 def vendor_lmer():
     df = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI',
-                                                         'scrub': True},
-                     cache_dir='cache', easy_override=True)
-    # print(df.columns)
-    # quit()
-    formula_gen = 'vv ~ 1 + dd*age + inc +' \
-                  '+ (1 + dd*age | sn)'
+                                                         'scrub': False},
+                     cache_dir='cache', easy_override=False)
+
+    df['age'] = stats.zscore(df['age'], nan_policy='omit')
+    df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
+    df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
+    df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
+    formula_gen = 'vv ~ 1 + dd*age + inc + brain_M + ' \
+                  '(1 + dd*age | sn)'
     cols = get_formula_cols(df, formula_gen)
     df_vals = df[cols].dropna()
     from pymer4 import Lmer
@@ -255,7 +263,7 @@ def plot_meta_corr_matrix():
 
 
 if __name__ == '__main__':
-    plot_conn_matrix()
-    # vendor_lmer()
+    # plot_conn_matrix()
+    vendor_lmer()
     # get_trialwise_vendor()
     # plot_meta_corr_matrix()

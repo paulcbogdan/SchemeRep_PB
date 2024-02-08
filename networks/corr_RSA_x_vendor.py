@@ -12,7 +12,7 @@ import pandas as pd
 from atlas_utils import get_atlas
 from old.modularity import get_partition_matrix
 from old.networks import load_FC_for_Lifu
-from plot_3way_bar import get_vendor_partitions
+from vendor_partitioning import get_vendor_partitions
 from utils import pickle_wrap, stdize, get_RSA_fn, timing
 import pickle
 from collections import defaultdict

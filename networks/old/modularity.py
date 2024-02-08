@@ -93,11 +93,12 @@ def get_BNA_coords(code='BNA'):
 
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                         threshold=.95, fn_str='', overlapping=False,
-                        dir_out=None):
+                        dir_out=None, dir_out_full=None, title_extra=''):
     if coords is None:
         coords = get_BNA_coords()
     M_conn = np.nanmean(sn_inc_conn,
                         axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
+
     matrix_binary, matrix_mask = get_binary_matrix(M_conn,
                                                      threshold=threshold)
     M_conn_masked = M_conn * matrix_mask
@@ -105,21 +106,20 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
         partitions = get_modules_overlapping(matrix_binary, algo=overlapping)
     else:
         partitions = get_modules(matrix_binary)
-    print(f'{partitions=}')
     if plot:
+
         for i, p in enumerate(partitions):
             if len(p) < 5:
                 continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            # overlap_str = 'conga' if overlapping else 'Dec22'
-            # overlap_str = overlapping if overlapping else 'Jan5'
             fn = f'{fn_str}thr{threshold}_p{i}_Jan5.png'
             print(f'Plot: {fn=}')
-            title = f'Partition {i}'
+            title = f'Partition {i+1}{title_extra}'
             cur_dir = os.getcwd()
-            # if not dir_out:
-            if dir_out:
+            if dir_out_full:
+                dir_out_ = dir_out_full
+            elif dir_out:
                 dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
             elif overlapping:
                 dir_out_ = f'{cur_dir}/result_pics/nichord/{overlapping}'

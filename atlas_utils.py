@@ -165,10 +165,12 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
 def get_BN_and_resample(combine_bilateral=False, new_space=True,
                         shenyang=True):
     if new_space:
-        fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun3/obj/' \
+        fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
+                 r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun3/obj/' \
                  r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     else:
-        fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
+        fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
+                 r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
                  r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
 
     img = image.load_img(fp_ref)

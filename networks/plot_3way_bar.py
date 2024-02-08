@@ -4,51 +4,17 @@ import numpy as np
 import pandas as pd
 
 from atlas_utils import get_atlas
-from old.modularity import get_main_partitions, get_partition_matrix, get_partition_cross
-from network_based_statistic import get_stats_graphs
+from old.modularity import get_partition_matrix, get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
+from vendor_partitioning import get_vendor_partitions
+
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
-def get_vendor_partitions_(sn_inc_conn, age2idxs, age=2, thr=.95, flip=False):
-    M1_graph, SD1_graph, SE1_graph, N1_graph, t2_graph, p1_graph, z2_graph = \
-        get_stats_graphs(sn_inc_conn[age2idxs[age], 0, :, :],
-                         sn_inc_conn[age2idxs[age], 1, :, :])
-    z2_graph = -z2_graph if flip else z2_graph
-    age2str = {1: 'YA', 2: 'OA'}
-    dir_out = f'{age2str[age]}3_ttest_modules_thr{thr}_flip{flip}'
-    partitions, matrix_mask = \
-        get_main_partitions(z2_graph, coords=None, plot=False, threshold=thr,
-                            fn_str='', overlapping=False,
-                            dir_out=dir_out)
-    return partitions, matrix_mask
-
-def get_vendor_partitions(sn_inc_conn, age2idxs, age=2, thr=.95, flip=False):
-    fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}.pkl'
-    partitions, matrix_mask = \
-        pickle_wrap(fp, lambda: get_vendor_partitions_(sn_inc_conn=sn_inc_conn,
-                                                       age2idxs=age2idxs,
-                                                       age=age, thr=thr,
-                                                       flip=flip))
-    atlas = get_atlas()
-    coords = atlas['coords']
-    p_dorsal, p_ventral = partitions[0], partitions[1]
-    p_d_ant, p_d_pos = anterior_posterior_split(p_dorsal, coords)
-    p_v_ant, p_v_pos = anterior_posterior_split(p_ventral, coords)
-    assert len(p_d_ant) + len(p_d_pos) == len(p_dorsal)
-    assert len(p_v_ant) + len(p_v_pos) == len(p_ventral)
-    return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
-
-def anterior_posterior_split(p_dorsal, coords):
-    p_dorsal_ys = [coords[i][1] for i in p_dorsal]
-    p_dorsal_y_med = np.median(p_dorsal_ys)
-    p_dorsal_ant = [i for i in p_dorsal if coords[i][1] > p_dorsal_y_med]
-    p_dorsal_pos = [i for i in p_dorsal if coords[i][1] <= p_dorsal_y_med]
-    return p_dorsal_ant, p_dorsal_pos
 
 def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     # Age x Con x (Within/Between partitions)
