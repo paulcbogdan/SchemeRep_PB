@@ -145,13 +145,22 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(sn_inc_conn, age2idxs)
 
+    assert set(p_d_pos).intersection(p_d_ant) == set()
+    assert set(p_d_pos).intersection(p_v_ant) == set()
+    assert set(p_d_pos).intersection(p_v_pos) == set()
+
     matrix_mask[~matrix_mask] = np.nan
+    # print(sn_inc_activity.shape)
+    # quit()
+    # sn_inc_activity_std = sn_inc_activity
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
     conn_trials = np.repeat(matrix_mask[None, None, ..., None],
                             conn_trials.shape[-1], axis=4) * conn_trials[..., :]
                             # idk why I can't just broadcast matrix_mask
+
+
 
     sn_inc_act_M_pos_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],
                                     axis=(1, 2))
@@ -167,6 +176,10 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
                                                     p_d_pos, p_d_ant)
     sn_agg_trials_vv = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                     p_v_pos, p_v_ant)
+    # plt.hist(sn_agg_trials_dd.flatten(), bins=25, range=(-0.5, 0.5))
+    # plt.show()
+    # print(sn_agg_trials_vv.shape)
+    # quit()
 
     sn_agg_trials_dv_ant = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                         p_d_ant, p_v_ant)
@@ -281,7 +294,7 @@ def do_RSA_x_vendor():
 
     df_ERS_obj, ERS_obj_ROIs, _ = pickle_wrap(None, get_df_ERS,
                                            kwargs={'fp0': 'obj7_fMRI'},
-                               cache_dir='cache', easy_override=True)
+                               cache_dir='cache', easy_override=False)
     df_ERS_obj.set_index(['sn', 'obj'], inplace=True)
     df_ERS = df_ERS.join(df_ERS_obj[ERS_obj_ROIs])
     # print(f'{ERS_ROIs=}')
@@ -291,14 +304,19 @@ def do_RSA_x_vendor():
     df_RSA = df_RSA.join(df_ERS[ERS_ROIs + ERS_obj_ROIs])
 
     df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor,
-                                      kwargs={'group_exemplar': True},
+                                      kwargs={'group_exemplar': False},
                          cache_dir='cache', easy_override=False)
 
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
 
-    df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={},
+    df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI'},
                          cache_dir='cache', easy_override=False)
+    # plt.scatter(df_vdr['dv_ant'], df_vdr['dv_pos'])
+    # plt.ylim(-.5, .5)
+    # plt.xlim(-.5, .5)
+    # plt.show()
+    # quit()
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     df = df_RSA.join(df_vdr)
     df = df.join(df_ss_vdr)
@@ -306,6 +324,7 @@ def do_RSA_x_vendor():
     df_MVPA, ROIs_mvpa, _, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
                                                   vals=(1, 3),
                                                   combine_regions=True)
+
     df_MVPA.set_index(['sn', 'obj'], inplace=True)
     df = df.join(df_MVPA[ROIs_mvpa])
     df.reset_index(inplace=True, drop=False)
@@ -326,7 +345,7 @@ def do_RSA_x_vendor():
                 #'IPL', 'Pcun', 'PCC',
                 'LOC', 'EVC' #'FuG', 'EVC', #EVC is toxic?
                 ]
-    ROI_keys2 = ['SFG', 'MFG' , 'IPL', 'ATL', 'FuG', 'ITG']
+    ROI_keys2 = ['SFG', 'MFG' 'IFG', ]# 'IPL', 'ATL', 'FuG', 'ITG']
     ROIs_vnd = []
     ROIs_ERS_vnd = []
     ROIs_mvpa_vnd = []
@@ -363,18 +382,30 @@ def do_RSA_x_vendor():
 
     pd.set_option('display.precision', 3)
 
-    # vnd_MVPA + vnd_RSA
+    # vnd_MVPA + vnd_RSA d_M + v_M + brain_M  +
     #  + all_M + brain_M  + dv_pos + dv_ant
-    # formula_gen = 'vnd_MVPA ~ 1 + dd + vv + d_M + v_M + brain_M  + dv_pos + dv_ant' \
+    #  'dv_pos + dv_ant + inc' \
+
+    # dv_pos + dv_ant +
+    df['age'] = stats.zscore(df['age'], nan_policy='omit')
+    df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
+    df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
+    print(df['age'])
+    formula_gen = 'vv ~ 1 + dd*age + inc +' \
+                  '+ (1 + dd*age  | sn)'
+
+    # formula_gen = 'dv_pos ~ 1 + dd + all_M + brain_M  + vv + dv_ant + inc ' \
+    #               '+ (1  | sn)'
+    # formula_gen = 'vnd_MVPA ~ 1 + vendor ' \
     #               ' + (1 | sn)'
-    formula_gen = 'vendor ~ 1 + vnd_MVPA' \
-                  ' + (1 | sn)'
     cols = get_formula_cols(df, formula_gen)
+    print(f'{cols=}')
     df_vals = df[cols].dropna()
+    print(f'{len(df_vals)=}')
     model = Lmer(formula_gen, data=df_vals)
     model.fit(REML=True, verbose=False, summary=False)
-    summary = model.coefs
-    print(summary)
+    # summary = model.coefs
+    print(model.summary())
     quit()
 
 

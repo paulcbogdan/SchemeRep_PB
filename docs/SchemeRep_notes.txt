@@ -1,4 +1,27 @@
-Correlations are lame af because 
+Notes:
+* It is vital to account for within-run similarity
+* MVPA conclusion. PFC effects are strong for object betas
+* Stronger MVPA congruency effect = less VV connectivity?
+* More VV = less DD???
+* Why tf is the correlation between connectivity negative?
+
+
+wtf??
+The negative link to dv_pos is intersting too
+
+             Estimate  2.5_ci  97.5_ci     SE        DF  T-stat  P-val  Sig
+(Intercept)    -0.005  -0.032    0.022  0.014    69.660  -0.364  0.717     
+dd             -0.251  -0.372   -0.130  0.062    50.746  -4.071  0.000  ***
+age             0.007  -0.009    0.024  0.008    54.360   0.898  0.373     
+brain_M         0.014  -0.005    0.032  0.009  5897.786   1.445  0.149     
+dv_pos         -0.364  -0.428   -0.299  0.033    58.814 -11.005  0.000  ***
+dv_ant         -0.071  -0.168    0.027  0.050    59.738  -1.417  0.162     
+inc             0.008   0.003    0.013  0.003  6526.894   3.003  0.003   **
+dd:age          0.125   0.054    0.195  0.036    53.458   3.478  0.001   **
+
+Looking at variability didn't work
+
+Correlations are lame af because how well an examplar fits is based on its stability
 
 Older adults show a greater use of prior knowledge when processing incoming stimuli. This dimension of aging is a common focus of memory research, which has demonstrate that older adults have reduced memory for stimuli that is meaningless and/or diverges from previously encountered stimuli. These behavioral effects of aging are well established, although the neural correlates of older adults' use of prior knowledge (i.e., schemas) is less clear. Some previous fMRI studies have shown that older adults primarily represent stimuli in terms of their semantic features (Loris/Lifu papers), but these results are primarily an investigation of the outcomes of applying schemas to incoming information. We instead sought to investigate the process of how older adults apply schemas to incoming information.
 

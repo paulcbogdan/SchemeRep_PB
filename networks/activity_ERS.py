@@ -247,7 +247,7 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     #
     # print(f'{num_bads=}')
     # if num_bads >
-    df_sn.loc[df_sn['cum_count'] >= lowest_cnt, key] = np.nan # TODO: toggle
+    # df_sn.loc[df_sn['cum_count'] >= lowest_cnt, key] = np.nan # TODO: toggle
     # df_sn.loc[df_sn[f'{sess}_run'] > 1, key] = np.nan
     # df_sn.iloc[:len(df_sn) // 3]
     # quit()
@@ -271,6 +271,8 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
     MVPA_cols = []
     MVPA_cols_simp = []
     MVPA_cols_alt = []
+    df_sn = df_sn[[key, f'{sess}_run', 'sn', 'obj']]
+
     for ROI, vecs in ROI2vecs.items():
         ROI_clean = ROI.replace(' ', '_')
         col = f'MVPA_{fp[:2]}_{ROI_clean}'
@@ -280,56 +282,74 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
         MVPA_cols_simp.append(col_simple)
         MVPA_cols_alt.append(col_alt)
 
-        for run in range(1, 4):
-            # df_sn = df_sn.loc[df_sn[f'{sess}_run'] == run] = run
-        val2variants = {}
-        val2x_vals = {}
-        val2M = {}
 
-        bad_voxels = np.sum(np.isnan(vecs), axis=0)
-        vecs = vecs[:, bad_voxels < vecs.shape[0] / 3 - 5] # sometimes catches 78/114??
-        if vecs.shape[1] < 100:
-            print(f'Few voxels | {sn}, {ROI}: {vecs.shape=}')
+        runs = df_sn[f'{sess}_run'].unique()
+        for run in runs:
+            # df_run = df_sn.loc[df_sn[f'{sess}_run'] == run]
+            # df_sn.loc[df_sn[f'{sess}_run'] == run, key] = \
+            #     df_run[key].sample(frac=1).values
 
-        for i, val in enumerate(vals):
-            x_val = vecs[df_sn[key] == val, :]
+            val2variants = {}
+            val2x_vals = {}
+            val2M = {}
 
-            n_vals = np.sum(~np.isnan(x_val), axis=0)
-            if not np.all(n_vals == n_vals[0]):
-                print(f'({val}) Non uniform n_vals: {np.unique(n_vals)=}')
-            n_v_m = (n_vals - 1)# / n_vals
-            M = np.nanmean(x_val, axis=0)
-            M_variants = (M[None, :] * n_vals[None, :] - x_val * 1) / n_v_m[None, :]
-            val2x_vals[val] = x_val
-            # M_variants = x_val[0, :][None, :].copy()
-            val2variants[val] = M_variants
-            val2M[val] = M
-            np.set_printoptions(precision=3, suppress=True)
+            bad_voxels = np.sum(np.isnan(vecs), axis=0)
+            vecs = vecs[:, bad_voxels < vecs.shape[0] / 3 - 5] # sometimes catches 78/114??
+            if vecs.shape[1] < 100:
+                print(f'Few voxels | {sn}, {ROI}: {vecs.shape=}')
 
-        ks = list(val2M.keys())
-        assert val2M[ks[0]].shape == val2M[ks[1]].shape, \
-            f'{val2M[1].shape=} {val2M[3].shape=}'
+            for i, val in enumerate(vals):
+                idx_match = (df_sn[key] == val) & (df_sn[f'{sess}_run'] == run)
+                x_val = vecs[idx_match, :]
 
-        for i, val in enumerate(vals):
-            x_val = val2x_vals[val]
-            M_variants = val2variants[val]
-            i_alt = 1 if i == 0 else 0
-            M_alt = val2variants[vals[i_alt]]
+                n_vals = np.sum(~np.isnan(x_val), axis=0)
+                if not np.all(n_vals == n_vals[0]):
+                    print(f'({val}) Non uniform n_vals: {np.unique(n_vals)=}')
+                n_v_m = (n_vals - 1)# / n_vals
+                M = np.nanmean(x_val, axis=0)
+                M_variants = (M[None, :] * n_vals[None, :] - x_val * 1) / n_v_m[None, :]
+                val2x_vals[val] = x_val
+                # M_variants = x_val[0, :][None, :].copy()
+                val2variants[val] = M_variants
+                val2M[val] = M
+                np.set_printoptions(precision=3, suppress=True)
 
-            np.set_printoptions(precision=3, suppress=True)
-            x_val_std = x_val - (M_variants + M_alt) / 2
-            dif = M_variants - M_alt
-            dif_std = dif
-            rs = np.nanmean(x_val_std * dif_std, axis=1)
-            rs /= np.var(x_val)
+            ks = list(val2M.keys())
+            assert val2M[ks[0]].shape == val2M[ks[1]].shape, \
+                f'{val2M[1].shape=} {val2M[3].shape=}'
 
-            M_variants_std = stdize(M_variants, axis=1, nans=True)
-            rs_simp = np.nanmean(x_val_std * M_variants_std, axis=1)
-            M_alt_std = stdize(M_alt, axis=1, nans=True)
-            rs_alt = np.nanmean(x_val_std * M_alt_std, axis=1)
-            df_sn.loc[df_sn[key] == val, col] = rs# - rs_alt
-            df_sn.loc[df_sn[key] == val, col_simple] = rs_simp
-            df_sn.loc[df_sn[key] == val, col_alt] = -rs_alt
+            for i, val in enumerate(vals):
+                x_val = val2x_vals[val]
+                M_variants = val2variants[val]
+                i_alt = 1 if i == 0 else 0
+                # M_alt = val2variants[vals[i_alt]]
+                M_alt = val2M[vals[i_alt]][None, :]
+
+                rs_simp = -np.mean(np.abs(x_val - M_variants), axis=1)
+                rs_alt = -np.mean(np.abs(x_val - M_alt), axis=1)
+                rs = rs_simp - rs_alt
+
+                # x_val_std = x_val - (M_variants + M_alt) / 2
+
+                # mid_point = (M_variants + M_alt) / 2
+                # M_variants -= mid_point
+
+                # dif = M_variants - M_alt
+                # dif[dif > 0] = 1
+                # dif[dif < 0] = -1
+                # dif_std = dif
+                # rs = np.nanmean(x_val_std * dif_std, axis=1)
+                # rs /= np.var(x_val)
+
+                # M_variants_std = stdize(M_variants, axis=1, nans=True)
+                # rs_simp = np.nanmean(x_val_std * M_variants_std, axis=1)
+                # M_alt_std = stdize(M_alt, axis=1, nans=True)
+                # rs_alt = np.nanmean(x_val_std * M_alt_std, axis=1)
+
+                idx_match = (df_sn[key] == val) & (df_sn[f'{sess}_run'] == run)
+                df_sn.loc[idx_match, col] = rs# - rs_alt
+                df_sn.loc[idx_match, col_simple] = rs_simp
+                df_sn.loc[idx_match, col_alt] = rs_alt
 
     return df_sn, MVPA_cols, MVPA_cols_simp, MVPA_cols_alt
 
@@ -348,7 +368,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
         f = lambda: do_activity_corr_sn(sn, fp, key=key, vals=vals,
                                         combine_regions=combine_regions)
         df_sn, cols, cols_simp, cols_alt = pickle_wrap(fp_pkl, f,
-                                                       easy_override=True)
+                                                       easy_override=False)
         cols_bl = sorted(list(set([col[:-2] for col in cols])))
         # for col in cols_bl:
         #     try:
@@ -373,6 +393,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
 def do_trialwise_MVPA_analysis(fp='obj7_fMRI', key='inc', vals=(1, 3)
                                # key='inc_run', vals=(11, 13, 21, 23, 31, 33)
                                ):
+    np.set_printoptions(precision=3, suppress=True)
     warnings.simplefilter(action='ignore',
                           category=pd.errors.PerformanceWarning)
 
@@ -526,6 +547,7 @@ def do_activity_group_MVPA(fp='obj7_fMRI', key='inc', vals=(1, 3),
 
 if __name__ == '__main__':
     do_trialwise_MVPA_analysis()
+    # do_activity_group_MVPA(fp='vis7_fMRI')
 
 
 
