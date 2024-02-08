@@ -4,7 +4,7 @@ from conn_utils import get_BNA_ROIs
 from organize_bhv import get_trial_info
 from single_trial_conn import run_settings
 from conn_report import report_results
-from networks.networks import prep_networks
+from old.networks import prep_networks
 from utils import pickle_wrap
 import pandas as pd
 import numpy as np

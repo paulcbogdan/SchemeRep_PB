@@ -1,20 +1,13 @@
 import os
-os.chdir('C:\PycharmProjects_C\SchemeRep')
-
-from pathlib import Path
+os.chdir('/')
 
 import numpy as np
 import pandas as pd
-from connsearch.report import plot_ROI_scores
 from matplotlib import pyplot as plt
-from sklearn.model_selection import StratifiedGroupKFold, cross_val_score
-from sklearn.svm import SVC
-from tqdm import tqdm
 
-from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
 from emotemporal_bar import run_ANOVA_ttest, setup_plots, add_interaction_lines
-from network_clf import generic_prep
+from old.network_clf import generic_prep
 from utils import stdize
 import matplotlib
 

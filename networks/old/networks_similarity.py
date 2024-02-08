@@ -3,7 +3,7 @@ from connsearch import print_list_stats
 from atlas_utils import get_atlas
 from network_clf import generic_prep
 from network_based_statistic import get_stats_graphs
-from network_funcs import load_FC_for_Lifu
+from networks.old.network_funcs import load_FC_for_Lifu
 from utils import stdize, pickle_wrap
 import numpy as np
 
@@ -167,7 +167,7 @@ def get_p_mask(kwargs):
     kwargs = kwargs.copy()
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+                    easy_override=False, cache_dir='../cache')
     M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_graph = \
         get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
                          sn_inc_conn[age2idxs[2], 1, :, :])

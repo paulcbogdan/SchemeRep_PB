@@ -12,8 +12,10 @@ from atlas_utils import get_combined_BNA, get_atlas
 
 def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
                       ax=None, t=False, no_avg=False, cbar_label='',
-                      vmin=None, vmax=None, xlabel=None, ylabel=None):
+                      vmin=None, vmax=None, xlabel=None, ylabel=None,
+                      tile=.001, tick_low=None, tick_high=None):
 
+    conn[np.triu_indices_from(conn, k=-1)] = np.nan
 
     font = {'size': 14}
     matplotlib.rc('font', **font)
@@ -26,9 +28,11 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         M_connect = conn
     # M_connect = np.nanmedian(conn, axis=0)
     if vmin is None:
-        vmin = np.nanquantile(M_connect, .001)
+        vmin = np.nanquantile(M_connect, tile)
         # vmin = np.nanmin(M_connect)
-        vmax = np.nanquantile(M_connect, .999)
+        vmax = np.nanquantile(M_connect, 1 - tile)
+        print(f'Plot connectivity ({tile=}), {vmin=:.2f}, {vmax=:.2f}')
+
         # vmax = max(vmax, 4)
         # vmax = np.nanmax(M_connect)
 
@@ -62,20 +66,29 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
                interpolation='none')
     plt.yticks(ticks, tick_labels, fontsize=10)
     plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
-    # for low in tick_lows:
-    #     plt.plot([0, M_connect.shape[0]], [low, low], 'w', linewidth=0.5)
-    #     plt.plot([low, low], [0, M_connect.shape[0]], 'w', linewidth=0.5)
+    for low in tick_lows:
+        low -= 0.5
+        plt.plot([-0.5, M_connect.shape[0]], [low, low], 'k', linewidth=0.5)
+        plt.plot([low, low], [-0.5, M_connect.shape[0]], 'k', linewidth=0.5)
     plt.xlim([-0.5, M_connect.shape[0]-0.5])
     plt.ylim([-0.5, M_connect.shape[0]-0.5])
-    cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,
-                        )
+    cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,)
     cbar.set_label(cbar_label, y=1.05, labelpad=-40, rotation=0)
+
+    if tick_low is not None or tick_high is not None:
+        ticks = list(cbar.get_ticks())[1:-1]
+        tick_labels = [f'{t:.2f}' for t in ticks]
+        tick_labels[0] = f'{tick_labels[0]} {tick_low}'
+        tick_labels[-1] = f'{tick_labels[-1]} {tick_high}'
+        cbar.set_ticks(ticks, labels=tick_labels)
+    # quit()
 
     # cbar.ax.tick_params(rotation=45, fontsize=12)
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(fp)
     if ax is None:
+        plt.gca().invert_yaxis()
         plt.show()
 
 # def plot_surf(combine_regions=True, bilateral=False):

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from functools import wraps
 from pathlib import Path
 
 import numpy as np
@@ -401,3 +402,15 @@ if __name__ == '__main__':
     # print(f'{r2=:.3f}')
     print(f'{r3=:}')
 
+
+def timing(f):
+    # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print('func:%r args:[%r, %r] took: %2.4f sec' % \
+          (f.__name__, args, kw, te-ts))
+        return result
+    return wrap

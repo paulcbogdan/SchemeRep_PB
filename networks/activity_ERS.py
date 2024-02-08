@@ -2,20 +2,16 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-from pymer4 import Lmer
 from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score, GroupKFold
 from sklearn.svm import SVC
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
-from network_funcs import load_FC_for_Lifu
-from classifiers import stratify
 from old.plot_gen import my_plot_surf
 from org_sns import get_all_sns
 from organize_bhv import get_trial_info
-from univariate_activity import keys_from_formula
-from utils import pickle_wrap, stdize, regress_out
+from utils import pickle_wrap, stdize
 import numpy as np
 
 from functools import wraps

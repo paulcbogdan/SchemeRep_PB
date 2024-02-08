@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from atlas_utils import get_atlas
-from modularity import get_main_partitions, get_partition_matrix, get_partition_cross
+from old.modularity import get_main_partitions, get_partition_matrix, get_partition_cross
 from network_based_statistic import get_stats_graphs
-from network_funcs import load_FC_for_Lifu
+from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -46,8 +46,8 @@ def get_vendor_partitions(sn_inc_conn, age2idxs, age=2, thr=.95, flip=False):
 def anterior_posterior_split(p_dorsal, coords):
     p_dorsal_ys = [coords[i][1] for i in p_dorsal]
     p_dorsal_y_med = np.median(p_dorsal_ys)
-    p_dorsal_ant = [i for i in p_dorsal if coords[i][1] < p_dorsal_y_med]
-    p_dorsal_pos = [i for i in p_dorsal if coords[i][1] >= p_dorsal_y_med]
+    p_dorsal_ant = [i for i in p_dorsal if coords[i][1] > p_dorsal_y_med]
+    p_dorsal_pos = [i for i in p_dorsal if coords[i][1] <= p_dorsal_y_med]
     return p_dorsal_ant, p_dorsal_pos
 
 def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
@@ -77,7 +77,7 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     atlas = get_atlas()
     coords = atlas['coords']
 
-    p_dorsal, p_ventral, p_dorsal_ant, p_dorsal_pos, p_vent_ant, p_vent_pos = \
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(sn_inc_conn, age2idxs)
 
     # TODO: backward to forward for each module... ant to post
@@ -104,10 +104,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     # conn_dv = get_partition_cross(sn_inc_conn, p_dorsal, p_ventral)
     # flat_dv = np.reshape(conn_dv, (conn_dv.shape[0], conn_dv.shape[1], -1))
     # agg_between = np.nanmean(flat_dv, axis=-1)
-    conn_dv_ant = get_partition_cross(sn_inc_conn, p_dorsal_ant, p_vent_ant)
+    conn_dv_ant = get_partition_cross(sn_inc_conn, p_d_ant, p_v_ant)
     flat_dv_ant = np.reshape(conn_dv_ant, (conn_dv_ant.shape[0],
                                            conn_dv_ant.shape[1], -1))
-    conn_dv_pos = get_partition_cross(sn_inc_conn, p_dorsal_pos, p_vent_pos)
+    conn_dv_pos = get_partition_cross(sn_inc_conn, p_d_pos, p_v_pos)
     flat_dv_pos = np.reshape(conn_dv_pos, (conn_dv_pos.shape[0],
                                            conn_dv_pos.shape[1], -1))
     flat_between = np.concatenate((flat_dv_ant, flat_dv_pos), axis=-1)

@@ -1,15 +1,11 @@
-from matplotlib import pyplot as plt
-from nichord import get_idx_to_label
-from nichord.combine import plot_and_combine
 from scipy import stats
 
 from atlas_utils import get_atlas
-from modularity import get_BNA_coords, plot_nichord, get_binary_matrix
-from network_funcs import load_FC_for_Lifu
+from modularity import get_binary_matrix
+from old.networks import load_FC_for_Lifu
 from network_based_statistic import get_stats_graphs
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from NBS import get_NBS_clusters
 import numpy as np
 
 
@@ -21,7 +17,7 @@ def do_between_fp(alpha_thresh=.0001):
               }
     sn_inc_conn0, sn_conn0, age2idxs, sn_inc_activity0 = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='../cache')
+                    easy_override=False, cache_dir='../../cache')
 
     kwargs = {'fp': 'vis3_fMRI',
               'split': False,
@@ -30,7 +26,7 @@ def do_between_fp(alpha_thresh=.0001):
               }
     sn_inc_conn1, sn_conn1, age2idxs1, sn_inc_activity1 = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='../cache')
+                    easy_override=False, cache_dir='../../cache')
     M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph = \
         get_stats_graphs(sn_conn0, sn_conn1)
     p_graph = np.min([p_graph, 1 - p_graph], axis=0)
@@ -83,7 +79,7 @@ def prep_conn_M():
               }
     sn_inc_conn0, sn_conn0, age2idxs, sn_inc_activity0 = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+                    easy_override=False, cache_dir='../cache')
     conn = np.nanmean(sn_conn0, axis=0)
     _, mat = get_binary_matrix(conn)
     out = ''

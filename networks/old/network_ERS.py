@@ -2,7 +2,6 @@ import numpy as np
 from nichord import convert_matrix
 
 from network_clf import generic_prep
-from network_funcs import subj_specific_repeated
 from subject_specific import conn_ERS_p
 from utils import pickle_wrap
 

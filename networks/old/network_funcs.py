@@ -1,5 +1,5 @@
 import os
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('/')
 
 import random
 from collections import defaultdict
@@ -13,7 +13,7 @@ from scipy import stats as stats
 from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
 from fMRI_proc import get_ROI_vecs
-from modularity import get_partition_matrix
+from old.modularity import get_partition_matrix
 from organize_bhv import get_trial_info
 from org_sns import get_all_sns
 from utils import stdize

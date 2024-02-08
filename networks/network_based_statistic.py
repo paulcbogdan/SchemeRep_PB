@@ -1,14 +1,11 @@
 import os
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
-from matplotlib import pyplot as plt
-from nichord import get_idx_to_label
-from nichord.combine import plot_and_combine
 from scipy import stats
 
 from atlas_utils import get_atlas
-from modularity import get_BNA_coords, plot_nichord, get_main_partitions, get_partition_matrix
-from network_funcs import load_FC_for_Lifu
+from old.modularity import get_BNA_coords, plot_nichord, get_main_partitions, get_partition_matrix
+from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from NBS import get_NBS_clusters
@@ -16,15 +13,49 @@ import numpy as np
 
 def get_stats_graphs(graph0, graph1):
     dif_graph = graph0 - graph1
+    return get_1sample_graph(dif_graph)
+
+def get_1sample_graph(dif_graph):
     M_graph = np.nanmean(dif_graph, axis=0)
     SD_graph = np.nanstd(dif_graph, axis=0)
     N_graph = np.nansum(~np.isnan(dif_graph), axis=0)
     SE_graph = SD_graph / (N_graph ** 0.5)
     t_graph = M_graph / SE_graph
-    p_graph = 1 - stats.t.cdf(t_graph, N_graph - 1)
+    p_graph = stats.t.cdf(t_graph, N_graph - 1)
     z_graph = stats.norm.ppf(p_graph)
-    # p_graph = np.min([p_graph, 1 - p_graph], axis=0)
+    p_graph = np.min([p_graph, 1 - p_graph], axis=0)
     return M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph
+
+def get_cross_interaction_graph(graph0a, graph0b, graph1a, graph1b):
+    M1_graph, SD1_graph, SE1_graph, N1_graph, t1_graph, p1_graph, z1_grap = \
+        get_stats_graphs(graph0a, graph0b)
+    M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_grap = \
+        get_stats_graphs(graph1a, graph1b)
+    SD12 = ((SD1_graph ** 2) * (N1_graph - 1) +
+            (SD2_graph ** 2) * (N2_graph - 1)) / \
+           (N1_graph + N2_graph - 2)
+    SE12 = np.sqrt(SD12 * (1 / N1_graph + 1 / N2_graph))
+    t12_graph = (M1_graph - M2_graph) / SE12
+    p12_graph = 1 - stats.t.cdf(t12_graph, N1_graph + N2_graph - 2)
+    z12_graph = -stats.norm.ppf(p12_graph)
+    p12_graph = np.min([p12_graph, 1 - p12_graph], axis=0)
+    return z12_graph, p12_graph
+
+def get_2sample_graph(graph1, graph2):
+    M1_graph, SD1_graph, SE1_graph, N1_graph, t1_graph, p1_graph, z1_graph = \
+        get_1sample_graph(graph1)
+    M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_graph = \
+        get_1sample_graph(graph2)
+
+    SD12 = ((SD1_graph ** 2) * (N1_graph - 1) +
+            (SD2_graph ** 2) * (N2_graph - 1)) / \
+           (N1_graph + N2_graph - 2)
+    SE12 = np.sqrt(SD12 * (1 / N1_graph + 1 / N2_graph))
+    t12_graph = (M1_graph - M2_graph) / SE12
+    p12_graph = 1 - stats.t.cdf(t12_graph, N1_graph + N2_graph - 2)
+    z12_graph = -stats.norm.ppf(p12_graph)
+    p12_graph = np.min([p12_graph, 1 - p12_graph], axis=0)
+    return z12_graph, p12_graph
 
 
 def perm_test(sn_inc_conn, age2idxs, alpha_thresh):

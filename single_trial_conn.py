@@ -5,7 +5,7 @@ from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI
 from conn_ERS import ERS_sn, ERS_ROI_pairwise#, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
-from networks.networks import prep_networks
+from old.networks import prep_networks
 from org_sns import get_all_sns
 import numpy as np
 

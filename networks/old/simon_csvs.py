@@ -4,7 +4,7 @@ import pandas as pd
 
 from atlas_utils import get_atlas
 from network_based_statistic import get_stats_graphs
-from network_funcs import load_FC_for_Lifu
+from old.networks import load_FC_for_Lifu
 from plot_conn_nice import run_two_sample_on_2D
 from utils import pickle_wrap
 import numpy as np
@@ -31,7 +31,7 @@ if __name__ == '__main__':
                 kwargs['combine_regions'] = True
             sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
                 pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                            easy_override=False, cache_dir='cache')
+                            easy_override=False, cache_dir='../cache')
 
             M_YA_graph = np.nanmean(sn_inc_conn[age2idxs[1], :, :, :], axis=(0, 1))
             M_OA_graph = np.nanmean(sn_inc_conn[age2idxs[2], :, :, :], axis=(0, 1))

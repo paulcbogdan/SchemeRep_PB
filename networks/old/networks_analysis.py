@@ -1,9 +1,8 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_main_partitions
-from classifiers import partition_classifier
-from network_funcs import load_FC_for_Lifu, reconfiguration, \
-    analyze_subject_specific, subj_specific_repeated
+from networks.old.network_funcs import load_FC_for_Lifu, reconfiguration, \
+    analyze_subject_specific
 from network_clf import generic_prep
 from subject_specific import graph_theory
 from utils import pickle_wrap
@@ -26,7 +25,7 @@ def subject_specific(threshold=0.9):
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                                   load_FC_for_Lifu, kwargs=kwargs,
                                                                   verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+                                                                  cache_dir='../../cache')
     fp = 'cache/test.pkl'
     partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
         sn_conn, plot=False, threshold=threshold), easy_override=False)
@@ -59,7 +58,7 @@ def INC_reconfig(threshold=0.9):
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                                   load_FC_for_Lifu, kwargs=kwargs,
                                                                   verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+                                                                  cache_dir='../../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                     threshold=threshold)
     sn_inc_conn[:, :, ~top_edges_mat] = np.nan
@@ -98,7 +97,7 @@ def rand_test(threshold=0.9, way3=False):
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
                                                                       load_FC_for_Lifu, kwargs=kwargs,
                                                                       verbose=1, easy_override=True,
-                                                                      cache_dir='../cache')
+                                                                      cache_dir='../../cache')
         partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                         threshold=threshold)
         sn_inc_conn[:, :, ~top_edges_mat] = np.nan

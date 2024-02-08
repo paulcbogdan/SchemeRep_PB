@@ -1,10 +1,8 @@
 import os
 
-from tqdm import tqdm
-
 from network_IRAF import get_formula_cols
-from activity_ERS import do_activity_ERS_sn, get_df_ERS, get_df_trialwise_MVPA
-from org_sns import get_all_sns
+from activity_ERS import get_df_ERS, get_df_trialwise_MVPA
+from old.networks import get_trialwise_vendor
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
@@ -12,29 +10,13 @@ import numpy as np
 import pandas as pd
 
 from atlas_utils import get_atlas
-from modularity import get_partition_matrix, get_partition_cross
-from network_funcs import load_FC_for_Lifu
-from plot_3way_bar import get_vendor_partitions, anterior_posterior_split
-from utils import pickle_wrap, stdize, get_RSA_fn
-from functools import cache
+from old.modularity import get_partition_matrix
+from old.networks import load_FC_for_Lifu
+from plot_3way_bar import get_vendor_partitions
+from utils import pickle_wrap, stdize, get_RSA_fn, timing
 import pickle
 from collections import defaultdict
-from functools import wraps
-from time import time
 import scipy.stats as stats
-import matplotlib.pyplot as plt
-
-def timing(f):
-    # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
-    @wraps(f)
-    def wrap(*args, **kw):
-        ts = time()
-        result = f(*args, **kw)
-        te = time()
-        print('func:%r args:[%r, %r] took: %2.4f sec' % \
-          (f.__name__, args, kw, te-ts))
-        return result
-    return wrap
 
 
 def prep_IRAF_df_age(age=2, semantic=True, inc=None, bilateral=False,
@@ -116,96 +98,6 @@ def get_module_trialwise_z(sn_inc_conn_trials, p_module):
     sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
     return sn_agg_trials_dd
 
-def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1):
-    # conn_trials = sn_inc_activity_std[..., None, :] * \
-    #                      sn_inc_activity_std[..., None, :, :]
-    # conn_trials = sn_inc_activity_std[..., None, :] + \
-    #                      sn_inc_activity_std[..., None, :, :]
-    conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
-    conn_trials_cross = get_partition_cross(conn_trials, p_mod0, p_mod1)
-    flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
-                                                conn_trials_cross.shape[1],
-                                                conn_trials_cross.shape[2], -1))
-    agg_cross = np.nanmean(flat_cross, axis=-1)
-    agg_cross = np.nanmean(agg_cross, axis=1) # omit inc axis
-    return agg_cross
-
-@timing
-@cache
-def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0):
-    kwargs = {'fp': fp,
-              'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 2, 3),
-              'get_df_sn': True,
-              }
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(sn_inc_conn, age2idxs)
-
-    assert set(p_d_pos).intersection(p_d_ant) == set()
-    assert set(p_d_pos).intersection(p_v_ant) == set()
-    assert set(p_d_pos).intersection(p_v_pos) == set()
-
-    matrix_mask[~matrix_mask] = np.nan
-    # print(sn_inc_activity.shape)
-    # quit()
-    # sn_inc_activity_std = sn_inc_activity
-    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
-    conn_trials = sn_inc_activity_std[..., None, :] * \
-                  sn_inc_activity_std[..., None, :, :]
-    conn_trials = np.repeat(matrix_mask[None, None, ..., None],
-                            conn_trials.shape[-1], axis=4) * conn_trials[..., :]
-                            # idk why I can't just broadcast matrix_mask
-
-
-
-    sn_inc_act_M_pos_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_ant_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_pos_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_ant_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_overall = np.nanmean(sn_inc_activity, axis=(1, 2))
-
-    sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                    p_d_pos, p_d_ant)
-    sn_agg_trials_vv = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                    p_v_pos, p_v_ant)
-    # plt.hist(sn_agg_trials_dd.flatten(), bins=25, range=(-0.5, 0.5))
-    # plt.show()
-    # print(sn_agg_trials_vv.shape)
-    # quit()
-
-    sn_agg_trials_dv_ant = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                        p_d_ant, p_v_ant)
-    sn_agg_trials_dv_pos = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                        p_d_pos, p_v_pos)
-    for i, df_sn in enumerate(df_sns_l):
-        df_sn['pd_M'] = sn_inc_act_M_pos_d[i, :]
-        df_sn['ad_M'] = sn_inc_act_M_ant_d[i, :]
-        df_sn['d_M'] = df_sn['pd_M'] + df_sn['ad_M']
-        df_sn['pv_M'] = sn_inc_act_M_pos_v[i, :]
-        df_sn['av_M'] = sn_inc_act_M_ant_v[i, :]
-        df_sn['v_M'] = df_sn['pv_M'] + df_sn['av_M']
-        df_sn['all_M'] = df_sn['d_M'] + df_sn['v_M']
-        df_sn['brain_M'] = sn_inc_act_M_overall[i, :]
-
-        df_sn['dd'] = sn_agg_trials_dd[i, :]
-        df_sn['vv'] = sn_agg_trials_vv[i, :]
-        df_sn['dv_ant'] = sn_agg_trials_dv_ant[i, :]
-        df_sn['dv_pos'] = sn_agg_trials_dv_pos[i, :]
-        df_sn['dd_vv'] = df_sn['dd'] + df_sn['vv'] #- \
-                       # df_sn['dv_ant'] - df_sn['dv_pos']
-        df_sn['cross'] = df_sn['dv_ant'] + df_sn['dv_pos']
-        df_sn['vendor'] = df_sn['dd_vv'] - df_sn['cross']
-        # df_sn['dd_minus_vv']
-    df_sns = pd.concat(df_sns_l)
-    return df_sns
 
 @timing
 def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
@@ -297,9 +189,7 @@ def do_RSA_x_vendor():
                                cache_dir='cache', easy_override=False)
     df_ERS_obj.set_index(['sn', 'obj'], inplace=True)
     df_ERS = df_ERS.join(df_ERS_obj[ERS_obj_ROIs])
-    # print(f'{ERS_ROIs=}')
-    # print(f'{ERS_obj_ROIs=}')
-    # quit()
+
 
     df_RSA = df_RSA.join(df_ERS[ERS_ROIs + ERS_obj_ROIs])
 
@@ -436,5 +326,7 @@ def do_RSA_x_vendor():
             # print('-'*100)
     quit()
 
+
 if __name__ == '__main__':
+    # plot_meta_corr_matrix()
     do_RSA_x_vendor()

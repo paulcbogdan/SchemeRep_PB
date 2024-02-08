@@ -6,10 +6,9 @@ from connsearch.report import plot_ROI_scores
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from modularity import get_partition_matrix, get_main_partitions, get_BNA_coords, get_binary_matrix
+from modularity import get_main_partitions, get_BNA_coords, get_binary_matrix
 from classifiers import partition_classifier, partition_group_clf
-from network_funcs import load_FC_for_Lifu, reconfiguration, \
-    analyze_subject_specific, subj_specific_repeated
+from networks.old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 
 warnings.filterwarnings('ignore',
@@ -36,7 +35,7 @@ def generic_prep(kwargs, threshold=0.9):
             kwargs_['key'] = key
             sn_inc_conn_, sn_conn_, age2idxs, sn_inc_activity_ = \
                 pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs_, verbose=1,
-                            easy_override=False, cache_dir='cache')
+                            easy_override=False, cache_dir='../cache')
             sn_inc_conn.append(sn_inc_conn_)
             sn_conn.append(sn_conn_)
             sn_inc_activity.append(sn_inc_activity_)
