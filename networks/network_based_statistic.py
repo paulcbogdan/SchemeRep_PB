@@ -11,11 +11,14 @@ from utils import pickle_wrap
 from NBS import get_NBS_clusters
 import numpy as np
 
-def get_stats_graphs(graph0, graph1):
+def get_stats_graphs(graph0, graph1, weights=None):
     dif_graph = graph0 - graph1
-    return get_1sample_graph(dif_graph)
+    return get_1sample_graph(dif_graph, weights=weights)
 
-def get_1sample_graph(dif_graph):
+def get_1sample_graph(dif_graph, weights=None):
+    sum_graph = np.nansum(dif_graph, axis=0)
+    weight_graph = (~np.isnan(dif_graph))
+
     M_graph = np.nanmean(dif_graph, axis=0)
     SD_graph = np.nanstd(dif_graph, axis=0)
     N_graph = np.nansum(~np.isnan(dif_graph), axis=0)

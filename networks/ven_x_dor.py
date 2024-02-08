@@ -2,9 +2,7 @@
 # os.chdir(r'C:\PycharmProjects_C\SchemeRep\networks')
 # import sys
 # sys.path.extend([r'C:\PycharmProjects_C\SchemeRep'])
-
-from collections import defaultdict
-
+from emotemporal_bar import get_stars
 from network_IRAF import get_formula_cols
 
 from functools import cache
@@ -12,15 +10,16 @@ from functools import cache
 import numpy as np
 import pandas as pd
 
-from atlas_utils import get_atlas
 from old.modularity import get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
-from vendor_partitioning import get_vendor_partitions, get_anat_vendor_partitions
+from vendor_partitioning import get_vendor_partitions, scrub_plot_p
 from utils import timing, pickle_wrap, stdize
-from collections import Counter
-from copy import copy
 import scipy.stats as stats
+from warnings import filterwarnings
+import seaborn as sns
+import matplotlib.pyplot as plt
 
+filterwarnings('ignore', category=UserWarning)
 
 def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True):
     conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
@@ -37,105 +36,11 @@ def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True):
         agg_rs = np.nanmean(rs, axis=-1)
         return agg_rs
 
-def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False,
-                 anat=False):
-    atlas = get_atlas()
-    from nichord import plot_glassbrain
-    idx_to_quadrant = {i: 'PD' for i in p_d_pos}
-    idx_to_quadrant.update({i: 'PV' for i in p_v_pos})
-    idx_to_quadrant.update({i: 'AD' for i in p_d_ant})
-    idx_to_quadrant.update({i: 'AV' for i in p_v_ant})
-    node_sizes = []
-    quadrant2labels = defaultdict(list)
-    for i in range(len(atlas['labels'])):
-        if i not in idx_to_quadrant:
-            idx_to_quadrant[i] = 'N/A'
-            node_sizes.append(0)
-        else:
-            quadrant = idx_to_quadrant[i]
-            label = atlas['labels'][i].split(' ')[1].split('_')[0]
-            quadrant2labels[quadrant].append(label)
-            # print(f'{i}, {quadrant}: {label}')
-            node_sizes.append(5)
-    for k, v in quadrant2labels.items():
-        print(f'{k}: {Counter(v)}')
-
-    valid_labels = {'AD': {'IFG', 'SFG', 'MFG', 'OrG', 'ACC', 'PrG'},
-                    'AV': {'ATL', 'PhG', 'Hipp', 'STG', 'ITG', 'MTG', 'FuG'}, # INS? AMY?
-                    'PD': {'IPL', 'Pcun', 'PCC', 'SPL', 'sOcG'},
-                    'PV': {'EVC', 'LOC', 'ITG', 'FuG', 'MTG'}}
-    for i, quadrant in idx_to_quadrant.items():
-        if quadrant == 'N/A':
-            continue
-        label = atlas['labels'][i].split(' ')[1].split('_')[0]
-        if label not in valid_labels[quadrant]:
-            idx_to_quadrant[i] = f'mislabeled_{quadrant}'
-            node_sizes[i] = 1
-
-    if plot:
-        anat_str = '_anat' if anat else ''
-        dir_out = r'C:\PycharmProjects_C\SchemeRep\nichord_plots\vendor'
-        fn_glass = fr'glass_first_scrub_colored2{anat_str}.png'
-        fp_glass = fr'{dir_out}\{fn_glass}'
-        # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
-        coords = atlas['coords']
-        edges = [(i, i) for i in range(len(coords))]
-        edge_weights = [0] * len(edges)
-        network_colors = {'AD': 'red', 'AV': 'dodgerblue',
-                          'PD': 'limegreen', 'PV': 'orange',
-                          'mislabeled_AD': 'darkred',
-                          'mislabeled_AV': 'darkblue',
-                          'mislabeled_PD': 'darkgreen',
-                          'mislabeled_PV': 'darkgoldenrod',
-                          'N/A': 'black'}
-        # network_order = ['PV', 'PD', 'AV', 'AD',
-        #                  'mislabeled_PV', 'mislabeled_PD',
-        #                  'mislabeled_AV', 'mislabeled_AD',
-        #                  'N/A']
-        # glass_kwargs = {'node_size': node_sizes, 'linewidths': 15,
-        #                 'network_colors': network_colors}
-        # plot_and_combine(dir_out, fn_glass, idx_to_quadrant, edges,
-        #                  coords=coords, network_order=network_order,
-        #                  network_colors=network_colors,
-        #                  glass_kwargs=glass_kwargs)
-        # quit()
-        plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
-                        coords, node_size=node_sizes, linewidths=15,
-                        network_colors=network_colors,)
-
-        for key in ['AD', 'AV', 'PD', 'PV']:
-            network_colors[f'mislabeled_{key}'] = network_colors[key]
-        node_sizes_copy = copy(node_sizes)
-        for i, size in enumerate(node_sizes):
-            if size < max(node_sizes) and size > 0:
-                node_sizes[i] = 0
-                node_sizes_copy[i] = max(node_sizes)
-
-        fp_glass = fr'{dir_out}\glass_first_original2{anat_str}.png'
-        plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
-                        coords, node_size=node_sizes_copy, linewidths=15,
-                        network_colors=network_colors,)
-
-
-        fp_glass = fr'{dir_out}\glass_first_scrubbed2{anat_str}.png'
-        plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
-                        coords, node_size=node_sizes, linewidths=15,
-                        network_colors=network_colors,)
-
-    # if scrub:
-    f = lambda i: 'mislabeled' not in idx_to_quadrant[i]
-    p_d_ant_new = list(filter(f, p_d_ant))
-    p_d_pos_new = list(filter(f, p_d_pos))
-    p_v_ant_new = list(filter(f, p_v_ant))
-    p_v_pos_new = list(filter(f, p_v_pos))
-    return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
-    # else:
-    #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
-
 
 @timing
 @cache
-def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
+def get_vendor_df(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True,
+                  z_score=False):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -150,14 +55,9 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
     #     p_d_ant, p_d_pos, p_v_ant, p_v_pos = get_anat_vendor_partitions()
     # else:
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=anat)
+        get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
 
-    if scrub:
-        p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
-                                                          p_v_ant, p_v_pos,
-                                                          scrub=scrub,
-                                                          plot=True,
-                                                          anat=anat)
+
     print(f'{p_d_ant=}')
     print(f'{p_d_pos=}')
     print(f'{p_v_ant=}')
@@ -205,6 +105,7 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
     sn_agg_trials_dv_pos = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
                                                         p_d_pos, p_v_pos)
     for i, df_sn in enumerate(df_sns_l):
+        old_cols = set(df_sn.columns)
         df_sn['pd_M'] = sn_inc_act_M_pos_d[i, :]
         df_sn['ad_M'] = sn_inc_act_M_ant_d[i, :]
         df_sn['d_M'] = df_sn['pd_M'] + df_sn['ad_M']
@@ -222,13 +123,15 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
                        # df_sn['dv_ant'] - df_sn['dv_pos']
         df_sn['cross'] = df_sn['dv_ant'] + df_sn['dv_pos']
         df_sn['vendor'] = df_sn['dd_vv'] - df_sn['cross']
-        # df_sn['dd_minus_vv']
+        new_cols = list(set(df_sn.columns) - old_cols)
+        df_sn[new_cols] = df_sn[new_cols].apply(stats.zscore, axis=0,
+                                                nan_policy='omit')
     df_sns = pd.concat(df_sns_l)
     df_sns['age'] = df_sns['sn'].apply(lambda x: int(x[0]))
     return df_sns
 
 def vendor_lmer():
-    df = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI',
+    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI',
                                                          'scrub': True},
                      cache_dir='cache', easy_override=True)
 
@@ -245,8 +148,126 @@ def vendor_lmer():
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
+def meta_corr_triangle():
+    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI',
+                                                  'scrub': True,
+                                                  'z_score': True},
+                     cache_dir='cache', easy_override=False)
+
+    sides = ['dd', 'vv', 'dv_ant', 'dv_pos']
+    for dv in sides:
+        df[dv] = stats.zscore(df[dv], nan_policy='omit')
+    df['age_str'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
+    df['age'] = stats.zscore(df['age'], nan_policy='omit')
+    # df['age'] -= 1.5
+    # print(df['age'].value_counts())
+    # quit()
+    # corr = df[sides].corr()
+
+    # outliers = (df[sides].abs() > 5).any(axis=1)
+    # df = df[~outliers]
+
+    # print('TEST')
+    # penguins = sb.load_dataset("penguins")
+    # print(penguins)
+    # print(penguins.columns)
+    # sb.pairplot(penguins, hue="species")
+    # plt.show()
+    # quit()
+    # sides = ['dd', 'vv']
+    df.reset_index(inplace=True, drop=True)
+    # print(f'{sides=}')
+    # sides = ['dd', 'vv', 'rand']
+    # df['rand'] = np.random.normal(size=len(df))
+    # df['dd'] += df['rand'] * 100
+    corr = df[sides].corr()
+    print(corr)
+    df[sides].dropna(inplace=True)
+    # df['vendor'] = df['dd'] - df['vv']
+    #
+    # quit()
+    sides_names = {'dd': 'Dorsal',
+                   'vv': 'Ventral',
+                   'dv_ant': '(Anterior)\nDorsal x Ventral',
+                   'dv_pos': '(Posterior)\nDorsal x Ventral',
+                   'age_str': 'Age',
+                   'inc_str': 'inc_str'}
+    df_names = df.rename(columns=sides_names)
+    df_names = df_names[sides_names.values()]
+    sns.set(font_scale=1.15)
+    g = sns.pairplot(df_names,
+                     hue='Age',
+                     kind="reg",
+                     # palette={'YA': 'dodgerblue', 'OA': 'red'},
+                     palette={'YA': 'green', 'OA': 'magenta'},
+                     plot_kws={'scatter_kws': {'alpha':.1}},
+                               # 'line_kws': {'color': ['darkgreen', 'k']}},
+                     diag_kws={'common_norm': False})
+    for i in range(len(sides)):
+        for j in range(len(sides)):
+            if i == j:
+                continue
+            g.axes[i][j].set_xlim(-11, 11)
+            g.axes[i][j].set_ylim(-11, 11)
+    for lh in g._legend.legendHandles:
+        lh.set_alpha(1)
+        lh._sizes = [50]
+    plt.show()
+    # quit()
+
+
+    ar_main = []
+    ar_itr = []
+    for i, v in enumerate(sides):
+        row_main = []
+        row_itr = []
+        for j, w in enumerate(sides):
+            if i == j:
+                row_main.append(None)
+                row_itr.append(None)
+                continue
+            # print(f'{v} x {w}')
+            beta_main, p_main, beta_itr, p_itr = meta_corr(df, v, w)
+            stars_main = get_stars(p_main, pad=True)
+            stars_itr = get_stars(p_itr, pad=True)
+            row_main.append(f'{beta_main:.2f}{stars_main}')
+            row_itr.append(f'{beta_itr:.2f}{stars_itr}')
+            print(f'{v} x {w}: {beta_main=:.2f}, {p_main=:.3f}| '
+                  f'{beta_itr=:.2f}, {p_itr=:.3f}')
+        ar_main.append(row_main)
+        ar_itr.append(row_itr)
+    df_main = pd.DataFrame(ar_main, columns=sides, index=sides)
+    print(df_main)
+    print('-'*50)
+    df_itr = pd.DataFrame(ar_itr, columns=sides, index=sides)
+    print(df_itr)
+
+def meta_corr(df, dv, iv, random_slops=True):
+    pd.set_option('display.precision', 4)
+    np.set_printoptions(precision=4)
+    formula_gen = '{dv} ~ 1 + dd + inc + brain_M + dv_ant + dv_pos + ' \
+                  '{itr} + (1 + {itr} | sn)'
+    formula_gen = formula_gen.replace(f'{dv} + ', '')
+    itr = f'{iv}*age'
+    formula = formula_gen.format(dv=dv, itr=itr)
+
+    from pymer4 import Lmer
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+    summary = model.coefs
+    print('-----------')
+    # print(summary)
+    # beta_main = summary[iv].iloc['Estimate']
+    # beta_itr = summary[itr.replace('*', ':')].iloc['Estimate']
+    beta_main = summary.loc[iv, 'Estimate']
+    p_main = summary.loc[iv, 'P-val']
+    beta_itr = summary.loc[itr.replace('*', ':'), 'Estimate']
+    p_itr = summary.loc[itr.replace('*', ':'), 'P-val']
+    return beta_main, p_main, beta_itr, p_itr
+
 def plot_meta_corr_matrix():
-    df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI'},
+    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI'},
                          cache_dir='cache', easy_override=False)
     cols = ['dd', 'vv', 'dv_ant', 'dv_pos']
     # TODO: for the DV_pos/ant x dd/vv, make sure that there are no overlapping
@@ -273,7 +294,8 @@ def plot_meta_corr_matrix():
     # TODO: maybe also investigate a limbic + PhG anatomical module
 
 if __name__ == '__main__':
+    meta_corr_triangle()
     # plot_conn_matrix()
-    vendor_lmer()
+    # vendor_lmer()
     # get_trialwise_vendor()
     # plot_meta_corr_matrix()

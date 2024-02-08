@@ -47,6 +47,24 @@ dv_ant         -0.071  -0.168    0.027  0.050    59.738  -1.417  0.162
 inc             0.008   0.003    0.013  0.003  6526.894   3.003  0.003   **
 dd:age          0.125   0.054    0.195  0.036    53.458   3.478  0.001   **
 
+Linear mixed model fit by REML [’lmerMod’]
+Formula: vv~1+dd*age+brain_M+inc+dv_ant+all_M+dv_pos++(1+dd*age|sn)
+
+
+             Estimate  2.5_ci  97.5_ci     SE        DF  T-stat  P-val  Sig
+(Intercept)    -0.053  -0.116    0.010  0.032   391.698  -1.653  0.099    .
+dd             -0.092  -0.169   -0.014  0.039    47.640  -2.326  0.024    *
+age             0.040   0.000    0.079  0.020    54.853   1.970  0.054    .
+brain_M         0.087  -0.033    0.208  0.061  4519.832   1.419  0.156     
+inc             0.038   0.013    0.063  0.013  6616.973   2.984  0.003   **
+dv_ant         -0.141  -0.252   -0.030  0.057  6059.957  -2.488  0.013    *
+all_M          -0.000  -0.022    0.022  0.011  4662.690  -0.006  0.996     
+dv_pos         -1.418  -1.491   -1.344  0.038  6568.637 -37.787  0.000  ***
+dd:age          0.101   0.030    0.172  0.036    51.523   2.782  0.008   **
+
+Process finished with exit code 0
+
+
 Looking at variability didn't work
 
 Correlations are lame af because how well an examplar fits is based on its stability
