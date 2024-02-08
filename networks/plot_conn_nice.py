@@ -212,7 +212,7 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
     age2t = {}
     vmin = 1e6
     vmax = -1e6
-    for age in [1, 2]:
+    for age in [1, 2, 'healthy']:
         age_idxs = age2idxs[age]
         seed_age = sn_inc_activity_seed[age_idxs]
         seed_age = np.nanmean(seed_age, axis=2)
@@ -248,28 +248,34 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         coords = atlas['coords']
         dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
         age2str = {1: 'YA', 2: 'OA'}
-        fp_pic = f'mass_ttest/{dir_out}/{region}_{age2str[age]}.png'
+        fn_pic = f'{region.replace(":", "")}_{age2str[age]}.png'
+        fp_pic = f'mass_ttest/{dir_out}/{fn_pic}'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
         acc = accs[region][age-1]
+        if acc is None:
+            acc_str = ''
+        else:
+            acc_str = f' (Acc = {acc:.1%})'
 
                     # f'Acc = {acc:.1%}'
         # plot_ROI_scores(age2t[age], coords, fp_out=fp_pic, show=False,
         #                 title=title_str, vmin=vmin, vmax=vmax)
-        if kwargs['key'] == ('inc', ):
+        if kwargs['key'] in [('inc', ), 'inc']:
             neg = 'Con'
             pos = 'Inc'
-            title_str = f'{region} | {age2str[age]} (Acc = {acc:.1%}) \n' \
+            title_str = f'{region} | {age2str[age]}{acc_str}\n' \
                         f'Congruent (blue) vs. Incongruent (red)'
         elif kwargs['key'] in [('hit_hit', ), ('con_hit', )]:
             neg = 'Miss'
             pos = 'Hit'
-            title_str = f'{region} | {age2str[age]} (Acc = {acc:.1%}) \n' \
+            title_str = f'{region} | {age2str[age]}{acc_str}\n' \
                         f'Miss (blue) vs. Hit (red)'
+
 
         my_plot_surf(age2t[age], atlas, title_str, fp_out=fp_pic,
                      neg=neg, pos=pos)
 
-    if kwargs['key'] == ('inc', ):
+    if kwargs['key'] in [('inc', ), 'inc']:
         itr_title = f'{region}\nAge x Congruency'
         neg = 'OA\n↑Con'
         pos = 'OA\n↑Inc'
@@ -279,7 +285,7 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         pos = 'OA\n↑Hit'
 
     dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
-    fp_pic = f'mass_ttest/{dir_out}/{region}_interaction.png'
+    fp_pic = f'mass_ttest/{dir_out}/{region.replace(":", "")}_interaction.png'
     itr_t = run_two_sample_on_2D(all_conns[0][:, 0] - all_conns[0][:, 1],
                                  all_conns[1][:, 0] - all_conns[1][:, 1])
     # plot_ROI_scores(itr_t, coords, fp_out=fp_pic, show=False,
@@ -288,12 +294,12 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
     my_plot_surf(-itr_t, atlas, itr_title,
                  fp_out=fp_pic, neg=neg, pos=pos)
 
-    fp_pic = f'mass_ttest/{dir_out}/{region}_age_eff.png'
+    fp_pic = f'mass_ttest/{dir_out}/{region.replace(":", "")}_age_eff.png'
     age_t = run_two_sample_on_2D(all_conns[0][:, 0] + all_conns[0][:, 1],
                                  all_conns[1][:, 0] + all_conns[1][:, 1])
     # plot_ROI_scores(age_t, coords, fp_out=fp_pic, show=False,
     #                 title=f'{region} | main effect of age')
-    my_plot_surf(age_t, atlas, f'{region}\nMain effect of age',
+    my_plot_surf(age_t, atlas, f'{region.replace(":", "")}\nMain effect of age',
                  fp_out=fp_pic, neg='OA', pos='YA')
 
 def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,

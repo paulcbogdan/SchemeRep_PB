@@ -5,7 +5,6 @@
 
 from collections import defaultdict
 
-from fin_plot_conn_matrix import plot_conn_matrix
 from network_IRAF import get_formula_cols
 
 from functools import cache
@@ -16,26 +15,27 @@ import pandas as pd
 from atlas_utils import get_atlas
 from old.modularity import get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
-from vendor_partitioning import get_vendor_partitions
+from vendor_partitioning import get_vendor_partitions, get_anat_vendor_partitions
 from utils import timing, pickle_wrap, stdize
 from collections import Counter
 from copy import copy
 import scipy.stats as stats
 
 
-def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1):
-    # conn_trials = sn_inc_activity_std[..., None, :] * \
-    #                      sn_inc_activity_std[..., None, :, :]
-    # conn_trials = sn_inc_activity_std[..., None, :] + \
-    #                      sn_inc_activity_std[..., None, :, :]
+def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True):
     conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
     conn_trials_cross = get_partition_cross(conn_trials, p_mod0, p_mod1)
     flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
                                                 conn_trials_cross.shape[1],
                                                 conn_trials_cross.shape[2], -1))
-    agg_cross = np.nanmean(flat_cross, axis=-1)
-    agg_cross = np.nanmean(agg_cross, axis=1) # omit inc axis
-    return agg_cross
+    if trialwise:
+        agg_zs = np.nanmean(flat_cross, axis=-1)
+        agg_zs = np.nanmean(agg_zs, axis=1) # omit inc axis
+        return agg_zs
+    else:
+        rs = np.nanmean(flat_cross, axis=2)
+        agg_rs = np.nanmean(rs, axis=-1)
+        return agg_rs
 
 def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False,
                  anat=False):
@@ -133,42 +133,6 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 
-
-def get_anat_vendor_partitions():
-    def labels2idxs(target):
-        return [i for i, label in enumerate(labels) if
-                any([l in label for l in target])]
-
-    atlas = get_atlas()
-    coords, labels = atlas['coords'], atlas['labels']
-    split_keys = ['PhG', 'ITG', 'FuG']
-    split2l = defaultdict(list)
-    for coord, label in zip(coords, labels):
-        for key in split_keys:
-            if key in label:
-                split2l[key].append(coord)
-    split2median = {}
-    for key, l in split2l.items():
-        split2l[key] = np.array(l)
-        split2median[key] = np.median(split2l[key][:, 1])
-    for i, (coord, label) in enumerate(zip(coords, labels)):
-        for key in split_keys:
-            if key in label:
-                if coord[1] > split2median[key]:
-                    labels[i] = f'{key}_a'
-                else:
-                    labels[i] = f'{key}_p'
-
-    p_d_ant_labels = ['IFG', 'SFG', 'MFG', 'OrG']
-    p_d_pos_labels = ['IPL', 'Pcun', 'PCC']
-    p_v_ant_labels = ['ATL', 'PhG_a', 'ITG_a']
-    p_v_pos_labels = ['EVC', 'LOC', 'ITG_p', 'FuG_p', 'PhG_p']
-    p_d_ant = labels2idxs(p_d_ant_labels)
-    p_d_pos = labels2idxs(p_d_pos_labels)
-    p_v_ant = labels2idxs(p_v_ant_labels)
-    p_v_pos = labels2idxs(p_v_pos_labels)
-    return p_d_ant, p_d_pos, p_v_ant, p_v_pos
-
 @timing
 @cache
 def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
@@ -182,11 +146,11 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
 
-    if anat:
-        p_d_ant, p_d_pos, p_v_ant, p_v_pos = get_anat_vendor_partitions()
-    else:
-        p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-            get_vendor_partitions(age=2, flip=True)
+    # if anat:
+    #     p_d_ant, p_d_pos, p_v_ant, p_v_pos = get_anat_vendor_partitions()
+    # else:
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True, anat=anat)
 
     if scrub:
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
@@ -273,7 +237,7 @@ def vendor_lmer():
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
     formula_gen = 'vv ~ 1 + dd*age + inc + brain_M + dv_ant + dv_pos + ' \
-                  '(1 + dd*age + inc + brain_M + dv_ant + dv_pos | sn)'
+                  '(1 + dd*age | sn)'
     cols = get_formula_cols(df, formula_gen)
     df_vals = df[cols].dropna()
     from pymer4 import Lmer
@@ -306,6 +270,7 @@ def plot_meta_corr_matrix():
     print(ar_str)
     print('-'*300)
 
+    # TODO: maybe also investigate a limbic + PhG anatomical module
 
 if __name__ == '__main__':
     # plot_conn_matrix()

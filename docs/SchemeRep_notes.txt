@@ -1,3 +1,31 @@
+Anaotmical
+Linear mixed model fit by REML [’lmerMod’]
+Formula: vv~1+dd*age+inc+brain_M+dv_ant+dv_pos+(1+dd*age+inc+brain_M+dv_ant+dv_pos|sn)
+
+Family: gaussian	 Inference: parametric
+
+Number of observations: 6718	 Groups: {'sn': 59.0}
+
+Log-likelihood: -7679.104 	 AIC: 15448.207
+
+Random effects:
+
+
+Fixed effects:
+
+             Estimate  2.5_ci  97.5_ci     SE       DF  T-stat  P-val  Sig
+(Intercept)    -0.075  -0.130   -0.020  0.028   99.145  -2.659  0.009   **
+dd             -0.108  -0.166   -0.049  0.030   40.318  -3.627  0.001  ***
+age             0.049   0.013    0.085  0.018   54.802   2.701  0.009   **
+inc             0.018  -0.005    0.041  0.012  143.148   1.507  0.134     
+brain_M         0.020  -0.027    0.067  0.024   54.183   0.823  0.414     
+dv_ant         -1.690  -1.976   -1.405  0.146   57.441 -11.614  0.000  ***
+dv_pos         -0.550  -0.857   -0.242  0.157   59.766  -3.506  0.001  ***
+dd:age          0.056   0.017    0.095  0.020   45.102   2.842  0.007   **
+
+Process finished with exit code 0
+
+
 Notes:
 * It is vital to account for within-run similarity
 * MVPA conclusion. PFC effects are strong for object betas

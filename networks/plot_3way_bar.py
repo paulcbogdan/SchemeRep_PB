@@ -6,20 +6,20 @@ import pandas as pd
 from atlas_utils import get_atlas
 from old.modularity import get_partition_matrix, get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
+from vendor_analysis import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
 
-def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
+def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
-              # 'split': False,
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 3),
@@ -27,59 +27,79 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
-    # for age in [2, 1]:
-    #     M1_graph, SD1_graph, SE1_graph, N1_graph, t2_graph, p1_graph, z2_graph = \
-    #         get_stats_graphs(sn_inc_conn[age2idxs[age], 0, :, :],
-    #                          sn_inc_conn[age2idxs[age], 1, :, :])
-    #     flip_t = True
-    #     z2_graph = -z2_graph if flip_t else z2_graph
-    #     age2str = {1: 'YA', 2: 'OA'}
-    #     dir_out = f'{age2str[age]}3_ttest_modules_thr{thr}_flip{flip_t}'
-    #     partitions, matrix_mask = \
-    #         get_main_partitions(z2_graph, coords=None, plot=True, threshold=thr,
-    #                             fn_str='', overlapping=False,
-    #                             dir_out=dir_out)
-
-    atlas = get_atlas()
-    coords = atlas['coords']
-
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(sn_inc_conn, age2idxs)
+        get_vendor_partitions(age='healthy', anat=anat)
+    n_rois = sn_inc_activity.shape[2]
+    matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
+    matrix_mask[~matrix_mask] = np.nan
 
-    # TODO: backward to forward for each module... ant to post
-    conn_dd = get_partition_matrix(sn_inc_conn, p_dorsal)
-    tridx_dd = np.tril_indices(conn_dd.shape[-1], k=-1)
-    flat_dd = conn_dd[:, :, tridx_dd[0], tridx_dd[1]]
-    # conn_dd = get_partition_cross(sn_inc_conn, p_dorsal_pos, p_dorsal_ant)
-    # flat_dd =  np.reshape(conn_dd, (conn_dd.shape[0], conn_dd.shape[1], -1))
-    conn_vv = get_partition_matrix(sn_inc_conn, p_ventral)
-    tridx_vv = np.tril_indices(conn_vv.shape[-1], k=-1)
-    flat_vv = conn_vv[:, :, tridx_vv[0], tridx_vv[1]]
-    # conn_vv = get_partition_cross(sn_inc_conn, p_vent_pos, p_vent_ant)
-    # flat_vv =  np.reshape(conn_vv, (conn_vv.shape[0], conn_vv.shape[1], -1))
-    flat_within = np.concatenate((flat_dd, flat_vv), axis=-1)
+    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+    conn_trials = sn_inc_activity_std[..., None, :] * \
+                  sn_inc_activity_std[..., None, :, :]
+    conn_trials = np.repeat(matrix_mask[None, None, ..., None],
+                            conn_trials.shape[-1], axis=4) * conn_trials[..., :]
+
+    dd_flat = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant,
+                                             trialwise=False)
+    vv_flat = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant,
+                                             trialwise=False)
+    dv_ant = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant,
+                                            trialwise=False)
+    dv_pos = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos,
+                                            trialwise=False)
+
+    flat_within = np.stack((dd_flat, vv_flat), axis=-1)
     agg_within = np.nanmean(flat_within, axis=-1)
-    n_sn = agg_within.shape[0]
+    # print(agg_within.shape)
+    # quit()
+    flat_between = np.stack((dv_ant, dv_pos), axis=-1)
+    agg_between = np.nanmean(flat_between, axis=-1)
+    # print(agg_between.shape)
 
+    # # print(dd_flat.shape)
+    # # quit()
+    # #
+    # # print(f'{p_d_ant=}')
+    # # print(f'{p_d_pos=}')
+    # # print(f'{p_v_ant=}')
+    # # print(f'{p_v_pos=}')
+    #
+    # # TODO: backward to forward for each module... ant to post
+    # conn_dd = get_partition_matrix(sn_inc_conn, p_dorsal)
+    # tridx_dd = np.tril_indices(conn_dd.shape[-1], k=-1)
+    # flat_dd = conn_dd[:, :, tridx_dd[0], tridx_dd[1]]
+    # # conn_dd = get_partition_cross(sn_inc_conn, p_dorsal_pos, p_dorsal_ant)
+    # # flat_dd =  np.reshape(conn_dd, (conn_dd.shape[0], conn_dd.shape[1], -1))
+    # conn_vv = get_partition_matrix(sn_inc_conn, p_ventral)
+    # tridx_vv = np.tril_indices(conn_vv.shape[-1], k=-1)
+    # flat_vv = conn_vv[:, :, tridx_vv[0], tridx_vv[1]]
+    # # conn_vv = get_partition_cross(sn_inc_conn, p_vent_pos, p_vent_ant)
+    # # flat_vv =  np.reshape(conn_vv, (conn_vv.shape[0], conn_vv.shape[1], -1))
+    # flat_within = np.concatenate((flat_dd, flat_vv), axis=-1)
+    # agg_within = np.nanmean(flat_within, axis=-1)
+    # print(agg_within.shape)
+    # quit()
+    n_sn = agg_within.shape[0]
     vals = list(agg_within.T.reshape(-1))
     incs = ['Inc'] * n_sn + ['Con'] * n_sn
     ages = (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
     wbs = ['Within'] * (2 * n_sn)
     subj_nums = list(range(n_sn)) * 2
 
-    # conn_dv = get_partition_cross(sn_inc_conn, p_dorsal, p_ventral)
-    # flat_dv = np.reshape(conn_dv, (conn_dv.shape[0], conn_dv.shape[1], -1))
-    # agg_between = np.nanmean(flat_dv, axis=-1)
-    conn_dv_ant = get_partition_cross(sn_inc_conn, p_d_ant, p_v_ant)
-    flat_dv_ant = np.reshape(conn_dv_ant, (conn_dv_ant.shape[0],
-                                           conn_dv_ant.shape[1], -1))
-    conn_dv_pos = get_partition_cross(sn_inc_conn, p_d_pos, p_v_pos)
-    flat_dv_pos = np.reshape(conn_dv_pos, (conn_dv_pos.shape[0],
-                                           conn_dv_pos.shape[1], -1))
-    flat_between = np.concatenate((flat_dv_ant, flat_dv_pos), axis=-1)
-    agg_between = np.nanmean(flat_between, axis=-1)
+    # # conn_dv = get_partition_cross(sn_inc_conn, p_dorsal, p_ventral)
+    # # flat_dv = np.reshape(conn_dv, (conn_dv.shape[0], conn_dv.shape[1], -1))
+    # # agg_between = np.nanmean(flat_dv, axis=-1)
+    # conn_dv_ant = get_partition_cross(sn_inc_conn, p_d_ant, p_v_ant)
+    # flat_dv_ant = np.reshape(conn_dv_ant, (conn_dv_ant.shape[0],
+    #                                        conn_dv_ant.shape[1], -1))
+    # conn_dv_pos = get_partition_cross(sn_inc_conn, p_d_pos, p_v_pos)
+    # flat_dv_pos = np.reshape(conn_dv_pos, (conn_dv_pos.shape[0],
+    #                                        conn_dv_pos.shape[1], -1))
+    # flat_between = np.concatenate((flat_dv_ant, flat_dv_pos), axis=-1)
+    # agg_between = np.nanmean(flat_between, axis=-1)
 
     vals += list(agg_between.T.reshape(-1))
+
     incs *= 2
     ages *= 2
     wbs += ['Between'] * (2 * n_sn)
@@ -87,11 +107,19 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
 
     print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
 
-    df_agg = pd.DataFrame({'vals': vals, 'inc': incs, 'within_between': wbs,
-                           'age': ages, 'subj_num': subj_nums})
+
+    d = {'vals': vals, 'inc': incs, 'within_between': wbs,
+                           'age': ages, 'subj_num': subj_nums}
+    for key, l in d.items():
+        print(f'{key=}, {len(l)=}')
+    quit()
+    df_agg = pd.DataFrame(d)
 
     df_agg.dropna(inplace=True)
+    plot_sb_bars(df_agg)
 
+
+def plot_sb_bars(df_agg):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -101,27 +129,15 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
         'col': 'age',
         'kind': 'bar'
     }
-    # g = sns.catplot(**plot_params)
-    # g.set_axis_labels('', 'Connectivity (z)')
-    # plt.xlabel('')
-    # plt.show()r
-    # quit()
 
-    # ax = plt.gca()
-    # pairs=[
-    #     (('OA', 'Inc', 'Within'), ('YA', 'Con', 'Within')),
-    # ],
-    # pairs = [[('Inc', 'Within'), ( 'Con', 'Within')]]
     from statannotations.Annotator import Annotator
-    # annotator = Annotator(ax, pairs, **plot_params)
-    # annotator.configure(test="Mann-Whitney").apply_and_annotate()
 
     g = sns.catplot(edgecolor="black", errcolor="black", errwidth=1.5,
                     capsize=0.1, height=4, aspect=.7, alpha=0.5,
                     ci="sd", data=df_agg, **plot_params)
     g.map(sns.stripplot, plot_params["x"], plot_params["y"],
           plot_params["hue"],
-          hue_order=plot_params["hue_order"], #order=plot_params["order"],
+          hue_order=plot_params["hue_order"],  # order=plot_params["order"],
           palette=sns.color_palette(), dodge=True, alpha=0.6, ec='k',
           linewidth=1)
 
@@ -130,17 +146,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
         bbox_to_anchor=(0.9, 0.5), ncol=1,
         title=None, frameon=False,
     )
-    # plt.legend(loc="upper center", bbox_to_anchor=(0.5, 2))
-    # plt.xlabel('')
-    # pairs = [
-    #     (("Male", "Yes"), ("Male", "No")),
-    #     (("Female", "Yes"), ("Female", "No"))
-    # ]
-    #
-    pairs=[
+
+    pairs = [
         [('Inc', 'Between'), ('Con', 'Between')],
         [('Inc', 'Within'), ('Con', 'Within')],
-        # [('Inc', 'Within'), ('Con', 'Within')],
     ]
 
     for name, ax in g.axes_dict.items():
@@ -152,11 +161,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
                           data=df_agg.loc[df_agg['age'] == name, :])
         annot.configure(test='t-test_paired', text_format='simple',
                         show_test_name=False,
-                        #loc='inside',
+                        # loc='inside',
                         verbose=2)
         # annot.apply_test().annotate()
         annot.apply_and_annotate()
-
 
     plt.tight_layout(rect=(0, 0, 0.85, 0.95))
 
@@ -164,11 +172,11 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
                                   columns=['inc', 'within_between'],
                                   values='vals', aggfunc='mean')
     df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
-                                df_pivot[('Inc', 'Between')]
+                             df_pivot[('Inc', 'Between')]
     df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
-                                df_pivot[('Inc', 'Within')]
+                            df_pivot[('Inc', 'Within')]
     df_pivot['two_way'] = df_pivot['between_ef'] - df_pivot['within_ef']
-    print('-'*50)
+    print('-' * 50)
     t_wit, p_wit = stats.ttest_ind(df_pivot.loc['OA', :]['within_ef'],
                                    df_pivot.loc['YA', :]['within_ef'])
     M_OA_wit = df_pivot.loc['OA', :]['within_ef'].mean()
@@ -193,17 +201,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0):
     print(f'\t{t_two_YA=:.2f}, {p_two_YA=:.4f}')
     print(f'\t{t_three=:.2f}, {p_three=:.4f}')
 
-    # supt = f'Within connectivity Age x Congruency two-way: {p_two_YA}'
     supt = f'Three way interaction: p = {p_three:.3f}\n'
     plt.suptitle(supt)
-
     plt.show()
 
-
-
-# df = sns.load_dataset("titanic")
-# print(df[['age', 'class', 'sex']])
-# quit()
 
 if __name__ == '__main__':
     conn_partition_3bar()

@@ -6,9 +6,9 @@ from connsearch.report import plot_ROI_scores
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from modularity import get_main_partitions, get_BNA_coords, get_binary_matrix
-from classifiers import partition_classifier, partition_group_clf
-from networks.old.network_funcs import load_FC_for_Lifu
+from old.modularity import get_main_partitions, get_BNA_coords, get_binary_matrix
+from old.classifiers import partition_classifier, partition_group_clf
+from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 
 warnings.filterwarnings('ignore',
