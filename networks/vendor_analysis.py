@@ -37,7 +37,8 @@ def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1):
     agg_cross = np.nanmean(agg_cross, axis=1) # omit inc axis
     return agg_cross
 
-def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
+def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False,
+                 anat=False):
     atlas = get_atlas()
     from nichord import plot_glassbrain
     idx_to_quadrant = {i: 'PD' for i in p_d_pos}
@@ -72,8 +73,9 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
             node_sizes[i] = 1
 
     if plot:
+        anat_str = '_anat' if anat else ''
         dir_out = r'C:\PycharmProjects_C\SchemeRep\nichord_plots\vendor'
-        fn_glass = r'glass_first_scrub_colored2.png'
+        fn_glass = fr'glass_first_scrub_colored2{anat_str}.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
         # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
         coords = atlas['coords']
@@ -109,13 +111,13 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
                 node_sizes[i] = 0
                 node_sizes_copy[i] = max(node_sizes)
 
-        fp_glass = fr'{dir_out}\glass_first_original2.png'
+        fp_glass = fr'{dir_out}\glass_first_original2{anat_str}.png'
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes_copy, linewidths=15,
                         network_colors=network_colors,)
 
 
-        fp_glass = fr'{dir_out}\glass_first_scrubbed2.png'
+        fp_glass = fr'{dir_out}\glass_first_scrubbed2{anat_str}.png'
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
@@ -130,9 +132,46 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False, scrub=False):
     # else:
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
+
+
+def get_anat_vendor_partitions():
+    def labels2idxs(target):
+        return [i for i, label in enumerate(labels) if
+                any([l in label for l in target])]
+
+    atlas = get_atlas()
+    coords, labels = atlas['coords'], atlas['labels']
+    split_keys = ['PhG', 'ITG', 'FuG']
+    split2l = defaultdict(list)
+    for coord, label in zip(coords, labels):
+        for key in split_keys:
+            if key in label:
+                split2l[key].append(coord)
+    split2median = {}
+    for key, l in split2l.items():
+        split2l[key] = np.array(l)
+        split2median[key] = np.median(split2l[key][:, 1])
+    for i, (coord, label) in enumerate(zip(coords, labels)):
+        for key in split_keys:
+            if key in label:
+                if coord[1] > split2median[key]:
+                    labels[i] = f'{key}_a'
+                else:
+                    labels[i] = f'{key}_p'
+
+    p_d_ant_labels = ['IFG', 'SFG', 'MFG', 'OrG']
+    p_d_pos_labels = ['IPL', 'Pcun', 'PCC']
+    p_v_ant_labels = ['ATL', 'PhG_a', 'ITG_a']
+    p_v_pos_labels = ['EVC', 'LOC', 'ITG_p', 'FuG_p', 'PhG_p']
+    p_d_ant = labels2idxs(p_d_ant_labels)
+    p_d_pos = labels2idxs(p_d_pos_labels)
+    p_v_ant = labels2idxs(p_v_ant_labels)
+    p_v_pos = labels2idxs(p_v_pos_labels)
+    return p_d_ant, p_d_pos, p_v_ant, p_v_pos
+
 @timing
 @cache
-def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
+def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -143,14 +182,18 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
 
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True)
+    if anat:
+        p_d_ant, p_d_pos, p_v_ant, p_v_pos = get_anat_vendor_partitions()
+    else:
+        p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+            get_vendor_partitions(age=2, flip=True)
 
     if scrub:
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
                                                           p_v_ant, p_v_pos,
                                                           scrub=scrub,
-                                                          plot=True)
+                                                          plot=True,
+                                                          anat=anat)
     print(f'{p_d_ant=}')
     print(f'{p_d_pos=}')
     print(f'{p_v_ant=}')
@@ -163,6 +206,8 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
     assert set(p_d_pos).intersection(p_v_ant) == set()
     assert set(p_d_pos).intersection(p_v_pos) == set()
 
+    n_rois = sn_inc_activity.shape[2]
+    matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
     matrix_mask[~matrix_mask] = np.nan
 
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
@@ -220,15 +265,15 @@ def get_trialwise_vendor(fp='obj7_fMRI', thr=2.0, scrub=False):
 
 def vendor_lmer():
     df = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI',
-                                                         'scrub': False},
-                     cache_dir='cache', easy_override=False)
+                                                         'scrub': True},
+                     cache_dir='cache', easy_override=True)
 
     df['age'] = stats.zscore(df['age'], nan_policy='omit')
     df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
-    formula_gen = 'vv ~ 1 + dd*age + inc + brain_M + ' \
-                  '(1 + dd*age | sn)'
+    formula_gen = 'vv ~ 1 + dd*age + inc + brain_M + dv_ant + dv_pos + ' \
+                  '(1 + dd*age + inc + brain_M + dv_ant + dv_pos | sn)'
     cols = get_formula_cols(df, formula_gen)
     df_vals = df[cols].dropna()
     from pymer4 import Lmer
