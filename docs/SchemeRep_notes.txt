@@ -1,3 +1,13 @@
+Effect of vnd_RSA [EVC, LOC, FuG] on vv
+Formula: vnd_RSA~1+vv++(1|sn)
+             Estimate  2.5_ci  97.5_ci     SE      DF  T-stat  P-val  Sig
+(Intercept)     0.009   0.005    0.014  0.002    57.0   4.324  0.000  ***
+vv              0.004   0.002    0.007  0.001  6553.0   3.033  0.002   **
+Even works with random slopes!!!
+
+Process finished with exit code 0
+
+
 Anaotmical
 Linear mixed model fit by REML [’lmerMod’]
 Formula: vv~1+dd*age+inc+brain_M+dv_ant+dv_pos+(1+dd*age+inc+brain_M+dv_ant+dv_pos|sn)
@@ -76,9 +86,6 @@ Hypothesis...
 Scene representation result: Presenting older adults with a schema-related cue leads to a greater activation of representations corresponding to existing semantic knowledge. Activation of representation is seen particularly in the ventral visual stream and the PCC but also the parietal lobe and PFC. These results demonstrate how older adults' are more susceptible to priming...?
 
 VENDOR Result: We demonstrate that older adults preference for processing incoming information in terms of schemas should be understood in terms of two wide-scale connectivity modules (VEN & DOR)... The VEN results speak to earlier research on the ventral visual processing pathway... The DOR results speak to earlier research on the DMN and FPCN... [Maybe we can find some results which suggest that the VEN-DOR pair also emerges in YA applying schemas to incoming information but it is just weaker for them? This would allow us to make claims about a general congruency-processing network that is important beyond just in aging research]
-
-
-
 
 Recent papers investigating the effect of aging on memory have focused on this point, showing how older adults show greater encoding 
 

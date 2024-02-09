@@ -376,12 +376,12 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
         dfs.append(df_sn)
 
     df = pd.concat(dfs, axis=0)
-    plt.scatter(df[cols_simp[0]], df[cols_simp[0]] - df[cols_alt[0]])
-    plt.xlabel('Same')
-    plt.ylabel('Effect')
-    plt.plot([0, 1], [0, 0], color='k')
-    plt.title(f'{fp=}')
-    plt.show()
+    # plt.scatter(df[cols_simp[0]], df[cols_simp[0]] - df[cols_alt[0]])
+    # plt.xlabel('Same')
+    # plt.ylabel('Effect')
+    # plt.plot([0, 1], [0, 0], color='k')
+    # plt.title(f'{fp=}')
+    # plt.show()
 
 
     return df, cols, cols_bl, cols_alt

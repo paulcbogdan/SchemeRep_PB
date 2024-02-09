@@ -179,6 +179,13 @@ def do_RSA_x_vendor():
         'semantic': True,
         'combine_regions': True
     }
+
+    # kwargs = {
+    #     'fp_fMRI_col': 'obj7_fMRI',
+    #     'key': 'obj',
+    #     'semantic': False,
+    #     'combine_regions': True
+    # }
     df_RSA, ROIs = pickle_wrap(None, get_trialwise_RSA, kwargs=kwargs,
                                cache_dir='cache', easy_override=False)
     df_RSA.set_index(['sn', 'obj'], inplace=True)
@@ -205,11 +212,7 @@ def do_RSA_x_vendor():
 
     df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI'},
                          cache_dir='cache', easy_override=False)
-    # plt.scatter(df_vdr['dv_ant'], df_vdr['dv_pos'])
-    # plt.ylim(-.5, .5)
-    # plt.xlim(-.5, .5)
-    # plt.show()
-    # quit()
+
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     df = df_RSA.join(df_vdr, rsuffix='meh')
     df = df.join(df_ss_vdr)
@@ -262,6 +265,8 @@ def do_RSA_x_vendor():
     print(f'{ROIs_mvpa_vnd=}')
     print(f'{ROIs_ERS_vnd=}')
     df['vnd_RSA'] = df[ROIs_vnd].mean(axis=1)
+    # print(df['vnd_RSA'])
+    # quit()
     df['vnd_ERS'] = df[ROIs_ERS_vnd].mean(axis=1)
     df['vnd_MVPA'] = df[ROIs_mvpa_vnd].mean(axis=1)
 
@@ -283,23 +288,23 @@ def do_RSA_x_vendor():
     df['age'] = stats.zscore(df['age'], nan_policy='omit')
     df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
-    print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula_gen = 'vnd_RSA ~ 1 + vv + ' \
-                  '+ (1 | sn)'
+    # print(df['age']) # dv_ant + dv_pos + inc + all_M +
+    formula_gen = 'hit_hit ~ 1 + inc + dd + {ROI} ' \
+                  '+ (1 + inc + dd | sn)'
 
     # formula_gen = 'dv_pos ~ 1 + dd + all_M + brain_M  + vv + dv_ant + inc ' \
     #               '+ (1  | sn)'
     # formula_gen = 'vnd_MVPA ~ 1 + vendor ' \
     #               ' + (1 | sn)'
-    cols = get_formula_cols(df, formula_gen)
-    print(f'{cols=}')
-    df_vals = df[cols].dropna()
-    print(f'{len(df_vals)=}')
-    model = Lmer(formula_gen, data=df_vals)
-    model.fit(REML=True, verbose=False, summary=False)
-    # summary = model.coefs
-    print(model.summary())
-    quit()
+    # cols = get_formula_cols(df, formula_gen)
+    # print(f'{cols=}')
+    # df_vals = df[cols].dropna()
+    # print(f'{len(df_vals)=}')
+    # model = Lmer(formula_gen, data=df_vals)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # # summary = model.coefs
+    # print(model.summary())
+    # quit()
 
 
     for ROI in ROIs:
@@ -309,7 +314,7 @@ def do_RSA_x_vendor():
 
         df_vals = df[cols].dropna()
         for col in cols:
-            if col in ['inc', 'sn']:
+            if col in ['inc', 'sn', 'con_hit', 'hit_hit', 'vis_hit']:
                 continue
             df_vals[col] = stats.zscore(df_vals[col])
         model = Lmer(formula, data=df_vals)
