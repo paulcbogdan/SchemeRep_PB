@@ -13,10 +13,10 @@ from scipy import stats as stats
 from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
 from fMRI_proc import get_ROI_vecs
-from old.modularity import get_partition_matrix
+from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
 from org_sns import get_all_sns
-from utils import stdize
+from utils import stdize, pickle_wrap
 import pickle
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
@@ -662,3 +662,15 @@ def subj_specific_repeated(sn_inc_activity, age2idxs, top_edges_mat,
 
     t, p_val = stats.ttest_ind(efs_all[0], efs_all[1])
     print(f'\tAge x Effect: t = {t:.3f}, p = {p_val:.3f}')
+
+if __name__ == '__main__':
+    kwargs = {'fp': 'obj7_fMRI',
+              'split': False,
+              'key': 'inc',
+              'key_vals': (1, 3),
+              }
+    cache_dir = r'C:\PycharmProjects_C\SchemeRep\cache'
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity_ = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir=cache_dir)
+    get_main_partitions(sn_inc_conn, plot=True)

@@ -128,6 +128,7 @@ def get_vendor_df(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True,
                                                 nan_policy='omit')
     df_sns = pd.concat(df_sns_l)
     df_sns['age'] = df_sns['sn'].apply(lambda x: int(x[0]))
+
     return df_sns
 
 def vendor_lmer():
@@ -223,15 +224,15 @@ def meta_corr_triangle():
         row_itr = []
         for j, w in enumerate(sides):
             if i == j:
-                row_main.append(None)
-                row_itr.append(None)
+                row_main.append('-')
+                row_itr.append('-')
                 continue
             # print(f'{v} x {w}')
             beta_main, p_main, beta_itr, p_itr = meta_corr(df, v, w)
             stars_main = get_stars(p_main, pad=True)
             stars_itr = get_stars(p_itr, pad=True)
-            row_main.append(f'{beta_main:.2f}{stars_main}')
-            row_itr.append(f'{beta_itr:.2f}{stars_itr}')
+            row_main.append(f'{beta_main:.2f} {stars_main}')
+            row_itr.append(f'{beta_itr:.2f} {stars_itr}')
             print(f'{v} x {w}: {beta_main=:.2f}, {p_main=:.3f}| '
                   f'{beta_itr=:.2f}, {p_itr=:.3f}')
         ar_main.append(row_main)
@@ -248,7 +249,7 @@ def meta_corr(df, dv, iv, random_slops=True):
     formula_gen = '{dv} ~ 1 + dd + inc + brain_M + dv_ant + dv_pos + ' \
                   '{itr} + (1 + {itr} | sn)'
     formula_gen = formula_gen.replace(f'{dv} + ', '')
-    itr = f'{iv}*age'
+    itr = f'{iv}*age*inc_str'
     formula = formula_gen.format(dv=dv, itr=itr)
 
     from pymer4 import Lmer

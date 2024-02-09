@@ -2,7 +2,10 @@ import os
 
 from network_IRAF import get_formula_cols
 from activity_ERS import get_df_ERS, get_df_trialwise_MVPA
-from old.networks import get_trialwise_vendor
+from old.network_funcs import load_FC_for_Lifu
+from ven_x_dor import get_vendor_df
+
+# from old.networks import get_trialwise_vendor
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
@@ -11,7 +14,7 @@ import pandas as pd
 
 from atlas_utils import get_atlas
 from old.modularity import get_partition_matrix
-from old.networks import load_FC_for_Lifu
+# from networks.old import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
 from utils import pickle_wrap, stdize, get_RSA_fn, timing
 import pickle
@@ -200,7 +203,7 @@ def do_RSA_x_vendor():
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
 
-    df_vdr = pickle_wrap(None, get_trialwise_vendor, kwargs={'fp': 'obj7_fMRI'},
+    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI'},
                          cache_dir='cache', easy_override=False)
     # plt.scatter(df_vdr['dv_ant'], df_vdr['dv_pos'])
     # plt.ylim(-.5, .5)
@@ -208,7 +211,7 @@ def do_RSA_x_vendor():
     # plt.show()
     # quit()
     df_vdr.set_index(['sn', 'obj'], inplace=True)
-    df = df_RSA.join(df_vdr)
+    df = df_RSA.join(df_vdr, rsuffix='meh')
     df = df.join(df_ss_vdr)
 
     df_MVPA, ROIs_mvpa, _, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
@@ -232,8 +235,8 @@ def do_RSA_x_vendor():
     ROI_keys = [#'MFG', 'IFG', 'SFG',
                 #'ATL',
                 # 'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
-                #'IPL', 'Pcun', 'PCC',
-                'LOC', 'EVC' #'FuG', 'EVC', #EVC is toxic?
+                #'IPL', 'Pcun', #'PCC',
+                'LOC', 'EVC', 'FuG', #EVC is toxic?
                 ]
     ROI_keys2 = ['SFG', 'MFG' 'IFG', ]# 'IPL', 'ATL', 'FuG', 'ITG']
     ROIs_vnd = []
@@ -280,9 +283,9 @@ def do_RSA_x_vendor():
     df['age'] = stats.zscore(df['age'], nan_policy='omit')
     df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
-    print(df['age'])
-    formula_gen = 'vv ~ 1 + dd*age + inc +' \
-                  '+ (1 + dd*age  | sn)'
+    print(df['age']) # dv_ant + dv_pos + inc + all_M +
+    formula_gen = 'vnd_RSA ~ 1 + vv + ' \
+                  '+ (1 | sn)'
 
     # formula_gen = 'dv_pos ~ 1 + dd + all_M + brain_M  + vv + dv_ant + inc ' \
     #               '+ (1  | sn)'

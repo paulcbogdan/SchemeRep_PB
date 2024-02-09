@@ -111,14 +111,15 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
         for i, p in enumerate(partitions):
             if len(p) < 5:
                 continue
-            if i >= 2:
-                continue
+            # if i >= 2:
+            #     continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            fn = f'{fn_str}thr{threshold}_p{i}_Jan5.png'
+            fn = f'{fn_str}thr{threshold}_p{i}_Feb9.png'
             print(f'Plot: {fn=}')
             title = f'Partition {i+1}{title_extra}'
-            cur_dir = os.getcwd()
+            # cur_dir = os.getcwd()
+            cur_dir = r'C:\PycharmProjects_C\SchemeRep'
             if dir_out_full:
                 dir_out_ = dir_out_full
             elif dir_out:

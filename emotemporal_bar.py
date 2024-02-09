@@ -10,9 +10,9 @@ def calculate_partial_eta_squared(F, df1, df2):
     return eta_squared
 
 def get_stars(p, pad=False):
-    if p < .0001:
-        stars = '****'
-    elif p < .001:
+    # if p < .0001:
+    #     stars = '****'
+    if p < .001:
         stars = '***'
     elif p < .01:
         stars = '**'
