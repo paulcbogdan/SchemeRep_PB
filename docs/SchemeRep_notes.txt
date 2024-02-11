@@ -1,3 +1,10 @@
+
+
+
+TODO: maybe look at individual differences in VEN x DOR
+
+
+
 Effect of vnd_RSA [EVC, LOC, FuG] on vv
 Formula: vnd_RSA~1+vv++(1|sn)
              Estimate  2.5_ci  97.5_ci     SE      DF  T-stat  P-val  Sig

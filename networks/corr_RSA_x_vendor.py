@@ -210,7 +210,7 @@ def do_RSA_x_vendor():
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
 
-    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI'},
+    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'vis7_fMRI'},
                          cache_dir='cache', easy_override=False)
 
     df_vdr.set_index(['sn', 'obj'], inplace=True)
@@ -239,7 +239,7 @@ def do_RSA_x_vendor():
                 #'ATL',
                 # 'ITG', 'MTG', 'FuG', 'PhG', 'pSTS', 'SPL',
                 #'IPL', 'Pcun', #'PCC',
-                'LOC', 'EVC', 'FuG', #EVC is toxic?
+                'LOC', 'EVC',  #'FuG', #EVC is toxic? 'sOcG',
                 ]
     ROI_keys2 = ['SFG', 'MFG' 'IFG', ]# 'IPL', 'ATL', 'FuG', 'ITG']
     ROIs_vnd = []
@@ -289,8 +289,8 @@ def do_RSA_x_vendor():
     df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     # print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula_gen = 'hit_hit ~ 1 + inc + dd + {ROI} ' \
-                  '+ (1 + inc + dd | sn)'
+    formula_gen = 'con_hit ~ 1 + dd + vv +' \
+                  '+ (1 + dd + vv  | sn)'
 
     # formula_gen = 'dv_pos ~ 1 + dd + all_M + brain_M  + vv + dv_ant + inc ' \
     #               '+ (1  | sn)'
@@ -321,9 +321,10 @@ def do_RSA_x_vendor():
         model.fit(REML=True, verbose=False, summary=False)
         summary = model.coefs
         print(summary)
+        quit()
         p = summary['P-val'].loc[ROI]
         t = summary['T-stat'].loc[ROI]
-        print(f'{ROI}: {p=:.4f}, {t=:+.3f}')
+        # print(f'{ROI}: {p=:.4f}, {t=:+.3f}')
         # quit()
 
         if p < .05:

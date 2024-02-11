@@ -168,14 +168,7 @@ def meta_corr_triangle():
     # outliers = (df[sides].abs() > 5).any(axis=1)
     # df = df[~outliers]
 
-    # print('TEST')
-    # penguins = sb.load_dataset("penguins")
-    # print(penguins)
-    # print(penguins.columns)
-    # sb.pairplot(penguins, hue="species")
-    # plt.show()
-    # quit()
-    # sides = ['dd', 'vv']
+
     df.reset_index(inplace=True, drop=True)
     # print(f'{sides=}')
     # sides = ['dd', 'vv', 'rand']
@@ -197,12 +190,14 @@ def meta_corr_triangle():
     df_names = df_names[sides_names.values()]
     sns.set(font_scale=1.15)
     g = sns.pairplot(df_names,
-                     hue='Age',
+                     # hue='Age',
                      kind="reg",
+                     # palette = 'orange',
                      # palette={'YA': 'dodgerblue', 'OA': 'red'},
-                     palette={'YA': 'green', 'OA': 'magenta'},
-                     plot_kws={'scatter_kws': {'alpha':.1}},
-                               # 'line_kws': {'color': ['darkgreen', 'k']}},
+                     # palette={'YA': 'green', 'OA': 'magenta'},
+                     plot_kws={'scatter_kws': {'alpha': .1,
+                                               'color': 'orange'}},
+                               # 'line_kws': {'color': 'orange'}},
                      diag_kws={'common_norm': False})
     for i in range(len(sides)):
         for j in range(len(sides)):
@@ -210,11 +205,11 @@ def meta_corr_triangle():
                 continue
             g.axes[i][j].set_xlim(-11, 11)
             g.axes[i][j].set_ylim(-11, 11)
-    for lh in g._legend.legendHandles:
-        lh.set_alpha(1)
-        lh._sizes = [50]
+    # for lh in g._legend.legendHandles:
+    #     lh.set_alpha(1)
+    #     lh._sizes = [50]
     plt.show()
-    # quit()
+    quit()
 
 
     ar_main = []
