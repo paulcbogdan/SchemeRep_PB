@@ -271,6 +271,29 @@ def getVariableName(variable, globalVariables):
         if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
             return globalVariable # Return its name from the Globals() dict
 
+def obj2str(val):
+    kwargs_str = ''
+    if isinstance(val, dict):
+        # val_d = ''
+        for key2 in sorted(val.keys()):
+            kwargs_str += obj2str(val[key2])
+            # val_d += f'{val[key2]}_'
+        # kwargs_str += f'{val_d}_'
+    elif isinstance(val, list):
+        # val_l = ''
+        for val_ in val:
+            kwargs_str += obj2str(val_)
+            # val_l += f'{val_}_'
+        # kwargs_str += f'{val_l}_'
+    else:
+        kwargs_str += f'{val}_'
+    if len(kwargs_str) > 20:
+        target_len = 10
+        skipper = len(kwargs_str) // target_len
+        kwargs_str = kwargs_str[::skipper]
+
+    return kwargs_str
+
 def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     if verbose: print(f'Making default filepath: {kwargs=}')
     if args is not None:
@@ -281,13 +304,7 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
         kwargs_str = ''
         for key in sorted(kwargs.keys()):
             val = kwargs[key]
-            if isinstance(val, dict):
-                val_d = ''
-                for key2 in sorted(val.keys()):
-                    val_d += f'{val[key2]}_'
-                kwargs_str += f'{val_d}_'
-            else:
-                kwargs_str += f'{val}_'
+            kwargs_str += obj2str(val)
         kwargs_str = kwargs_str[:-1]  # remove last underscore
     else:
         kwargs_str = ''
@@ -303,7 +320,7 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     return filepath
 
 def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
-                verbose=0, cache_dir=None, dt_max=None):
+                verbose=0, cache_dir='cache', dt_max=None):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved

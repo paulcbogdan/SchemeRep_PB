@@ -13,6 +13,7 @@ import scipy.stats as stats
 
 from ven_x_dor import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
+from statannotations.Annotator import Annotator
 
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
@@ -63,18 +64,35 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False, weighted=False):
 
 
     n_sn = agg_within.shape[0]
-    vals = list(agg_within.T.reshape(-1))
-    incs = ['Inc'] * n_sn + ['Con'] * n_sn
-    ages = (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
-    wbs = ['Within'] * (2 * n_sn)
-    subj_nums = list(range(n_sn)) * 2
+    # print(f'{agg_within.shape=}')
+    # vals = list(agg_within.T.reshape(-1))
+    # incs = ['Inc'] * n_sn + ['Con'] * n_sn
+    # ages = (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
+    # wbs = ['Within'] * (2 * n_sn)
+    # subj_nums = list(range(n_sn)) * 2
+    #
+    # vals += list(agg_between.T.reshape(-1))
+    #
+    # incs *= 2
+    # ages *= 2
+    # wbs += ['Between'] * (2 * n_sn)
+    # subj_nums *= 2
+    incs = []
+    ages = []
+    wbs = []
+    subj_nums = []
+    vals = []
 
-    vals += list(agg_between.T.reshape(-1))
-
-    incs *= 2
-    ages *= 2
-    wbs += ['Between'] * (2 * n_sn)
-    subj_nums *= 2
+    keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos']
+    data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos]
+    for key, flat in zip(keys, data):
+        # print(f'{flat.shape=}')
+        # quit()
+        incs += ['Inc'] * n_sn + ['Con'] * n_sn
+        ages += (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
+        wbs += [key] * (2 * n_sn)
+        subj_nums += list(range(n_sn)) * 2
+        vals += list(flat.T.reshape(-1))
 
     print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
 
@@ -88,10 +106,12 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False, weighted=False):
     # df_agg = df_agg[~df_agg['subj_num'].isin(bad_sns)]
 
     df_agg.dropna(inplace=True)
-    plot_sb_bars(df_agg)
+    # plot_sns_bars(df_agg)
+    plot_four(df_agg)
 
 
-def plot_sb_bars(df_agg):
+
+def plot_sns_bars(df_agg):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -102,7 +122,6 @@ def plot_sb_bars(df_agg):
         'kind': 'bar'
     }
 
-    from statannotations.Annotator import Annotator
 
     g = sns.catplot(edgecolor="black", errcolor="black", errwidth=1.5,
                     capsize=0.1, height=4, aspect=.7, alpha=0.5,
@@ -191,6 +210,86 @@ def plot_sb_bars(df_agg):
     plt.tight_layout(rect=(0, 0, 0.85, 1.0))
 
     plt.show()
+
+def plot_four(df_agg):
+    plot_params = {
+        # 'data': df_agg,
+        'y': 'vals',
+        'x': 'inc',
+
+        'col': 'age',
+        'color': 'r',
+        'kind': 'bar'
+    }
+
+    side2str = {'Between': 'Between', 'Within': 'Within',
+                'dd': 'Within: Dorsal', 'vv': 'Within: Ventral',
+                'dv_ant': 'Between: Anterior', 'dv_pos': 'Between: Posterior'}
+    betweens = {'Between', 'dv_ant', 'dv_pos'}
+    for side, df_side in df_agg.groupby('within_between'):
+        if side in betweens:
+            color = 'orange'
+        else:
+            color = 'dodgerblue'
+        plot_params['color'] = color
+
+        g = sns.catplot(edgecolor="black", errcolor="black", errwidth=1.5,
+                        capsize=0.1, height=4, aspect=.7, alpha=0.5,
+                        ci="sd", data=df_side, **plot_params)
+        g.map(sns.stripplot, plot_params["x"], plot_params["y"],
+              # plot_params["hue"],
+              # hue_order=plot_params["hue_order"],  # order=plot_params["order"],
+              # palette=sns.color_palette(),
+              color=color,
+              dodge=True, alpha=0.6, ec='k',
+              linewidth=1)
+
+        YA_match = df_side['age'] == 'YA'
+        OA_match = df_side['age'] == 'OA'
+        inc_match = df_side['inc'] == 'Inc'
+        con_match = df_side['inc'] == 'Con'
+        dif_YA = df_side.loc[YA_match & con_match, 'vals'].values - \
+                 df_side.loc[YA_match & inc_match, 'vals'].values
+        dif_OA = df_side.loc[OA_match & con_match, 'vals'].values - \
+                 df_side.loc[OA_match & inc_match, 'vals'].values
+        t, p = stats.ttest_ind(dif_YA, dif_OA)
+        title_itr = f'Age x Congruency: {t=:.2f}, {p=:.3f}'
+
+        # sns.move_legend(
+        #     g, "lower center",
+        #     bbox_to_anchor=(0.9, 0.5), ncol=1,
+        #     title=None, frameon=False,
+        # )
+
+        pairs = [
+            ['Inc', 'Con']
+            # [('Inc', 'Between'), ('Con', 'Between')],
+            # [('Inc', 'Within'), ('Con', 'Within')],
+        ]
+
+        for name, ax in g.axes_dict.items():
+            ax.set_ylabel('Connectivity')
+            ax.set_xlabel('')
+
+            # subset the table otherwise the stats were calculated on the whole dataset
+            annot = Annotator(ax, pairs, **plot_params,
+                              data=df_side.loc[df_side['age'] == name, :])
+            annot.configure(test='t-test_paired', text_format='simple',
+                            show_test_name=False,
+                            # loc='inside',
+                            verbose=2)
+            # annot.apply_test().annotate()
+            annot.apply_and_annotate()
+
+        plt.suptitle(f'{side2str[side]}\n{title_itr}')
+        plt.tight_layout(rect=(0, 0, 0.85, 1.0))
+        plt.show()
+        # quit()
+
+
+
+
+
 
 
 if __name__ == '__main__':

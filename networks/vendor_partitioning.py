@@ -14,7 +14,7 @@ from utils import pickle_wrap
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
-                           flip=False, weighted=True):
+                           flip=True, weighted=True):
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     if weighted:
         M_YA, _, _, _, _, p_YA, z_YA = \
@@ -36,7 +36,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
     dir_out = f'nichord_plots/vendor/' \
               f'ttest_mod_{age2str[age]}_thr{thr}_flip{flip}{weighted_str}'
     if flip:
-        title_extra = f' (Congruent > incongruent)'
+        title_extra = f' (Congruen t > incongruent)'
     else:
         title_extra = f' (Incogruent > Congruent)'
     partitions, matrix_mask = \
@@ -45,6 +45,8 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                             dir_out_full=dir_out, title_extra=title_extra)
     # print('MADE AND PLOTTED')
     # quit()
+
+
     return partitions, matrix_mask
 
 
@@ -52,7 +54,8 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
 def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           age: int | str='healthy',
                           thr=.95, flip=True, anat=False,
-                          weighted=False, scrub=False):
+                          weighted=False, scrub=False,
+                          ):
     if anat:
         return get_anat_vendor_partitions()
     if sn_inc_conn is None or age2idxs is None:
@@ -94,6 +97,33 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                                                           anat=anat)
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
+
+def save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub, anat):
+    atlas = get_atlas()
+    l_out = []
+    for i, (label, coord) in enumerate(zip(atlas['labels'], atlas['coords'])):
+        d = {'label': label}
+        if i in p_d_ant:
+            quad = 'DorAnt'
+        elif i in p_d_pos:
+            quad = 'DorPos'
+        elif i in p_v_ant:
+            quad = 'VenAnt'
+        elif i in p_v_pos:
+            quad = 'VenPos'
+        else:
+            quad = None
+        d['quadrant'] = quad
+        d['x'] = coord[0]
+        d['y'] = coord[1]
+        d['z'] = coord[2]
+        l_out.append(d)
+    import pandas as pd
+    df = pd.DataFrame(l_out)
+    scrubbed_str = '_scrubbed' if scrub else ''
+    anat_str = '_anat' if anat else ''
+    fp_out_csv = fr'docs/vendor_partitions{scrubbed_str}{anat_str}.csv'
+    df.to_csv(fp_out_csv, index=False)
 
 
 def anterior_posterior_split(p_dorsal, coords):
@@ -250,4 +280,17 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
-    get_vendor_partitions(age='healthy', flip=False)
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True)
+    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=False)
+
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True, anat=True)
+    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
+
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True, scrub=True)
+    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=True, anat=False)
+
+
+

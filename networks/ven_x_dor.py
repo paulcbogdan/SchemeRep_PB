@@ -2,15 +2,18 @@
 # os.chdir(r'C:\PycharmProjects_C\SchemeRep\networks')
 # import sys
 # sys.path.extend([r'C:\PycharmProjects_C\SchemeRep'])
+from atlas_utils import get_atlas
+# from corr_RSA_x_vendor import get_module_trialwise_z
 from emotemporal_bar import get_stars
 from network_IRAF import get_formula_cols
 
 from functools import cache
+from collections import defaultdict
 
 import numpy as np
 import pandas as pd
 
-from old.modularity import get_partition_cross
+from old.modularity import get_partition_cross, get_partition_matrix
 from old.network_funcs import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions, scrub_plot_p
 from utils import timing, pickle_wrap, stdize
@@ -36,6 +39,118 @@ def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True):
         agg_rs = np.nanmean(rs, axis=-1)
         return agg_rs
 
+def get_module_trialwise_z(sn_inc_conn_trials, p_module):
+    # sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
+    #                      sn_inc_activity_std[..., None, :, :]
+    sn_inc_conn_trials = np.transpose(sn_inc_conn_trials, (0, 1, 4, 2, 3))
+    sn_inc_conn_trials_dd = get_partition_matrix(sn_inc_conn_trials, p_module)
+    tridx_dd = np.tril_indices(sn_inc_conn_trials_dd.shape[-1], k=-1)
+    sn_inc_flat_trails_dd = sn_inc_conn_trials_dd[:, :, :,
+                            tridx_dd[0], tridx_dd[1]]
+    sn_inc_agg_trials_dd = np.nanmean(sn_inc_flat_trails_dd, axis=-1)
+    sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
+    return sn_agg_trials_dd
+
+def get_memory_p():
+    atlas = get_atlas()
+    ROIs_mem = ['Hipp']
+    p_mem = []
+    for i, roi in enumerate(atlas['ROIs']):
+        for key_mem in ROIs_mem:
+            if key_mem in roi:
+                p_mem.append(i)
+                break
+    return p_mem
+
+def get_DMN_p(exclude_ps=None):
+    atlas = get_atlas()
+
+    from nichord.coord_labeler import get_idx_to_label
+    idx_to_label = pickle_wrap(None, get_idx_to_label,
+                               kwargs={'coords': atlas['coords'],
+                                       'atlas': 'yeo'},
+                               )
+    DMN_idxs = [idx for idx, label in idx_to_label.items() if 'DMN' in label]
+    # print(DMN_idxs)
+
+
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True, anat=False, scrub=False)
+    exclude_ps = p_dorsal + p_ventral
+
+    for i in DMN_idxs:
+        BNA_label = atlas['ROIs'][i]
+        if i in p_d_pos:
+            print(f'{BNA_label} ({i}): In: Dor-Pos')
+        elif i in p_d_ant:
+            print(f'{BNA_label} ({i}): In: Dor-Ant')
+        elif i in p_v_pos:
+            print(f'{BNA_label} ({i}): In: Ven-Pos')
+        elif i in p_v_ant:
+            print(f'{BNA_label} ({i}): In: Ven-Ant')
+        else:
+            print(f'{BNA_label} ({i}): Not in any')
+
+    print('--------')
+
+    cnt = defaultdict(lambda: 0)
+    for i in p_d_pos:
+        yeo = idx_to_label[i]
+        cnt[yeo] += 1
+    cnt = dict(cnt)
+    print(f'Dor-Pos: {cnt}')
+
+    cnt = defaultdict(lambda: 0)
+    for i in p_d_ant:
+        yeo = idx_to_label[i]
+        cnt[yeo] += 1
+    cnt = dict(cnt)
+    print(f'Dor-Ant: {cnt}')
+
+    cnt = defaultdict(lambda: 0)
+    for i in p_v_pos:
+        yeo = idx_to_label[i]
+        cnt[yeo] += 1
+    cnt = dict(cnt)
+    print(f'Ven-Pos: {cnt}')
+
+    cnt = defaultdict(lambda: 0)
+    for i in p_v_ant:
+        yeo = idx_to_label[i]
+        cnt[yeo] += 1
+    cnt = dict(cnt)
+    print(f'Ven-Ant: {cnt}')
+
+
+def get_df_p_x_p(p0, p1, key, fp='obj7_fMRI'):
+
+    kwargs = {'fp': fp,
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True,
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+
+    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+    conn_trials = sn_inc_activity_std[..., None, :] * \
+                  sn_inc_activity_std[..., None, :, :]
+
+    if p1 is None:
+        sn_agg_trials_dd = get_module_trialwise_z(conn_trials, p0)
+
+    else:
+        sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials, p0, p1)
+    for i, df_sn in enumerate(df_sns_l):
+        df_sn[key] = sn_agg_trials_dd[i, :]
+
+    df_sns = pd.concat(df_sns_l)
+    df_sns = df_sns[['sn', 'obj', key]]
+    return df_sns
+
+
 
 @timing
 @cache
@@ -57,11 +172,12 @@ def get_vendor_df(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True,
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
 
+    # print(f'{p_d_ant=}')
+    # print(f'{p_d_pos=}')
+    # print(f'{p_v_ant=}')
+    # print(f'{p_v_pos=}')
 
-    print(f'{p_d_ant=}')
-    print(f'{p_d_pos=}')
-    print(f'{p_v_ant=}')
-    print(f'{p_v_pos=}')
+    # quit()
 
     # plot_ROI_scores(ts, results_coords, fp_out='trash.png', show=True,
     #                 vmin=0, vmax=2, title='all')
@@ -133,7 +249,7 @@ def get_vendor_df(fp='obj7_fMRI', thr=2.0, scrub=False, anat=True,
 
 def vendor_lmer():
     df = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI',
-                                                         'scrub': True},
+                                                  'scrub': True},
                      cache_dir='cache', easy_override=True)
 
     df['age'] = stats.zscore(df['age'], nan_policy='omit')
@@ -149,11 +265,44 @@ def vendor_lmer():
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
+def vendor_lmer_Feb12(fp='obj7_fMRI'):
+    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
+                                                  'scrub': False,
+                                                  'anat': True},
+                     cache_dir='cache', easy_override=False)
+
+    p_mem = get_memory_p()
+    df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
+    df = df.merge(df_mem, on=['sn', 'obj'], how='left')
+
+    for col in ['age', 'dd_vv', 'cross', 'dd', 'vv',
+                'hit_hit', 'hc']: # 'con_hit', 'vis_hit',
+        df[col] = stats.zscore(df[col], nan_policy='omit')
+
+    iv = 'hit_hit'
+    brain = 'vv'
+    dvs = ['dd_vv', 'cross', 'dd', 'vv']
+    for dv in dvs:
+        formula_gen = f'{dv} ~ 1 + {brain}*{iv} + age*{iv} + ' \
+                      f'(1 + {brain}*{iv} + age*{iv} | sn)'
+        cols = get_formula_cols(df, formula_gen)
+        df_vals = df[cols].dropna()
+        from pymer4 import Lmer
+        model = Lmer(formula_gen, data=df_vals)
+        model.fit(REML=True, verbose=False, summary=False)
+        print(model.summary())
+        print('-'*10)
+        print(f'{dv=}')
+        print('-'*50)
+
+
+
+
 def meta_corr_triangle():
     df = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'obj7_fMRI',
                                                   'scrub': True,
                                                   'z_score': True},
-                     cache_dir='cache', easy_override=False)
+                     cache_dir='cache', easy_override=True)
 
     sides = ['dd', 'vv', 'dv_ant', 'dv_pos']
     for dv in sides:
@@ -283,15 +432,21 @@ def plot_meta_corr_matrix():
             z_high = z + 1.96 * z_std
             r_low = np.tanh(z_low)
             r_high = np.tanh(z_high)
-            ar_str[i][j] = f'{r:.2f} ({r_low:.2f}, {r_high:.2f})'
-    print(ar_str)
-    print('-'*300)
+            ar_str[i][j] = f'{r:.2f}'# ({r_low:.2f}, {r_high:.2f})'
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    df_main = pd.DataFrame(ar_str, columns=cols, index=cols)
+    print(df_main)
+
 
     # TODO: maybe also investigate a limbic + PhG anatomical module
 
+
+
 if __name__ == '__main__':
-    meta_corr_triangle()
+    # meta_corr_triangle()
     # plot_conn_matrix()
     # vendor_lmer()
+    # vendor_lmer_Feb12()
     # get_trialwise_vendor()
-    # plot_meta_corr_matrix()
+    plot_meta_corr_matrix()

@@ -89,17 +89,7 @@ def get_trialwise_RSA(semantic=True, inc=None, bilateral=False,
     return df, ROIs
 
 
-def get_module_trialwise_z(sn_inc_conn_trials, p_module):
-    # sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
-    #                      sn_inc_activity_std[..., None, :, :]
-    sn_inc_conn_trials = np.transpose(sn_inc_conn_trials, (0, 1, 4, 2, 3))
-    sn_inc_conn_trials_dd = get_partition_matrix(sn_inc_conn_trials, p_module)
-    tridx_dd = np.tril_indices(sn_inc_conn_trials_dd.shape[-1], k=-1)
-    sn_inc_flat_trails_dd = sn_inc_conn_trials_dd[:, :, :,
-                            tridx_dd[0], tridx_dd[1]]
-    sn_inc_agg_trials_dd = np.nanmean(sn_inc_flat_trails_dd, axis=-1)
-    sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
-    return sn_agg_trials_dd
+
 
 
 @timing
