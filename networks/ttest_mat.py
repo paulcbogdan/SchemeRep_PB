@@ -138,12 +138,6 @@ def plot_M():
                       cbar_label='t-value')
 
 def ANOVA_edges():
-    fp = 'scn4_fMRI'
-    kwargs = {'fp': fp,
-              'split': False,
-              'key': 'scn_cat',
-              'key_vals': ('indoor', 'outdoor_developed', 'outdoor_nature')
-              }
     fp = 'obj4_fMRI'
     kwargs = {'fp': fp,
               'split': False,
@@ -151,12 +145,6 @@ def ANOVA_edges():
               'key_vals': ('living_animal', 'dead_small', 'dead_large',
                            'living_plant', 'dead_medium')
               }
-    # fp = 'obj4_fMRI'
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'inc',
-    #           'key_vals': (1, 3)
-    #           }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
@@ -173,21 +161,9 @@ def ANOVA_edges():
     SSR = SSW - SSM
     MSM = SSM / (n_groups - 1)
     MSR = SSR / ((n_sn - 1) * (n_groups - 1))
-    # print(f'{n_sn[0, 1]=}')
     F = MSM / MSR
-    # print(f'{F[0, 1]=}')
     p = 1 - stats.f.cdf(F, n_groups - 1, (n_sn - 1) * (n_groups - 1))
-    # print(f'{p[0, 1]=}')
     z = stats.norm.ppf(p)
-    # z[p < .99] = np.nan
-
-    # dif = sn_inc_conn[:, 0, :, :] - sn_inc_conn[:, 1, :, :]
-    # M_dif = np.nanmean(dif, axis=0)
-    # SE_dif = np.nanstd(dif, axis=0, ddof=1) / np.sqrt(n_sn)
-    # t = abs(M_dif / SE_dif)
-    # print(f'{t[0, 1]=}')
-    # p = 1 - stats.t.cdf(t, n_sn - 1)
-    # print(f'{p[0, 1]=}')
 
     alpha_thresh = .05
     num_signif = np.sum(p < alpha_thresh) // 2
@@ -198,36 +174,9 @@ def ANOVA_edges():
     alpha_thresh_z = stats.norm.ppf(alpha_thresh)
     median_F = np.nanmedian(F)
     print(f'{median_F=:.3f}')
-    # plt.hist(F.flatten(), bins=100, range=(0, 10))
-    # plt.show()
-    # quit()
     print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
           f'{num_edges=}, {expected_FP=:.2f}')
     print(f'\tNumber of significant edges: {num_signif=}')
-    # quit()
-
-    # t = np.sqrt(F)
-    # plt.title(f'{np.nanmedian(F)=:.3f}')
-    # plt.hist(t.flatten())
-    # plt.show()
-    # # p = 1 - stats.f.cdf(F, n_groups - 1, (n_sn - 1) * (n_groups - 1))
-    # # z = stats.norm.ppf(p)
-    #
-
-    # # print(f'{t_dif[0, 1]**2=}')
-    # p = 1 - stats.t.cdf(t, n_sn - 1)
-    # # print(f'paired t-test: {p[0, 1]=}')
-    # # F = t_dif ** 2
-    # # print(f'{F[0, 1]=}')
-    #
-    # # t, p = stats.ttest_rel(sn_inc_conn[:, 0, 0, 1], sn_inc_conn[:, 1, 0, 1],
-    # #                        nan_policy='omit')
-    # # print(t**2)
-    # # quit()
-    # t = stats.norm.ppf(1 - p)
-
-    # F = t_dif ** 2
-
 
     atlas = get_atlas(schaefer=False)
     fp2name = {'obj4_fMRI': 'obj. encoding',
@@ -244,56 +193,27 @@ def ANOVA_edges():
                       cbar_label='F-value')
 
 
-def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
-    # TODO: Anova?
-    fp = 'scn7_fMRI'
-    # fp = 'bl3_fMRI'
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'inc_hit_hit',
-    #           'key_vals': ('10', '11')
-    #           }
+def run_ttests(min_cluster_size=50, alpha_thresh=.05):
+    fp = 'bl7_fMRI'
 
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'con_hit',
-              'key_vals': (False, True),
-              'combine_regions': True
+              'key': 'inc',
+              'key_vals': (1, 3),
+              # 'combine_regions': False,
+              'loose_sns': True
               }
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'living',
-    #           'key_vals': (False, True)
-    #           }
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'vis_hit',
-    #           'key_vals': (False, True),
-    #           'odd_even': False
-    #           }
+
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
-    cnt_trials0 = np.sum(~np.isnan(sn_inc_activity[:, 0, 0, :]))
-    cnt_trials1 = np.sum(~np.isnan(sn_inc_activity[:, 1, 0, :]))
-    ratio = cnt_trials0 / cnt_trials1
-    # print(f'{cnt_trials0=}, {cnt_trials1=} | {ratio=:.3f}')
-    # quit()
+    print(sn_inc_conn[age2idxs[1], ...].shape)
+    print(sn_inc_conn[age2idxs[2], ...].shape)
+    quit()
 
-    # perm_test(sn_inc_conn, age2idxs, alpha_thresh)
-    # quit()
-
-    # quit()
-
-    # print(f'{sn_inc_conn[:, :, 232, 0]=}')
-    # quit()
-    dif_graph = sn_inc_conn[age2idxs[1], 0, :, :] - \
-                sn_inc_conn[age2idxs[1], 1, :, :]
-    # print(f'{dif_graph[:, 232, 0]=}')
-
-
-
-    #
-
+    # cnt_trials0 = np.sum(~np.isnan(sn_inc_activity[:, 0, 0, :]))
+    # cnt_trials1 = np.sum(~np.isnan(sn_inc_activity[:, 1, 0, :]))
+    # ratio = cnt_trials0 / cnt_trials1
 
     M1_graph, SD1_graph, SE1_graph, N1_graph, t1_graph, p1_graph, z1_graph = \
         get_stats_graphs(sn_inc_conn[age2idxs[1], 0, :, :],
@@ -309,14 +229,6 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     p12_graph = p2_graph
     z12_graph = z2_graph
 
-    # SD12 = ((SD1_graph ** 2) * (N1_graph - 1) +
-    #         (SD2_graph ** 2) * (N2_graph - 1)) / \
-    #        (N1_graph + N2_graph - 2)
-    # SE12 = np.sqrt(SD12 * (1 / N1_graph + 1 / N2_graph))
-    # t12_graph = (M1_graph - M2_graph) / SE12
-    # p12_graph = 1 - stats.t.cdf(t12_graph, N1_graph + N2_graph - 2)
-    # z12_graph = -stats.norm.ppf(p12_graph)
-    # # p12_graph = p12_graph_
     p12_graph = np.min([p12_graph, 1 - p12_graph], axis=0)
     bonf_correction = .05 / 30135 * 1000
     z_bonf = stats.norm.ppf(bonf_correction)
@@ -334,9 +246,6 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     signif_graph = p12_graph < alpha_thresh
     signif_z_graph = z12_graph.copy()
     signif_z_graph[~signif_graph] = np.nan
-    # fig, axs = plt.subplots(1, 2)
-    # plt.sca(axs[0])
-
     atlas = get_atlas(schaefer=False)
     fp2name = {'obj4_fMRI': 'obj. encoding',
                'con3_fMRI': 'conc. retrieval',
@@ -360,23 +269,9 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     expected_FP = num_edges * alpha_thresh
     alpha_thresh_z = stats.norm.ppf(alpha_thresh)
 
-    # plt.hist(F.flatten(), bins=100, range=(0, 10))
-    # plt.show()
-    # quit()
     print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
           f'{num_edges=}, {expected_FP=:.2f}')
     print(f'\tNumber of significant edges: {num_signif=}')
-    quit()
-    # quit()
-    # plt.imshow(z12_graph)
-    # plt.title('Main effect of memory')
-    # plt.title('z-graph')
-    # plt.colorbar()
-    # # plt.sca(axs[1])
-    # # plt.imshow(signif_z_graph, interpolation='none', cmap='RdBu')
-    # # plt.title('p-graph')
-    # plt.show()
-    # quit()
 
     num_correction = .05 / alpha_thresh
     num_ROIs = sn_inc_conn.shape[2]
@@ -386,29 +281,6 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     print(f'{alpha_thresh=} (z = {alpha_thresh_z:.2f}), {num_correction=} | '
           f'{num_edges=}, {expected_FP=:.2f}')
     print(f'\tNumber of significant edges: {num_signif=}')
-    quit()
-
-    components, biggest_size = get_NBS_clusters(p12_graph, alpha_thresh)
-    coords = get_BNA_coords()
-
-    dir_out = 'result_pics/NBS'
-    for i, edges in enumerate(components):
-        print(f'num edges: {len(edges)} | {edges=}')
-        if len(edges) < min_cluster_size:
-            continue
-        edge_weights = [z12_graph[x][y] for (x, y) in edges]
-        # for edge, w in zip(edges, edge_weights):
-        #     print(f'{edge=}, {w=:.3f} | '
-        #           f'M1={M1_graph[edge]:.3f}, M2={M2_graph[edge]:.3f}')
-        fn = f'age_x_vis_NBS_a{alpha_thresh}_c{i}.png'
-        title = f'NBS group: {i}'
-        title = f'Main effect of congruency (YA + OA), primary threshold: p < {alpha_thresh}'
-        title = f'Main effect of visual memory (YA + OA), primary threshold: p < {alpha_thresh}'
-
-        plot_nichord(coords, fn, title, dir_out=dir_out,
-                     edges=edges, edge_weights=edge_weights)
-        print('plotted')
-
 
 
 def ttest_modularity():
@@ -462,20 +334,11 @@ def ttest_modularity():
                                    nan_policy='omit')
             print(f'partition {i}, {age=}: {t=:.2f}')
 
-    # quit()
-    #
-    #
-    # threshold = .95
-    # partitions, matrix_mask = get_main_partitions(-t1_graph, coords=None,
-    #                                               plot=False,
-    #                     threshold=threshold, fn_str='', overlapping=False,
-    #                     dir_out=f'YA_ttest_modules_-thr{threshold}.png')
-
 
 if __name__ == '__main__':
-    ttest_modularity()
+    # ttest_modularity()
     # plot_M()
-    # do_NBS()
+    run_ttests()
     # ANOVA_edges()
 
 

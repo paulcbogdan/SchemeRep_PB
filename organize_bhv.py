@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from time import time
 
 from nilearn import image
@@ -299,9 +300,11 @@ def get_trial_info(sn, easy_override=False, ret=True):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
     fp = fr'C:\PycharmProjects_C\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
+
+    dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
     df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn, ret),
                         easy_override=easy_override,
-                        verbose=False)
+                        verbose=False, dt_max=dt_max)
     return df_sn
 
 def get_trial_info_(sn, ret=True):

@@ -1,3 +1,9 @@
+TODO: trialwise graph measures!!!
+
+NOTE: for RSA, i'm doing within-run to NaN
+
+FOUND ERROR?? bhv in the IRAF dicts wasn't being sorted. Really, I should just incorporate the IRAF as a dataframe
+
 obj
 SFG_L
 
@@ -12,7 +18,7 @@ PB subjects:
 '230', '232', '233', '234', '235']
 
 TODO add:
-* 116 has no retrieval scans but could be added (has retrieval behavioral data too?). DONE. DONE
+* 116 has no retrieval scans but could be added (has retrieval behavioral data too?). DONE
 * 132 Bad Encoding run 3? I will remove this. DONE
 * 133 No retrieval. DONE
 * 138 is missing the 3rd run of visual retrieval but is otherwise okay, albeit with meh memory. ASK SHENYANG WHY RVIS IS MISSING

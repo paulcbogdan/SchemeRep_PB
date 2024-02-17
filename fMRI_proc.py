@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from utils import pickle_wrap
 from collections import defaultdict
 
@@ -336,7 +338,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs) # TODO: don't repeat every sn
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
                             nan_thresh=.8, org_by_region=org_by_region,
-                            easy_override=True)
+                            easy_override=False)
 
     for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
         if ROI not in ROI2vecs:
@@ -387,7 +389,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', 'con3_fMRI', 'vis3_fMRI', ]
     atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
-    age2sn = get_sns('loose')#fp_fMRI_col, )
+    age2sn = get_sns(fp_fMRI_col)
 
     n_trials = 114 if cin is None else 38
 
@@ -406,9 +408,6 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     if org_by_region:
         atlas['n_ROIs'] = len(atlas['tick_labels'])
 
-    # age2sn[age] = ['116', '125', '135', '212']
-    # age2sn[age] = ['132']
-
     bhv = defaultdict(list)
     sns = []
     dfs_sn = []
@@ -421,24 +420,15 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
         sns.append(sn)
         dfs_sn.append(df_sn)
 
-    # key0 = list(ROI_to_IRAF.keys())[0]
-    # roi0 = list(ROI_to_IRAF[key0].keys())[0]
-    # print(key0)
-    # print(roi0)
-    # print(ROI_to_IRAF[key0][roi0])
-    # print(len(ROI_to_IRAF[key0][roi0]))
-    # quit()
-
     apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                             ROI_to_z, ROI_to_IRAF)
 
-    d_out = {
-            'activity': ROI_to_activity,
-            'IRAFs_ROI': ROI_to_IRAF,
-            'z': ROI_to_z,
-            'bhv': bhv,
-            'sns': sns,
-            'df_sn': dfs_sn}
+    d_out = {'activity': ROI_to_activity,
+             'IRAFs_ROI': ROI_to_IRAF,
+             'z': ROI_to_z,
+             'bhv': bhv,
+             'sns': sns,
+             'df_sn': dfs_sn}
     d_out = defaultdict_to_dict(d_out)
     return d_out
 
@@ -480,22 +470,22 @@ def run_multi_settings():
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
     inc = None
-    for age in [1]:
+    for age in [2]:
         for inc in [None]:
             for DNN_layer, semantic in [
-                (2, False),
-                # (-1, False),
+                # (2, False),
+                (-1, False),
                 # (4, False),
                 # (6, False),
                 # (True, False),
                 (False, True),
             ]:  # (True, False),
                 for fp_fMRI_col in [
-                    # 'scn7_fMRI',
+                    'scn7_fMRI',
                     'obj7_fMRI',
-                    # 'bl7_fMRI',
-                    # 'con7_fMRI',
-                    # 'vis7_fMRI',
+                    'bl7_fMRI',
+                    'con7_fMRI',
+                    'vis7_fMRI',
                 ]:
 
                     RSA_fn = utils.get_RSA_fn(inc, age, semantic, DNN_layer,
@@ -504,7 +494,7 @@ def run_multi_settings():
                                               bilateral=bilateral,
                                               vec_prod=False,
                                               org_by_region=org_by_region)
-                    fp_out = fr'cache/RSA/{RSA_fn}_test_pls_delete.pkl'
+                    fp_out = fr'cache/RSA/{RSA_fn}.pkl'
                     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                     f = lambda: mass_RDM_x_RDM(age=age, cin=inc,
                                                DNN_layer=DNN_layer,
@@ -516,9 +506,9 @@ def run_multi_settings():
                                                PCA_obj=PCA_obj,
                                                shuffle=False
                                                )
+                    dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
                     d = pickle_wrap(fp_out, f, easy_override=False,
-                                    verbose=True)
-                    quit()
+                                    verbose=True, dt_max=dt_max)
 
 
 if __name__ == '__main__':

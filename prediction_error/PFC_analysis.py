@@ -6,7 +6,7 @@ from collections import defaultdict
 import numpy as np
 
 from atlas_utils import get_BN_and_resample
-from fMRI_proc import get_ROI_vecs, regress_out_within_across, get_IRAFs, within_run_to_nan
+from fMRI_proc import get_ROI_vecs, get_IRAFs, within_run_to_nan
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 
@@ -17,6 +17,21 @@ import scipy.stats as stats
 from tqdm import tqdm
 import pandas as pd
 
+def regress_out_within_across(RDM):
+    RDM_ = RDM.copy()
+    trial_per_run = RDM.shape[0] // 3
+    within_zero = np.zeros(RDM.shape)
+    for run in range(3):
+        low = run * trial_per_run
+        high = (run + 1) * trial_per_run
+        within_idxs = np.arange(low, high)
+        within_zero[np.ix_(within_idxs, within_idxs)] = 1
+    within_zero[np.diag_indices_from(within_zero)] = 0
+    M_within = np.nanmean(RDM_[within_zero == 1])
+    M_between = np.nanmean(RDM_[within_zero == 0])
+    RDM_[within_zero == 1] = RDM_[within_zero == 1] - M_within
+    RDM_[within_zero == 0] = RDM_[within_zero == 0] - M_between
+    return RDM_
 
 def get_stim_RDMs(df_sn, semantic=False, DNN_layer=2):
     if semantic:

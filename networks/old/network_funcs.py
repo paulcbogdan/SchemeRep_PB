@@ -1,6 +1,3 @@
-import os
-os.chdir('/')
-
 import random
 from collections import defaultdict
 from itertools import combinations
@@ -22,7 +19,8 @@ from utils import pickle_wrap
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
                      do_sort=False, fp_all=False, voxelwise=False,
-                     regionwise=False, combine_regions=False, get_df_sn=False):
+                     regionwise=False, combine_regions=False, get_df_sn=False,
+                     loose_sns=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -30,20 +28,14 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                           combine_bilateral=False,
                           split=split, split_code='xyz',
                           new_space='3' in fp or '4' in fp or '7' in fp)
-    coords = atlas['coords']
-    # print(atlas['maps'].shape)
-    # quit()
-    # with open(f'cache/{atlas_name}_coords.pkl', 'wb') as f:
-    #     pickle.dump(coords, f)
-    # quit()
-    age2sn = get_sns('all' if fp_all else fp, sh=False)
-    # age_sn_inc_conn = []
-    # age_sn_conn = []
+
+    # age2sn = get_sns('all' if fp_all else fp,
+    #                  sh=False)
+
+    age2sn = get_sns(fp, sh=False)
     sn_inc_conn = []
     sn_inc_activity = []
     sn_conn = []
-
-    # age_l = []
     age2idxs = defaultdict(list)
     sn_idx = 0
     ROI2act = defaultdict(list)
@@ -67,12 +59,12 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             df_sn = get_trial_info(sn, easy_override=True)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
-                    replace('4', '')
+                    replace('4', '').replace('7', '')
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=regionwise,
-                                     easy_override=True if sn == '132' else False,
+                                     easy_override=False,
                                      combine_regions=combine_regions)
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:

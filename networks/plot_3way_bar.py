@@ -24,6 +24,7 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 3),
+              'loose_sns': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,

@@ -12,13 +12,19 @@ import pandas as pd
 def get_bad_sns_fp(fp):
     if 'obj_' in fp: f'Stop using an old fp: {fp=}'
     if fp == 'all':
-        bad_sns = {'116', '125', '135', '212'}
+        raise ValueError('Stop using all for get sns!')
+    # if fp == 'all':
+    #     bad_sns = {'116', '125', '135', '212'}
     elif 'obj' in fp or 'scn' in fp:
         bad_sns = set()
     elif 'bl' in fp:
-        bad_sns = {'135', '212'}
-    elif 'con' in fp or 'vis' in fp:
-        bad_sns = {'116', '125', }
+        bad_sns = {'212'}
+    elif 'vis' in fp:
+        # TODO: add 138, 231 back to CON after shenyang preprocesses it
+        bad_sns = {'116', '125', '215', '133', '213', '138'}
+    elif 'con' in fp:
+        # TODO: add 231 back to CON after shenyang preprocesses it
+        bad_sns = {'116', '125',  '133', '215', '231'}
     elif 'cmb' in fp:
         bad_sns = set()
     elif fp == 'loose':
@@ -86,9 +92,9 @@ def get_shenyang_subjects():
 
 if __name__ == '__main__':
     pd.set_option('display.max_rows', 115)
-    df_sn = get_trial_info('132', easy_override=True)
+    df_sn = get_trial_info('231', easy_override=True)
     # TODO: look more into 231
-    print(df_sn['obj7_fMRI'])
+    print(df_sn['vis7_fMRI'])
     print(df_sn['vis_hit'].value_counts(dropna=False))
     quit()
 

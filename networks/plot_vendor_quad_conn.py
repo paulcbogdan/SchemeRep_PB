@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from atlas_utils import get_atlas
-from network_based_statistic import get_stats_graphs
+from ttest_mat import get_stats_graphs
 from old.network_funcs import load_FC_for_Lifu
 from plot_conn_nice import HC_t
 from utils import pickle_wrap

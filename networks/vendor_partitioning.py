@@ -5,7 +5,7 @@ from copy import copy
 import numpy as np
 
 from atlas_utils import get_atlas
-from network_based_statistic import get_stats_graphs
+from ttest_mat import get_stats_graphs
 from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
@@ -68,7 +68,7 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
             pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                         easy_override=False, cache_dir='cache')
 
-    fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}_{weighted}.pkl'
+    fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}_{weighted}_n65.pkl'
     partitions, matrix_mask = \
         pickle_wrap(fp, lambda: get_vendor_partitions_(sn_inc_conn=sn_inc_conn,
                                                        age2idxs=age2idxs,

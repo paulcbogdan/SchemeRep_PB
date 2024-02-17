@@ -282,7 +282,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
             # print(f'{x_}')
             # print(f'{x_.shape=}')
             x = model.forward(x)
-            print(f'Test: {x.shape=}')
+            # print(f'Test: {x.shape=}')
         else:
             for j in range(DNN_layer):
                 x = model.features[j](x)

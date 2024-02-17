@@ -138,8 +138,8 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
         img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
         print('Defunct atlas')
 
-    fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    fp_labels = 'cache/BNA_labels_Lifu_ACC.txt'
+    # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
+    fp_labels = 'C:\PycharmProjects_C\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()
@@ -333,7 +333,8 @@ def get_atlas(combine_regions=False, combine_bilateral=False,
     return atlas
 
 def org_BNA_coords():
-    df = pd.read_csv('cache/BNA_coords_pre.csv')
+    fp_coords_pre = r'C:\PycharmProjects_C\SchemeRep\cache\BNA_coords_pre.csv'
+    df = pd.read_csv(fp_coords_pre)
     coords = []
     for l_coord, r_coord in zip(df['L_coord'], df['R_coord']):
         l_coord = [int(x.replace(' ', '')) for x in l_coord.split(',')]

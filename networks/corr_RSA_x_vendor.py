@@ -42,9 +42,6 @@ def prep_IRAF_df_age(age=2, semantic=True, inc=None, bilateral=False,
     df_as_d = defaultdict(list)
     rois = d['IRAFs_ROI'][key].keys()
     n_trials = d['IRAFs_ROI'][key][next(iter(rois))].shape[-1]
-    # print(d['bhv']['obj'].shape)
-    # print(list(d['bhv']))
-    # quit()
     sns = np.repeat(np.array(d['sns'])[:, None], n_trials, axis=1)
     sns = np.reshape(sns, -1)
     df_as_d['sn'] = sns
@@ -209,7 +206,8 @@ def get_super_df(fp='obj7_fMRI'):
 
 def do_RSA_x_vendor():
     dfs_l = []
-    for fp in ['obj7_fMRI', 'scn7_fMRI', 'bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']:
+    for fp in ['obj7_fMRI', 'scn7_fMRI', 'bl7_fMRI',
+               'con7_fMRI', 'vis7_fMRI']:
         df, ROIs,  ROIs_mvpa = get_super_df(fp=fp)
         dfs_l.append(df)
     df = pd.concat(dfs_l)
