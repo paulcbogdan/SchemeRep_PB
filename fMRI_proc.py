@@ -412,7 +412,7 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     include_bhv(bhv, df_sn)
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs) # TODO: don't repeat every sn
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
-                            nan_thresh=.5, org_by_region=org_by_region,
+                            nan_thresh=.8, org_by_region=org_by_region,
                             easy_override=True)
     print(f'{sn=}, {fp_fMRI_col=}')
     print(ROI2vecs['SFG_L'][:, 0])
