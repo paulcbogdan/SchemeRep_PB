@@ -1,0 +1,5096 @@
+,sn,obj,con_hit
+0,102,ATM,False
+1,102,ambulance,True
+2,102,apple,True
+3,102,banana,True
+4,102,beer,True
+5,102,bench,True
+6,102,binder clip,True
+7,102,book bag,False
+8,102,briefcase,True
+9,102,cabin,False
+10,102,cactus,True
+11,102,camel,True
+12,102,car,True
+13,102,cash register,True
+14,102,chalice,True
+15,102,chandelier,True
+16,102,cheeseburger,False
+17,102,clown,True
+18,102,cockroach,True
+19,102,coffee machine,True
+20,102,construction helmet,True
+21,102,cookie,True
+22,102,cow,False
+23,102,crib,False
+24,102,cross,True
+25,102,cutting board,True
+26,102,dining chair,False
+27,102,dining table,True
+28,102,display cabinet,True
+29,102,dog toy,True
+30,102,donut,True
+31,102,doorknob,True
+32,102,dragonfly,True
+33,102,dumb bell,True
+34,102,ferris wheel,True
+35,102,firetruck,False
+36,102,flower pot,True
+37,102,flowers,True
+38,102,football,True
+39,102,frame,True
+40,102,game token,True
+41,102,gas can,True
+42,102,gavel,True
+43,102,gift bag,True
+44,102,goggles,True
+45,102,golf club,True
+46,102,grill,True
+47,102,haircomb,True
+48,102,hairdryer,False
+49,102,helmet,True
+50,102,horse,True
+51,102,ice skate,True
+52,102,jeep,True
+53,102,kayak,True
+54,102,ladder,False
+55,102,laundry hamper,False
+56,102,lawn mower,False
+57,102,lei,False
+58,102,log,True
+59,102,loudspeaker,False
+60,102,mailbox,False
+61,102,microscope,False
+62,102,notebook,False
+63,102,office chair,False
+64,102,ostrich,True
+65,102,oversize tire,True
+66,102,palm tree,False
+67,102,piano,False
+68,102,picnic blanket,True
+69,102,pillow,False
+70,102,pine,False
+71,102,podium,True
+72,102,poker table,True
+73,102,polar bear,True
+74,102,police baton,True
+75,102,police car,True
+76,102,popcorn machine,False
+77,102,potted plant,True
+78,102,printer,True
+79,102,raft,False
+80,102,railroad,True
+81,102,reed,True
+82,102,religious statue,True
+83,102,rock-climbing shoe,True
+84,102,rollerskates,True
+85,102,rose,False
+86,102,ruler,True
+87,102,sailboat,False
+88,102,school bus,True
+89,102,scorpion,True
+90,102,sea gull,True
+91,102,seal,True
+92,102,seashell,True
+93,102,seatbelt,True
+94,102,sewing machine,True
+95,102,shopping cart,True
+96,102,slide,True
+97,102,soccerball,True
+98,102,spotlight,True
+99,102,sprayer,False
+100,102,steering wheel,True
+101,102,surfing board,True
+102,102,swimsuit,True
+103,102,television,True
+104,102,tennis ball,True
+105,102,tile,True
+106,102,toilet,True
+107,102,traffic sign,True
+108,102,truck,True
+109,102,violin,True
+110,102,wheat,False
+111,102,whistle,True
+112,102,wine glass,False
+113,103,ATM,True
+114,103,ambulance,True
+115,103,apple,True
+116,103,banana,True
+117,103,beer,True
+118,103,bench,True
+119,103,binder clip,True
+120,103,book bag,False
+121,103,briefcase,True
+122,103,cabin,False
+123,103,cactus,True
+124,103,camel,True
+125,103,car,True
+126,103,cash register,False
+127,103,chalice,False
+128,103,chandelier,True
+129,103,cheeseburger,False
+130,103,clown,True
+131,103,cockroach,True
+132,103,coffee machine,True
+133,103,construction helmet,True
+134,103,cookie,True
+135,103,cow,False
+136,103,crib,True
+137,103,cross,True
+138,103,cutting board,False
+139,103,dining chair,True
+140,103,dining table,True
+141,103,display cabinet,False
+142,103,dog toy,True
+143,103,donut,True
+144,103,doorknob,False
+145,103,dragonfly,False
+146,103,dumb bell,True
+147,103,ferris wheel,True
+148,103,firetruck,True
+149,103,flower pot,True
+150,103,football,False
+151,103,frame,True
+152,103,game token,True
+153,103,gas can,True
+154,103,gavel,True
+155,103,goggles,False
+156,103,golf club,False
+157,103,grill,True
+158,103,haircomb,True
+159,103,hairdryer,False
+160,103,helmet,True
+161,103,horse,True
+162,103,ice skate,True
+163,103,jeep,True
+164,103,kayak,True
+165,103,ladder,True
+166,103,laundry hamper,False
+167,103,lawn mower,True
+168,103,lei,True
+169,103,log,False
+170,103,loudspeaker,True
+171,103,mailbox,True
+172,103,microscope,True
+173,103,notebook,True
+174,103,office chair,True
+175,103,ostrich,True
+176,103,oversize tire,True
+177,103,palm tree,False
+178,103,piano,True
+179,103,picnic blanket,True
+180,103,pillow,True
+181,103,pine,True
+182,103,podium,False
+183,103,poker table,True
+184,103,polar bear,True
+185,103,police baton,True
+186,103,police car,True
+187,103,popcorn machine,False
+188,103,potted plant,True
+189,103,raft,True
+190,103,railroad,True
+191,103,reed,False
+192,103,religious statue,True
+193,103,rock-climbing shoe,True
+194,103,rollerskates,True
+195,103,rose,True
+196,103,ruler,True
+197,103,sailboat,True
+198,103,school bus,True
+199,103,scorpion,True
+200,103,sea gull,True
+201,103,seal,True
+202,103,seashell,False
+203,103,seatbelt,False
+204,103,sewing machine,True
+205,103,shopping cart,True
+206,103,ski,True
+207,103,slide,True
+208,103,soccerball,False
+209,103,spotlight,True
+210,103,sprayer,True
+211,103,steering wheel,True
+212,103,surfing board,True
+213,103,swimsuit,False
+214,103,television,True
+215,103,tennis ball,True
+216,103,tile,True
+217,103,toilet,True
+218,103,traffic sign,True
+219,103,truck,True
+220,103,violin,True
+221,103,wheat,True
+222,103,whistle,True
+223,103,wine glass,True
+224,105,ATM,True
+225,105,ambulance,True
+226,105,apple,True
+227,105,banana,True
+228,105,beer,True
+229,105,bench,True
+230,105,binder clip,True
+231,105,book bag,True
+232,105,briefcase,True
+233,105,cabin,True
+234,105,cactus,True
+235,105,camel,True
+236,105,car,False
+237,105,cash register,True
+238,105,chalice,True
+239,105,chandelier,True
+240,105,cheeseburger,True
+241,105,clown,True
+242,105,cockroach,True
+243,105,coffee machine,True
+244,105,construction helmet,True
+245,105,cookie,True
+246,105,cow,True
+247,105,crib,True
+248,105,cross,True
+249,105,cutting board,True
+250,105,dining chair,True
+251,105,dining table,True
+252,105,display cabinet,True
+253,105,dog toy,True
+254,105,donut,True
+255,105,doorknob,True
+256,105,dragonfly,True
+257,105,dumb bell,True
+258,105,ferris wheel,True
+259,105,firetruck,True
+260,105,flower pot,True
+261,105,flowers,True
+262,105,football,True
+263,105,frame,True
+264,105,game token,True
+265,105,gas can,True
+266,105,gavel,True
+267,105,gift bag,True
+268,105,goggles,True
+269,105,golf club,True
+270,105,grill,True
+271,105,haircomb,False
+272,105,hairdryer,False
+273,105,helmet,False
+274,105,horse,False
+275,105,ice skate,True
+276,105,jeep,True
+277,105,kayak,True
+278,105,ladder,True
+279,105,laundry hamper,True
+280,105,lawn mower,True
+281,105,lei,True
+282,105,log,True
+283,105,loudspeaker,True
+284,105,mailbox,True
+285,105,microscope,True
+286,105,notebook,True
+287,105,office chair,True
+288,105,ostrich,True
+289,105,oversize tire,True
+290,105,palm tree,True
+291,105,piano,False
+292,105,picnic blanket,True
+293,105,pillow,True
+294,105,pine,True
+295,105,podium,True
+296,105,poker table,True
+297,105,polar bear,True
+298,105,police baton,True
+299,105,police car,False
+300,105,popcorn machine,True
+301,105,potted plant,True
+302,105,printer,True
+303,105,raft,True
+304,105,railroad,False
+305,105,reed,True
+306,105,religious statue,True
+307,105,rock-climbing shoe,True
+308,105,rollerskates,True
+309,105,rose,False
+310,105,ruler,True
+311,105,sailboat,True
+312,105,school bus,False
+313,105,scorpion,True
+314,105,sea gull,True
+315,105,seal,True
+316,105,seashell,True
+317,105,seatbelt,True
+318,105,sewing machine,True
+319,105,shopping cart,True
+320,105,ski,False
+321,105,slide,True
+322,105,soccerball,True
+323,105,spotlight,True
+324,105,sprayer,True
+325,105,steering wheel,True
+326,105,surfing board,True
+327,105,swimsuit,True
+328,105,television,False
+329,105,tennis ball,True
+330,105,tile,True
+331,105,toilet,True
+332,105,traffic sign,True
+333,105,truck,False
+334,105,violin,True
+335,105,wheat,True
+336,105,whistle,True
+337,105,wine glass,True
+338,106,ATM,False
+339,106,ambulance,True
+340,106,apple,False
+341,106,banana,False
+342,106,beer,False
+343,106,bench,True
+344,106,binder clip,True
+345,106,book bag,True
+346,106,briefcase,True
+347,106,cabin,False
+348,106,cactus,True
+349,106,camel,True
+350,106,car,True
+351,106,cash register,True
+352,106,chalice,True
+353,106,chandelier,False
+354,106,cheeseburger,False
+355,106,clown,True
+356,106,cockroach,True
+357,106,construction helmet,True
+358,106,cookie,True
+359,106,cow,True
+360,106,crib,False
+361,106,cross,False
+362,106,cutting board,False
+363,106,dining chair,True
+364,106,dining table,True
+365,106,display cabinet,True
+366,106,dog toy,True
+367,106,donut,False
+368,106,doorknob,False
+369,106,dragonfly,True
+370,106,dumb bell,True
+371,106,ferris wheel,True
+372,106,firetruck,False
+373,106,flower pot,True
+374,106,flowers,True
+375,106,football,True
+376,106,frame,True
+377,106,game token,True
+378,106,gas can,True
+379,106,gavel,True
+380,106,gift bag,True
+381,106,goggles,True
+382,106,golf club,True
+383,106,grill,False
+384,106,haircomb,True
+385,106,hairdryer,False
+386,106,helmet,True
+387,106,horse,False
+388,106,ice skate,True
+389,106,jeep,True
+390,106,kayak,True
+391,106,ladder,True
+392,106,laundry hamper,True
+393,106,lawn mower,True
+394,106,lei,True
+395,106,log,True
+396,106,loudspeaker,True
+397,106,mailbox,False
+398,106,microscope,True
+399,106,notebook,True
+400,106,office chair,True
+401,106,ostrich,True
+402,106,oversize tire,True
+403,106,palm tree,False
+404,106,piano,False
+405,106,picnic blanket,True
+406,106,pillow,False
+407,106,pine,True
+408,106,podium,True
+409,106,poker table,True
+410,106,polar bear,True
+411,106,police baton,True
+412,106,police car,True
+413,106,popcorn machine,True
+414,106,potted plant,True
+415,106,printer,False
+416,106,raft,True
+417,106,reed,True
+418,106,religious statue,True
+419,106,rock-climbing shoe,True
+420,106,rollerskates,True
+421,106,rose,True
+422,106,ruler,False
+423,106,sailboat,True
+424,106,school bus,False
+425,106,scorpion,True
+426,106,sea gull,True
+427,106,seal,False
+428,106,seashell,True
+429,106,seatbelt,True
+430,106,sewing machine,False
+431,106,shopping cart,True
+432,106,slide,True
+433,106,soccerball,False
+434,106,spotlight,True
+435,106,sprayer,True
+436,106,steering wheel,True
+437,106,surfing board,True
+438,106,swimsuit,True
+439,106,television,True
+440,106,tennis ball,True
+441,106,toilet,True
+442,106,traffic sign,True
+443,106,truck,True
+444,106,violin,True
+445,106,wheat,True
+446,106,whistle,True
+447,106,wine glass,False
+448,107,ATM,True
+449,107,ambulance,True
+450,107,apple,False
+451,107,banana,False
+452,107,beer,False
+453,107,bench,True
+454,107,binder clip,True
+455,107,book bag,True
+456,107,briefcase,True
+457,107,cabin,True
+458,107,cactus,True
+459,107,camel,True
+460,107,car,True
+461,107,cash register,True
+462,107,chalice,True
+463,107,chandelier,True
+464,107,cheeseburger,True
+465,107,clown,True
+466,107,cockroach,False
+467,107,coffee machine,True
+468,107,construction helmet,True
+469,107,cookie,True
+470,107,cow,False
+471,107,crib,True
+472,107,cross,True
+473,107,cutting board,True
+474,107,dining chair,True
+475,107,dining table,False
+476,107,display cabinet,False
+477,107,dog toy,True
+478,107,donut,True
+479,107,doorknob,True
+480,107,dragonfly,True
+481,107,dumb bell,False
+482,107,ferris wheel,True
+483,107,firetruck,True
+484,107,flower pot,True
+485,107,flowers,True
+486,107,football,False
+487,107,frame,True
+488,107,game token,True
+489,107,gas can,True
+490,107,gavel,True
+491,107,gift bag,True
+492,107,goggles,True
+493,107,golf club,True
+494,107,grill,True
+495,107,haircomb,False
+496,107,hairdryer,True
+497,107,helmet,True
+498,107,horse,True
+499,107,ice skate,True
+500,107,jeep,False
+501,107,kayak,True
+502,107,ladder,True
+503,107,laundry hamper,True
+504,107,lawn mower,True
+505,107,lei,False
+506,107,log,True
+507,107,loudspeaker,True
+508,107,mailbox,True
+509,107,microscope,False
+510,107,notebook,True
+511,107,office chair,True
+512,107,ostrich,True
+513,107,oversize tire,True
+514,107,palm tree,True
+515,107,piano,True
+516,107,picnic blanket,True
+517,107,pillow,True
+518,107,pine,True
+519,107,podium,True
+520,107,poker table,True
+521,107,polar bear,True
+522,107,police baton,True
+523,107,police car,True
+524,107,popcorn machine,True
+525,107,potted plant,True
+526,107,printer,True
+527,107,raft,True
+528,107,reed,True
+529,107,rock-climbing shoe,True
+530,107,rollerskates,True
+531,107,rose,True
+532,107,ruler,True
+533,107,sailboat,False
+534,107,school bus,True
+535,107,scorpion,True
+536,107,sea gull,True
+537,107,seal,True
+538,107,seashell,True
+539,107,sewing machine,True
+540,107,shopping cart,True
+541,107,ski,True
+542,107,slide,False
+543,107,soccerball,False
+544,107,spotlight,False
+545,107,sprayer,True
+546,107,steering wheel,True
+547,107,surfing board,True
+548,107,swimsuit,True
+549,107,television,True
+550,107,tennis ball,True
+551,107,tile,True
+552,107,toilet,True
+553,107,traffic sign,False
+554,107,truck,False
+555,107,violin,False
+556,107,wheat,True
+557,107,whistle,False
+558,107,wine glass,False
+559,108,ATM,True
+560,108,ambulance,True
+561,108,apple,False
+562,108,banana,True
+563,108,beer,True
+564,108,bench,True
+565,108,binder clip,True
+566,108,book bag,False
+567,108,briefcase,True
+568,108,cabin,True
+569,108,cactus,True
+570,108,camel,True
+571,108,car,True
+572,108,cash register,True
+573,108,chalice,True
+574,108,chandelier,True
+575,108,cheeseburger,True
+576,108,clown,True
+577,108,coffee machine,True
+578,108,construction helmet,True
+579,108,cookie,True
+580,108,cow,True
+581,108,crib,True
+582,108,cross,True
+583,108,cutting board,True
+584,108,dining chair,True
+585,108,dining table,True
+586,108,display cabinet,True
+587,108,dog toy,True
+588,108,donut,True
+589,108,doorknob,True
+590,108,dragonfly,False
+591,108,ferris wheel,True
+592,108,firetruck,True
+593,108,flower pot,True
+594,108,flowers,True
+595,108,football,True
+596,108,frame,True
+597,108,game token,True
+598,108,gas can,True
+599,108,gavel,True
+600,108,gift bag,True
+601,108,goggles,True
+602,108,golf club,True
+603,108,haircomb,True
+604,108,hairdryer,False
+605,108,helmet,True
+606,108,horse,True
+607,108,ice skate,True
+608,108,jeep,True
+609,108,kayak,True
+610,108,ladder,True
+611,108,laundry hamper,True
+612,108,lawn mower,True
+613,108,lei,True
+614,108,log,True
+615,108,loudspeaker,True
+616,108,mailbox,True
+617,108,microscope,True
+618,108,notebook,False
+619,108,office chair,True
+620,108,ostrich,True
+621,108,oversize tire,True
+622,108,palm tree,True
+623,108,piano,True
+624,108,picnic blanket,True
+625,108,pillow,True
+626,108,pine,True
+627,108,podium,True
+628,108,poker table,True
+629,108,polar bear,True
+630,108,police baton,True
+631,108,police car,True
+632,108,popcorn machine,True
+633,108,potted plant,True
+634,108,printer,True
+635,108,raft,True
+636,108,railroad,True
+637,108,reed,False
+638,108,religious statue,True
+639,108,rock-climbing shoe,True
+640,108,rollerskates,True
+641,108,rose,True
+642,108,ruler,True
+643,108,sailboat,True
+644,108,school bus,True
+645,108,scorpion,True
+646,108,sea gull,True
+647,108,seal,True
+648,108,seashell,True
+649,108,seatbelt,True
+650,108,sewing machine,True
+651,108,shopping cart,True
+652,108,ski,True
+653,108,slide,True
+654,108,soccerball,True
+655,108,spotlight,True
+656,108,sprayer,True
+657,108,steering wheel,True
+658,108,surfing board,True
+659,108,swimsuit,True
+660,108,television,True
+661,108,tennis ball,True
+662,108,tile,True
+663,108,toilet,True
+664,108,traffic sign,True
+665,108,truck,True
+666,108,violin,True
+667,108,wheat,True
+668,108,whistle,True
+669,108,wine glass,True
+670,110,ATM,False
+671,110,ambulance,True
+672,110,apple,True
+673,110,banana,False
+674,110,beer,False
+675,110,bench,False
+676,110,binder clip,True
+677,110,book bag,True
+678,110,briefcase,True
+679,110,cabin,True
+680,110,cactus,True
+681,110,camel,True
+682,110,car,True
+683,110,cash register,False
+684,110,chalice,False
+685,110,chandelier,True
+686,110,cheeseburger,False
+687,110,clown,True
+688,110,cockroach,True
+689,110,coffee machine,False
+690,110,construction helmet,False
+691,110,cookie,False
+692,110,cow,True
+693,110,crib,True
+694,110,cross,False
+695,110,cutting board,True
+696,110,dining chair,False
+697,110,dining table,True
+698,110,display cabinet,True
+699,110,dog toy,True
+700,110,donut,True
+701,110,doorknob,True
+702,110,dragonfly,True
+703,110,dumb bell,True
+704,110,ferris wheel,True
+705,110,firetruck,True
+706,110,flower pot,True
+707,110,flowers,True
+708,110,football,True
+709,110,frame,True
+710,110,game token,True
+711,110,gas can,False
+712,110,gavel,True
+713,110,gift bag,True
+714,110,goggles,True
+715,110,golf club,True
+716,110,grill,False
+717,110,haircomb,True
+718,110,hairdryer,True
+719,110,helmet,False
+720,110,horse,True
+721,110,ice skate,True
+722,110,jeep,True
+723,110,kayak,True
+724,110,ladder,True
+725,110,laundry hamper,True
+726,110,lawn mower,True
+727,110,lei,True
+728,110,log,False
+729,110,loudspeaker,False
+730,110,mailbox,True
+731,110,microscope,True
+732,110,notebook,False
+733,110,office chair,False
+734,110,ostrich,True
+735,110,oversize tire,True
+736,110,palm tree,False
+737,110,piano,True
+738,110,picnic blanket,True
+739,110,pillow,False
+740,110,pine,True
+741,110,podium,True
+742,110,poker table,True
+743,110,polar bear,True
+744,110,police baton,True
+745,110,police car,True
+746,110,popcorn machine,True
+747,110,potted plant,False
+748,110,printer,False
+749,110,raft,True
+750,110,railroad,True
+751,110,reed,True
+752,110,religious statue,True
+753,110,rock-climbing shoe,True
+754,110,rollerskates,True
+755,110,rose,True
+756,110,ruler,True
+757,110,sailboat,True
+758,110,school bus,True
+759,110,scorpion,True
+760,110,sea gull,True
+761,110,seal,True
+762,110,seashell,True
+763,110,seatbelt,True
+764,110,sewing machine,True
+765,110,shopping cart,True
+766,110,ski,True
+767,110,slide,True
+768,110,soccerball,False
+769,110,spotlight,True
+770,110,sprayer,True
+771,110,steering wheel,True
+772,110,surfing board,False
+773,110,swimsuit,True
+774,110,television,True
+775,110,tennis ball,True
+776,110,tile,True
+777,110,toilet,True
+778,110,traffic sign,True
+779,110,truck,True
+780,110,violin,True
+781,110,wheat,True
+782,110,whistle,True
+783,110,wine glass,True
+784,111,ATM,True
+785,111,ambulance,True
+786,111,apple,True
+787,111,banana,False
+788,111,beer,False
+789,111,bench,True
+790,111,binder clip,True
+791,111,briefcase,True
+792,111,cabin,True
+793,111,cactus,True
+794,111,camel,True
+795,111,cash register,True
+796,111,chalice,True
+797,111,cheeseburger,True
+798,111,clown,True
+799,111,cockroach,False
+800,111,coffee machine,True
+801,111,construction helmet,True
+802,111,cookie,True
+803,111,cow,True
+804,111,crib,True
+805,111,cross,True
+806,111,cutting board,True
+807,111,dining chair,True
+808,111,dining table,True
+809,111,display cabinet,True
+810,111,dog toy,True
+811,111,donut,True
+812,111,doorknob,True
+813,111,dragonfly,True
+814,111,dumb bell,False
+815,111,ferris wheel,False
+816,111,firetruck,True
+817,111,flower pot,True
+818,111,flowers,False
+819,111,frame,True
+820,111,game token,True
+821,111,gas can,True
+822,111,gavel,True
+823,111,gift bag,True
+824,111,goggles,True
+825,111,golf club,False
+826,111,grill,True
+827,111,haircomb,False
+828,111,hairdryer,False
+829,111,helmet,True
+830,111,horse,True
+831,111,ice skate,True
+832,111,jeep,False
+833,111,kayak,True
+834,111,laundry hamper,False
+835,111,lawn mower,True
+836,111,lei,True
+837,111,log,False
+838,111,loudspeaker,False
+839,111,microscope,True
+840,111,notebook,False
+841,111,office chair,True
+842,111,ostrich,True
+843,111,oversize tire,True
+844,111,picnic blanket,True
+845,111,pillow,False
+846,111,pine,True
+847,111,podium,True
+848,111,poker table,True
+849,111,polar bear,True
+850,111,police baton,True
+851,111,police car,False
+852,111,popcorn machine,False
+853,111,potted plant,True
+854,111,printer,True
+855,111,raft,True
+856,111,railroad,True
+857,111,reed,False
+858,111,religious statue,True
+859,111,rock-climbing shoe,True
+860,111,rollerskates,True
+861,111,rose,False
+862,111,ruler,True
+863,111,sailboat,True
+864,111,school bus,True
+865,111,scorpion,True
+866,111,sea gull,True
+867,111,seal,False
+868,111,seashell,True
+869,111,seatbelt,False
+870,111,sewing machine,True
+871,111,shopping cart,True
+872,111,ski,True
+873,111,slide,True
+874,111,soccerball,False
+875,111,spotlight,True
+876,111,sprayer,True
+877,111,steering wheel,True
+878,111,swimsuit,True
+879,111,television,False
+880,111,tennis ball,True
+881,111,tile,True
+882,111,toilet,True
+883,111,traffic sign,False
+884,111,truck,False
+885,111,violin,True
+886,111,wheat,True
+887,111,whistle,True
+888,111,wine glass,True
+889,112,ATM,True
+890,112,ambulance,True
+891,112,apple,True
+892,112,banana,True
+893,112,beer,True
+894,112,bench,True
+895,112,binder clip,True
+896,112,book bag,True
+897,112,briefcase,True
+898,112,cabin,True
+899,112,cactus,True
+900,112,camel,True
+901,112,car,True
+902,112,cash register,True
+903,112,chalice,True
+904,112,chandelier,True
+905,112,cheeseburger,True
+906,112,clown,True
+907,112,cockroach,True
+908,112,coffee machine,True
+909,112,construction helmet,True
+910,112,cookie,True
+911,112,cow,True
+912,112,crib,True
+913,112,cross,True
+914,112,cutting board,True
+915,112,dining chair,True
+916,112,dining table,True
+917,112,display cabinet,True
+918,112,dog toy,True
+919,112,donut,True
+920,112,doorknob,True
+921,112,dragonfly,True
+922,112,dumb bell,True
+923,112,ferris wheel,True
+924,112,firetruck,True
+925,112,flower pot,True
+926,112,flowers,True
+927,112,football,True
+928,112,frame,True
+929,112,game token,True
+930,112,gas can,True
+931,112,gavel,True
+932,112,gift bag,False
+933,112,goggles,True
+934,112,golf club,True
+935,112,grill,True
+936,112,haircomb,False
+937,112,hairdryer,True
+938,112,helmet,True
+939,112,horse,True
+940,112,ice skate,True
+941,112,jeep,True
+942,112,kayak,True
+943,112,ladder,True
+944,112,laundry hamper,True
+945,112,lawn mower,True
+946,112,lei,False
+947,112,log,True
+948,112,loudspeaker,False
+949,112,mailbox,True
+950,112,microscope,True
+951,112,notebook,False
+952,112,office chair,True
+953,112,ostrich,True
+954,112,palm tree,False
+955,112,piano,True
+956,112,picnic blanket,True
+957,112,pillow,False
+958,112,pine,True
+959,112,podium,True
+960,112,poker table,True
+961,112,polar bear,True
+962,112,police baton,True
+963,112,police car,True
+964,112,popcorn machine,True
+965,112,potted plant,True
+966,112,printer,True
+967,112,raft,True
+968,112,railroad,True
+969,112,reed,True
+970,112,religious statue,True
+971,112,rock-climbing shoe,True
+972,112,rollerskates,True
+973,112,rose,True
+974,112,ruler,True
+975,112,sailboat,False
+976,112,school bus,True
+977,112,scorpion,True
+978,112,sea gull,True
+979,112,seal,False
+980,112,seashell,False
+981,112,seatbelt,True
+982,112,sewing machine,True
+983,112,shopping cart,True
+984,112,ski,True
+985,112,slide,True
+986,112,soccerball,True
+987,112,spotlight,True
+988,112,sprayer,True
+989,112,steering wheel,True
+990,112,surfing board,True
+991,112,swimsuit,True
+992,112,television,True
+993,112,tennis ball,True
+994,112,tile,True
+995,112,toilet,False
+996,112,traffic sign,False
+997,112,truck,True
+998,112,violin,True
+999,112,wheat,True
+1000,112,whistle,True
+1001,112,wine glass,True
+1002,114,ATM,True
+1003,114,ambulance,False
+1004,114,apple,True
+1005,114,banana,True
+1006,114,beer,False
+1007,114,bench,True
+1008,114,binder clip,True
+1009,114,book bag,True
+1010,114,briefcase,True
+1011,114,cabin,True
+1012,114,cactus,True
+1013,114,camel,True
+1014,114,car,True
+1015,114,cash register,True
+1016,114,chalice,True
+1017,114,chandelier,True
+1018,114,cheeseburger,True
+1019,114,clown,True
+1020,114,cockroach,True
+1021,114,coffee machine,True
+1022,114,construction helmet,True
+1023,114,cookie,False
+1024,114,cow,True
+1025,114,crib,True
+1026,114,cross,True
+1027,114,cutting board,True
+1028,114,dining chair,True
+1029,114,dining table,True
+1030,114,display cabinet,True
+1031,114,dog toy,True
+1032,114,donut,True
+1033,114,doorknob,True
+1034,114,dragonfly,True
+1035,114,dumb bell,True
+1036,114,ferris wheel,True
+1037,114,firetruck,True
+1038,114,flower pot,True
+1039,114,flowers,True
+1040,114,football,True
+1041,114,frame,True
+1042,114,game token,True
+1043,114,gas can,True
+1044,114,gavel,True
+1045,114,gift bag,True
+1046,114,goggles,True
+1047,114,golf club,True
+1048,114,grill,True
+1049,114,haircomb,True
+1050,114,hairdryer,True
+1051,114,helmet,True
+1052,114,horse,False
+1053,114,ice skate,True
+1054,114,jeep,True
+1055,114,kayak,True
+1056,114,ladder,True
+1057,114,laundry hamper,True
+1058,114,lawn mower,True
+1059,114,lei,True
+1060,114,log,True
+1061,114,loudspeaker,True
+1062,114,mailbox,True
+1063,114,microscope,True
+1064,114,notebook,True
+1065,114,office chair,True
+1066,114,ostrich,True
+1067,114,oversize tire,True
+1068,114,palm tree,True
+1069,114,piano,False
+1070,114,picnic blanket,True
+1071,114,pillow,True
+1072,114,pine,False
+1073,114,podium,True
+1074,114,poker table,True
+1075,114,polar bear,True
+1076,114,police baton,True
+1077,114,police car,True
+1078,114,popcorn machine,True
+1079,114,potted plant,True
+1080,114,printer,True
+1081,114,raft,True
+1082,114,railroad,True
+1083,114,reed,True
+1084,114,religious statue,True
+1085,114,rock-climbing shoe,True
+1086,114,rollerskates,True
+1087,114,rose,True
+1088,114,ruler,True
+1089,114,sailboat,True
+1090,114,school bus,True
+1091,114,scorpion,True
+1092,114,sea gull,True
+1093,114,seal,False
+1094,114,seashell,True
+1095,114,seatbelt,True
+1096,114,sewing machine,True
+1097,114,shopping cart,True
+1098,114,ski,True
+1099,114,slide,True
+1100,114,soccerball,True
+1101,114,spotlight,True
+1102,114,sprayer,True
+1103,114,steering wheel,True
+1104,114,surfing board,False
+1105,114,swimsuit,True
+1106,114,television,True
+1107,114,tennis ball,True
+1108,114,tile,True
+1109,114,toilet,True
+1110,114,traffic sign,False
+1111,114,truck,False
+1112,114,violin,True
+1113,114,wheat,True
+1114,114,whistle,True
+1115,114,wine glass,True
+1116,116,ATM,True
+1117,116,ambulance,True
+1118,116,apple,False
+1119,116,banana,True
+1120,116,beer,False
+1121,116,bench,True
+1122,116,binder clip,True
+1123,116,book bag,True
+1124,116,briefcase,False
+1125,116,cabin,True
+1126,116,cactus,True
+1127,116,camel,True
+1128,116,car,True
+1129,116,cash register,True
+1130,116,chalice,True
+1131,116,chandelier,True
+1132,116,cheeseburger,False
+1133,116,clown,True
+1134,116,cockroach,True
+1135,116,coffee machine,False
+1136,116,construction helmet,True
+1137,116,cookie,True
+1138,116,cow,True
+1139,116,crib,True
+1140,116,cross,False
+1141,116,cutting board,True
+1142,116,dining chair,False
+1143,116,dining table,False
+1144,116,display cabinet,False
+1145,116,dog toy,True
+1146,116,donut,False
+1147,116,doorknob,False
+1148,116,dragonfly,False
+1149,116,dumb bell,True
+1150,116,ferris wheel,False
+1151,116,firetruck,True
+1152,116,flower pot,True
+1153,116,flowers,False
+1154,116,football,False
+1155,116,frame,False
+1156,116,game token,True
+1157,116,gas can,False
+1158,116,gavel,True
+1159,116,gift bag,False
+1160,116,goggles,True
+1161,116,golf club,False
+1162,116,grill,False
+1163,116,haircomb,True
+1164,116,hairdryer,False
+1165,116,helmet,True
+1166,116,horse,False
+1167,116,ice skate,False
+1168,116,jeep,False
+1169,116,kayak,False
+1170,116,ladder,True
+1171,116,laundry hamper,True
+1172,116,lawn mower,False
+1173,116,lei,True
+1174,116,log,True
+1175,116,loudspeaker,False
+1176,116,mailbox,False
+1177,116,microscope,True
+1178,116,notebook,True
+1179,116,office chair,True
+1180,116,ostrich,True
+1181,116,oversize tire,False
+1182,116,palm tree,True
+1183,116,piano,False
+1184,116,picnic blanket,False
+1185,116,pillow,False
+1186,116,pine,False
+1187,116,podium,False
+1188,116,poker table,True
+1189,116,polar bear,True
+1190,116,police baton,False
+1191,116,police car,True
+1192,116,popcorn machine,True
+1193,116,potted plant,False
+1194,116,printer,True
+1195,116,raft,False
+1196,116,railroad,True
+1197,116,reed,True
+1198,116,religious statue,False
+1199,116,rock-climbing shoe,True
+1200,116,rollerskates,True
+1201,116,rose,True
+1202,116,ruler,True
+1203,116,sailboat,True
+1204,116,school bus,True
+1205,116,scorpion,True
+1206,116,sea gull,True
+1207,116,seal,True
+1208,116,seashell,True
+1209,116,seatbelt,True
+1210,116,sewing machine,True
+1211,116,shopping cart,False
+1212,116,ski,True
+1213,116,slide,False
+1214,116,soccerball,True
+1215,116,spotlight,True
+1216,116,sprayer,True
+1217,116,steering wheel,True
+1218,116,surfing board,False
+1219,116,swimsuit,True
+1220,116,television,False
+1221,116,tennis ball,True
+1222,116,tile,True
+1223,116,toilet,True
+1224,116,traffic sign,False
+1225,116,truck,False
+1226,116,violin,True
+1227,116,wheat,True
+1228,116,whistle,False
+1229,116,wine glass,True
+1230,117,ATM,False
+1231,117,ambulance,True
+1232,117,apple,False
+1233,117,banana,True
+1234,117,beer,True
+1235,117,bench,True
+1236,117,binder clip,True
+1237,117,book bag,False
+1238,117,briefcase,True
+1239,117,cabin,False
+1240,117,cactus,True
+1241,117,camel,True
+1242,117,car,False
+1243,117,cash register,True
+1244,117,chalice,True
+1245,117,chandelier,True
+1246,117,cheeseburger,False
+1247,117,clown,True
+1248,117,cockroach,True
+1249,117,coffee machine,False
+1250,117,construction helmet,True
+1251,117,cookie,False
+1252,117,cow,True
+1253,117,crib,False
+1254,117,cross,True
+1255,117,cutting board,False
+1256,117,dining chair,True
+1257,117,dining table,True
+1258,117,display cabinet,True
+1259,117,dog toy,True
+1260,117,donut,False
+1261,117,doorknob,False
+1262,117,dragonfly,True
+1263,117,dumb bell,True
+1264,117,ferris wheel,True
+1265,117,firetruck,False
+1266,117,flower pot,False
+1267,117,flowers,False
+1268,117,football,False
+1269,117,frame,False
+1270,117,game token,True
+1271,117,gas can,True
+1272,117,gavel,True
+1273,117,gift bag,True
+1274,117,goggles,True
+1275,117,golf club,True
+1276,117,grill,False
+1277,117,haircomb,False
+1278,117,hairdryer,True
+1279,117,helmet,True
+1280,117,horse,True
+1281,117,ice skate,True
+1282,117,jeep,True
+1283,117,kayak,False
+1284,117,ladder,True
+1285,117,laundry hamper,True
+1286,117,lawn mower,True
+1287,117,lei,True
+1288,117,log,True
+1289,117,loudspeaker,True
+1290,117,mailbox,False
+1291,117,microscope,True
+1292,117,notebook,True
+1293,117,office chair,True
+1294,117,ostrich,True
+1295,117,oversize tire,True
+1296,117,palm tree,True
+1297,117,piano,False
+1298,117,picnic blanket,False
+1299,117,pillow,False
+1300,117,pine,True
+1301,117,podium,True
+1302,117,poker table,True
+1303,117,polar bear,True
+1304,117,police baton,True
+1305,117,police car,False
+1306,117,popcorn machine,False
+1307,117,potted plant,False
+1308,117,printer,False
+1309,117,raft,True
+1310,117,railroad,True
+1311,117,reed,True
+1312,117,religious statue,True
+1313,117,rock-climbing shoe,True
+1314,117,rollerskates,True
+1315,117,rose,False
+1316,117,ruler,True
+1317,117,sailboat,True
+1318,117,school bus,False
+1319,117,scorpion,True
+1320,117,sea gull,False
+1321,117,seal,True
+1322,117,seashell,True
+1323,117,seatbelt,False
+1324,117,sewing machine,False
+1325,117,shopping cart,True
+1326,117,ski,True
+1327,117,slide,False
+1328,117,soccerball,True
+1329,117,spotlight,True
+1330,117,sprayer,True
+1331,117,steering wheel,True
+1332,117,surfing board,True
+1333,117,swimsuit,False
+1334,117,television,False
+1335,117,tennis ball,False
+1336,117,tile,True
+1337,117,toilet,True
+1338,117,traffic sign,False
+1339,117,truck,False
+1340,117,violin,True
+1341,117,wheat,True
+1342,117,whistle,True
+1343,117,wine glass,True
+1344,120,ATM,False
+1345,120,ambulance,False
+1346,120,apple,False
+1347,120,banana,False
+1348,120,beer,False
+1349,120,bench,True
+1350,120,binder clip,False
+1351,120,book bag,True
+1352,120,briefcase,False
+1353,120,cabin,True
+1354,120,cactus,True
+1355,120,camel,True
+1356,120,car,False
+1357,120,cash register,True
+1358,120,chalice,False
+1359,120,chandelier,True
+1360,120,cheeseburger,False
+1361,120,clown,True
+1362,120,cockroach,True
+1363,120,coffee machine,False
+1364,120,construction helmet,True
+1365,120,cookie,False
+1366,120,cow,True
+1367,120,crib,False
+1368,120,cross,True
+1369,120,cutting board,False
+1370,120,dining chair,True
+1371,120,dining table,True
+1372,120,display cabinet,False
+1373,120,dog toy,True
+1374,120,donut,True
+1375,120,doorknob,True
+1376,120,dragonfly,True
+1377,120,dumb bell,True
+1378,120,ferris wheel,False
+1379,120,firetruck,False
+1380,120,flower pot,True
+1381,120,flowers,True
+1382,120,football,False
+1383,120,frame,True
+1384,120,game token,True
+1385,120,gas can,False
+1386,120,gavel,False
+1387,120,gift bag,True
+1388,120,goggles,True
+1389,120,golf club,True
+1390,120,grill,True
+1391,120,haircomb,True
+1392,120,hairdryer,True
+1393,120,helmet,True
+1394,120,horse,True
+1395,120,ice skate,True
+1396,120,jeep,False
+1397,120,kayak,True
+1398,120,ladder,True
+1399,120,laundry hamper,False
+1400,120,lawn mower,False
+1401,120,lei,True
+1402,120,log,False
+1403,120,loudspeaker,False
+1404,120,mailbox,True
+1405,120,microscope,True
+1406,120,notebook,True
+1407,120,office chair,True
+1408,120,ostrich,False
+1409,120,oversize tire,False
+1410,120,palm tree,True
+1411,120,piano,False
+1412,120,picnic blanket,True
+1413,120,pillow,True
+1414,120,pine,True
+1415,120,podium,False
+1416,120,poker table,False
+1417,120,polar bear,True
+1418,120,police baton,True
+1419,120,police car,True
+1420,120,popcorn machine,True
+1421,120,potted plant,True
+1422,120,printer,True
+1423,120,raft,True
+1424,120,railroad,True
+1425,120,reed,True
+1426,120,religious statue,False
+1427,120,rock-climbing shoe,True
+1428,120,rollerskates,False
+1429,120,rose,False
+1430,120,ruler,False
+1431,120,sailboat,True
+1432,120,school bus,True
+1433,120,scorpion,True
+1434,120,sea gull,True
+1435,120,seal,True
+1436,120,seashell,True
+1437,120,seatbelt,True
+1438,120,sewing machine,False
+1439,120,shopping cart,False
+1440,120,ski,True
+1441,120,slide,True
+1442,120,soccerball,True
+1443,120,spotlight,True
+1444,120,sprayer,True
+1445,120,steering wheel,True
+1446,120,surfing board,False
+1447,120,swimsuit,True
+1448,120,television,True
+1449,120,tennis ball,True
+1450,120,tile,True
+1451,120,toilet,True
+1452,120,traffic sign,False
+1453,120,truck,True
+1454,120,violin,True
+1455,120,wheat,True
+1456,120,whistle,True
+1457,120,wine glass,False
+1458,123,ATM,True
+1459,123,ambulance,True
+1460,123,banana,True
+1461,123,beer,True
+1462,123,bench,True
+1463,123,binder clip,True
+1464,123,book bag,False
+1465,123,briefcase,True
+1466,123,cabin,True
+1467,123,camel,True
+1468,123,car,False
+1469,123,cash register,True
+1470,123,chalice,True
+1471,123,chandelier,True
+1472,123,cheeseburger,False
+1473,123,clown,True
+1474,123,construction helmet,True
+1475,123,cookie,True
+1476,123,cow,True
+1477,123,cross,True
+1478,123,cutting board,True
+1479,123,dining chair,True
+1480,123,dining table,True
+1481,123,display cabinet,True
+1482,123,donut,False
+1483,123,doorknob,True
+1484,123,dragonfly,True
+1485,123,dumb bell,True
+1486,123,flower pot,True
+1487,123,flowers,True
+1488,123,football,True
+1489,123,frame,True
+1490,123,game token,True
+1491,123,gas can,True
+1492,123,gavel,True
+1493,123,gift bag,True
+1494,123,goggles,False
+1495,123,golf club,True
+1496,123,grill,True
+1497,123,haircomb,True
+1498,123,helmet,True
+1499,123,horse,True
+1500,123,ice skate,True
+1501,123,jeep,True
+1502,123,kayak,False
+1503,123,ladder,True
+1504,123,lawn mower,True
+1505,123,lei,True
+1506,123,log,False
+1507,123,loudspeaker,True
+1508,123,mailbox,True
+1509,123,microscope,True
+1510,123,notebook,True
+1511,123,office chair,True
+1512,123,ostrich,True
+1513,123,palm tree,True
+1514,123,picnic blanket,True
+1515,123,pillow,True
+1516,123,pine,True
+1517,123,podium,True
+1518,123,poker table,True
+1519,123,polar bear,True
+1520,123,police baton,True
+1521,123,police car,True
+1522,123,popcorn machine,True
+1523,123,potted plant,True
+1524,123,printer,True
+1525,123,raft,True
+1526,123,railroad,True
+1527,123,reed,True
+1528,123,religious statue,True
+1529,123,rock-climbing shoe,True
+1530,123,rollerskates,True
+1531,123,rose,True
+1532,123,ruler,True
+1533,123,school bus,False
+1534,123,scorpion,True
+1535,123,sea gull,True
+1536,123,seal,True
+1537,123,seashell,True
+1538,123,seatbelt,True
+1539,123,sewing machine,True
+1540,123,shopping cart,True
+1541,123,ski,True
+1542,123,slide,True
+1543,123,soccerball,True
+1544,123,spotlight,True
+1545,123,sprayer,False
+1546,123,steering wheel,True
+1547,123,surfing board,True
+1548,123,swimsuit,True
+1549,123,tennis ball,True
+1550,123,tile,True
+1551,123,toilet,True
+1552,123,traffic sign,True
+1553,123,truck,True
+1554,123,wheat,True
+1555,123,whistle,True
+1556,123,wine glass,True
+1557,124,ATM,True
+1558,124,ambulance,True
+1559,124,apple,True
+1560,124,banana,False
+1561,124,beer,False
+1562,124,bench,True
+1563,124,binder clip,False
+1564,124,book bag,False
+1565,124,briefcase,True
+1566,124,cabin,True
+1567,124,cactus,True
+1568,124,camel,False
+1569,124,car,False
+1570,124,cash register,True
+1571,124,chalice,True
+1572,124,chandelier,True
+1573,124,cheeseburger,False
+1574,124,clown,True
+1575,124,cockroach,True
+1576,124,coffee machine,True
+1577,124,cookie,False
+1578,124,cow,True
+1579,124,crib,True
+1580,124,cross,True
+1581,124,cutting board,False
+1582,124,dining chair,True
+1583,124,dining table,False
+1584,124,display cabinet,True
+1585,124,dog toy,False
+1586,124,donut,False
+1587,124,doorknob,False
+1588,124,dragonfly,True
+1589,124,dumb bell,True
+1590,124,ferris wheel,True
+1591,124,firetruck,True
+1592,124,flower pot,False
+1593,124,flowers,False
+1594,124,frame,False
+1595,124,game token,True
+1596,124,gas can,True
+1597,124,gavel,True
+1598,124,gift bag,True
+1599,124,goggles,False
+1600,124,golf club,True
+1601,124,grill,False
+1602,124,haircomb,True
+1603,124,hairdryer,False
+1604,124,helmet,False
+1605,124,horse,True
+1606,124,ice skate,True
+1607,124,jeep,True
+1608,124,kayak,True
+1609,124,ladder,False
+1610,124,laundry hamper,True
+1611,124,lawn mower,True
+1612,124,log,False
+1613,124,loudspeaker,False
+1614,124,microscope,False
+1615,124,notebook,False
+1616,124,office chair,True
+1617,124,ostrich,True
+1618,124,oversize tire,True
+1619,124,piano,True
+1620,124,picnic blanket,True
+1621,124,pillow,True
+1622,124,pine,True
+1623,124,podium,True
+1624,124,poker table,False
+1625,124,police car,False
+1626,124,popcorn machine,True
+1627,124,potted plant,False
+1628,124,printer,False
+1629,124,raft,True
+1630,124,railroad,True
+1631,124,reed,True
+1632,124,religious statue,True
+1633,124,rock-climbing shoe,False
+1634,124,rollerskates,True
+1635,124,rose,False
+1636,124,ruler,True
+1637,124,sailboat,True
+1638,124,school bus,True
+1639,124,scorpion,False
+1640,124,sea gull,False
+1641,124,seashell,True
+1642,124,seatbelt,True
+1643,124,sewing machine,False
+1644,124,shopping cart,True
+1645,124,ski,False
+1646,124,slide,True
+1647,124,soccerball,False
+1648,124,spotlight,False
+1649,124,steering wheel,False
+1650,124,surfing board,False
+1651,124,swimsuit,True
+1652,124,television,True
+1653,124,tennis ball,True
+1654,124,tile,True
+1655,124,toilet,True
+1656,124,traffic sign,True
+1657,124,truck,False
+1658,124,violin,True
+1659,124,wheat,True
+1660,124,whistle,False
+1661,125,ATM,True
+1662,125,ambulance,True
+1663,125,apple,True
+1664,125,banana,True
+1665,125,beer,False
+1666,125,bench,False
+1667,125,binder clip,False
+1668,125,book bag,True
+1669,125,briefcase,True
+1670,125,cabin,False
+1671,125,cactus,False
+1672,125,camel,True
+1673,125,car,True
+1674,125,cash register,True
+1675,125,chalice,True
+1676,125,chandelier,True
+1677,125,cheeseburger,False
+1678,125,clown,True
+1679,125,cockroach,True
+1680,125,coffee machine,False
+1681,125,construction helmet,True
+1682,125,cookie,True
+1683,125,cow,True
+1684,125,crib,True
+1685,125,cross,True
+1686,125,cutting board,False
+1687,125,dining chair,True
+1688,125,dining table,True
+1689,125,display cabinet,False
+1690,125,dog toy,True
+1691,125,donut,True
+1692,125,doorknob,True
+1693,125,dragonfly,True
+1694,125,dumb bell,True
+1695,125,ferris wheel,True
+1696,125,firetruck,True
+1697,125,flower pot,True
+1698,125,flowers,True
+1699,125,football,True
+1700,125,frame,False
+1701,125,game token,True
+1702,125,gas can,True
+1703,125,gavel,False
+1704,125,gift bag,True
+1705,125,goggles,True
+1706,125,golf club,True
+1707,125,grill,False
+1708,125,haircomb,True
+1709,125,hairdryer,True
+1710,125,helmet,True
+1711,125,ice skate,True
+1712,125,jeep,False
+1713,125,kayak,True
+1714,125,ladder,True
+1715,125,laundry hamper,False
+1716,125,lawn mower,False
+1717,125,lei,True
+1718,125,log,False
+1719,125,loudspeaker,False
+1720,125,mailbox,False
+1721,125,microscope,True
+1722,125,office chair,False
+1723,125,ostrich,True
+1724,125,oversize tire,False
+1725,125,palm tree,True
+1726,125,piano,True
+1727,125,picnic blanket,True
+1728,125,pillow,False
+1729,125,pine,True
+1730,125,podium,True
+1731,125,poker table,True
+1732,125,polar bear,True
+1733,125,police baton,True
+1734,125,police car,True
+1735,125,popcorn machine,False
+1736,125,potted plant,True
+1737,125,printer,False
+1738,125,raft,True
+1739,125,railroad,True
+1740,125,reed,False
+1741,125,religious statue,True
+1742,125,rock-climbing shoe,True
+1743,125,rollerskates,True
+1744,125,rose,False
+1745,125,ruler,True
+1746,125,sailboat,True
+1747,125,school bus,True
+1748,125,scorpion,True
+1749,125,sea gull,False
+1750,125,seal,True
+1751,125,seashell,True
+1752,125,seatbelt,True
+1753,125,sewing machine,True
+1754,125,shopping cart,True
+1755,125,ski,True
+1756,125,slide,True
+1757,125,soccerball,True
+1758,125,spotlight,True
+1759,125,sprayer,False
+1760,125,steering wheel,False
+1761,125,surfing board,True
+1762,125,swimsuit,False
+1763,125,television,True
+1764,125,tennis ball,True
+1765,125,tile,False
+1766,125,toilet,True
+1767,125,traffic sign,False
+1768,125,truck,True
+1769,125,violin,False
+1770,125,wheat,False
+1771,125,whistle,True
+1772,125,wine glass,True
+1773,126,ATM,True
+1774,126,ambulance,False
+1775,126,apple,False
+1776,126,banana,False
+1777,126,beer,True
+1778,126,bench,False
+1779,126,binder clip,True
+1780,126,book bag,False
+1781,126,briefcase,True
+1782,126,cabin,True
+1783,126,cactus,True
+1784,126,camel,True
+1785,126,car,False
+1786,126,cash register,True
+1787,126,chalice,True
+1788,126,chandelier,True
+1789,126,cheeseburger,False
+1790,126,clown,True
+1791,126,cockroach,True
+1792,126,coffee machine,True
+1793,126,construction helmet,True
+1794,126,cookie,True
+1795,126,cow,False
+1796,126,crib,False
+1797,126,cross,True
+1798,126,cutting board,True
+1799,126,dining chair,True
+1800,126,dining table,True
+1801,126,display cabinet,True
+1802,126,dog toy,True
+1803,126,donut,True
+1804,126,doorknob,True
+1805,126,dragonfly,True
+1806,126,dumb bell,True
+1807,126,ferris wheel,True
+1808,126,firetruck,True
+1809,126,flower pot,True
+1810,126,flowers,True
+1811,126,football,True
+1812,126,frame,True
+1813,126,game token,False
+1814,126,gas can,True
+1815,126,gavel,True
+1816,126,gift bag,True
+1817,126,goggles,True
+1818,126,golf club,True
+1819,126,grill,True
+1820,126,haircomb,False
+1821,126,hairdryer,False
+1822,126,helmet,True
+1823,126,horse,True
+1824,126,ice skate,True
+1825,126,jeep,True
+1826,126,kayak,True
+1827,126,ladder,True
+1828,126,laundry hamper,False
+1829,126,lawn mower,True
+1830,126,lei,True
+1831,126,log,False
+1832,126,loudspeaker,True
+1833,126,mailbox,False
+1834,126,microscope,True
+1835,126,notebook,False
+1836,126,office chair,True
+1837,126,ostrich,False
+1838,126,oversize tire,True
+1839,126,palm tree,True
+1840,126,piano,True
+1841,126,picnic blanket,True
+1842,126,pillow,False
+1843,126,pine,False
+1844,126,podium,True
+1845,126,poker table,True
+1846,126,polar bear,True
+1847,126,police baton,True
+1848,126,police car,False
+1849,126,popcorn machine,True
+1850,126,potted plant,True
+1851,126,printer,True
+1852,126,raft,True
+1853,126,railroad,True
+1854,126,reed,True
+1855,126,religious statue,True
+1856,126,rock-climbing shoe,True
+1857,126,rollerskates,False
+1858,126,rose,False
+1859,126,ruler,False
+1860,126,sailboat,True
+1861,126,school bus,False
+1862,126,scorpion,True
+1863,126,sea gull,True
+1864,126,seal,True
+1865,126,seashell,False
+1866,126,seatbelt,True
+1867,126,sewing machine,False
+1868,126,shopping cart,True
+1869,126,ski,True
+1870,126,slide,True
+1871,126,soccerball,False
+1872,126,spotlight,True
+1873,126,sprayer,False
+1874,126,steering wheel,True
+1875,126,surfing board,False
+1876,126,swimsuit,False
+1877,126,television,False
+1878,126,tennis ball,True
+1879,126,tile,True
+1880,126,toilet,False
+1881,126,traffic sign,False
+1882,126,truck,True
+1883,126,violin,False
+1884,126,wheat,True
+1885,126,whistle,True
+1886,126,wine glass,True
+1887,127,ATM,True
+1888,127,ambulance,True
+1889,127,apple,True
+1890,127,banana,True
+1891,127,beer,True
+1892,127,bench,True
+1893,127,binder clip,True
+1894,127,book bag,True
+1895,127,briefcase,True
+1896,127,cabin,True
+1897,127,cactus,True
+1898,127,camel,True
+1899,127,car,False
+1900,127,cash register,True
+1901,127,chalice,True
+1902,127,chandelier,True
+1903,127,cheeseburger,True
+1904,127,clown,True
+1905,127,cockroach,True
+1906,127,coffee machine,True
+1907,127,cookie,True
+1908,127,cow,True
+1909,127,crib,True
+1910,127,cross,True
+1911,127,cutting board,True
+1912,127,dining table,False
+1913,127,display cabinet,True
+1914,127,dog toy,True
+1915,127,donut,False
+1916,127,doorknob,True
+1917,127,dragonfly,True
+1918,127,dumb bell,True
+1919,127,ferris wheel,True
+1920,127,firetruck,True
+1921,127,flower pot,True
+1922,127,flowers,True
+1923,127,football,True
+1924,127,frame,True
+1925,127,game token,True
+1926,127,gas can,True
+1927,127,gavel,True
+1928,127,gift bag,True
+1929,127,goggles,False
+1930,127,golf club,True
+1931,127,grill,True
+1932,127,haircomb,True
+1933,127,hairdryer,True
+1934,127,helmet,False
+1935,127,horse,True
+1936,127,ice skate,True
+1937,127,jeep,True
+1938,127,kayak,True
+1939,127,ladder,True
+1940,127,laundry hamper,True
+1941,127,lawn mower,True
+1942,127,lei,True
+1943,127,log,True
+1944,127,loudspeaker,True
+1945,127,mailbox,True
+1946,127,microscope,True
+1947,127,notebook,True
+1948,127,office chair,True
+1949,127,ostrich,False
+1950,127,oversize tire,True
+1951,127,palm tree,True
+1952,127,piano,True
+1953,127,picnic blanket,True
+1954,127,pillow,False
+1955,127,pine,False
+1956,127,podium,True
+1957,127,poker table,True
+1958,127,polar bear,True
+1959,127,police baton,True
+1960,127,police car,True
+1961,127,popcorn machine,True
+1962,127,potted plant,True
+1963,127,printer,False
+1964,127,raft,True
+1965,127,railroad,True
+1966,127,reed,True
+1967,127,religious statue,True
+1968,127,rock-climbing shoe,True
+1969,127,rose,True
+1970,127,ruler,True
+1971,127,sailboat,False
+1972,127,school bus,True
+1973,127,scorpion,True
+1974,127,sea gull,True
+1975,127,seal,True
+1976,127,seashell,True
+1977,127,seatbelt,True
+1978,127,sewing machine,True
+1979,127,shopping cart,True
+1980,127,ski,False
+1981,127,slide,True
+1982,127,soccerball,True
+1983,127,spotlight,True
+1984,127,sprayer,False
+1985,127,steering wheel,True
+1986,127,surfing board,True
+1987,127,swimsuit,True
+1988,127,television,True
+1989,127,tennis ball,True
+1990,127,tile,True
+1991,127,toilet,True
+1992,127,traffic sign,True
+1993,127,truck,True
+1994,127,violin,True
+1995,127,wheat,True
+1996,127,whistle,True
+1997,127,wine glass,True
+1998,128,ATM,True
+1999,128,ambulance,False
+2000,128,apple,True
+2001,128,banana,True
+2002,128,beer,False
+2003,128,bench,False
+2004,128,binder clip,True
+2005,128,book bag,True
+2006,128,briefcase,True
+2007,128,cabin,True
+2008,128,cactus,True
+2009,128,camel,True
+2010,128,car,False
+2011,128,cash register,True
+2012,128,chalice,True
+2013,128,chandelier,True
+2014,128,cheeseburger,True
+2015,128,clown,True
+2016,128,cockroach,False
+2017,128,coffee machine,True
+2018,128,construction helmet,True
+2019,128,cookie,True
+2020,128,cow,False
+2021,128,crib,True
+2022,128,cross,False
+2023,128,cutting board,True
+2024,128,dining chair,False
+2025,128,dining table,True
+2026,128,display cabinet,False
+2027,128,dog toy,True
+2028,128,donut,True
+2029,128,doorknob,True
+2030,128,dragonfly,False
+2031,128,dumb bell,True
+2032,128,ferris wheel,True
+2033,128,firetruck,True
+2034,128,flower pot,True
+2035,128,flowers,False
+2036,128,football,True
+2037,128,frame,True
+2038,128,game token,True
+2039,128,gas can,True
+2040,128,gavel,True
+2041,128,gift bag,True
+2042,128,goggles,True
+2043,128,golf club,True
+2044,128,grill,True
+2045,128,haircomb,True
+2046,128,hairdryer,True
+2047,128,helmet,False
+2048,128,horse,True
+2049,128,ice skate,False
+2050,128,jeep,True
+2051,128,kayak,True
+2052,128,ladder,True
+2053,128,laundry hamper,False
+2054,128,lawn mower,True
+2055,128,lei,True
+2056,128,log,True
+2057,128,loudspeaker,True
+2058,128,mailbox,False
+2059,128,microscope,True
+2060,128,notebook,True
+2061,128,office chair,False
+2062,128,ostrich,True
+2063,128,oversize tire,True
+2064,128,palm tree,True
+2065,128,piano,True
+2066,128,picnic blanket,True
+2067,128,pillow,True
+2068,128,pine,False
+2069,128,podium,True
+2070,128,poker table,True
+2071,128,polar bear,True
+2072,128,police baton,True
+2073,128,police car,True
+2074,128,popcorn machine,True
+2075,128,potted plant,True
+2076,128,printer,True
+2077,128,raft,True
+2078,128,railroad,True
+2079,128,reed,True
+2080,128,religious statue,False
+2081,128,rock-climbing shoe,True
+2082,128,rollerskates,True
+2083,128,rose,True
+2084,128,ruler,True
+2085,128,sailboat,True
+2086,128,school bus,True
+2087,128,scorpion,True
+2088,128,sea gull,True
+2089,128,seal,True
+2090,128,seashell,True
+2091,128,seatbelt,True
+2092,128,sewing machine,True
+2093,128,shopping cart,True
+2094,128,ski,False
+2095,128,slide,True
+2096,128,soccerball,True
+2097,128,spotlight,True
+2098,128,sprayer,True
+2099,128,steering wheel,True
+2100,128,surfing board,True
+2101,128,swimsuit,True
+2102,128,television,True
+2103,128,tennis ball,True
+2104,128,tile,False
+2105,128,toilet,True
+2106,128,traffic sign,False
+2107,128,truck,True
+2108,128,violin,True
+2109,128,wheat,True
+2110,128,whistle,True
+2111,128,wine glass,True
+2112,130,ATM,False
+2113,130,ambulance,True
+2114,130,apple,True
+2115,130,banana,False
+2116,130,beer,False
+2117,130,bench,True
+2118,130,binder clip,True
+2119,130,book bag,True
+2120,130,briefcase,True
+2121,130,cabin,True
+2122,130,cactus,True
+2123,130,camel,True
+2124,130,car,False
+2125,130,cash register,True
+2126,130,chalice,True
+2127,130,chandelier,True
+2128,130,cheeseburger,True
+2129,130,clown,True
+2130,130,cockroach,True
+2131,130,coffee machine,False
+2132,130,construction helmet,True
+2133,130,cookie,True
+2134,130,cow,True
+2135,130,crib,True
+2136,130,cross,True
+2137,130,cutting board,False
+2138,130,dining chair,True
+2139,130,dining table,True
+2140,130,display cabinet,True
+2141,130,dog toy,True
+2142,130,donut,False
+2143,130,doorknob,True
+2144,130,dragonfly,True
+2145,130,dumb bell,True
+2146,130,ferris wheel,True
+2147,130,firetruck,True
+2148,130,flower pot,True
+2149,130,flowers,True
+2150,130,football,True
+2151,130,frame,False
+2152,130,game token,True
+2153,130,gas can,False
+2154,130,gavel,True
+2155,130,gift bag,False
+2156,130,goggles,True
+2157,130,golf club,True
+2158,130,grill,True
+2159,130,haircomb,True
+2160,130,hairdryer,True
+2161,130,horse,True
+2162,130,ice skate,True
+2163,130,jeep,True
+2164,130,kayak,True
+2165,130,ladder,True
+2166,130,laundry hamper,False
+2167,130,lawn mower,False
+2168,130,lei,True
+2169,130,log,False
+2170,130,loudspeaker,True
+2171,130,mailbox,True
+2172,130,microscope,True
+2173,130,notebook,True
+2174,130,office chair,True
+2175,130,ostrich,True
+2176,130,oversize tire,True
+2177,130,palm tree,True
+2178,130,piano,False
+2179,130,picnic blanket,False
+2180,130,pillow,False
+2181,130,pine,True
+2182,130,podium,True
+2183,130,poker table,True
+2184,130,polar bear,True
+2185,130,police baton,True
+2186,130,police car,True
+2187,130,popcorn machine,True
+2188,130,potted plant,True
+2189,130,printer,False
+2190,130,raft,False
+2191,130,railroad,False
+2192,130,reed,True
+2193,130,religious statue,True
+2194,130,rock-climbing shoe,True
+2195,130,rollerskates,True
+2196,130,rose,False
+2197,130,ruler,True
+2198,130,sailboat,True
+2199,130,school bus,False
+2200,130,scorpion,True
+2201,130,sea gull,True
+2202,130,seal,True
+2203,130,seashell,False
+2204,130,seatbelt,True
+2205,130,sewing machine,True
+2206,130,shopping cart,False
+2207,130,ski,True
+2208,130,slide,True
+2209,130,soccerball,False
+2210,130,spotlight,False
+2211,130,sprayer,True
+2212,130,steering wheel,True
+2213,130,surfing board,True
+2214,130,swimsuit,True
+2215,130,television,True
+2216,130,tennis ball,False
+2217,130,tile,False
+2218,130,toilet,True
+2219,130,traffic sign,True
+2220,130,truck,False
+2221,130,violin,True
+2222,130,wheat,True
+2223,130,whistle,True
+2224,130,wine glass,False
+2225,132,ATM,True
+2226,132,ambulance,True
+2227,132,apple,True
+2228,132,banana,False
+2229,132,beer,False
+2230,132,bench,True
+2231,132,binder clip,True
+2232,132,book bag,True
+2233,132,briefcase,True
+2234,132,cabin,True
+2235,132,cactus,True
+2236,132,camel,True
+2237,132,car,True
+2238,132,cash register,True
+2239,132,chalice,True
+2240,132,chandelier,True
+2241,132,cheeseburger,True
+2242,132,clown,True
+2243,132,cockroach,True
+2244,132,coffee machine,True
+2245,132,construction helmet,True
+2246,132,cookie,True
+2247,132,cow,True
+2248,132,crib,True
+2249,132,cross,True
+2250,132,cutting board,True
+2251,132,dining chair,True
+2252,132,dining table,True
+2253,132,display cabinet,False
+2254,132,dog toy,True
+2255,132,donut,False
+2256,132,doorknob,True
+2257,132,dragonfly,True
+2258,132,dumb bell,True
+2259,132,ferris wheel,True
+2260,132,firetruck,True
+2261,132,flower pot,True
+2262,132,flowers,True
+2263,132,football,True
+2264,132,frame,True
+2265,132,game token,True
+2266,132,gas can,True
+2267,132,gavel,True
+2268,132,gift bag,True
+2269,132,goggles,True
+2270,132,golf club,True
+2271,132,grill,False
+2272,132,haircomb,False
+2273,132,hairdryer,True
+2274,132,helmet,True
+2275,132,horse,True
+2276,132,ice skate,True
+2277,132,jeep,False
+2278,132,kayak,True
+2279,132,ladder,True
+2280,132,laundry hamper,True
+2281,132,lawn mower,True
+2282,132,lei,True
+2283,132,log,True
+2284,132,loudspeaker,True
+2285,132,mailbox,True
+2286,132,microscope,True
+2287,132,notebook,True
+2288,132,office chair,True
+2289,132,ostrich,True
+2290,132,oversize tire,True
+2291,132,palm tree,True
+2292,132,piano,False
+2293,132,picnic blanket,True
+2294,132,pillow,False
+2295,132,pine,True
+2296,132,podium,True
+2297,132,poker table,True
+2298,132,polar bear,True
+2299,132,police baton,True
+2300,132,police car,True
+2301,132,popcorn machine,True
+2302,132,potted plant,True
+2303,132,printer,True
+2304,132,raft,True
+2305,132,railroad,False
+2306,132,reed,True
+2307,132,religious statue,True
+2308,132,rock-climbing shoe,True
+2309,132,rollerskates,True
+2310,132,rose,False
+2311,132,ruler,True
+2312,132,sailboat,True
+2313,132,school bus,True
+2314,132,scorpion,True
+2315,132,sea gull,True
+2316,132,seal,True
+2317,132,seashell,True
+2318,132,seatbelt,True
+2319,132,sewing machine,False
+2320,132,shopping cart,True
+2321,132,ski,True
+2322,132,slide,True
+2323,132,soccerball,True
+2324,132,spotlight,True
+2325,132,sprayer,True
+2326,132,steering wheel,True
+2327,132,surfing board,True
+2328,132,swimsuit,True
+2329,132,television,True
+2330,132,tennis ball,True
+2331,132,tile,True
+2332,132,toilet,True
+2333,132,traffic sign,False
+2334,132,truck,True
+2335,132,violin,True
+2336,132,wheat,True
+2337,132,wine glass,True
+2338,134,ATM,True
+2339,134,ambulance,True
+2340,134,apple,True
+2341,134,banana,False
+2342,134,beer,True
+2343,134,bench,True
+2344,134,binder clip,True
+2345,134,book bag,True
+2346,134,briefcase,True
+2347,134,cabin,True
+2348,134,cactus,True
+2349,134,camel,True
+2350,134,car,True
+2351,134,cash register,True
+2352,134,chalice,True
+2353,134,chandelier,True
+2354,134,cheeseburger,True
+2355,134,clown,True
+2356,134,cockroach,True
+2357,134,coffee machine,True
+2358,134,construction helmet,True
+2359,134,cookie,False
+2360,134,cow,True
+2361,134,crib,True
+2362,134,cross,True
+2363,134,cutting board,True
+2364,134,dining chair,True
+2365,134,dining table,True
+2366,134,display cabinet,True
+2367,134,dog toy,True
+2368,134,donut,False
+2369,134,doorknob,True
+2370,134,dragonfly,True
+2371,134,dumb bell,True
+2372,134,ferris wheel,True
+2373,134,firetruck,True
+2374,134,flower pot,True
+2375,134,flowers,True
+2376,134,football,True
+2377,134,game token,True
+2378,134,gas can,True
+2379,134,gavel,True
+2380,134,gift bag,True
+2381,134,goggles,True
+2382,134,golf club,True
+2383,134,grill,True
+2384,134,haircomb,True
+2385,134,hairdryer,True
+2386,134,helmet,True
+2387,134,horse,True
+2388,134,ice skate,True
+2389,134,jeep,True
+2390,134,kayak,True
+2391,134,ladder,True
+2392,134,laundry hamper,True
+2393,134,lawn mower,True
+2394,134,lei,True
+2395,134,log,True
+2396,134,loudspeaker,True
+2397,134,mailbox,True
+2398,134,microscope,True
+2399,134,notebook,True
+2400,134,office chair,True
+2401,134,ostrich,True
+2402,134,oversize tire,True
+2403,134,palm tree,True
+2404,134,piano,True
+2405,134,picnic blanket,True
+2406,134,pillow,True
+2407,134,pine,True
+2408,134,podium,True
+2409,134,poker table,True
+2410,134,polar bear,True
+2411,134,police baton,True
+2412,134,police car,True
+2413,134,popcorn machine,True
+2414,134,potted plant,True
+2415,134,printer,True
+2416,134,raft,True
+2417,134,railroad,True
+2418,134,reed,True
+2419,134,religious statue,True
+2420,134,rock-climbing shoe,True
+2421,134,rollerskates,True
+2422,134,rose,True
+2423,134,ruler,True
+2424,134,sailboat,True
+2425,134,school bus,True
+2426,134,scorpion,True
+2427,134,sea gull,True
+2428,134,seal,True
+2429,134,seashell,True
+2430,134,seatbelt,True
+2431,134,sewing machine,True
+2432,134,shopping cart,True
+2433,134,ski,True
+2434,134,slide,True
+2435,134,soccerball,True
+2436,134,spotlight,True
+2437,134,sprayer,True
+2438,134,steering wheel,True
+2439,134,surfing board,True
+2440,134,swimsuit,True
+2441,134,television,True
+2442,134,tennis ball,True
+2443,134,tile,True
+2444,134,toilet,True
+2445,134,traffic sign,True
+2446,134,truck,True
+2447,134,violin,True
+2448,134,wheat,True
+2449,134,whistle,True
+2450,134,wine glass,True
+2451,135,ATM,False
+2452,135,ambulance,True
+2453,135,apple,True
+2454,135,banana,False
+2455,135,beer,True
+2456,135,bench,True
+2457,135,binder clip,True
+2458,135,book bag,True
+2459,135,briefcase,True
+2460,135,cabin,True
+2461,135,cactus,True
+2462,135,camel,True
+2463,135,car,True
+2464,135,cash register,True
+2465,135,chalice,True
+2466,135,chandelier,True
+2467,135,cheeseburger,True
+2468,135,clown,True
+2469,135,cockroach,True
+2470,135,construction helmet,True
+2471,135,cookie,True
+2472,135,cow,True
+2473,135,crib,True
+2474,135,cross,True
+2475,135,cutting board,False
+2476,135,dining table,True
+2477,135,display cabinet,False
+2478,135,dog toy,True
+2479,135,donut,False
+2480,135,doorknob,False
+2481,135,dragonfly,True
+2482,135,dumb bell,True
+2483,135,ferris wheel,True
+2484,135,firetruck,True
+2485,135,flower pot,True
+2486,135,flowers,True
+2487,135,football,True
+2488,135,frame,True
+2489,135,game token,True
+2490,135,gas can,True
+2491,135,gavel,True
+2492,135,gift bag,False
+2493,135,goggles,True
+2494,135,golf club,True
+2495,135,grill,True
+2496,135,haircomb,True
+2497,135,hairdryer,True
+2498,135,helmet,False
+2499,135,horse,True
+2500,135,ice skate,False
+2501,135,jeep,True
+2502,135,kayak,True
+2503,135,lawn mower,False
+2504,135,lei,False
+2505,135,log,False
+2506,135,loudspeaker,True
+2507,135,mailbox,True
+2508,135,microscope,True
+2509,135,notebook,True
+2510,135,office chair,True
+2511,135,ostrich,True
+2512,135,oversize tire,True
+2513,135,piano,False
+2514,135,picnic blanket,True
+2515,135,pillow,True
+2516,135,pine,True
+2517,135,poker table,True
+2518,135,polar bear,True
+2519,135,police baton,True
+2520,135,popcorn machine,True
+2521,135,potted plant,True
+2522,135,printer,False
+2523,135,raft,True
+2524,135,railroad,True
+2525,135,reed,True
+2526,135,religious statue,True
+2527,135,rock-climbing shoe,False
+2528,135,rollerskates,True
+2529,135,rose,True
+2530,135,ruler,True
+2531,135,sailboat,True
+2532,135,school bus,True
+2533,135,scorpion,True
+2534,135,sea gull,True
+2535,135,seal,True
+2536,135,seashell,True
+2537,135,seatbelt,False
+2538,135,sewing machine,True
+2539,135,shopping cart,True
+2540,135,ski,True
+2541,135,slide,True
+2542,135,soccerball,True
+2543,135,spotlight,True
+2544,135,sprayer,True
+2545,135,steering wheel,False
+2546,135,surfing board,True
+2547,135,swimsuit,True
+2548,135,television,True
+2549,135,tennis ball,True
+2550,135,tile,True
+2551,135,toilet,False
+2552,135,traffic sign,False
+2553,135,truck,False
+2554,135,violin,True
+2555,135,wheat,True
+2556,135,wine glass,True
+2557,136,ATM,True
+2558,136,ambulance,True
+2559,136,apple,False
+2560,136,banana,False
+2561,136,beer,True
+2562,136,binder clip,True
+2563,136,book bag,True
+2564,136,briefcase,True
+2565,136,cabin,True
+2566,136,cactus,True
+2567,136,camel,True
+2568,136,car,True
+2569,136,cash register,True
+2570,136,chalice,True
+2571,136,chandelier,True
+2572,136,clown,True
+2573,136,cockroach,True
+2574,136,coffee machine,True
+2575,136,construction helmet,True
+2576,136,cookie,False
+2577,136,cow,True
+2578,136,crib,True
+2579,136,cross,False
+2580,136,cutting board,True
+2581,136,dining chair,True
+2582,136,dining table,True
+2583,136,display cabinet,True
+2584,136,dog toy,True
+2585,136,donut,False
+2586,136,doorknob,True
+2587,136,dumb bell,True
+2588,136,ferris wheel,True
+2589,136,firetruck,False
+2590,136,flower pot,True
+2591,136,flowers,False
+2592,136,football,True
+2593,136,frame,True
+2594,136,game token,True
+2595,136,gas can,True
+2596,136,gavel,False
+2597,136,gift bag,True
+2598,136,goggles,True
+2599,136,golf club,True
+2600,136,grill,False
+2601,136,haircomb,True
+2602,136,hairdryer,False
+2603,136,helmet,True
+2604,136,horse,True
+2605,136,ice skate,True
+2606,136,jeep,True
+2607,136,kayak,True
+2608,136,ladder,True
+2609,136,laundry hamper,True
+2610,136,lawn mower,True
+2611,136,lei,True
+2612,136,log,True
+2613,136,loudspeaker,True
+2614,136,mailbox,True
+2615,136,microscope,True
+2616,136,notebook,True
+2617,136,office chair,True
+2618,136,ostrich,True
+2619,136,oversize tire,True
+2620,136,palm tree,True
+2621,136,piano,False
+2622,136,picnic blanket,True
+2623,136,pillow,True
+2624,136,pine,False
+2625,136,podium,True
+2626,136,poker table,True
+2627,136,polar bear,True
+2628,136,police baton,True
+2629,136,police car,True
+2630,136,popcorn machine,True
+2631,136,potted plant,False
+2632,136,printer,True
+2633,136,raft,True
+2634,136,railroad,True
+2635,136,reed,True
+2636,136,religious statue,True
+2637,136,rock-climbing shoe,True
+2638,136,rollerskates,True
+2639,136,rose,True
+2640,136,ruler,True
+2641,136,sailboat,True
+2642,136,school bus,True
+2643,136,scorpion,True
+2644,136,sea gull,True
+2645,136,seal,True
+2646,136,seashell,True
+2647,136,seatbelt,True
+2648,136,sewing machine,True
+2649,136,ski,True
+2650,136,slide,False
+2651,136,soccerball,True
+2652,136,spotlight,True
+2653,136,sprayer,True
+2654,136,steering wheel,False
+2655,136,surfing board,True
+2656,136,swimsuit,True
+2657,136,television,True
+2658,136,tennis ball,True
+2659,136,tile,True
+2660,136,toilet,True
+2661,136,traffic sign,True
+2662,136,truck,True
+2663,136,violin,True
+2664,136,wheat,True
+2665,136,whistle,True
+2666,136,wine glass,False
+2667,137,ATM,False
+2668,137,ambulance,True
+2669,137,apple,False
+2670,137,banana,True
+2671,137,beer,False
+2672,137,bench,True
+2673,137,binder clip,False
+2674,137,book bag,True
+2675,137,briefcase,True
+2676,137,cabin,True
+2677,137,cactus,True
+2678,137,camel,True
+2679,137,car,False
+2680,137,cash register,True
+2681,137,chalice,True
+2682,137,chandelier,True
+2683,137,cheeseburger,False
+2684,137,clown,False
+2685,137,cockroach,True
+2686,137,coffee machine,False
+2687,137,construction helmet,True
+2688,137,cookie,False
+2689,137,cow,False
+2690,137,crib,True
+2691,137,cross,True
+2692,137,cutting board,True
+2693,137,dining chair,False
+2694,137,dining table,True
+2695,137,display cabinet,False
+2696,137,dog toy,True
+2697,137,donut,False
+2698,137,doorknob,True
+2699,137,dragonfly,True
+2700,137,dumb bell,True
+2701,137,ferris wheel,True
+2702,137,firetruck,True
+2703,137,flower pot,True
+2704,137,flowers,True
+2705,137,football,False
+2706,137,frame,True
+2707,137,game token,False
+2708,137,gas can,False
+2709,137,gavel,True
+2710,137,gift bag,True
+2711,137,goggles,True
+2712,137,golf club,False
+2713,137,grill,True
+2714,137,haircomb,True
+2715,137,hairdryer,True
+2716,137,helmet,False
+2717,137,horse,True
+2718,137,ice skate,False
+2719,137,jeep,False
+2720,137,kayak,True
+2721,137,ladder,True
+2722,137,laundry hamper,True
+2723,137,lawn mower,True
+2724,137,lei,False
+2725,137,log,True
+2726,137,loudspeaker,True
+2727,137,mailbox,True
+2728,137,microscope,True
+2729,137,notebook,True
+2730,137,office chair,False
+2731,137,ostrich,True
+2732,137,oversize tire,False
+2733,137,palm tree,True
+2734,137,piano,True
+2735,137,picnic blanket,True
+2736,137,pillow,False
+2737,137,pine,True
+2738,137,podium,False
+2739,137,poker table,True
+2740,137,polar bear,True
+2741,137,police baton,True
+2742,137,police car,True
+2743,137,popcorn machine,True
+2744,137,potted plant,True
+2745,137,printer,True
+2746,137,raft,True
+2747,137,railroad,True
+2748,137,reed,False
+2749,137,religious statue,False
+2750,137,rock-climbing shoe,True
+2751,137,rollerskates,True
+2752,137,rose,False
+2753,137,ruler,True
+2754,137,sailboat,True
+2755,137,school bus,True
+2756,137,scorpion,True
+2757,137,sea gull,True
+2758,137,seal,True
+2759,137,seashell,True
+2760,137,seatbelt,True
+2761,137,sewing machine,False
+2762,137,shopping cart,False
+2763,137,ski,True
+2764,137,slide,True
+2765,137,soccerball,False
+2766,137,spotlight,True
+2767,137,sprayer,False
+2768,137,steering wheel,True
+2769,137,surfing board,True
+2770,137,swimsuit,True
+2771,137,television,True
+2772,137,tennis ball,True
+2773,137,tile,True
+2774,137,toilet,False
+2775,137,traffic sign,False
+2776,137,truck,False
+2777,137,violin,True
+2778,137,wheat,True
+2779,137,whistle,True
+2780,137,wine glass,True
+2781,201,ATM,True
+2782,201,ambulance,True
+2783,201,apple,True
+2784,201,banana,False
+2785,201,beer,False
+2786,201,bench,True
+2787,201,binder clip,True
+2788,201,book bag,True
+2789,201,briefcase,False
+2790,201,cabin,True
+2791,201,cactus,False
+2792,201,camel,True
+2793,201,chalice,True
+2794,201,chandelier,True
+2795,201,cheeseburger,True
+2796,201,clown,True
+2797,201,cockroach,True
+2798,201,coffee machine,False
+2799,201,construction helmet,True
+2800,201,cookie,True
+2801,201,cow,False
+2802,201,crib,False
+2803,201,cross,True
+2804,201,cutting board,True
+2805,201,dining chair,True
+2806,201,dining table,True
+2807,201,display cabinet,True
+2808,201,dog toy,True
+2809,201,donut,True
+2810,201,doorknob,True
+2811,201,dragonfly,True
+2812,201,dumb bell,True
+2813,201,ferris wheel,True
+2814,201,firetruck,True
+2815,201,flower pot,True
+2816,201,flowers,True
+2817,201,football,False
+2818,201,frame,True
+2819,201,game token,True
+2820,201,gas can,True
+2821,201,gavel,True
+2822,201,gift bag,True
+2823,201,goggles,True
+2824,201,golf club,True
+2825,201,grill,True
+2826,201,haircomb,False
+2827,201,hairdryer,False
+2828,201,helmet,True
+2829,201,horse,False
+2830,201,ice skate,True
+2831,201,jeep,False
+2832,201,kayak,True
+2833,201,ladder,True
+2834,201,laundry hamper,False
+2835,201,lawn mower,True
+2836,201,lei,True
+2837,201,log,False
+2838,201,loudspeaker,True
+2839,201,mailbox,True
+2840,201,microscope,True
+2841,201,notebook,True
+2842,201,office chair,True
+2843,201,ostrich,True
+2844,201,oversize tire,True
+2845,201,palm tree,True
+2846,201,piano,True
+2847,201,picnic blanket,False
+2848,201,pillow,True
+2849,201,pine,True
+2850,201,podium,True
+2851,201,poker table,True
+2852,201,polar bear,True
+2853,201,police baton,True
+2854,201,police car,True
+2855,201,popcorn machine,True
+2856,201,potted plant,True
+2857,201,printer,True
+2858,201,raft,False
+2859,201,railroad,False
+2860,201,reed,True
+2861,201,religious statue,True
+2862,201,rock-climbing shoe,True
+2863,201,rollerskates,True
+2864,201,rose,True
+2865,201,ruler,False
+2866,201,sailboat,True
+2867,201,school bus,True
+2868,201,scorpion,True
+2869,201,sea gull,True
+2870,201,seal,True
+2871,201,seashell,True
+2872,201,seatbelt,False
+2873,201,sewing machine,True
+2874,201,shopping cart,True
+2875,201,ski,True
+2876,201,slide,True
+2877,201,soccerball,True
+2878,201,spotlight,True
+2879,201,steering wheel,True
+2880,201,surfing board,True
+2881,201,swimsuit,False
+2882,201,television,True
+2883,201,tennis ball,True
+2884,201,tile,True
+2885,201,traffic sign,True
+2886,201,truck,True
+2887,201,violin,False
+2888,201,wheat,True
+2889,201,whistle,False
+2890,201,wine glass,False
+2891,202,ATM,False
+2892,202,ambulance,True
+2893,202,apple,True
+2894,202,banana,True
+2895,202,beer,False
+2896,202,bench,False
+2897,202,binder clip,True
+2898,202,book bag,True
+2899,202,briefcase,False
+2900,202,cabin,False
+2901,202,cactus,True
+2902,202,camel,True
+2903,202,car,True
+2904,202,cash register,True
+2905,202,chalice,True
+2906,202,chandelier,True
+2907,202,cheeseburger,True
+2908,202,clown,True
+2909,202,cockroach,True
+2910,202,coffee machine,True
+2911,202,construction helmet,True
+2912,202,cookie,True
+2913,202,cow,False
+2914,202,crib,False
+2915,202,cross,True
+2916,202,cutting board,False
+2917,202,dining chair,False
+2918,202,dining table,True
+2919,202,display cabinet,True
+2920,202,dog toy,True
+2921,202,donut,True
+2922,202,doorknob,False
+2923,202,dragonfly,True
+2924,202,dumb bell,True
+2925,202,ferris wheel,True
+2926,202,firetruck,True
+2927,202,flower pot,True
+2928,202,flowers,True
+2929,202,football,True
+2930,202,frame,False
+2931,202,game token,False
+2932,202,gas can,True
+2933,202,gavel,True
+2934,202,gift bag,False
+2935,202,goggles,True
+2936,202,golf club,True
+2937,202,grill,True
+2938,202,haircomb,True
+2939,202,hairdryer,True
+2940,202,helmet,True
+2941,202,horse,True
+2942,202,ice skate,True
+2943,202,jeep,True
+2944,202,kayak,False
+2945,202,ladder,True
+2946,202,laundry hamper,False
+2947,202,lawn mower,True
+2948,202,lei,False
+2949,202,log,False
+2950,202,loudspeaker,False
+2951,202,mailbox,False
+2952,202,microscope,True
+2953,202,notebook,False
+2954,202,office chair,True
+2955,202,ostrich,True
+2956,202,oversize tire,True
+2957,202,palm tree,True
+2958,202,piano,True
+2959,202,picnic blanket,False
+2960,202,pillow,False
+2961,202,pine,False
+2962,202,podium,True
+2963,202,poker table,False
+2964,202,polar bear,True
+2965,202,police baton,True
+2966,202,police car,True
+2967,202,popcorn machine,True
+2968,202,potted plant,True
+2969,202,printer,True
+2970,202,raft,False
+2971,202,railroad,False
+2972,202,reed,True
+2973,202,religious statue,True
+2974,202,rock-climbing shoe,True
+2975,202,rollerskates,True
+2976,202,rose,True
+2977,202,ruler,True
+2978,202,sailboat,True
+2979,202,school bus,True
+2980,202,scorpion,True
+2981,202,sea gull,True
+2982,202,seal,True
+2983,202,seashell,True
+2984,202,seatbelt,True
+2985,202,shopping cart,True
+2986,202,ski,True
+2987,202,slide,True
+2988,202,soccerball,True
+2989,202,spotlight,False
+2990,202,sprayer,False
+2991,202,steering wheel,True
+2992,202,surfing board,True
+2993,202,swimsuit,True
+2994,202,television,True
+2995,202,tennis ball,True
+2996,202,tile,False
+2997,202,toilet,False
+2998,202,traffic sign,True
+2999,202,truck,True
+3000,202,violin,True
+3001,202,wheat,True
+3002,202,whistle,True
+3003,202,wine glass,False
+3004,203,ATM,False
+3005,203,ambulance,True
+3006,203,apple,False
+3007,203,banana,True
+3008,203,beer,False
+3009,203,bench,False
+3010,203,binder clip,True
+3011,203,book bag,True
+3012,203,briefcase,True
+3013,203,cabin,True
+3014,203,cactus,True
+3015,203,camel,True
+3016,203,car,True
+3017,203,cash register,True
+3018,203,chalice,True
+3019,203,chandelier,True
+3020,203,cheeseburger,True
+3021,203,clown,True
+3022,203,cockroach,True
+3023,203,coffee machine,True
+3024,203,construction helmet,True
+3025,203,cookie,True
+3026,203,cow,True
+3027,203,crib,False
+3028,203,cross,True
+3029,203,cutting board,True
+3030,203,dining chair,True
+3031,203,dining table,True
+3032,203,display cabinet,True
+3033,203,dog toy,True
+3034,203,donut,True
+3035,203,doorknob,False
+3036,203,dragonfly,True
+3037,203,dumb bell,True
+3038,203,ferris wheel,True
+3039,203,firetruck,True
+3040,203,flower pot,True
+3041,203,flowers,True
+3042,203,football,True
+3043,203,frame,True
+3044,203,game token,True
+3045,203,gas can,True
+3046,203,gavel,True
+3047,203,gift bag,True
+3048,203,goggles,True
+3049,203,golf club,True
+3050,203,grill,True
+3051,203,haircomb,True
+3052,203,hairdryer,True
+3053,203,helmet,True
+3054,203,horse,False
+3055,203,ice skate,True
+3056,203,jeep,True
+3057,203,kayak,True
+3058,203,ladder,True
+3059,203,laundry hamper,True
+3060,203,lawn mower,True
+3061,203,lei,False
+3062,203,log,False
+3063,203,loudspeaker,True
+3064,203,mailbox,False
+3065,203,microscope,False
+3066,203,notebook,False
+3067,203,office chair,True
+3068,203,ostrich,True
+3069,203,oversize tire,False
+3070,203,palm tree,True
+3071,203,piano,False
+3072,203,picnic blanket,True
+3073,203,pillow,False
+3074,203,pine,False
+3075,203,podium,True
+3076,203,poker table,True
+3077,203,polar bear,True
+3078,203,police baton,True
+3079,203,police car,True
+3080,203,popcorn machine,True
+3081,203,potted plant,True
+3082,203,printer,True
+3083,203,raft,True
+3084,203,railroad,True
+3085,203,reed,True
+3086,203,religious statue,True
+3087,203,rock-climbing shoe,True
+3088,203,rollerskates,True
+3089,203,rose,True
+3090,203,ruler,True
+3091,203,sailboat,True
+3092,203,school bus,True
+3093,203,scorpion,True
+3094,203,sea gull,True
+3095,203,seal,True
+3096,203,seashell,True
+3097,203,seatbelt,True
+3098,203,sewing machine,True
+3099,203,shopping cart,True
+3100,203,ski,True
+3101,203,slide,True
+3102,203,soccerball,True
+3103,203,spotlight,True
+3104,203,sprayer,True
+3105,203,steering wheel,True
+3106,203,surfing board,True
+3107,203,swimsuit,True
+3108,203,television,True
+3109,203,tennis ball,True
+3110,203,tile,True
+3111,203,toilet,True
+3112,203,traffic sign,False
+3113,203,truck,False
+3114,203,violin,True
+3115,203,wheat,True
+3116,203,whistle,True
+3117,203,wine glass,True
+3118,205,ATM,True
+3119,205,ambulance,True
+3120,205,apple,True
+3121,205,banana,True
+3122,205,beer,True
+3123,205,bench,True
+3124,205,binder clip,True
+3125,205,book bag,True
+3126,205,briefcase,True
+3127,205,cabin,True
+3128,205,cactus,True
+3129,205,camel,True
+3130,205,car,True
+3131,205,cash register,True
+3132,205,chalice,True
+3133,205,chandelier,True
+3134,205,cheeseburger,True
+3135,205,clown,True
+3136,205,cockroach,True
+3137,205,coffee machine,True
+3138,205,construction helmet,True
+3139,205,cookie,True
+3140,205,cow,True
+3141,205,crib,True
+3142,205,cross,True
+3143,205,cutting board,True
+3144,205,dining chair,True
+3145,205,dining table,True
+3146,205,display cabinet,True
+3147,205,dog toy,True
+3148,205,donut,True
+3149,205,doorknob,True
+3150,205,dragonfly,True
+3151,205,dumb bell,True
+3152,205,ferris wheel,True
+3153,205,firetruck,True
+3154,205,flower pot,True
+3155,205,flowers,True
+3156,205,football,False
+3157,205,frame,True
+3158,205,game token,True
+3159,205,gas can,True
+3160,205,gavel,True
+3161,205,gift bag,True
+3162,205,goggles,True
+3163,205,golf club,True
+3164,205,grill,True
+3165,205,haircomb,True
+3166,205,hairdryer,True
+3167,205,helmet,True
+3168,205,horse,True
+3169,205,ice skate,True
+3170,205,jeep,True
+3171,205,kayak,True
+3172,205,ladder,True
+3173,205,laundry hamper,True
+3174,205,lawn mower,True
+3175,205,lei,True
+3176,205,log,True
+3177,205,loudspeaker,True
+3178,205,mailbox,True
+3179,205,microscope,True
+3180,205,notebook,True
+3181,205,office chair,True
+3182,205,ostrich,False
+3183,205,oversize tire,True
+3184,205,palm tree,True
+3185,205,piano,True
+3186,205,picnic blanket,True
+3187,205,pillow,False
+3188,205,pine,False
+3189,205,podium,True
+3190,205,poker table,True
+3191,205,polar bear,True
+3192,205,police baton,True
+3193,205,police car,True
+3194,205,popcorn machine,True
+3195,205,potted plant,True
+3196,205,printer,True
+3197,205,raft,True
+3198,205,railroad,True
+3199,205,reed,True
+3200,205,religious statue,True
+3201,205,rock-climbing shoe,True
+3202,205,rollerskates,True
+3203,205,rose,True
+3204,205,ruler,True
+3205,205,sailboat,True
+3206,205,school bus,True
+3207,205,scorpion,True
+3208,205,sea gull,True
+3209,205,seal,True
+3210,205,seashell,False
+3211,205,seatbelt,True
+3212,205,sewing machine,True
+3213,205,shopping cart,True
+3214,205,ski,True
+3215,205,slide,True
+3216,205,soccerball,True
+3217,205,spotlight,True
+3218,205,sprayer,True
+3219,205,steering wheel,True
+3220,205,surfing board,True
+3221,205,swimsuit,True
+3222,205,television,True
+3223,205,tennis ball,True
+3224,205,tile,True
+3225,205,toilet,False
+3226,205,traffic sign,True
+3227,205,truck,True
+3228,205,violin,True
+3229,205,wheat,True
+3230,205,whistle,True
+3231,205,wine glass,True
+3232,206,ATM,True
+3233,206,ambulance,True
+3234,206,apple,False
+3235,206,banana,True
+3236,206,beer,True
+3237,206,bench,True
+3238,206,binder clip,True
+3239,206,book bag,True
+3240,206,briefcase,True
+3241,206,cabin,True
+3242,206,cactus,True
+3243,206,camel,True
+3244,206,car,True
+3245,206,cash register,True
+3246,206,chalice,True
+3247,206,chandelier,True
+3248,206,cheeseburger,True
+3249,206,clown,True
+3250,206,cockroach,True
+3251,206,coffee machine,True
+3252,206,construction helmet,True
+3253,206,cookie,True
+3254,206,cow,True
+3255,206,crib,True
+3256,206,cross,True
+3257,206,cutting board,True
+3258,206,dining chair,False
+3259,206,dining table,True
+3260,206,display cabinet,True
+3261,206,dog toy,True
+3262,206,donut,False
+3263,206,doorknob,True
+3264,206,dragonfly,True
+3265,206,dumb bell,True
+3266,206,ferris wheel,True
+3267,206,firetruck,True
+3268,206,flower pot,True
+3269,206,flowers,True
+3270,206,football,True
+3271,206,frame,True
+3272,206,game token,True
+3273,206,gas can,True
+3274,206,gavel,True
+3275,206,gift bag,True
+3276,206,goggles,True
+3277,206,golf club,True
+3278,206,grill,False
+3279,206,haircomb,True
+3280,206,hairdryer,True
+3281,206,helmet,True
+3282,206,horse,True
+3283,206,ice skate,True
+3284,206,jeep,True
+3285,206,kayak,True
+3286,206,ladder,True
+3287,206,laundry hamper,True
+3288,206,lawn mower,True
+3289,206,lei,True
+3290,206,log,True
+3291,206,loudspeaker,True
+3292,206,mailbox,True
+3293,206,microscope,True
+3294,206,notebook,True
+3295,206,office chair,True
+3296,206,ostrich,True
+3297,206,oversize tire,True
+3298,206,palm tree,True
+3299,206,piano,True
+3300,206,picnic blanket,True
+3301,206,pillow,True
+3302,206,pine,True
+3303,206,podium,True
+3304,206,polar bear,True
+3305,206,police baton,True
+3306,206,police car,True
+3307,206,popcorn machine,True
+3308,206,potted plant,True
+3309,206,printer,True
+3310,206,raft,True
+3311,206,railroad,True
+3312,206,reed,True
+3313,206,religious statue,True
+3314,206,rock-climbing shoe,True
+3315,206,rollerskates,True
+3316,206,rose,True
+3317,206,ruler,True
+3318,206,sailboat,True
+3319,206,school bus,True
+3320,206,scorpion,True
+3321,206,sea gull,True
+3322,206,seal,True
+3323,206,seashell,False
+3324,206,seatbelt,True
+3325,206,sewing machine,True
+3326,206,shopping cart,True
+3327,206,ski,True
+3328,206,slide,True
+3329,206,soccerball,True
+3330,206,spotlight,True
+3331,206,sprayer,True
+3332,206,steering wheel,True
+3333,206,surfing board,True
+3334,206,swimsuit,True
+3335,206,television,True
+3336,206,tennis ball,True
+3337,206,tile,True
+3338,206,toilet,True
+3339,206,traffic sign,True
+3340,206,truck,True
+3341,206,violin,True
+3342,206,wheat,True
+3343,206,whistle,True
+3344,206,wine glass,True
+3345,207,ATM,True
+3346,207,ambulance,True
+3347,207,apple,True
+3348,207,banana,True
+3349,207,beer,False
+3350,207,bench,True
+3351,207,binder clip,True
+3352,207,book bag,True
+3353,207,briefcase,True
+3354,207,cabin,False
+3355,207,cactus,False
+3356,207,camel,True
+3357,207,car,True
+3358,207,cash register,True
+3359,207,chalice,True
+3360,207,chandelier,True
+3361,207,cheeseburger,True
+3362,207,clown,True
+3363,207,cockroach,True
+3364,207,coffee machine,True
+3365,207,construction helmet,True
+3366,207,cookie,True
+3367,207,cow,False
+3368,207,crib,True
+3369,207,cross,True
+3370,207,cutting board,True
+3371,207,dining chair,False
+3372,207,dining table,True
+3373,207,display cabinet,True
+3374,207,dog toy,True
+3375,207,donut,True
+3376,207,doorknob,True
+3377,207,dragonfly,True
+3378,207,dumb bell,False
+3379,207,ferris wheel,True
+3380,207,firetruck,False
+3381,207,flower pot,True
+3382,207,flowers,True
+3383,207,football,True
+3384,207,frame,True
+3385,207,game token,True
+3386,207,gas can,True
+3387,207,gavel,True
+3388,207,gift bag,True
+3389,207,goggles,True
+3390,207,golf club,True
+3391,207,grill,True
+3392,207,haircomb,False
+3393,207,hairdryer,True
+3394,207,helmet,True
+3395,207,horse,True
+3396,207,ice skate,False
+3397,207,jeep,False
+3398,207,kayak,True
+3399,207,ladder,True
+3400,207,laundry hamper,True
+3401,207,lawn mower,True
+3402,207,lei,True
+3403,207,log,False
+3404,207,loudspeaker,True
+3405,207,mailbox,True
+3406,207,notebook,True
+3407,207,office chair,True
+3408,207,ostrich,True
+3409,207,oversize tire,True
+3410,207,palm tree,True
+3411,207,piano,False
+3412,207,picnic blanket,True
+3413,207,pillow,False
+3414,207,pine,False
+3415,207,podium,True
+3416,207,poker table,True
+3417,207,polar bear,True
+3418,207,police baton,True
+3419,207,police car,True
+3420,207,popcorn machine,True
+3421,207,potted plant,True
+3422,207,printer,True
+3423,207,raft,False
+3424,207,railroad,False
+3425,207,reed,False
+3426,207,religious statue,True
+3427,207,rock-climbing shoe,True
+3428,207,rollerskates,False
+3429,207,rose,False
+3430,207,ruler,False
+3431,207,sailboat,True
+3432,207,school bus,True
+3433,207,scorpion,True
+3434,207,sea gull,True
+3435,207,seal,True
+3436,207,seashell,True
+3437,207,seatbelt,True
+3438,207,sewing machine,True
+3439,207,shopping cart,True
+3440,207,ski,True
+3441,207,slide,False
+3442,207,soccerball,True
+3443,207,spotlight,True
+3444,207,sprayer,False
+3445,207,steering wheel,True
+3446,207,surfing board,True
+3447,207,swimsuit,False
+3448,207,television,True
+3449,207,tennis ball,True
+3450,207,tile,True
+3451,207,toilet,True
+3452,207,traffic sign,False
+3453,207,truck,True
+3454,207,violin,True
+3455,207,wheat,True
+3456,207,whistle,True
+3457,207,wine glass,False
+3458,208,ATM,True
+3459,208,ambulance,True
+3460,208,apple,True
+3461,208,banana,True
+3462,208,beer,True
+3463,208,bench,True
+3464,208,binder clip,True
+3465,208,book bag,False
+3466,208,briefcase,True
+3467,208,cabin,True
+3468,208,cactus,True
+3469,208,camel,True
+3470,208,car,True
+3471,208,cash register,True
+3472,208,chalice,True
+3473,208,chandelier,True
+3474,208,cheeseburger,True
+3475,208,clown,True
+3476,208,cockroach,True
+3477,208,coffee machine,True
+3478,208,construction helmet,False
+3479,208,cookie,True
+3480,208,cow,True
+3481,208,crib,True
+3482,208,cross,True
+3483,208,cutting board,True
+3484,208,dining table,True
+3485,208,display cabinet,True
+3486,208,dog toy,True
+3487,208,donut,True
+3488,208,doorknob,True
+3489,208,dragonfly,True
+3490,208,dumb bell,True
+3491,208,ferris wheel,True
+3492,208,firetruck,True
+3493,208,flower pot,True
+3494,208,flowers,True
+3495,208,football,True
+3496,208,frame,True
+3497,208,game token,True
+3498,208,gas can,True
+3499,208,gavel,True
+3500,208,gift bag,False
+3501,208,goggles,True
+3502,208,golf club,True
+3503,208,grill,True
+3504,208,haircomb,True
+3505,208,hairdryer,True
+3506,208,helmet,False
+3507,208,horse,True
+3508,208,ice skate,True
+3509,208,jeep,True
+3510,208,kayak,True
+3511,208,ladder,True
+3512,208,laundry hamper,True
+3513,208,lawn mower,False
+3514,208,lei,True
+3515,208,log,False
+3516,208,loudspeaker,True
+3517,208,mailbox,True
+3518,208,microscope,False
+3519,208,notebook,True
+3520,208,office chair,True
+3521,208,ostrich,True
+3522,208,oversize tire,True
+3523,208,palm tree,True
+3524,208,piano,True
+3525,208,picnic blanket,True
+3526,208,pillow,False
+3527,208,pine,True
+3528,208,podium,True
+3529,208,poker table,True
+3530,208,polar bear,True
+3531,208,police baton,True
+3532,208,police car,True
+3533,208,popcorn machine,True
+3534,208,potted plant,True
+3535,208,printer,True
+3536,208,raft,True
+3537,208,railroad,True
+3538,208,reed,True
+3539,208,religious statue,True
+3540,208,rock-climbing shoe,True
+3541,208,rollerskates,True
+3542,208,rose,True
+3543,208,ruler,True
+3544,208,sailboat,False
+3545,208,school bus,True
+3546,208,scorpion,True
+3547,208,sea gull,True
+3548,208,seal,True
+3549,208,seashell,True
+3550,208,seatbelt,True
+3551,208,sewing machine,True
+3552,208,shopping cart,True
+3553,208,ski,True
+3554,208,slide,True
+3555,208,soccerball,True
+3556,208,spotlight,False
+3557,208,sprayer,True
+3558,208,steering wheel,False
+3559,208,surfing board,True
+3560,208,swimsuit,True
+3561,208,television,True
+3562,208,tennis ball,True
+3563,208,tile,False
+3564,208,toilet,True
+3565,208,traffic sign,True
+3566,208,truck,False
+3567,208,violin,True
+3568,208,wheat,True
+3569,208,whistle,False
+3570,208,wine glass,True
+3571,210,ambulance,True
+3572,210,apple,False
+3573,210,banana,True
+3574,210,beer,False
+3575,210,bench,True
+3576,210,binder clip,True
+3577,210,book bag,False
+3578,210,briefcase,True
+3579,210,cabin,True
+3580,210,cactus,True
+3581,210,camel,True
+3582,210,car,True
+3583,210,cash register,True
+3584,210,chalice,True
+3585,210,chandelier,True
+3586,210,cheeseburger,True
+3587,210,clown,True
+3588,210,cockroach,False
+3589,210,coffee machine,True
+3590,210,construction helmet,True
+3591,210,cookie,True
+3592,210,cow,True
+3593,210,crib,True
+3594,210,cross,True
+3595,210,cutting board,True
+3596,210,dining chair,True
+3597,210,dining table,True
+3598,210,dog toy,True
+3599,210,donut,True
+3600,210,doorknob,True
+3601,210,dragonfly,True
+3602,210,dumb bell,True
+3603,210,ferris wheel,True
+3604,210,firetruck,True
+3605,210,flower pot,True
+3606,210,flowers,True
+3607,210,football,True
+3608,210,frame,True
+3609,210,game token,True
+3610,210,gas can,True
+3611,210,gavel,True
+3612,210,gift bag,True
+3613,210,goggles,True
+3614,210,golf club,True
+3615,210,grill,True
+3616,210,haircomb,False
+3617,210,hairdryer,True
+3618,210,helmet,True
+3619,210,horse,True
+3620,210,ice skate,False
+3621,210,jeep,True
+3622,210,kayak,True
+3623,210,ladder,True
+3624,210,laundry hamper,True
+3625,210,lawn mower,True
+3626,210,lei,True
+3627,210,log,False
+3628,210,loudspeaker,False
+3629,210,mailbox,True
+3630,210,microscope,True
+3631,210,notebook,True
+3632,210,office chair,True
+3633,210,ostrich,True
+3634,210,oversize tire,True
+3635,210,palm tree,True
+3636,210,piano,True
+3637,210,picnic blanket,True
+3638,210,pillow,False
+3639,210,pine,False
+3640,210,podium,True
+3641,210,poker table,True
+3642,210,polar bear,True
+3643,210,police baton,True
+3644,210,police car,True
+3645,210,popcorn machine,True
+3646,210,potted plant,True
+3647,210,printer,False
+3648,210,raft,True
+3649,210,railroad,False
+3650,210,reed,False
+3651,210,religious statue,True
+3652,210,rock-climbing shoe,True
+3653,210,rollerskates,True
+3654,210,rose,True
+3655,210,ruler,True
+3656,210,sailboat,True
+3657,210,school bus,True
+3658,210,scorpion,True
+3659,210,sea gull,True
+3660,210,seal,True
+3661,210,seashell,True
+3662,210,seatbelt,True
+3663,210,sewing machine,True
+3664,210,shopping cart,True
+3665,210,ski,True
+3666,210,slide,True
+3667,210,soccerball,True
+3668,210,spotlight,True
+3669,210,sprayer,True
+3670,210,steering wheel,True
+3671,210,surfing board,True
+3672,210,swimsuit,True
+3673,210,television,True
+3674,210,tennis ball,True
+3675,210,toilet,True
+3676,210,traffic sign,False
+3677,210,truck,True
+3678,210,violin,True
+3679,210,wheat,False
+3680,210,whistle,True
+3681,210,wine glass,True
+3682,211,ATM,True
+3683,211,ambulance,True
+3684,211,apple,True
+3685,211,banana,True
+3686,211,beer,True
+3687,211,bench,True
+3688,211,book bag,True
+3689,211,briefcase,True
+3690,211,cabin,False
+3691,211,cactus,True
+3692,211,camel,True
+3693,211,car,True
+3694,211,cash register,True
+3695,211,chalice,True
+3696,211,chandelier,True
+3697,211,cheeseburger,True
+3698,211,clown,True
+3699,211,cockroach,True
+3700,211,coffee machine,True
+3701,211,cookie,True
+3702,211,cow,True
+3703,211,crib,True
+3704,211,cross,True
+3705,211,cutting board,True
+3706,211,dining chair,True
+3707,211,dining table,False
+3708,211,display cabinet,True
+3709,211,dog toy,True
+3710,211,donut,True
+3711,211,doorknob,True
+3712,211,dragonfly,True
+3713,211,dumb bell,True
+3714,211,ferris wheel,True
+3715,211,firetruck,True
+3716,211,flower pot,True
+3717,211,flowers,True
+3718,211,football,True
+3719,211,game token,True
+3720,211,gas can,True
+3721,211,gavel,True
+3722,211,gift bag,False
+3723,211,goggles,True
+3724,211,golf club,True
+3725,211,grill,True
+3726,211,haircomb,True
+3727,211,hairdryer,True
+3728,211,helmet,True
+3729,211,horse,True
+3730,211,ice skate,True
+3731,211,jeep,True
+3732,211,kayak,True
+3733,211,ladder,True
+3734,211,laundry hamper,True
+3735,211,lawn mower,False
+3736,211,lei,True
+3737,211,log,False
+3738,211,loudspeaker,True
+3739,211,mailbox,True
+3740,211,microscope,True
+3741,211,notebook,True
+3742,211,office chair,True
+3743,211,ostrich,True
+3744,211,oversize tire,True
+3745,211,palm tree,True
+3746,211,piano,True
+3747,211,picnic blanket,True
+3748,211,pillow,False
+3749,211,pine,True
+3750,211,podium,True
+3751,211,poker table,True
+3752,211,polar bear,True
+3753,211,police baton,True
+3754,211,police car,True
+3755,211,popcorn machine,True
+3756,211,potted plant,True
+3757,211,printer,True
+3758,211,railroad,True
+3759,211,reed,True
+3760,211,religious statue,True
+3761,211,rock-climbing shoe,True
+3762,211,rollerskates,True
+3763,211,rose,True
+3764,211,ruler,True
+3765,211,sailboat,False
+3766,211,school bus,True
+3767,211,scorpion,True
+3768,211,sea gull,True
+3769,211,seal,True
+3770,211,seashell,True
+3771,211,seatbelt,True
+3772,211,sewing machine,True
+3773,211,shopping cart,True
+3774,211,ski,True
+3775,211,slide,True
+3776,211,soccerball,True
+3777,211,spotlight,False
+3778,211,sprayer,False
+3779,211,steering wheel,True
+3780,211,surfing board,True
+3781,211,swimsuit,True
+3782,211,television,True
+3783,211,tennis ball,True
+3784,211,tile,True
+3785,211,toilet,False
+3786,211,traffic sign,True
+3787,211,truck,True
+3788,211,violin,True
+3789,211,wheat,True
+3790,211,whistle,True
+3791,211,wine glass,True
+3792,212,ATM,True
+3793,212,ambulance,True
+3794,212,apple,False
+3795,212,banana,True
+3796,212,beer,False
+3797,212,bench,True
+3798,212,binder clip,True
+3799,212,book bag,True
+3800,212,briefcase,False
+3801,212,cabin,True
+3802,212,cactus,True
+3803,212,camel,False
+3804,212,car,True
+3805,212,cash register,True
+3806,212,chalice,True
+3807,212,chandelier,False
+3808,212,cheeseburger,True
+3809,212,clown,True
+3810,212,cockroach,True
+3811,212,coffee machine,False
+3812,212,construction helmet,True
+3813,212,cookie,True
+3814,212,cow,True
+3815,212,crib,True
+3816,212,cross,False
+3817,212,cutting board,True
+3818,212,dining chair,False
+3819,212,dining table,False
+3820,212,display cabinet,True
+3821,212,dog toy,False
+3822,212,donut,True
+3823,212,doorknob,True
+3824,212,dragonfly,True
+3825,212,dumb bell,True
+3826,212,ferris wheel,True
+3827,212,firetruck,True
+3828,212,flower pot,True
+3829,212,flowers,True
+3830,212,football,False
+3831,212,frame,True
+3832,212,game token,True
+3833,212,gas can,False
+3834,212,gift bag,False
+3835,212,goggles,False
+3836,212,golf club,False
+3837,212,grill,True
+3838,212,haircomb,True
+3839,212,hairdryer,False
+3840,212,helmet,True
+3841,212,horse,True
+3842,212,ice skate,True
+3843,212,jeep,True
+3844,212,kayak,True
+3845,212,ladder,True
+3846,212,laundry hamper,True
+3847,212,lawn mower,True
+3848,212,lei,True
+3849,212,log,True
+3850,212,loudspeaker,False
+3851,212,mailbox,False
+3852,212,microscope,True
+3853,212,notebook,False
+3854,212,office chair,True
+3855,212,ostrich,True
+3856,212,oversize tire,True
+3857,212,palm tree,False
+3858,212,piano,False
+3859,212,picnic blanket,True
+3860,212,pillow,False
+3861,212,pine,True
+3862,212,podium,False
+3863,212,poker table,True
+3864,212,polar bear,True
+3865,212,police baton,True
+3866,212,police car,True
+3867,212,popcorn machine,True
+3868,212,potted plant,False
+3869,212,printer,False
+3870,212,raft,True
+3871,212,railroad,True
+3872,212,reed,True
+3873,212,religious statue,False
+3874,212,rock-climbing shoe,True
+3875,212,rollerskates,True
+3876,212,rose,False
+3877,212,ruler,True
+3878,212,sailboat,False
+3879,212,school bus,True
+3880,212,scorpion,True
+3881,212,sea gull,True
+3882,212,seal,True
+3883,212,seashell,True
+3884,212,seatbelt,True
+3885,212,sewing machine,True
+3886,212,shopping cart,True
+3887,212,ski,True
+3888,212,slide,False
+3889,212,soccerball,True
+3890,212,spotlight,True
+3891,212,sprayer,True
+3892,212,steering wheel,True
+3893,212,surfing board,True
+3894,212,swimsuit,False
+3895,212,television,True
+3896,212,tennis ball,True
+3897,212,tile,True
+3898,212,toilet,False
+3899,212,traffic sign,False
+3900,212,truck,True
+3901,212,violin,False
+3902,212,wheat,True
+3903,212,whistle,True
+3904,212,wine glass,False
+3905,214,ATM,True
+3906,214,ambulance,False
+3907,214,apple,False
+3908,214,banana,True
+3909,214,beer,True
+3910,214,bench,True
+3911,214,binder clip,True
+3912,214,book bag,True
+3913,214,briefcase,True
+3914,214,cabin,True
+3915,214,cactus,True
+3916,214,camel,True
+3917,214,car,False
+3918,214,cash register,True
+3919,214,chalice,True
+3920,214,chandelier,True
+3921,214,cheeseburger,True
+3922,214,clown,True
+3923,214,cockroach,True
+3924,214,coffee machine,True
+3925,214,construction helmet,True
+3926,214,cookie,True
+3927,214,cow,True
+3928,214,crib,True
+3929,214,cross,True
+3930,214,cutting board,True
+3931,214,dining chair,True
+3932,214,dining table,False
+3933,214,display cabinet,True
+3934,214,dog toy,True
+3935,214,donut,True
+3936,214,doorknob,True
+3937,214,dragonfly,True
+3938,214,dumb bell,True
+3939,214,ferris wheel,True
+3940,214,firetruck,True
+3941,214,flower pot,True
+3942,214,flowers,True
+3943,214,football,True
+3944,214,frame,True
+3945,214,game token,True
+3946,214,gas can,True
+3947,214,gavel,True
+3948,214,gift bag,True
+3949,214,goggles,True
+3950,214,golf club,True
+3951,214,grill,True
+3952,214,haircomb,True
+3953,214,hairdryer,True
+3954,214,helmet,True
+3955,214,horse,True
+3956,214,ice skate,True
+3957,214,jeep,False
+3958,214,kayak,True
+3959,214,ladder,True
+3960,214,laundry hamper,True
+3961,214,lawn mower,False
+3962,214,lei,True
+3963,214,log,True
+3964,214,loudspeaker,True
+3965,214,mailbox,True
+3966,214,microscope,True
+3967,214,notebook,True
+3968,214,office chair,True
+3969,214,ostrich,True
+3970,214,oversize tire,True
+3971,214,palm tree,True
+3972,214,piano,False
+3973,214,pillow,False
+3974,214,pine,True
+3975,214,podium,True
+3976,214,poker table,True
+3977,214,polar bear,True
+3978,214,police baton,True
+3979,214,police car,True
+3980,214,popcorn machine,True
+3981,214,potted plant,True
+3982,214,printer,True
+3983,214,raft,False
+3984,214,railroad,True
+3985,214,reed,True
+3986,214,religious statue,True
+3987,214,rock-climbing shoe,True
+3988,214,rollerskates,True
+3989,214,rose,True
+3990,214,ruler,True
+3991,214,sailboat,True
+3992,214,school bus,True
+3993,214,scorpion,True
+3994,214,sea gull,True
+3995,214,seal,True
+3996,214,seashell,True
+3997,214,seatbelt,True
+3998,214,sewing machine,True
+3999,214,shopping cart,False
+4000,214,ski,True
+4001,214,slide,True
+4002,214,soccerball,True
+4003,214,spotlight,True
+4004,214,sprayer,True
+4005,214,steering wheel,True
+4006,214,surfing board,False
+4007,214,swimsuit,True
+4008,214,television,True
+4009,214,tennis ball,True
+4010,214,tile,True
+4011,214,toilet,True
+4012,214,traffic sign,True
+4013,214,truck,True
+4014,214,violin,True
+4015,214,wheat,True
+4016,214,whistle,True
+4017,214,wine glass,True
+4018,216,ATM,True
+4019,216,ambulance,False
+4020,216,beer,False
+4021,216,binder clip,False
+4022,216,book bag,False
+4023,216,briefcase,True
+4024,216,cabin,True
+4025,216,cactus,True
+4026,216,camel,True
+4027,216,car,True
+4028,216,cash register,True
+4029,216,chalice,True
+4030,216,chandelier,True
+4031,216,cheeseburger,False
+4032,216,clown,True
+4033,216,cockroach,False
+4034,216,coffee machine,True
+4035,216,construction helmet,True
+4036,216,cookie,False
+4037,216,cow,True
+4038,216,crib,True
+4039,216,cross,True
+4040,216,cutting board,False
+4041,216,dining chair,True
+4042,216,dining table,True
+4043,216,display cabinet,True
+4044,216,dog toy,False
+4045,216,donut,False
+4046,216,doorknob,True
+4047,216,dragonfly,True
+4048,216,dumb bell,False
+4049,216,ferris wheel,True
+4050,216,firetruck,True
+4051,216,flower pot,False
+4052,216,flowers,True
+4053,216,football,True
+4054,216,frame,True
+4055,216,gas can,True
+4056,216,gavel,True
+4057,216,gift bag,True
+4058,216,goggles,True
+4059,216,golf club,False
+4060,216,grill,True
+4061,216,haircomb,True
+4062,216,hairdryer,True
+4063,216,horse,True
+4064,216,ice skate,False
+4065,216,jeep,True
+4066,216,kayak,True
+4067,216,laundry hamper,False
+4068,216,lawn mower,True
+4069,216,lei,False
+4070,216,log,False
+4071,216,loudspeaker,True
+4072,216,mailbox,False
+4073,216,microscope,True
+4074,216,office chair,True
+4075,216,ostrich,False
+4076,216,oversize tire,True
+4077,216,palm tree,True
+4078,216,picnic blanket,True
+4079,216,pillow,True
+4080,216,pine,True
+4081,216,podium,True
+4082,216,poker table,True
+4083,216,polar bear,True
+4084,216,police baton,True
+4085,216,police car,False
+4086,216,popcorn machine,True
+4087,216,potted plant,True
+4088,216,raft,False
+4089,216,railroad,False
+4090,216,reed,True
+4091,216,religious statue,False
+4092,216,rock-climbing shoe,True
+4093,216,rollerskates,True
+4094,216,rose,True
+4095,216,ruler,True
+4096,216,sailboat,True
+4097,216,school bus,True
+4098,216,scorpion,False
+4099,216,sea gull,True
+4100,216,seal,True
+4101,216,seashell,True
+4102,216,seatbelt,True
+4103,216,sewing machine,False
+4104,216,shopping cart,True
+4105,216,ski,True
+4106,216,slide,False
+4107,216,soccerball,True
+4108,216,spotlight,True
+4109,216,sprayer,True
+4110,216,steering wheel,False
+4111,216,surfing board,False
+4112,216,swimsuit,False
+4113,216,television,True
+4114,216,tennis ball,False
+4115,216,tile,True
+4116,216,toilet,False
+4117,216,traffic sign,True
+4118,216,truck,True
+4119,216,wheat,True
+4120,216,whistle,True
+4121,216,wine glass,True
+4122,217,ATM,True
+4123,217,ambulance,True
+4124,217,apple,True
+4125,217,banana,False
+4126,217,beer,True
+4127,217,bench,False
+4128,217,binder clip,True
+4129,217,book bag,True
+4130,217,briefcase,True
+4131,217,cactus,True
+4132,217,camel,True
+4133,217,car,False
+4134,217,cash register,True
+4135,217,chalice,False
+4136,217,chandelier,True
+4137,217,cheeseburger,True
+4138,217,cockroach,True
+4139,217,coffee machine,True
+4140,217,construction helmet,True
+4141,217,cookie,True
+4142,217,cow,True
+4143,217,crib,False
+4144,217,cross,True
+4145,217,cutting board,False
+4146,217,dining chair,True
+4147,217,dining table,True
+4148,217,display cabinet,True
+4149,217,dog toy,True
+4150,217,donut,False
+4151,217,doorknob,True
+4152,217,dragonfly,True
+4153,217,dumb bell,True
+4154,217,ferris wheel,False
+4155,217,firetruck,True
+4156,217,flower pot,False
+4157,217,flowers,True
+4158,217,football,True
+4159,217,frame,True
+4160,217,gas can,False
+4161,217,gift bag,False
+4162,217,goggles,False
+4163,217,haircomb,True
+4164,217,hairdryer,True
+4165,217,helmet,True
+4166,217,horse,False
+4167,217,ice skate,False
+4168,217,jeep,True
+4169,217,kayak,True
+4170,217,ladder,True
+4171,217,laundry hamper,True
+4172,217,lawn mower,True
+4173,217,lei,True
+4174,217,log,True
+4175,217,loudspeaker,True
+4176,217,mailbox,False
+4177,217,microscope,True
+4178,217,notebook,True
+4179,217,office chair,True
+4180,217,ostrich,False
+4181,217,oversize tire,False
+4182,217,palm tree,True
+4183,217,piano,False
+4184,217,picnic blanket,True
+4185,217,pine,False
+4186,217,poker table,False
+4187,217,polar bear,True
+4188,217,police car,True
+4189,217,popcorn machine,True
+4190,217,printer,False
+4191,217,raft,False
+4192,217,railroad,True
+4193,217,reed,True
+4194,217,religious statue,True
+4195,217,rollerskates,True
+4196,217,rose,False
+4197,217,ruler,False
+4198,217,sailboat,True
+4199,217,scorpion,True
+4200,217,sea gull,True
+4201,217,seashell,True
+4202,217,seatbelt,True
+4203,217,sewing machine,True
+4204,217,shopping cart,True
+4205,217,ski,False
+4206,217,slide,False
+4207,217,soccerball,True
+4208,217,spotlight,True
+4209,217,sprayer,False
+4210,217,surfing board,True
+4211,217,swimsuit,False
+4212,217,television,False
+4213,217,tennis ball,False
+4214,217,tile,True
+4215,217,toilet,True
+4216,217,traffic sign,True
+4217,217,truck,True
+4218,217,wheat,True
+4219,217,wine glass,False
+4220,218,ATM,True
+4221,218,ambulance,True
+4222,218,apple,True
+4223,218,banana,True
+4224,218,beer,True
+4225,218,bench,True
+4226,218,binder clip,True
+4227,218,book bag,True
+4228,218,briefcase,True
+4229,218,cabin,False
+4230,218,cactus,False
+4231,218,camel,True
+4232,218,car,True
+4233,218,cash register,True
+4234,218,chalice,True
+4235,218,chandelier,True
+4236,218,cheeseburger,True
+4237,218,clown,True
+4238,218,cockroach,False
+4239,218,coffee machine,False
+4240,218,construction helmet,True
+4241,218,cookie,True
+4242,218,cow,True
+4243,218,crib,True
+4244,218,cross,True
+4245,218,cutting board,True
+4246,218,dining chair,True
+4247,218,dining table,True
+4248,218,display cabinet,True
+4249,218,dog toy,True
+4250,218,donut,True
+4251,218,doorknob,True
+4252,218,dragonfly,True
+4253,218,dumb bell,True
+4254,218,ferris wheel,True
+4255,218,firetruck,True
+4256,218,flower pot,True
+4257,218,flowers,True
+4258,218,football,True
+4259,218,frame,True
+4260,218,game token,True
+4261,218,gas can,True
+4262,218,gavel,True
+4263,218,gift bag,True
+4264,218,goggles,True
+4265,218,golf club,False
+4266,218,grill,True
+4267,218,hairdryer,True
+4268,218,helmet,False
+4269,218,horse,True
+4270,218,ice skate,True
+4271,218,jeep,True
+4272,218,kayak,True
+4273,218,ladder,False
+4274,218,laundry hamper,True
+4275,218,lawn mower,True
+4276,218,lei,True
+4277,218,log,True
+4278,218,mailbox,True
+4279,218,microscope,True
+4280,218,notebook,True
+4281,218,office chair,True
+4282,218,ostrich,True
+4283,218,oversize tire,True
+4284,218,palm tree,False
+4285,218,piano,True
+4286,218,picnic blanket,False
+4287,218,pillow,False
+4288,218,pine,False
+4289,218,podium,True
+4290,218,poker table,True
+4291,218,polar bear,True
+4292,218,police baton,True
+4293,218,police car,True
+4294,218,popcorn machine,True
+4295,218,potted plant,True
+4296,218,printer,True
+4297,218,raft,True
+4298,218,railroad,True
+4299,218,reed,False
+4300,218,religious statue,True
+4301,218,rock-climbing shoe,True
+4302,218,rollerskates,True
+4303,218,rose,True
+4304,218,ruler,True
+4305,218,sailboat,True
+4306,218,school bus,True
+4307,218,scorpion,True
+4308,218,sea gull,False
+4309,218,seal,True
+4310,218,seashell,True
+4311,218,seatbelt,False
+4312,218,sewing machine,True
+4313,218,shopping cart,True
+4314,218,ski,True
+4315,218,slide,True
+4316,218,soccerball,True
+4317,218,spotlight,True
+4318,218,sprayer,True
+4319,218,steering wheel,True
+4320,218,surfing board,False
+4321,218,swimsuit,True
+4322,218,television,False
+4323,218,tennis ball,True
+4324,218,tile,True
+4325,218,toilet,True
+4326,218,traffic sign,True
+4327,218,truck,True
+4328,218,violin,True
+4329,218,wheat,True
+4330,218,wine glass,True
+4331,219,ATM,True
+4332,219,ambulance,True
+4333,219,apple,True
+4334,219,banana,True
+4335,219,beer,True
+4336,219,bench,True
+4337,219,binder clip,True
+4338,219,book bag,False
+4339,219,briefcase,True
+4340,219,cactus,True
+4341,219,camel,True
+4342,219,car,False
+4343,219,cash register,True
+4344,219,chalice,True
+4345,219,chandelier,True
+4346,219,cheeseburger,True
+4347,219,clown,True
+4348,219,cockroach,False
+4349,219,coffee machine,False
+4350,219,construction helmet,True
+4351,219,cookie,True
+4352,219,cow,True
+4353,219,crib,False
+4354,219,cross,True
+4355,219,cutting board,True
+4356,219,dining chair,True
+4357,219,dining table,True
+4358,219,display cabinet,True
+4359,219,dog toy,True
+4360,219,donut,True
+4361,219,doorknob,True
+4362,219,dragonfly,True
+4363,219,dumb bell,True
+4364,219,ferris wheel,True
+4365,219,firetruck,True
+4366,219,flower pot,True
+4367,219,flowers,True
+4368,219,football,True
+4369,219,frame,True
+4370,219,game token,True
+4371,219,gas can,True
+4372,219,gavel,True
+4373,219,gift bag,True
+4374,219,goggles,True
+4375,219,golf club,True
+4376,219,grill,False
+4377,219,haircomb,True
+4378,219,hairdryer,True
+4379,219,helmet,True
+4380,219,horse,True
+4381,219,ice skate,True
+4382,219,jeep,True
+4383,219,kayak,True
+4384,219,ladder,True
+4385,219,laundry hamper,True
+4386,219,lawn mower,True
+4387,219,lei,True
+4388,219,log,True
+4389,219,loudspeaker,True
+4390,219,mailbox,True
+4391,219,microscope,True
+4392,219,notebook,True
+4393,219,office chair,True
+4394,219,ostrich,True
+4395,219,oversize tire,True
+4396,219,palm tree,True
+4397,219,piano,True
+4398,219,picnic blanket,True
+4399,219,pillow,True
+4400,219,pine,True
+4401,219,podium,True
+4402,219,poker table,True
+4403,219,polar bear,True
+4404,219,police baton,True
+4405,219,police car,True
+4406,219,popcorn machine,True
+4407,219,potted plant,True
+4408,219,printer,True
+4409,219,raft,True
+4410,219,railroad,True
+4411,219,reed,True
+4412,219,religious statue,True
+4413,219,rock-climbing shoe,True
+4414,219,rollerskates,True
+4415,219,rose,True
+4416,219,ruler,True
+4417,219,sailboat,True
+4418,219,school bus,True
+4419,219,scorpion,True
+4420,219,sea gull,True
+4421,219,seal,True
+4422,219,seashell,True
+4423,219,seatbelt,True
+4424,219,sewing machine,True
+4425,219,shopping cart,True
+4426,219,ski,True
+4427,219,slide,True
+4428,219,soccerball,True
+4429,219,spotlight,True
+4430,219,sprayer,True
+4431,219,steering wheel,True
+4432,219,surfing board,True
+4433,219,swimsuit,True
+4434,219,television,False
+4435,219,tennis ball,True
+4436,219,tile,True
+4437,219,toilet,True
+4438,219,traffic sign,True
+4439,219,truck,True
+4440,219,violin,True
+4441,219,wheat,True
+4442,219,whistle,True
+4443,219,wine glass,True
+4444,221,ATM,True
+4445,221,ambulance,True
+4446,221,apple,True
+4447,221,banana,True
+4448,221,beer,True
+4449,221,bench,True
+4450,221,binder clip,True
+4451,221,book bag,True
+4452,221,briefcase,True
+4453,221,cabin,True
+4454,221,cactus,True
+4455,221,camel,True
+4456,221,car,True
+4457,221,cash register,True
+4458,221,chalice,True
+4459,221,chandelier,True
+4460,221,cheeseburger,True
+4461,221,clown,True
+4462,221,cockroach,True
+4463,221,coffee machine,True
+4464,221,construction helmet,True
+4465,221,cookie,True
+4466,221,cow,True
+4467,221,crib,True
+4468,221,cross,True
+4469,221,cutting board,True
+4470,221,dining chair,True
+4471,221,dining table,True
+4472,221,display cabinet,True
+4473,221,dog toy,True
+4474,221,donut,True
+4475,221,doorknob,True
+4476,221,dragonfly,True
+4477,221,dumb bell,True
+4478,221,ferris wheel,True
+4479,221,firetruck,True
+4480,221,flower pot,True
+4481,221,flowers,True
+4482,221,football,True
+4483,221,frame,True
+4484,221,game token,True
+4485,221,gas can,True
+4486,221,gavel,True
+4487,221,gift bag,True
+4488,221,goggles,True
+4489,221,golf club,True
+4490,221,grill,True
+4491,221,haircomb,True
+4492,221,hairdryer,True
+4493,221,helmet,True
+4494,221,horse,True
+4495,221,ice skate,True
+4496,221,jeep,True
+4497,221,kayak,True
+4498,221,ladder,True
+4499,221,laundry hamper,True
+4500,221,lawn mower,True
+4501,221,lei,True
+4502,221,log,True
+4503,221,loudspeaker,True
+4504,221,mailbox,True
+4505,221,microscope,True
+4506,221,notebook,True
+4507,221,office chair,True
+4508,221,ostrich,True
+4509,221,oversize tire,True
+4510,221,palm tree,True
+4511,221,piano,True
+4512,221,picnic blanket,True
+4513,221,pillow,True
+4514,221,pine,True
+4515,221,podium,True
+4516,221,poker table,True
+4517,221,polar bear,True
+4518,221,police baton,True
+4519,221,police car,True
+4520,221,popcorn machine,True
+4521,221,potted plant,True
+4522,221,printer,False
+4523,221,raft,True
+4524,221,railroad,True
+4525,221,reed,True
+4526,221,religious statue,True
+4527,221,rock-climbing shoe,True
+4528,221,rollerskates,True
+4529,221,rose,True
+4530,221,ruler,True
+4531,221,sailboat,True
+4532,221,school bus,True
+4533,221,scorpion,True
+4534,221,sea gull,True
+4535,221,seal,True
+4536,221,seashell,True
+4537,221,seatbelt,True
+4538,221,sewing machine,True
+4539,221,shopping cart,True
+4540,221,ski,True
+4541,221,slide,True
+4542,221,soccerball,True
+4543,221,spotlight,False
+4544,221,sprayer,True
+4545,221,steering wheel,True
+4546,221,surfing board,True
+4547,221,swimsuit,True
+4548,221,television,True
+4549,221,tennis ball,True
+4550,221,tile,True
+4551,221,toilet,True
+4552,221,traffic sign,True
+4553,221,truck,True
+4554,221,violin,True
+4555,221,wheat,True
+4556,221,whistle,True
+4557,221,wine glass,True
+4558,222,ATM,False
+4559,222,ambulance,True
+4560,222,apple,True
+4561,222,banana,True
+4562,222,beer,False
+4563,222,bench,False
+4564,222,binder clip,True
+4565,222,book bag,True
+4566,222,briefcase,True
+4567,222,cabin,True
+4568,222,cactus,True
+4569,222,camel,True
+4570,222,car,True
+4571,222,cash register,True
+4572,222,chalice,True
+4573,222,chandelier,True
+4574,222,cheeseburger,False
+4575,222,clown,True
+4576,222,cockroach,True
+4577,222,coffee machine,True
+4578,222,construction helmet,True
+4579,222,cookie,True
+4580,222,cow,True
+4581,222,crib,False
+4582,222,cross,True
+4583,222,cutting board,True
+4584,222,dining chair,True
+4585,222,dining table,True
+4586,222,display cabinet,True
+4587,222,dog toy,True
+4588,222,donut,True
+4589,222,doorknob,False
+4590,222,dragonfly,True
+4591,222,dumb bell,True
+4592,222,ferris wheel,True
+4593,222,firetruck,True
+4594,222,flower pot,True
+4595,222,flowers,True
+4596,222,football,True
+4597,222,frame,True
+4598,222,game token,True
+4599,222,gas can,True
+4600,222,gavel,True
+4601,222,gift bag,True
+4602,222,goggles,True
+4603,222,golf club,True
+4604,222,grill,True
+4605,222,haircomb,False
+4606,222,hairdryer,False
+4607,222,helmet,True
+4608,222,horse,True
+4609,222,ice skate,True
+4610,222,jeep,True
+4611,222,kayak,True
+4612,222,ladder,True
+4613,222,laundry hamper,False
+4614,222,lawn mower,True
+4615,222,lei,True
+4616,222,log,False
+4617,222,loudspeaker,True
+4618,222,mailbox,True
+4619,222,microscope,True
+4620,222,notebook,True
+4621,222,office chair,True
+4622,222,ostrich,True
+4623,222,oversize tire,True
+4624,222,palm tree,True
+4625,222,piano,True
+4626,222,picnic blanket,True
+4627,222,pillow,True
+4628,222,pine,False
+4629,222,podium,True
+4630,222,poker table,True
+4631,222,polar bear,True
+4632,222,police baton,True
+4633,222,police car,True
+4634,222,popcorn machine,True
+4635,222,potted plant,False
+4636,222,printer,True
+4637,222,raft,True
+4638,222,railroad,False
+4639,222,reed,True
+4640,222,religious statue,True
+4641,222,rock-climbing shoe,True
+4642,222,rollerskates,True
+4643,222,rose,True
+4644,222,ruler,False
+4645,222,sailboat,True
+4646,222,school bus,True
+4647,222,scorpion,True
+4648,222,sea gull,True
+4649,222,seal,True
+4650,222,seashell,False
+4651,222,seatbelt,False
+4652,222,sewing machine,True
+4653,222,shopping cart,True
+4654,222,ski,True
+4655,222,slide,False
+4656,222,soccerball,True
+4657,222,spotlight,True
+4658,222,sprayer,False
+4659,222,steering wheel,True
+4660,222,surfing board,True
+4661,222,swimsuit,False
+4662,222,television,True
+4663,222,tennis ball,True
+4664,222,tile,True
+4665,222,toilet,True
+4666,222,traffic sign,True
+4667,222,truck,True
+4668,222,violin,True
+4669,222,wheat,True
+4670,222,whistle,True
+4671,222,wine glass,True
+4672,225,ATM,True
+4673,225,ambulance,True
+4674,225,apple,True
+4675,225,banana,False
+4676,225,beer,True
+4677,225,binder clip,True
+4678,225,book bag,True
+4679,225,briefcase,True
+4680,225,cabin,True
+4681,225,cactus,False
+4682,225,camel,True
+4683,225,car,False
+4684,225,cash register,True
+4685,225,chalice,True
+4686,225,chandelier,True
+4687,225,cheeseburger,True
+4688,225,clown,True
+4689,225,cockroach,True
+4690,225,coffee machine,True
+4691,225,construction helmet,True
+4692,225,cookie,True
+4693,225,cow,False
+4694,225,crib,True
+4695,225,cross,True
+4696,225,cutting board,True
+4697,225,dining chair,True
+4698,225,dining table,True
+4699,225,display cabinet,False
+4700,225,dog toy,True
+4701,225,donut,True
+4702,225,doorknob,True
+4703,225,dragonfly,True
+4704,225,dumb bell,True
+4705,225,ferris wheel,True
+4706,225,firetruck,True
+4707,225,flower pot,True
+4708,225,flowers,True
+4709,225,football,True
+4710,225,frame,True
+4711,225,game token,True
+4712,225,gas can,True
+4713,225,gavel,True
+4714,225,gift bag,True
+4715,225,goggles,False
+4716,225,golf club,True
+4717,225,grill,True
+4718,225,haircomb,True
+4719,225,hairdryer,True
+4720,225,helmet,True
+4721,225,horse,True
+4722,225,ice skate,True
+4723,225,jeep,True
+4724,225,kayak,False
+4725,225,ladder,True
+4726,225,laundry hamper,False
+4727,225,lawn mower,True
+4728,225,lei,True
+4729,225,log,True
+4730,225,loudspeaker,True
+4731,225,mailbox,True
+4732,225,microscope,True
+4733,225,notebook,True
+4734,225,office chair,True
+4735,225,ostrich,True
+4736,225,oversize tire,True
+4737,225,palm tree,True
+4738,225,piano,False
+4739,225,picnic blanket,True
+4740,225,pillow,True
+4741,225,pine,True
+4742,225,podium,True
+4743,225,poker table,True
+4744,225,polar bear,True
+4745,225,police baton,True
+4746,225,police car,True
+4747,225,popcorn machine,True
+4748,225,potted plant,True
+4749,225,printer,True
+4750,225,raft,True
+4751,225,railroad,True
+4752,225,reed,True
+4753,225,religious statue,True
+4754,225,rock-climbing shoe,True
+4755,225,rollerskates,True
+4756,225,rose,True
+4757,225,ruler,True
+4758,225,sailboat,True
+4759,225,school bus,True
+4760,225,scorpion,True
+4761,225,sea gull,True
+4762,225,seal,True
+4763,225,seashell,True
+4764,225,seatbelt,True
+4765,225,sewing machine,False
+4766,225,shopping cart,True
+4767,225,ski,True
+4768,225,slide,True
+4769,225,soccerball,True
+4770,225,spotlight,True
+4771,225,sprayer,True
+4772,225,steering wheel,True
+4773,225,surfing board,True
+4774,225,swimsuit,False
+4775,225,television,True
+4776,225,tennis ball,True
+4777,225,tile,True
+4778,225,toilet,False
+4779,225,traffic sign,True
+4780,225,truck,True
+4781,225,violin,True
+4782,225,wheat,True
+4783,225,whistle,True
+4784,225,wine glass,True
+4785,230,ATM,True
+4786,230,ambulance,True
+4787,230,apple,True
+4788,230,banana,False
+4789,230,beer,True
+4790,230,bench,False
+4791,230,book bag,False
+4792,230,briefcase,True
+4793,230,camel,True
+4794,230,car,True
+4795,230,cash register,True
+4796,230,chalice,True
+4797,230,cheeseburger,True
+4798,230,coffee machine,False
+4799,230,construction helmet,True
+4800,230,cookie,True
+4801,230,cow,True
+4802,230,crib,True
+4803,230,cross,False
+4804,230,cutting board,False
+4805,230,dining chair,True
+4806,230,dining table,True
+4807,230,dog toy,True
+4808,230,donut,True
+4809,230,doorknob,False
+4810,230,dragonfly,False
+4811,230,dumb bell,False
+4812,230,ferris wheel,False
+4813,230,firetruck,True
+4814,230,flower pot,True
+4815,230,flowers,True
+4816,230,football,True
+4817,230,frame,False
+4818,230,game token,True
+4819,230,gas can,False
+4820,230,gavel,True
+4821,230,gift bag,False
+4822,230,goggles,True
+4823,230,haircomb,True
+4824,230,hairdryer,True
+4825,230,helmet,False
+4826,230,ice skate,True
+4827,230,jeep,False
+4828,230,kayak,True
+4829,230,ladder,True
+4830,230,lawn mower,True
+4831,230,lei,True
+4832,230,loudspeaker,False
+4833,230,mailbox,True
+4834,230,notebook,True
+4835,230,ostrich,False
+4836,230,oversize tire,True
+4837,230,piano,True
+4838,230,picnic blanket,True
+4839,230,pillow,True
+4840,230,pine,True
+4841,230,podium,True
+4842,230,poker table,True
+4843,230,polar bear,True
+4844,230,police baton,True
+4845,230,police car,True
+4846,230,popcorn machine,False
+4847,230,potted plant,True
+4848,230,printer,True
+4849,230,railroad,True
+4850,230,reed,True
+4851,230,religious statue,False
+4852,230,rock-climbing shoe,True
+4853,230,rollerskates,True
+4854,230,rose,True
+4855,230,ruler,True
+4856,230,sailboat,True
+4857,230,school bus,True
+4858,230,scorpion,True
+4859,230,sea gull,True
+4860,230,seal,False
+4861,230,seashell,True
+4862,230,seatbelt,False
+4863,230,shopping cart,False
+4864,230,ski,True
+4865,230,slide,True
+4866,230,soccerball,True
+4867,230,spotlight,False
+4868,230,sprayer,False
+4869,230,steering wheel,True
+4870,230,surfing board,False
+4871,230,swimsuit,False
+4872,230,television,True
+4873,230,tennis ball,False
+4874,230,tile,False
+4875,230,toilet,True
+4876,230,traffic sign,False
+4877,230,truck,True
+4878,230,violin,True
+4879,230,wheat,False
+4880,230,whistle,True
+4881,230,wine glass,True
+4882,233,ATM,False
+4883,233,ambulance,False
+4884,233,apple,False
+4885,233,banana,True
+4886,233,beer,True
+4887,233,bench,True
+4888,233,binder clip,True
+4889,233,book bag,True
+4890,233,briefcase,True
+4891,233,cabin,True
+4892,233,cactus,True
+4893,233,camel,True
+4894,233,car,False
+4895,233,cash register,True
+4896,233,chalice,True
+4897,233,chandelier,True
+4898,233,cheeseburger,False
+4899,233,clown,True
+4900,233,cockroach,False
+4901,233,coffee machine,True
+4902,233,construction helmet,True
+4903,233,cookie,False
+4904,233,cow,True
+4905,233,crib,True
+4906,233,cross,True
+4907,233,cutting board,True
+4908,233,dining chair,True
+4909,233,dining table,True
+4910,233,display cabinet,False
+4911,233,dog toy,True
+4912,233,doorknob,True
+4913,233,dragonfly,True
+4914,233,dumb bell,False
+4915,233,ferris wheel,False
+4916,233,firetruck,True
+4917,233,flower pot,True
+4918,233,flowers,True
+4919,233,football,True
+4920,233,frame,True
+4921,233,game token,True
+4922,233,gas can,True
+4923,233,gavel,True
+4924,233,gift bag,True
+4925,233,goggles,True
+4926,233,golf club,True
+4927,233,grill,False
+4928,233,haircomb,True
+4929,233,hairdryer,True
+4930,233,helmet,True
+4931,233,horse,True
+4932,233,ice skate,True
+4933,233,jeep,False
+4934,233,kayak,True
+4935,233,ladder,True
+4936,233,laundry hamper,False
+4937,233,lawn mower,False
+4938,233,lei,True
+4939,233,log,True
+4940,233,loudspeaker,False
+4941,233,mailbox,True
+4942,233,microscope,True
+4943,233,notebook,True
+4944,233,office chair,True
+4945,233,oversize tire,False
+4946,233,palm tree,True
+4947,233,piano,True
+4948,233,picnic blanket,True
+4949,233,pillow,False
+4950,233,pine,True
+4951,233,podium,False
+4952,233,polar bear,True
+4953,233,police baton,True
+4954,233,police car,False
+4955,233,popcorn machine,True
+4956,233,potted plant,True
+4957,233,printer,True
+4958,233,raft,False
+4959,233,railroad,True
+4960,233,reed,True
+4961,233,religious statue,False
+4962,233,rock-climbing shoe,True
+4963,233,rollerskates,True
+4964,233,rose,True
+4965,233,sailboat,True
+4966,233,school bus,True
+4967,233,scorpion,True
+4968,233,sea gull,True
+4969,233,seal,True
+4970,233,seashell,True
+4971,233,seatbelt,True
+4972,233,sewing machine,True
+4973,233,shopping cart,True
+4974,233,slide,True
+4975,233,soccerball,True
+4976,233,spotlight,True
+4977,233,sprayer,True
+4978,233,steering wheel,True
+4979,233,surfing board,True
+4980,233,swimsuit,True
+4981,233,television,False
+4982,233,tennis ball,True
+4983,233,tile,True
+4984,233,toilet,True
+4985,233,traffic sign,False
+4986,233,truck,False
+4987,233,violin,True
+4988,233,wheat,True
+4989,233,whistle,True
+4990,233,wine glass,True
+4991,234,ATM,False
+4992,234,apple,False
+4993,234,banana,True
+4994,234,beer,False
+4995,234,bench,True
+4996,234,binder clip,True
+4997,234,book bag,True
+4998,234,briefcase,True
+4999,234,cabin,True
+5000,234,cactus,False
+5001,234,camel,True
+5002,234,car,False
+5003,234,chalice,True
+5004,234,chandelier,True
+5005,234,cheeseburger,True
+5006,234,clown,True
+5007,234,cockroach,True
+5008,234,coffee machine,True
+5009,234,construction helmet,False
+5010,234,cookie,True
+5011,234,cow,False
+5012,234,crib,True
+5013,234,cross,True
+5014,234,cutting board,False
+5015,234,dining chair,True
+5016,234,dining table,True
+5017,234,display cabinet,True
+5018,234,donut,False
+5019,234,doorknob,True
+5020,234,dragonfly,True
+5021,234,dumb bell,True
+5022,234,ferris wheel,True
+5023,234,firetruck,True
+5024,234,flower pot,False
+5025,234,flowers,True
+5026,234,football,True
+5027,234,frame,False
+5028,234,game token,True
+5029,234,gas can,False
+5030,234,gavel,True
+5031,234,gift bag,True
+5032,234,goggles,False
+5033,234,golf club,False
+5034,234,grill,True
+5035,234,haircomb,False
+5036,234,hairdryer,False
+5037,234,helmet,True
+5038,234,horse,True
+5039,234,ice skate,False
+5040,234,jeep,False
+5041,234,kayak,False
+5042,234,ladder,True
+5043,234,laundry hamper,False
+5044,234,lawn mower,True
+5045,234,lei,True
+5046,234,log,False
+5047,234,loudspeaker,False
+5048,234,mailbox,True
+5049,234,microscope,False
+5050,234,notebook,False
+5051,234,office chair,False
+5052,234,oversize tire,True
+5053,234,palm tree,True
+5054,234,piano,True
+5055,234,picnic blanket,False
+5056,234,pillow,False
+5057,234,pine,False
+5058,234,podium,True
+5059,234,poker table,True
+5060,234,polar bear,True
+5061,234,police baton,True
+5062,234,police car,True
+5063,234,popcorn machine,True
+5064,234,potted plant,True
+5065,234,printer,True
+5066,234,raft,False
+5067,234,railroad,True
+5068,234,reed,False
+5069,234,religious statue,True
+5070,234,rock-climbing shoe,True
+5071,234,rollerskates,True
+5072,234,rose,False
+5073,234,school bus,True
+5074,234,scorpion,True
+5075,234,sea gull,True
+5076,234,seal,True
+5077,234,seashell,True
+5078,234,seatbelt,True
+5079,234,sewing machine,True
+5080,234,shopping cart,False
+5081,234,ski,False
+5082,234,slide,True
+5083,234,soccerball,False
+5084,234,spotlight,False
+5085,234,sprayer,False
+5086,234,swimsuit,True
+5087,234,television,True
+5088,234,tennis ball,True
+5089,234,toilet,False
+5090,234,traffic sign,True
+5091,234,truck,False
+5092,234,violin,True
+5093,234,wheat,False
+5094,234,wine glass,True
