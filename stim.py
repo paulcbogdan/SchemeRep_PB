@@ -1,4 +1,4 @@
-rom pathlib import Path
+from pathlib import Path
 
 import gensim
 import numpy as np

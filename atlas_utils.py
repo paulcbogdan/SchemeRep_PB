@@ -20,9 +20,9 @@ def get_Schaefer_atlas():
     atlas['coords'] = np.array(df_coords[['R', 'A', 'S']])
     print(atlas['coords'].shape)
 
-    # fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+    # fp_ref = r'fMRI_in/102/Enc_rerun/obj/' \
     #          r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
-    fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun3/obj/' \
+    fp_ref = r'fMRI_in/102/Enc_rerun3/obj/' \
                  r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     img = image.load_img(fp_ref)
     atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img,
@@ -166,11 +166,11 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True,
                         shenyang=True):
     if new_space:
         fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
-                 r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun3/obj/' \
+                 r'fMRI_in/102/Enc_rerun3/obj/' \
                  r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     else:
         fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
-                 r'Day2EncSingleTrialModellingLSS_sorted/102/all_ENCruns_sorted/objects/' \
+                 r'fMRI_in/102/all_ENCruns_sorted/objects/' \
                  r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
 
     img = image.load_img(fp_ref)

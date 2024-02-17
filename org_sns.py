@@ -10,10 +10,9 @@ import pandas as pd
 
 
 def get_bad_sns_fp(fp):
+    if 'obj_' in fp: f'Stop using an old fp: {fp=}'
     if fp == 'all':
         bad_sns = {'116', '125', '135', '212'}
-    elif 'obj_' in fp:
-        bad_sns = {'201', '232', '233', '234', '235'}
     elif 'obj' in fp or 'scn' in fp:
         bad_sns = set()
     elif 'bl' in fp:
@@ -22,20 +21,22 @@ def get_bad_sns_fp(fp):
         bad_sns = {'116', '125', }
     elif 'cmb' in fp:
         bad_sns = set()
+    elif fp == 'loose':
+        bad_sns = set()
     else:
         raise ValueError(f'Unknown fp: {fp}')
-    bad_sns.add('133') # Missing memory (CON & VIS) behavioral data
-    bad_sns.add('138') # Bad retrieval session
-    bad_sns.add('213') # Bad retrieval session
-    bad_sns.add('215') # Missing memory (CON & VIS) behavioral & fMRI data
-    bad_sns.add('224') # Was not able to finish the last run of encoding
-    bad_sns.add('231') # Bad pdata, not sure exactly what's wrong
+    # bad_sns.add('133') # Missing memory (CON & VIS) behavioral data
+    # bad_sns.add('138') # Bad retrieval session
+    # bad_sns.add('213') # Bad retrieval session
+    # bad_sns.add('215') # Missing memory (CON & VIS) behavioral & fMRI data
+    # bad_sns.add('224') # Was not able to finish the last run of encoding
+    # bad_sns.add('231') # No conceptual retrieval or pdata
 
     # TODO
     return bad_sns
 
 
-def get_all_sns(fp_fMRI, sh=False):
+def get_sns(fp_fMRI, sh=False):
     age2sn = defaultdict(list)
     bad_sns = get_bad_sns_fp(fp_fMRI)
     sh_sns = get_shenyang_subjects()
@@ -60,7 +61,7 @@ def get_all_sns(fp_fMRI, sh=False):
 
 
 def test_fp(fp='obj3_fMRI', ages=(1, 2)):
-    age2sn = get_all_sns(fp)
+    age2sn = get_sns('loose')
     for age in ages:
         for sn in tqdm(age2sn[age], desc=f'Testing org_bhv for {fp}, {age=}'):
             print(f'Running ({fp}): {sn=}')
@@ -83,9 +84,21 @@ def get_shenyang_subjects():
               '221 222 225 230 233 234'
     return set(sns_str.split())
 
+# if __name__ == '__main__':
+#     pd.set_option('display.max_rows', 115)
+#     df_sn = get_trial_info('212', easy_override=True)
+#     # TODO: look more into 231
+#     print(df_sn['obj7_fMRI'])
+#     print(df_sn['vis_hit'].value_counts(dropna=False))
+#     quit()
+
 if __name__ == '__main__':
-    test_fp('bl7_fMRI')
-    test_fp('con7_fMRI')
+    # test = get_sns('loos')
+    # print(test)
+    # quit()
+
+    # test_fp('bl7_fMRI')
+    test_fp('obj7_fMRI')
     test_fp('vis7_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)

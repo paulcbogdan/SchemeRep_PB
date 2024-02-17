@@ -6,7 +6,7 @@ from PIL import Image, ImageOps
 import os
 
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 from stim import get_semantic_vectors, get_DNN_vecs, get_img_fns
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -137,7 +137,7 @@ def get_pairs_all():
                  ('printer', 'office space'), ('spotlight', 'stage'), ('traffic sign', 'bus stop'),
                  ('kayak', 'conference room')}
     return pairs_all
-    age2sn = get_all_sns(ret=False)
+    age2sn = get_sns(ret=False)
     pairs_all = []
     for sn in age2sn[1]:
         df_sn = get_trial_info(sn)

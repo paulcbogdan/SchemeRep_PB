@@ -2,13 +2,12 @@ import itertools
 
 import networkx as nx
 import numpy as np
-from matplotlib import pyplot as plt
 from numpy import ma as ma
 from scipy import stats as stats
 from tqdm import tqdm
 
-from conn_RSA import get_trial_x_trial_RSM
-from conn_utils import get_trial_x_trial
+from connRSA.conn_RSA import get_trial_x_trial_RSM
+from connRSA.conn_utils import get_trial_x_trial
 
 
 def conn_ERS_p(sn_inc_activity0, sn_inc_activity1, age2idxs, edges,

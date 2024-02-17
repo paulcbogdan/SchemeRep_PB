@@ -6,7 +6,7 @@ from conn_ERS import ERS_sn, ERS_ROI_pairwise#, ERS_ROI
 from conn_report import report_results, visualize_region_matrix, visualize_ROIs
 from conn_utils import get_BNA_ROIs
 from old.networks import prep_networks
-from org_sns import get_all_sns
+from org_sns import get_sns
 import numpy as np
 
 from stim import get_semantic_vectors, get_DNN_vecs
@@ -190,7 +190,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                           split=split, split_code='xyz',)
                           # shenyang='_sh' in atlas)
     fps = prep_fps(four_tasks)
-    age2sn = get_all_sns('all', sh=False)
+    age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
@@ -219,7 +219,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
 
 def run_settings_healthy(settings, ISPC=False):
-    dir_results = r'cache/conn_RSA'
+    dir_results = r'../cache/conn_RSA'
     # if settings['semantic'] == -1:
     #     dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
     # else:
@@ -312,7 +312,7 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     #             'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False,
     #             'RDM_method': 'clever_std', 'age': 1, 'plotting': 'regions'}#, 'atlas': 'BNA'}
 
-    dir_results = r'cache/conn_RSA'
+    dir_results = r'../cache/conn_RSA'
     if age == 'healthy':
         print('\n')
         print('*' + '-*' * 120)

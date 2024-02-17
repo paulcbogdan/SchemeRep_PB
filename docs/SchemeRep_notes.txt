@@ -1,3 +1,41 @@
+PB subjects:
+
+['102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '117', '118', '119', '120', '123', '124', '126', '127', '128', '129', '130', '131', '132', '134', '136', '137']
+
+['201', '202', '203', '204', '205', 
+'206', '207', '208', '209', '210', 
+'211', '214', '216', '217', '218', 
+'219', '221', '222', '225', '227', 
+'230', '232', '233', '234', '235']
+
+TODO add:
+* 116 has no retrieval scans but could be added (has retrieval behavioral data too?). DONE
+* 132 Bad Encoding run 3? I will remove this. DONE
+* 133 No retrieval. DONE
+* 138 is missing the 3rd run of visual retrieval but is otherwise okay, albeit with meh memory. ASK SHENYANG WHY RVIS IS MISSING
+* 212 has bad BL first run (already have fMRI files). NOT PREPROCESSED
+* 224 missing ENC third run (already have fMRI files). SHENYANG PREPROCESSED THIS ONE
+* 231 this participant isn't listed in the spreadsheet, but they are missing conceptual retrieval run 1 behavioral data. From what I can tell, only a single trial was saved in the results .mat? Also, SH hasn't processed their CON data, but it seems to be in fMRIprep_by_subject_out
+* 234 Missing some ENC first run trials? I'm dropping the whole run
+
+DONT ADD, WITHDREW: SH didn't preprocess these, but I'm not sure if anyone would even plan to use them.
+* 223, 226, 228, 229 withdrew post BL
+
+MAYBE REMOVE:
+* 119 (AUC = .35)
+* 227 (AUC = .51)
+* 109 (AUC = .56)
+
+I just discovered that I am normalizing my w2v vectors. i.e., im calculating the mean vector (300-length) across all scenes and objects, then subtracting that from each object and scene vector
+
+in case this is of any interest:
+
+I looked at the correlation between a model RDM based on the object stimuli x a model RDM of the scene stimuli. I did this separately for the three congruency conditions. I was curious about whether the scene and object stimulus vectors were more similar for the congruent condition (and if so, exactly how much). This is relevant for claiming that an object is being represented vs. a scene is, and loops back to those discussions about the object/scene effects being hard to disentangle.
+
+I first looked at the perceptual RDMs, which revealed that the RDM x RDM correlation was pretty close to zero and similar for all three conditions (r = .018 to .025). I then looked at the semantic RDMs, which revealed a nearly null correlation for the incongruent condition (r = -.010), an emerging correlation for the neutral condition (r = .043), and a clear one for the congruent condition (r = .125). This makes sense
+
+I also correlated each individual object vector with its associated scene vector, and averaged across all the pairs. This yielded a correlation near zero mostly, but the correlation for the congruent semantic was (r = .24)
+
 Found dorsal/ventral module dissociation in children vs. YA: https://www.sciencedirect.com/science/article/pii/S1053811921007886
 
 During vis7_fMRI: successful hit hit is linked to weaker vv ~ dd and dv_ant ~ dv_pos

@@ -307,16 +307,16 @@ def get_trial_info(sn, easy_override=False, ret=True):
 def get_trial_info_(sn, ret=True):
     renamer = NAME_RENAMER
 
-    obj_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/objects'
-    scn_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/all_ENCruns_sorted/scenes'
-    obj_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/OBJ'
-    scn_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/SCN'
-    cmb_root3 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_rerun3/CMB'
-    obj_root2 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/Enc_rerun/obj'
-    LSS1b_root4 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS1b/OBJ'
-    LSS1_root5 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS1/OBJ'
-    LSS2_root6 = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_LSS2/OBJ'
-    new_GM_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}/ENC_GM20_LLS1_bpF_full/OBJ'
+    obj_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/objects'
+    scn_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/scenes'
+    obj_root3 = fr'fMRI_in/{sn}/ENC_rerun3/OBJ'
+    scn_root3 = fr'fMRI_in/{sn}/ENC_rerun3/SCN'
+    cmb_root3 = fr'fMRI_in/{sn}/ENC_rerun3/CMB'
+    obj_root2 = fr'fMRI_in/{sn}/Enc_rerun/obj'
+    LSS1b_root4 = fr'fMRI_in/{sn}/ENC_LSS1b/OBJ'
+    LSS1_root5 = fr'fMRI_in/{sn}/ENC_LSS1/OBJ'
+    LSS2_root6 = fr'fMRI_in/{sn}/ENC_LSS2/OBJ'
+    new_GM_root = fr'fMRI_in/{sn}/ENC_GM20_LLS1_bpF_full/OBJ'
 
     df_sn_as_l = []
     inc_run_cnt = defaultdict(lambda: 0)
@@ -521,6 +521,9 @@ def get_trial_info_(sn, ret=True):
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
+    if sn == '132': # run 3 is corrupted?
+        df_sn.loc[76:, 'obj7_fMRI'] = np.nan
+        df_sn.loc[76:, 'scn7_fMRI'] = np.nan
 
     matches1234 = df_sn['inc_match'].astype(np.float64).sum() # Gives wrong number for 102 if i dont astype??
     matches14 = df_sn['inc_match14'].astype(np.float64).sum()
@@ -567,22 +570,34 @@ def get_trial_info_(sn, ret=True):
     df_sn['in_c'] = df_sn['inc'].apply(lambda x: 'c' if x == 3 else 'in')
 
     add_fns(df_sn, sn)
-    # print(list(df_sn['obj_cat']))
     return df_sn
 
 def add_fns(df_sn, sn):
     trial_info = r'behavFiles/trial_info_all.csv'
     df_info = pd.read_csv(trial_info)
-    df_info = df_info[df_info['ObjectTypeLabel_RCON'] == 'Old']
-    df_info_sn = df_info[df_info['Subject'] == int(sn)]
-    obj_l = df_info_sn['Object'].values
-    fns = df_info_sn['ObjectFile'].values
-    fns_scn = df_info_sn['SceneFile'].values
+    df_info = df_info[df_info['Subject'] == int(sn)]
+    if len(df_info) == 114: # missing retrieval data
+        pass
+    else:
+        match_con = df_info['ObjectTypeLabel_RCON'] == 'Old'
+        match_vis = df_info['ObjectTypeLabel_RVIS'].isin(['Old', 'Similar'])
+        df_info = df_info[match_con | match_vis]
+    # print(len(df_info))
+    # quit()
+    obj_l = df_info['Object'].values
+    fns = df_info['ObjectFile'].values
+    fns_scn = df_info['SceneFile'].values
     obj2fns = dict(zip(obj_l, fns))
+
     obj2fns_scn = dict(zip(obj_l, fns_scn))
     df_sn['obj_fn'] = df_sn['obj'].map(obj2fns)
     df_sn['scn_fn'] = df_sn['obj'].map(obj2fns_scn)
     df_sn['obj_cat'] = df_sn['obj_fn'].map(STIM_CATEGORY)
+    # print(STIM_CATEGORY)
+    # print(df_sn['obj'].value_counts(dropna=False))
+    # print(df_sn[['obj', 'obj_fn']])
+    # print(obj2fns)
+    # quit()
     df_sn['scn_cat'] = df_sn['scn_fn'].map(SCENE_CATEGORY)
     df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
 
@@ -607,12 +622,12 @@ def add_onset_time(df_sn, sn):
         try:
             df_sn[f'{key}_onset_TR'] = df_sn[f'{key}_onset_TR'].astype(int)
         except pd.errors.IntCastingNaNError:
-            assert sn == '133' or sn == '138'# or sn == '212'
+            assert sn == '133' or sn == '138'
             # TODO: investigate 212...
 
 
 def include_conceptual(df_sn, sn):
-    conc_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}'
+    conc_root = fr'fMRI_in/{sn}'
     obj2resp = {}
     obj2run = {}
     obj2old_new = {}
@@ -624,6 +639,8 @@ def include_conceptual(df_sn, sn):
     obj2trial = {}
     # obj2run = {}
     for run in range(1, 4):
+        if sn == '231': # TODO: use their data if I can
+            continue
         fp_bhv = fr'behavFiles/RET_con/S{sn}_run{run}_RC.mat'
         try:
             mat_enc = io.loadmat(fp_bhv)
@@ -681,7 +698,7 @@ def include_conceptual(df_sn, sn):
 def include_vis(df_sn, sn):
     # TODO: investigate why 138 is missing run3 visual retrieval
     # Figure out the trial breakdown
-    vis_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}'
+    vis_root = fr'fMRI_in/{sn}'
     obj2resp = {}
     obj2type = {} # unused
     obj2fp = {}
@@ -779,7 +796,7 @@ def do_BL_move(bl_root, run, trial):
         shutil.move(fp_BL_pre, fp_BL_post)
 
 def include_BL(df_sn, sn):
-    bl_root = fr'Day2EncSingleTrialModellingLSS_sorted/{sn}'
+    bl_root = fr'fMRI_in/{sn}'
     obj2resp = {}
     obj2run = {}
     obj2fp = {}
@@ -837,7 +854,7 @@ def include_BL(df_sn, sn):
 
 def prep_dif(df, sn):
     t = time()
-    dif_root = Path(fr'Day2EncSingleTrialModellingLSS_sorted\{sn}')
+    dif_root = Path(fr'fMRI_in\{sn}')
     key_pairs = [('bl', 'obj'), ('bl', 'vis'), ('obj', 'vis')]
     for key0, key1 in key_pairs:
         fp_key0 = f'{key0}_fMRI'
@@ -867,6 +884,7 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    df_sn = get_trial_info_('102')
-    print(df_sn['inc_hit_hit'])
+    df_sn = get_trial_info_('116')
+    # print(df_sn['inc_hit_hit'])
+    print(df_sn['con7_fMRI'])
 

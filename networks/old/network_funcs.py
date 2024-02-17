@@ -11,13 +11,13 @@ from matplotlib import pyplot as plt
 from scipy import stats as stats
 
 from atlas_utils import get_atlas
-from conn_utils import get_BNA_ROIs
+from connRSA.conn_utils import get_BNA_ROIs
 from fMRI_proc import get_ROI_vecs
 from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
-from utils import stdize, pickle_wrap
-import pickle
+from org_sns import get_sns
+from utils import pickle_wrap
+
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
@@ -36,7 +36,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     # with open(f'cache/{atlas_name}_coords.pkl', 'wb') as f:
     #     pickle.dump(coords, f)
     # quit()
-    age2sn = get_all_sns('all' if fp_all else fp, sh=False)
+    age2sn = get_sns('all' if fp_all else fp, sh=False)
     # age_sn_inc_conn = []
     # age_sn_conn = []
     sn_inc_conn = []

@@ -8,7 +8,7 @@ from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns, get_shenyang_subjects
+from org_sns import get_sns, get_shenyang_subjects
 import numpy as np
 
 from utils import pickle_wrap
@@ -26,7 +26,7 @@ def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
                       shenyang=True)
     coords = atlas['coords']
     sh_sns = get_shenyang_subjects()
-    age2sn = get_all_sns(fp, sh=only_sh_sns)
+    age2sn = get_sns(fp, sh=only_sh_sns)
 
     ROI2age2inc2l = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
@@ -115,8 +115,8 @@ def do_univariate_living(fp='bl3_fMRI'):
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
-                                kwargs=kwargs, cache_dir='cache',
-                                easy_override=False)
+                               kwargs=kwargs, cache_dir='../cache',
+                               easy_override=False)
     # df = include_shenyang_memory(df)
     # df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
     # print(df['con_hit'].value_counts())
@@ -156,7 +156,7 @@ def do_obj_vs_scn():
     kwargs = {'fp': 'obj7_fMRI', 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
-                               kwargs=kwargs, cache_dir='cache',
+                               kwargs=kwargs, cache_dir='../cache',
                                easy_override=False)
     df['cat'] = 'obj'
     kwargs = {'fp': 'scn7_fMRI', 'key': 'inc', 'conds': (1, 3),
@@ -166,7 +166,7 @@ def do_obj_vs_scn():
     # quit()
 
     df_scn, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
-                                   kwargs=kwargs, cache_dir='cache',
+                                   kwargs=kwargs, cache_dir='../cache',
                                    easy_override=False)
     df_scn['cat'] = 'scn'
     df = pd.concat([df, df_scn], axis=0)
@@ -305,8 +305,8 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True, 'combine_regions': False}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
-                                kwargs=kwargs, cache_dir='cache',
-                                easy_override=False)
+                               kwargs=kwargs, cache_dir='../cache',
+                               easy_override=False)
 
     df = df[~pd.isna(df['con_hit'])]
     df = df[~pd.isna(df['per_inc'])]

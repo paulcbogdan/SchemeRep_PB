@@ -29,7 +29,7 @@ def get_idx_from_key(l, substring):
 
 def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
                   trial_similarity, RDM_method, age):
-    dir_results = r'cache/conn_RSA'
+    dir_results = r'../cache/conn_RSA'
 
     settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': 'euc', 'trial_similarity': trial_similarity,  # change trial_similarity=spear

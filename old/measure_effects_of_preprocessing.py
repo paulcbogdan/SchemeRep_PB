@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
-from org_sns import get_all_sns, get_shenyang_subjects
+from org_sns import get_sns, get_shenyang_subjects
 from organize_bhv import get_trial_info
 import scipy.stats as stats
 
@@ -18,7 +18,7 @@ def correlate_activity(fp0='obj3_fMRI', fp1='cmb3_fMRI'):
                       shenyang=True)
     coords = atlas['coords']
     sh_sns = get_shenyang_subjects()
-    age2sn = get_all_sns(fp0, sh=False)
+    age2sn = get_sns(fp0, sh=False)
 
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]

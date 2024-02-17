@@ -9,7 +9,7 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from old.plot_gen import my_plot_surf
-from org_sns import get_all_sns
+from org_sns import get_sns
 from organize_bhv import get_trial_info
 from utils import pickle_wrap, stdize
 import numpy as np
@@ -88,7 +88,7 @@ def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
     return df_sn, cols
 
 def get_df_ERS(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
-    age2sn = get_all_sns('all', sh=False)
+    age2sn = get_sns('all', sh=False)
     sns = age2sn['healthy']
     dfs = []
     ERS_cols = []
@@ -357,7 +357,7 @@ def do_activity_corr_sn(sn, fp, key='inc', vals=(1, 3), combine_regions=False,
 
 def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
                           combine_regions=False):
-    age2sn = get_all_sns('all', sh=False)
+    age2sn = get_sns('all', sh=False)
     sns = age2sn['healthy']
     dfs = []
     cols = []
@@ -433,7 +433,7 @@ def do_trialwise_MVPA_analysis(fp='obj7_fMRI', key='inc', vals=(1, 3)
 
 def do_activity_MVPA(fp='scn7_fMRI', key='inc', vals=(1, 3),
                      combine_regions=False, age=2, corr=True):
-    age2sn = get_all_sns('all', sh=False)
+    age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
     dfs = []
     ROIs = []
@@ -474,7 +474,7 @@ def do_activity_MVPA(fp='scn7_fMRI', key='inc', vals=(1, 3),
 
 def prep_data_for_group_MVPA(fp='obj7_fMRI', key='inc', vals=(1, 3),
                            combine_regions=False, age=2):
-    age2sn = get_all_sns('all', sh=False)
+    age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
     atlas = get_atlas(combine_regions=combine_regions)
     X_all = defaultdict(list)

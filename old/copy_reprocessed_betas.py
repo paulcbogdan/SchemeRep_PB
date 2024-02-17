@@ -6,7 +6,7 @@ import shutil
 
 if __name__ == '__main__':
 
-    dir_out = r'Day2EncSingleTrialModellingLSS_sorted'
+    dir_out = r'../fMRI_in'
 
     scans = [
         # 'BL__full__regBPtrue',

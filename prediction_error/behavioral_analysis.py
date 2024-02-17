@@ -4,7 +4,7 @@ os.chdir('C:\PycharmProjects_C\SchemeRep')
 import pandas as pd
 
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 from collections import defaultdict
 
 from stim import get_semantic_vectors, get_DNN_vecs
@@ -27,7 +27,7 @@ def stdize_vecs(d_vecs):
 
 
 def test_vectors(semantic=True, DNN_layer=4, age=1):
-    age2sn = get_all_sns(ret=False)
+    age2sn = get_sns(ret=False)
     pairs_all = []
     inc2pairs = defaultdict(set)
     inc2resps = defaultdict(list)
@@ -101,7 +101,7 @@ def test_vectors(semantic=True, DNN_layer=4, age=1):
 
 def test_U_memory(DV='inc_rt', age=1):
     # low_acc_sns = {'104', '109', '115', '119'}
-    age2sn = get_all_sns('obj7_fMRI')
+    age2sn = get_sns('obj7_fMRI')
     df_l = []
     for sn in age2sn[age]:
         # if sn in low_acc_sns:

@@ -220,7 +220,7 @@ def visualize_region_matrix(results, plot_lmer=False):
 
     settings = results['settings']
     lmer_fp = get_default_fp(None, settings, get_lmer_matrix,
-                             r'cache/lmer_ar', False)
+                             r'../cache/lmer_ar', False)
 
     lmer_ar = pickle_wrap(lmer_fp, lambda: get_lmer_matrix(results))
 

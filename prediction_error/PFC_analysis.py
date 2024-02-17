@@ -8,7 +8,7 @@ import numpy as np
 from atlas_utils import get_BN_and_resample
 from fMRI_proc import get_ROI_vecs, regress_out_within_across, get_IRAFs, within_run_to_nan
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 import utils
@@ -103,7 +103,7 @@ def analyze_sn(sn, atlas, fp_fMRI_col='obj_fMRI', semantic=False, DNN_layer=2):
 
 def analyze_all_sn(fp_fMRI_col='scn7_fMRI', age=2, semantic=True, DNN_layer=2):
     atlas = get_BN_and_resample(combine_bilateral=False)
-    age2sn = get_all_sns(fp_fMRI_col)
+    age2sn = get_sns(fp_fMRI_col)
     key2z_all = defaultdict(list)
     key2IRAF_df_all = defaultdict(lambda: pd.DataFrame())
     for i, sn in tqdm(enumerate(age2sn[age]), desc='PFC looping sn'):

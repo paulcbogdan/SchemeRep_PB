@@ -5,7 +5,7 @@ from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
-from single_trial_conn import corr_matrix_last_two_dim
+from connRSA.single_trial_conn import corr_matrix_last_two_dim
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from old.modularity_testing import get_partition_matrix
 from utils import tril_flat, stdize

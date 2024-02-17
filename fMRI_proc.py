@@ -5,7 +5,7 @@ import numpy as np
 
 from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 from nilearn import image
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
@@ -270,7 +270,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         if fp_fMRI_col[:4] == 'obj_':
             img = image.load_img(df_sn[fp_fMRI_col])
             print(f'Resample {fp_fMRI_col} to match ref')
-            fp_ref = r'Day2EncSingleTrialModellingLSS_sorted/102/Enc_rerun/obj/' \
+            fp_ref = r'fMRI_in/102/Enc_rerun/obj/' \
                      r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
             img_ref = image.load_img(fp_ref)
             img = image.resample_to_img(img, img_ref,
@@ -509,7 +509,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', 'con3_fMRI', 'vis3_fMRI', ]
     atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
-    age2sn = get_all_sns(fp_fMRI_col,)
+    age2sn = get_sns(fp_fMRI_col, )
 
     n_trials = 114 if cin is None else 38
 

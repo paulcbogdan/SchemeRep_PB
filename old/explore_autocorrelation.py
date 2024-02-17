@@ -4,12 +4,12 @@ import numpy as np
 from scipy import stats as stats
 from tqdm import tqdm
 
-from single_trial_conn import prep_fps
-from conn_utils import get_ROI_vecs_wrap
-from conn_RSA import get_trial_x_trial_RSM
+from connRSA.single_trial_conn import prep_fps
+from connRSA.conn_utils import get_ROI_vecs_wrap
+from connRSA.conn_RSA import get_trial_x_trial_RSM
 from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 
 
 def conn_autocorrelation(combine_regions=False, split=False, four_tasks=False,
@@ -27,7 +27,7 @@ def conn_autocorrelation(combine_regions=False, split=False, four_tasks=False,
 
     fp = fps[0]
     sess = fp.split('_')[0].replace('2', '')
-    age2sn = get_all_sns(ret=True)
+    age2sn = get_sns(ret=True)
     sns = age2sn[1]
     corr_by_sn = []
     corr_by_ROI = defaultdict(list)

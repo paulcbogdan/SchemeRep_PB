@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from atlas_utils import get_atlas
 from conn_utils import get_ROI_vecs_wrap, get_conn_vecs, get_trial_x_trial
 from organize_bhv import get_trial_info
-from org_sns import get_all_sns
+from org_sns import get_sns
 from tqdm import tqdm
 
 from single_trial_conn import prep_fps, run_settings_healthy
@@ -143,7 +143,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	else:
 		do_networks = None
 		keys = atlas['tick_labels']
-	age2sn = get_all_sns(ret=True)
+	age2sn = get_sns(ret=True)
 	sns = age2sn[age]
 
 	results = {'networks': do_networks, 'keys': keys, 'sns': sns}
@@ -172,7 +172,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 
 def run_settings_ISPC_healthy(settings):
 	# results_both = run_settings_healthy(settings, run_settings_ISPC)
-	dir_results = r'cache/conn_RSA'
+	dir_results = r'../cache/conn_RSA'
 
 	settings1 = settings.copy()
 	del settings1['age']
@@ -219,7 +219,7 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			settings['conn'] = f'cross_{conn}'
 			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
-	dir_results = r'cache/conn_RSA'
+	dir_results = r'../cache/conn_RSA'
 	if age == 'healthy':
 		results = pickle_wrap(None, run_settings_ISPC_healthy,
 							  kwargs={'settings': settings},
