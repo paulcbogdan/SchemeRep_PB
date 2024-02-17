@@ -14,7 +14,7 @@ from utils import pickle_wrap
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
-                           flip=True, weighted=True):
+                           flip=True, weighted=True, plot=False):
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     if weighted:
         M_YA, _, _, _, _, p_YA, z_YA = \
@@ -40,7 +40,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
     else:
         title_extra = f' (Incogruent > Congruent)'
     partitions, matrix_mask = \
-        get_main_partitions(z_both, coords=None, plot=False, threshold=thr,
+        get_main_partitions(z_both, coords=None, plot=plot, threshold=thr,
                             fn_str='', overlapping=False,
                             dir_out_full=dir_out, title_extra=title_extra)
     # print('MADE AND PLOTTED')
@@ -55,7 +55,7 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           age: int | str='healthy',
                           thr=.95, flip=True, anat=False,
                           weighted=False, scrub=False,
-                          ):
+                          plot=False):
     if anat:
         return get_anat_vendor_partitions()
     if sn_inc_conn is None or age2idxs is None:
@@ -74,7 +74,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                                                        age2idxs=age2idxs,
                                                        age=age, thr=thr,
                                                        flip=flip,
-                                                       weighted=weighted),
+                                                       weighted=weighted,
+                                                       plot=False),
                     easy_override=True)
     atlas = get_atlas()
     coords = atlas['coords']
@@ -93,7 +94,7 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
                                                           p_v_ant, p_v_pos,
                                                           # scrub=scrub,
-                                                          plot=False,
+                                                          plot=plot,
                                                           anat=anat)
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
@@ -250,6 +251,9 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
 
+        from PIL import Image
+        Image.open(fp_glass).show()
+
         for key in ['AD', 'AV', 'PD', 'PV']:
             network_colors[f'mislabeled_{key}'] = network_colors[key]
         node_sizes_copy = copy(node_sizes)
@@ -263,11 +267,16 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                         coords, node_size=node_sizes_copy, linewidths=15,
                         network_colors=network_colors,)
 
+        from PIL import Image
+        Image.open(fp_glass).show()
 
         fp_glass = fr'{dir_out}\glass_first_scrubbed2{anat_str}.png'
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
+
+        from PIL import Image
+        Image.open(fp_glass).show()
 
     # if scrub:
     f = lambda i: 'mislabeled' not in idx_to_quadrant[i]
@@ -281,16 +290,17 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
 
 if __name__ == '__main__':
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True)
-    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=False)
+        get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True)
+    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=False)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True)
-    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
+        get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
+                              scrub=True)
+    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, scrub=True)
-    save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=True, anat=False)
+    # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+    #     get_vendor_partitions(age='healthy', flip=True, scrub=True, plot=True)
+    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=True, anat=False)
 
 
 

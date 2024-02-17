@@ -15,7 +15,7 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
                       vmin=None, vmax=None, xlabel=None, ylabel=None,
                       tile=.001, tick_low=None, tick_high=None):
 
-    conn[np.triu_indices_from(conn, k=-1)] = np.nan
+    # conn[np.triu_indices_from(conn, k=0)] = np.nan
 
     font = {'size': 14}
     matplotlib.rc('font', **font)

@@ -23,6 +23,12 @@ import warnings
 # pandas suppress SettingWithCopyWarning
 pd.options.mode.chained_assignment = None
 
+# filter PerformanceWarning
+import warnings
+# import PerformanceWarning
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
+
 
 def timing(f):
     # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
@@ -364,7 +370,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
         f = lambda: do_activity_corr_sn(sn, fp, key=key, vals=vals,
                                         combine_regions=combine_regions)
         df_sn, cols, cols_simp, cols_alt = pickle_wrap(fp_pkl, f,
-                                                       easy_override=False)
+                                                       easy_override=True)
         cols_bl = sorted(list(set([col[:-2] for col in cols])))
         # for col in cols_bl:
         #     try:
@@ -383,6 +389,8 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
     # plt.title(f'{fp=}')
     # plt.show()
 
+    print(df.columns)
+    # quit()
 
     return df, cols, cols_bl, cols_alt
 

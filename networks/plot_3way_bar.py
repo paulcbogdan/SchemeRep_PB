@@ -18,7 +18,7 @@ from statannotations.Annotator import Annotator
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
 
-def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False, weighted=False):
+def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -49,6 +49,11 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False, weighted=False):
     dv_ant = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant,
                                             trialwise=False)
     dv_pos = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos,
+                                            trialwise=False)
+
+    dv_cross = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant,
+                                            trialwise=False)
+    vd_cross = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant,
                                             trialwise=False)
 
     flat_within = np.stack((dd_flat, vv_flat), axis=-1)
@@ -83,8 +88,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False, weighted=False):
     subj_nums = []
     vals = []
 
-    keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos']
-    data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos]
+    keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos',
+            'dv_cross', 'vd_cross']
+    data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos,
+            dv_cross, vd_cross]
     for key, flat in zip(keys, data):
         # print(f'{flat.shape=}')
         # quit()
@@ -224,7 +231,9 @@ def plot_four(df_agg):
 
     side2str = {'Between': 'Between', 'Within': 'Within',
                 'dd': 'Within: Dorsal', 'vv': 'Within: Ventral',
-                'dv_ant': 'Between: Anterior', 'dv_pos': 'Between: Posterior'}
+                'dv_ant': 'Between: Anterior', 'dv_pos': 'Between: Posterior',
+                'dv_cross': 'Between: P. Dorsal - A. Ventral',
+                'vd_cross': 'Between: P. Ventral - A. Dorsal'}
     betweens = {'Between', 'dv_ant', 'dv_pos'}
     for side, df_side in df_agg.groupby('within_between'):
         if side in betweens:

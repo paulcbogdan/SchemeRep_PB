@@ -154,19 +154,11 @@ def get_trialwise_ss_vendor(group_exemplar=False, memory=False):
     return df_sns, new_cols
 
 
-
-
-def do_RSA_x_vendor():
-    # kwargs = {
-    #     'fp_fMRI_col': 'scn7_fMRI',
-    #     'key': 'scn',
-    #     'semantic': True,
-    #     'combine_regions': False
-    # }
+def get_super_df(fp='obj7_fMRI'):
     kwargs = {
-        'fp_fMRI_col': 'scn7_fMRI',
-        'key': 'scn',
-        'semantic': True,
+        'fp_fMRI_col': fp,
+        'key': 'obj',
+        'semantic': False,
         'combine_regions': True
     }
 
@@ -180,18 +172,16 @@ def do_RSA_x_vendor():
                                cache_dir='cache', easy_override=False)
     df_RSA.set_index(['sn', 'obj'], inplace=True)
 
-    df_ERS, ERS_ROIs, _ = pickle_wrap(None, get_df_ERS, kwargs={},
-                               cache_dir='cache', easy_override=True)
-    df_ERS.set_index(['sn', 'obj'], inplace=True)
-
-    df_ERS_obj, ERS_obj_ROIs, _ = pickle_wrap(None, get_df_ERS,
-                                           kwargs={'fp0': 'obj7_fMRI'},
-                               cache_dir='cache', easy_override=False)
-    df_ERS_obj.set_index(['sn', 'obj'], inplace=True)
-    df_ERS = df_ERS.join(df_ERS_obj[ERS_obj_ROIs])
-
-
-    df_RSA = df_RSA.join(df_ERS[ERS_ROIs + ERS_obj_ROIs])
+    # df_ERS, ERS_ROIs, _ = pickle_wrap(None, get_df_ERS, kwargs={},
+    #                            cache_dir='cache', easy_override=True)
+    # df_ERS.set_index(['sn', 'obj'], inplace=True)
+    #
+    # df_ERS_obj, ERS_obj_ROIs, _ = pickle_wrap(None, get_df_ERS,
+    #                                        kwargs={'fp0': fp},
+    #                            cache_dir='cache', easy_override=False)
+    # df_ERS_obj.set_index(['sn', 'obj'], inplace=True)
+    # df_ERS = df_ERS.join(df_ERS_obj[ERS_obj_ROIs])
+    # df_RSA = df_RSA.join(df_ERS[ERS_ROIs + ERS_obj_ROIs])
 
     df_ss_vdr, new_cols = pickle_wrap(None, get_trialwise_ss_vendor,
                                       kwargs={'group_exemplar': False},
@@ -200,20 +190,39 @@ def do_RSA_x_vendor():
     df_ss_vdr.set_index(['sn', 'obj'], inplace=True)
     df_ss_vdr = df_ss_vdr[new_cols]
 
-    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': 'vis7_fMRI'},
+    df_vdr = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
                          cache_dir='cache', easy_override=False)
 
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     df = df_RSA.join(df_vdr, rsuffix='meh')
     df = df.join(df_ss_vdr)
 
-    df_MVPA, ROIs_mvpa, _, _ = get_df_trialwise_MVPA('obj7_fMRI', key='inc',
+    df_MVPA, ROIs_mvpa, _, _ = get_df_trialwise_MVPA(fp, key='inc',
                                                   vals=(1, 3),
                                                   combine_regions=True)
 
     df_MVPA.set_index(['sn', 'obj'], inplace=True)
     df = df.join(df_MVPA[ROIs_mvpa])
     df.reset_index(inplace=True, drop=False)
+    # ERS_ROIs, ERS_obj_ROIs,
+    return df, ROIs, ROIs_mvpa
+
+
+def do_RSA_x_vendor():
+    dfs_l = []
+    for fp in ['obj7_fMRI', 'scn7_fMRI', 'bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']:
+        df, ROIs,  ROIs_mvpa = get_super_df(fp=fp)
+        dfs_l.append(df)
+    df = pd.concat(dfs_l)
+    # print(ERS_ROIs)
+    # quit()
+    # kwargs = {
+    #     'fp_fMRI_col': 'scn7_fMRI',
+    #     'key': 'scn',
+    #     'semantic': True,
+    #     'combine_regions': False
+    # }
+
     # df = df[df['age'] == 2]
     # df = df[df['inc'] == 3]
 
@@ -241,11 +250,11 @@ def do_RSA_x_vendor():
                 ROIs_vnd.append(ROI)
                 break
 
-    for ROI in ERS_obj_ROIs:
-        for ROI_key in ROI_keys:
-            if ROI_key in ROI:
-                ROIs_ERS_vnd.append(ROI)
-                break
+    # for ROI in ERS_obj_ROIs:
+    #     for ROI_key in ROI_keys:
+    #         if ROI_key in ROI:
+    #             ROIs_ERS_vnd.append(ROI)
+    #             break
     for ROI in ROIs_mvpa:
         for ROI_key in ROI_keys2:
             if ROI_key in ROI:
@@ -266,7 +275,7 @@ def do_RSA_x_vendor():
                      'vendor', 'age']]
 
     ROIs = ['vnd_RSA'] + ROIs
-    ERS_ROIs = ['vnd_ERS'] + ERS_ROIs
+    # ERS_ROIs = ['vnd_ERS'] + ERS_ROIs
 
     pd.set_option('display.precision', 3)
 
@@ -279,7 +288,7 @@ def do_RSA_x_vendor():
     df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     # print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula_gen = 'con_hit ~ 1 + dd + vv +' \
+    formula_gen = 'vnd_RSA ~ 1 + dd + vv +' \
                   '+ (1 + dd + vv  | sn)'
 
     # formula_gen = 'dv_pos ~ 1 + dd + all_M + brain_M  + vv + dv_ant + inc ' \
