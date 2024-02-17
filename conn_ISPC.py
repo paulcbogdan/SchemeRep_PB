@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from single_trial_conn import prep_fps, run_settings_healthy
 from conn_report import report_results
-from networks import prep_networks
+from vendor import prep_networks
 from utils import pickle_wrap
 import warnings
 from colorama import Fore

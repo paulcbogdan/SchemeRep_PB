@@ -206,12 +206,12 @@ def loop_over_ROIs(threshold=0.9, group=True):
 
     key = kwargs['key']
     coords = coords[:len(ts_OA)]
-    fp = fr'nichord_plots/ROI_clf/YA_{key}.png'
+    fp = fr'result_pics/clf/YA_{key}.png'
     vmin = 0.51 if group else 2
     vmax = 0.6 if group else 4
     plot_ROI_scores(ts_YA, coords, fp_out=fp, show=True,
                     vmin=vmin, vmax=vmax, title='Younger adults')
-    fp = fr'nichord_plots/ROI_clf/OA_{key}.png'
+    fp = fr'result_pics/clf/OA_{key}.png'
     plot_ROI_scores(ts_OA, coords, fp_out=fp, show=True,
                     vmin=vmin, vmax=vmax, title='Older adults')
 

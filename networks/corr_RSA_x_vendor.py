@@ -1,6 +1,5 @@
 import os
 
-from network_IRAF import get_formula_cols
 from activity_ERS import get_df_ERS, get_df_trialwise_MVPA
 from old.network_funcs import load_FC_for_Lifu
 from ven_x_dor import get_vendor_df
@@ -16,7 +15,7 @@ from atlas_utils import get_atlas
 from old.modularity import get_partition_matrix
 # from networks.old import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
-from utils import pickle_wrap, stdize, get_RSA_fn, timing
+from utils import pickle_wrap, stdize, get_RSA_fn, timing, get_formula_cols
 import pickle
 from collections import defaultdict
 import scipy.stats as stats

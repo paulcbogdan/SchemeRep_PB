@@ -571,7 +571,7 @@ def get_trial_info_(sn, ret=True):
     return df_sn
 
 def add_fns(df_sn, sn):
-    trial_info = r'single_trial_conn/trial_info_all.csv'
+    trial_info = r'behavFiles/trial_info_all.csv'
     df_info = pd.read_csv(trial_info)
     df_info = df_info[df_info['ObjectTypeLabel_RCON'] == 'Old']
     df_info_sn = df_info[df_info['Subject'] == int(sn)]
@@ -589,7 +589,7 @@ def add_fns(df_sn, sn):
 
 
 def add_onset_time(df_sn, sn):
-    trial_info = r'single_trial_conn/trial_info_all.csv'
+    trial_info = r'behavFiles/trial_info_all.csv'
     df_info = pd.read_csv(trial_info)
     df_info = df_info[df_info['ObjectTypeLabel_RCON'] == 'Old']
     df_info_sn = df_info[df_info['Subject'] == int(sn)]

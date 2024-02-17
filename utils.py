@@ -431,3 +431,13 @@ def timing(f):
           (f.__name__, args, kw, te-ts))
         return result
     return wrap
+
+
+def get_formula_cols(df, formula):
+    import re
+    formula = re.split(' |[*]|\)|\(', formula)
+    cols = []
+    for col in df.columns:
+        if col in formula:
+            cols.append(col)
+    return cols

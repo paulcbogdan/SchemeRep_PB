@@ -94,42 +94,6 @@ def get_conn_mat(atlas, fp_fMRI_col = 'obj_fMRI',
     return corr_all, inc2corr, atlas
 
 
-def stuff():
-    inc2corr_dif = {}
-    for inc0, corr0 in inc2corr.items():
-        for inc1, corr1 in inc2corr.items():
-            if inc0 >= inc1:
-                continue
-            inc2corr_dif[(inc0, inc1)] = corr0 - corr1
-
-    inc2corr_dif_M = {}
-    inc2corr_t = {}
-    for comparison, corr_dif in inc2corr_dif.items():
-        inc2corr_dif_M[comparison] = np.mean(corr_dif, axis=0)
-        SE = np.nanstd(corr_dif, axis=0) / np.sqrt(corr_dif.shape[0])
-        inc2corr_t[comparison] = inc2corr_dif_M[comparison] / SE
-
-    corr_all, _ = corr_matrix_last_two_dim(activity)
-    corr_all_M = np.nanmean(corr_all, axis=0)
-    corr_all_M[np.diag_indices_from(corr_all_M)] = np.nan
-    partitions = get_modules(corr_all_M)
-
-    for i, p in tqdm(enumerate(partitions), desc='looping partitions'):
-        tmat = inc2corr_t[(1, 2)]
-        pmat_t = get_partition_matrix(tmat, p)
-        dir_out = fr'nichord_plots/inc12/{fp_fMRI_col}'
-        fn = f'p{i}_tdif.png'
-        title = f't-map. inc 12, {fp_fMRI_col}, partition: {i}'
-        plot_nichord(pmat_t, atlas['coords'], fn, title, dir_out=dir_out)
-
-        fn = f'p{i}_M.png'
-        title = f'mean. inc 12, {fp_fMRI_col}, partition: {i}'
-        pmat_M = get_partition_matrix(corr_all_M, p)
-        plot_nichord(pmat_M, atlas['coords'], fn, title, dir_out=dir_out)
-
-
-
-    # atlas['coords'], bonus_str=fp_fMRI_col
 
 
 def compare_cross_corr(combine_regions=False, bilateral=False):

@@ -1,15 +1,11 @@
 import pickle
 from collections import defaultdict
 
-import matplotlib
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from statsmodels.stats.multitest import multipletests
 
 from atlas_utils import get_atlas
-from old.plot_gen import my_plot_surf
-from utils import get_RSA_fn, make_title_str
+from utils import get_RSA_fn, get_formula_cols
 
 # from connsearch.report.plots import plot_ROI_scores
 import scipy.stats as stats
@@ -90,14 +86,6 @@ def export_IRAF_csv(age=2, early=True, semantic=True, inc=None,
     summary = model.coefs
     print(summary)
 
-def get_formula_cols(df, formula):
-    import re
-    formula = re.split(' |[*]|\)|\(', formula)
-    cols = []
-    for col in df.columns:
-        if col in formula:
-            cols.append(col)
-    return cols
 
 if __name__ == '__main__':
     export_IRAF_csv()

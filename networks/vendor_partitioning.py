@@ -33,7 +33,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''
-    dir_out = f'nichord_plots/vendor/' \
+    dir_out = f'result_pics/vendor/' \
               f'ttest_mod_{age2str[age]}_thr{thr}_flip{flip}{weighted_str}'
     if flip:
         title_extra = f' (Congruen t > incongruent)'

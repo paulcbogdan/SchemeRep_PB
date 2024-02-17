@@ -4,7 +4,6 @@
 # sys.path.extend([r'C:\PycharmProjects_C\SchemeRep'])
 from atlas_utils import get_atlas
 # from corr_RSA_x_vendor import get_module_trialwise_z
-from network_IRAF import get_formula_cols
 
 from functools import cache
 from collections import defaultdict
@@ -15,7 +14,7 @@ import pandas as pd
 from old.modularity import get_partition_cross, get_partition_matrix
 from old.network_funcs import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
-from utils import timing, pickle_wrap, stdize
+from utils import timing, pickle_wrap, stdize, get_formula_cols
 import scipy.stats as stats
 from warnings import filterwarnings
 

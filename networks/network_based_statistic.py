@@ -391,7 +391,7 @@ def do_NBS(threshold=0.9, min_cluster_size=50, alpha_thresh=.05):
     components, biggest_size = get_NBS_clusters(p12_graph, alpha_thresh)
     coords = get_BNA_coords()
 
-    dir_out = 'nichord_plots/NBS'
+    dir_out = 'result_pics/NBS'
     for i, edges in enumerate(components):
         print(f'num edges: {len(edges)} | {edges=}')
         if len(edges) < min_cluster_size:

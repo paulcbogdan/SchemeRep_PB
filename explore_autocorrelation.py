@@ -31,7 +31,7 @@ def conn_autocorrelation(combine_regions=False, split=False, four_tasks=False,
     sns = age2sn[1]
     corr_by_sn = []
     corr_by_ROI = defaultdict(list)
-    for i, sn in tqdm(enumerate(sns), desc='ERS, looping subjects'):
+    for i, sn in tqdm(enumerate(sns), desc='looping subjects'):
         df_sn = get_trial_info(sn)
         df_sn.sort_values(by=f'{sess}_trial', inplace=True)
         # for idx, row in df_sn.iterrows():

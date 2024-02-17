@@ -297,10 +297,6 @@ def plot_four(df_agg):
 
 
 
-
-
-
-
 if __name__ == '__main__':
     conn_partition_3bar()
 
