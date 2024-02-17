@@ -84,13 +84,13 @@ def get_shenyang_subjects():
               '221 222 225 230 233 234'
     return set(sns_str.split())
 
-# if __name__ == '__main__':
-#     pd.set_option('display.max_rows', 115)
-#     df_sn = get_trial_info('212', easy_override=True)
-#     # TODO: look more into 231
-#     print(df_sn['obj7_fMRI'])
-#     print(df_sn['vis_hit'].value_counts(dropna=False))
-#     quit()
+if __name__ == '__main__':
+    pd.set_option('display.max_rows', 115)
+    df_sn = get_trial_info('132', easy_override=True)
+    # TODO: look more into 231
+    print(df_sn['obj7_fMRI'])
+    print(df_sn['vis_hit'].value_counts(dropna=False))
+    quit()
 
 if __name__ == '__main__':
     # test = get_sns('loos')

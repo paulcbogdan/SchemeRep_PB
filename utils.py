@@ -8,6 +8,8 @@ from scipy import stats as stats
 from datetime import datetime
 from time import time
 from pickle import UnpicklingError
+import pandas as pd
+from nilearn import image
 
 def regress_out(x, y):
     x = np.array(x)
@@ -196,6 +198,20 @@ def make_title_str(pre_str, key, age, DNN_layer, semantic,
     out_str = f'{pre_str} {fp_str}, {stim_str} {rsa_str}.\n{age_str}. {inc_str}'
     return out_str
 
+def load_ni_w_nan_fps(fps):
+    nan_idxs = pd.isna(fps)
+    if nan_idxs.any():
+        img = image.load_img(fps[~nan_idxs]).get_fdata()
+        # print(img.shape)
+        # quit()
+        blank = np.full((img.shape[0], img.shape[1], img.shape[2], len(fps)),
+                        np.nan)
+        blank[:, :, :, ~nan_idxs] = img
+        img = blank
+    else:
+        img = image.load_img(fps).get_fdata()
+    num_goods = np.sum(~nan_idxs)
+    return img, num_goods
 
 def get_RSA_fn(inc, age, semantic, DNN_layer, fp_fMRI_col='obj_fMRI',
                pre_str='', PCA_obj=True,

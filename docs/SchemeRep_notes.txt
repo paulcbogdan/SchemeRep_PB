@@ -1,3 +1,6 @@
+obj
+SFG_L
+
 PB subjects:
 
 ['102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '117', '118', '119', '120', '123', '124', '126', '127', '128', '129', '130', '131', '132', '134', '136', '137']
@@ -9,11 +12,12 @@ PB subjects:
 '230', '232', '233', '234', '235']
 
 TODO add:
-* 116 has no retrieval scans but could be added (has retrieval behavioral data too?). DONE
+* 116 has no retrieval scans but could be added (has retrieval behavioral data too?). DONE. DONE
 * 132 Bad Encoding run 3? I will remove this. DONE
 * 133 No retrieval. DONE
 * 138 is missing the 3rd run of visual retrieval but is otherwise okay, albeit with meh memory. ASK SHENYANG WHY RVIS IS MISSING
 * 212 has bad BL first run (already have fMRI files). NOT PREPROCESSED
+* 213 The spreadsheet says the Vis run 2 behavioral data is missing due to a technical error, and the participant may have dozed off in Vis runs 2 and 3. I checked and they missed 42/114 responses. NOT PREPROCESSED
 * 224 missing ENC third run (already have fMRI files). SHENYANG PREPROCESSED THIS ONE
 * 231 this participant isn't listed in the spreadsheet, but they are missing conceptual retrieval run 1 behavioral data. From what I can tell, only a single trial was saved in the results .mat? Also, SH hasn't processed their CON data, but it seems to be in fMRIprep_by_subject_out
 * 234 Missing some ENC first run trials? I'm dropping the whole run

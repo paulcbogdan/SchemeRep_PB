@@ -260,25 +260,25 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         img[..., non_nan_trials] = \
             image.load_img(df_sn_[fp_fMRI_col]).get_fdata()
     else:
-        n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+        # n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
+        # if n_nans:
+        #     print(df_sn[fp_fMRI_col])
+        #     print(f'{len(df_sn)=}')
+        #     raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
 
-        if n_nans:
-            print(df_sn[fp_fMRI_col])
-            print(f'{len(df_sn)=}')
-            raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
-
-        if fp_fMRI_col[:4] == 'obj_':
-            img = image.load_img(df_sn[fp_fMRI_col])
-            print(f'Resample {fp_fMRI_col} to match ref')
-            fp_ref = r'fMRI_in/102/Enc_rerun/obj/' \
-                     r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
-            img_ref = image.load_img(fp_ref)
-            img = image.resample_to_img(img, img_ref,
-                                        interpolation='nearest')
-            img = img.get_fdata()
-        else:
+        # if fp_fMRI_col[:4] == 'obj_':
+        #     img = image.load_img(df_sn[fp_fMRI_col])
+        #     print(f'Resample {fp_fMRI_col} to match ref')
+        #     fp_ref = r'fMRI_in/102/Enc_rerun/obj/' \
+        #              r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+        #     img_ref = image.load_img(fp_ref)
+        #     img = image.resample_to_img(img, img_ref,
+        #                                 interpolation='nearest')
+        #     img = img.get_fdata()
+        # else:
             # print(df_sn[fp_fMRI_col].values)
-            img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+        # img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
+        img, num_goods = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
 
 
     n_nans = np.isnan(img).sum()
@@ -290,10 +290,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
     region2vecs = defaultdict(list)
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
-        # print(f'{img.shape=}')
-        # print(f'{atlas_roi.shape=}')
         region_vecs = img[atlas_roi]
-
 
         if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI']:
             voxels_w_nan = np.isnan(region_vecs[:, non_nan_trials]).any(axis=1)
@@ -415,10 +412,11 @@ def analyze_subj(sn, cin, d_vecs, atlas, stim_keys,
     include_bhv(bhv, df_sn)
     RDM_stims = get_all_stim_RDMs(df_sn, d_vecs) # TODO: don't repeat every sn
     ROI2vecs = get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, inc=cin,
-                            nan_thresh=.8, org_by_region=org_by_region)
-    # for j, (ROI, ROI_num) in tqdm(enumerate(zip(ROIs, ROI_nums)),
-    #                               desc='looping ROIs outer', total=len(ROIs),
-    #                               leave=True, ncols=80, position=0):
+                            nan_thresh=.5, org_by_region=org_by_region,
+                            easy_override=True)
+    print(f'{sn=}, {fp_fMRI_col=}')
+    print(ROI2vecs['SFG_L'][:, 0])
+    quit()
 
     for j, (ROI, ROI_num) in enumerate(zip(ROIs, ROI_nums)):
         if ROI not in ROI2vecs:
@@ -509,7 +507,7 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     ret = fp_fMRI_col in ['con_fMRI', 'vis_fMRI', 'dif_bl-vis', 'dif_obj-vis',
                           'con2_fMRI', 'vis2_fMRI', 'con3_fMRI', 'vis3_fMRI', ]
     atlas = get_atlas(combine_regions=combine_regions, combine_bilateral=bilateral)
-    age2sn = get_sns(fp_fMRI_col, )
+    age2sn = get_sns('loose')#fp_fMRI_col, )
 
     n_trials = 114 if cin is None else 38
 
@@ -540,6 +538,8 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
     if org_by_region:
         atlas['n_ROIs'] = len(atlas['tick_labels'])
 
+    age2sn[age] = ['132']
+
     bhv = defaultdict(list)
     sns = []
     dfs_sn = []
@@ -552,6 +552,13 @@ def mass_RDM_x_RDM(age=1, cin=None, semantic=False, DNN_layer=2, PCA_obj=True,
                              org_by_region=org_by_region, shuffle=shuffle)
         sns.append(sn)
         dfs_sn.append(df_sn)
+
+    key0 = list(ROI_to_IRAF.keys())[0]
+    roi0 = list(ROI_to_IRAF[key0].keys())[0]
+    print(key0)
+    print(roi0)
+    print(ROI_to_IRAF[key0][roi0])
+    quit()
 
     apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
                             ROI_to_z, ROI_to_IRAF)
@@ -622,7 +629,7 @@ def run_multi_settings():
         for inc in [None]:
             for DNN_layer, semantic in [
                 (2, False),
-                (-1, False),
+                # (-1, False),
                 # (4, False),
                 # (6, False),
                 # (True, False),
@@ -630,10 +637,10 @@ def run_multi_settings():
             ]:  # (True, False),
                 for fp_fMRI_col in [
                     # 'scn7_fMRI',
-                    # 'obj7_fMRI',
+                    'obj7_fMRI',
                     # 'bl7_fMRI',
-                    'con7_fMRI',
-                    'vis7_fMRI',
+                    # 'con7_fMRI',
+                    # 'vis7_fMRI',
                 ]:
             # for fp_fMRI_col in ['obj_fMRI']:
             # for fp_fMRI_col in ['dif_bl-vis', 'dif_bl-obj', 'dif_obj-vis']:
@@ -647,7 +654,7 @@ def run_multi_settings():
                                               bilateral=bilateral,
                                               vec_prod=False,
                                               org_by_region=org_by_region)
-                    fp_out = fr'cache/RSA/{RSA_fn}.pkl'
+                    fp_out = fr'cache/RSA/{RSA_fn}_test_pls_delete.pkl'
                     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
                     f = lambda: mass_RDM_x_RDM(age=age, cin=inc,
                                                DNN_layer=DNN_layer,
@@ -661,6 +668,7 @@ def run_multi_settings():
                                                )
                     d = pickle_wrap(fp_out, f, easy_override=False,
                                     verbose=True)
+                    quit()
 
 
 # a = [[1, 2, 3, np.nan], [4, 2, 8, 10], [1, 2, 3, 10]]
