@@ -331,8 +331,11 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     else:
         kwargs_str = ''
     name = callback.__name__
-    Path(cache_dir).mkdir(parents=True, exist_ok=True)
-    filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
+    func_dir = f'{cache_dir}/{name}'
+    Path(func_dir).mkdir(parents=True, exist_ok=True)
+    filepath = f'{func_dir}/{args_str}_{kwargs_str}.pkl'
+    # Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    # filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
     if verbose: print(f'Default pickle_wrap filepath: {filepath}')
 
 
@@ -362,7 +365,7 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
 
     if verbose:
-        print('Filepath:', filepath)
+        print(f'pickle_wrap: {filepath=}')
         print('\tFunction:', getVariableName(callback,
                                              globalVariables=globals().copy()))
 
@@ -385,14 +388,17 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
             with open(filepath, "rb") as file:
                 pk = pickle.load(file)
                 if verbose: print(f'\tLoad time: {time()-start:.3f} s')
+                if not verbose: print(f'Pickle loaded: {filepath=} '
+                                      f'({time() - start:.3f} s)')
                 return pk
         except UnpicklingError as e:
             print(f'{e=}')
             print(f'\t{callback=}')
             print(f'\t{filepath=}')
 
-    if verbose: print('Callback:', getVariableName(callback,
-                                                   globalVariables=globals().copy()))
+    if verbose:
+        print('Callback:',
+              getVariableName(callback, globalVariables=globals().copy()))
     start = time()
     if args:
         output = callback(*args)
@@ -404,8 +410,15 @@ def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
         print(f'\tFunction time: {time()-start:.3f} s')
         # print('\tDumping to file name:', filepath)
     start = time()
-    with open(filepath, "wb") as new_file:
-        pickle.dump(output, new_file)
+    try:
+        with open(filepath, "wb") as new_file:
+            pickle.dump(output, new_file)
+        if not verbose: print(f'Pickle wrapped: {filepath=} '
+                              f'({time()-start:.3f} s)')
+    except FileNotFoundError:
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+        with open(filepath, "wb") as new_file:
+            pickle.dump(output, new_file)
     if verbose: print(f'\tDump time: {time()-start:.3f} s')
     return output
 
@@ -432,8 +445,11 @@ def get_formula_cols(df, formula):
     return cols
 
 if __name__ == '__main__':
-    signature = inspect.signature(pickle_wrap)
+    # f = lambda: pickle_wrap(1, None)
+    f = pickle_wrap
+    signature = inspect.signature(f)
+    # print(signature)
     for k, v in signature.parameters.items():
         # print(isinstance(v, ))
-        # print(f'{k}: {type(v.default)}')
-        print(v.default is v.empty)
+        print(f'{k}: {v.default=}')
+        # print(v.default is v.empty)

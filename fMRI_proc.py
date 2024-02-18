@@ -187,39 +187,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
-    sn = df_sn['sn'].iloc[0]
-    # if sn == '234' and fp_fMRI_col in ['obj3_fMRI', 'scn3_fMRI', 'cmb3_fMRI',
-    #                                    'obj4_fMRI', 'scn4_fMRI',
-    #                                    'obj7_fMRI', 'scn7_fMRI']:
-    #     # Missing a few trials at the end of Run 1
-    #     df_sn_ = df_sn.copy()
-    #     print(f'{len(df_sn_)=}')
-    #     img = np.full((97, 115, 97, len(df_sn_)), np.nan)
-    #     non_nan_trials = ~pd.isna(df_sn_[fp_fMRI_col])
-    #     df_sn_.dropna(subset=[fp_fMRI_col], inplace=True)
-    #     img[..., non_nan_trials] = \
-    #         image.load_img(df_sn_[fp_fMRI_col]).get_fdata()
-    # else:
-        # n_nans = pd.isna(df_sn[fp_fMRI_col]).sum()
-        # if n_nans:
-        #     print(df_sn[fp_fMRI_col])
-        #     print(f'{len(df_sn)=}')
-        #     raise ValueError(f'Found NaNs in {fp_fMRI_col} {sn}, {n_nans=}')
-
-        # if fp_fMRI_col[:4] == 'obj_':
-        #     img = image.load_img(df_sn[fp_fMRI_col])
-        #     print(f'Resample {fp_fMRI_col} to match ref')
-        #     fp_ref = r'fMRI_in/102/Enc_rerun/obj/' \
-        #              r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
-        #     img_ref = image.load_img(fp_ref)
-        #     img = image.resample_to_img(img, img_ref,
-        #                                 interpolation='nearest')
-        #     img = img.get_fdata()
-        # else:
-            # print(df_sn[fp_fMRI_col].values)
-        # img = image.load_img(df_sn[fp_fMRI_col]).get_fdata()
     img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
-
 
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
@@ -470,11 +438,11 @@ def run_multi_settings():
     assert not (org_by_region and combine_regions), \
         'Cannot combine regions and organize by region'
     inc = None
-    for age in [2]:
+    for age in [2, 1]:
         for inc in [None]:
             for DNN_layer, semantic in [
-                # (2, False),
-                (-1, False),
+                (2, False),
+                # (-1, False),
                 # (4, False),
                 # (6, False),
                 # (True, False),

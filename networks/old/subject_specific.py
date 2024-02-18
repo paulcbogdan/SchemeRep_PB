@@ -267,8 +267,6 @@ def graph_theory(sn_inc_activity, age2idxs, p_top_edges, p, threshold=0.8,
                 conn0_p[np.diag_indices_from(conn0_p)] = np.nan
                 thresh = np.nanquantile(conn0_p, threshold)
 
-                # quit()
-                # print(thresh)
                 conn0_p[conn0_p < thresh] = 0
                 conn0_p[conn0_p >= thresh] = 1
 

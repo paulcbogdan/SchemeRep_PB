@@ -19,7 +19,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
 def lmer_triangle(fp='con7_fMRI', plot=False, hemi=True, scrub=False, anat=True):
-    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
+    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
                                                   'scrub': scrub,
                                                   'anat': anat,
                                                   'hemis': hemi},
@@ -249,7 +249,7 @@ def plot_massive_hemi_corr_matrix(fp='vis7_fMRI', anat=True, scrub=False):
 
 def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
     if hemis:
-        df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
+        df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
                          cache_dir='cache', easy_override=False)
 
         df_hemi, cols_hemi = pickle_wrap(None, get_hemi_cross_vendor_df,
@@ -262,7 +262,7 @@ def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
                 'DP_hemi', 'DA_hemi', 'VP_hemi', 'VA_hemi']
 
     else:
-        df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
+        df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
                              cache_dir='cache', easy_override=False)
         cols = ['dd', 'vv', 'dv_ant', 'dv_pos']
     for age, df_age in df.groupby('age'):

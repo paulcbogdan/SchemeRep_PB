@@ -1,5 +1,6 @@
-import sys
-sys.path.append(f'C:\PycharmProjects_C\SchemeRep')
+import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 
 import pickle
 from collections import defaultdict
@@ -245,9 +246,9 @@ def ROI_YA_vs_OA(semantic=True, inc=None,
 if __name__ == '__main__':
 
     # Test connectivity within region between ROIs as nodes
-    SEMANTIC = True
-    DNN_LAYER = -1
-    FP_FMRI_COL = 'vis7_fMRI'
+    SEMANTIC = False
+    DNN_LAYER = 2
+    FP_FMRI_COL = 'scn7_fMRI'
     KEY = 'scn'
     analyze_ROIs(age=1, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
                  DNN_layer=DNN_LAYER)

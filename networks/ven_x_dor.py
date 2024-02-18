@@ -118,7 +118,8 @@ def get_DMN_p(exclude_ps=None):
     print(f'Ven-Ant: {cnt}')
 
 
-def get_dfs_conn_trials(fp='obj7_fMRI'):
+@timing
+def get_dfs_conn_trials(fp='obj7_fMRI', single=False):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -132,7 +133,10 @@ def get_dfs_conn_trials(fp='obj7_fMRI'):
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
-    return conn_trials, df_sns_l
+    if single:
+        return conn_trials[[0]], [df_sns_l[0]]
+    else:
+        return conn_trials, df_sns_l
 
 def get_df_p_x_p(p0, p1, key, fp='obj7_fMRI'):
     conn_trials, df_sns_l = get_dfs_conn_trials(fp)
@@ -232,58 +236,47 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
                   sn_inc_activity_std[..., None, :, :]
     # conn_trials = np.repeat(matrix_mask[None, None, ..., None],
     #                         conn_trials.shape[-1], axis=4) * conn_trials[..., :]
-                            # idk why I can't just broadcast matrix_mask
+    #                         idk why I can't just broadcast matrix_mask
 
-    sn_inc_act_M_pos_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_ant_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_pos_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :],
-                                    axis=(1, 2))
-    sn_inc_act_M_ant_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :],
-                                    axis=(1, 2))
+    sn_inc_act_M_p_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],axis=(1, 2))
+    sn_inc_act_M_a_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :], axis=(1, 2))
+    sn_inc_act_M_p_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :], axis=(1, 2))
+    sn_inc_act_M_a_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :], axis=(1, 2))
     sn_inc_act_M_overall = np.nanmean(sn_inc_activity, axis=(1, 2))
+    sn_trials_dd = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant)
+    sn_trials_vv = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant)
+    sn_trials_dv_a = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant)
+    sn_trials_dv_p = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos)
+    sn_trials_dpva = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant)
+    sn_trials_vpda = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant)
 
-    sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                    p_d_pos, p_d_ant)
-    # print(sn_agg_trials_dd[:, 5])
-    # quit()
-
-    sn_agg_trials_vv = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                    p_v_pos, p_v_ant)
-    # plt.hist(sn_agg_trials_dd.flatten(), bins=25, range=(-0.5, 0.5))
-    # plt.show()
-    # print(sn_agg_trials_vv.shape)
-    # quit()
-
-    sn_agg_trials_dv_ant = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                        p_d_ant, p_v_ant)
-    sn_agg_trials_dv_pos = get_module_cross_trialwise_z(conn_trials,#sn_inc_activity_std,
-                                                        p_d_pos, p_v_pos)
+    all_new_cols = set()
     for i, df_sn in enumerate(df_sns_l):
         old_cols = set(df_sn.columns)
-        df_sn['pd_M'] = sn_inc_act_M_pos_d[i, :]
-        df_sn['ad_M'] = sn_inc_act_M_ant_d[i, :]
+        df_sn['pd_M'] = sn_inc_act_M_p_d[i, :]
+        df_sn['ad_M'] = sn_inc_act_M_a_d[i, :]
         df_sn['d_M'] = df_sn['pd_M'] + df_sn['ad_M']
-        df_sn['pv_M'] = sn_inc_act_M_pos_v[i, :]
-        df_sn['av_M'] = sn_inc_act_M_ant_v[i, :]
+        df_sn['pv_M'] = sn_inc_act_M_p_v[i, :]
+        df_sn['av_M'] = sn_inc_act_M_a_v[i, :]
         df_sn['v_M'] = df_sn['pv_M'] + df_sn['av_M']
+
         df_sn['all_M'] = df_sn['d_M'] + df_sn['v_M']
         df_sn['brain_M'] = sn_inc_act_M_overall[i, :]
 
-        df_sn['dd'] = sn_agg_trials_dd[i, :]
-        df_sn['vv'] = sn_agg_trials_vv[i, :]
-        df_sn['dv_ant'] = sn_agg_trials_dv_ant[i, :]
-        df_sn['dv_pos'] = sn_agg_trials_dv_pos[i, :]
-        df_sn['dd_vv'] = df_sn['dd'] + df_sn['vv'] #- \
-                       # df_sn['dv_ant'] - df_sn['dv_pos']
+        df_sn['dd'] = sn_trials_dd[i, :]
+        df_sn['vv'] = sn_trials_vv[i, :]
+        df_sn['dv_ant'] = sn_trials_dv_a[i, :]
+        df_sn['dv_pos'] = sn_trials_dv_p[i, :]
+        df_sn['dpva'] = sn_trials_dpva[i, :]
+        df_sn['vpda'] = sn_trials_vpda[i, :]
+
+        df_sn['dd_vv'] = df_sn['dd'] + df_sn['vv']
         df_sn['cross'] = df_sn['dv_ant'] + df_sn['dv_pos']
         df_sn['vendor'] = df_sn['dd_vv'] - df_sn['cross']
         new_cols = list(set(df_sn.columns) - old_cols)
+        all_new_cols.update(new_cols)
         for col in new_cols:
             df_sn[col] = stats.zscore(df_sn[col], nan_policy='omit')
-        # df_sn[new_cols] = df_sn[new_cols].apply(stats.zscore, axis=0,
-        #                                         nan_policy='omit')
     df_sns = pd.concat(df_sns_l)
     df_sns['age'] = df_sns['sn'].apply(lambda x: int(x[0]))
 
@@ -294,14 +287,13 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
                                                  'scrub': scrub},
                                          cache_dir='cache',
                                          easy_override=True)
-        # print(df_hemi[cols_hemi])
-        # quit()
         df_sns = df_sns.merge(df_hemi, on=['sn', 'obj'])
+        all_new_cols.update(cols_hemi)
 
-    return df_sns
+    return df_sns, all_new_cols
 
 def vendor_lmer(fp='vis7_fMRI'):
-    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
+    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
                                                   'anat': True,
                                                   'scrub': False,
                                                   'hemis': False},
@@ -331,7 +323,7 @@ def vendor_lmer(fp='vis7_fMRI'):
     print(df[['dd', 'vv', 'dv_ant', 'dv_pos', 'brain_M']].corr())
 
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
-    df = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
+    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
                                                   'scrub': False,
                                                   'anat': True},
                      cache_dir='cache', easy_override=False)

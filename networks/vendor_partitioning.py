@@ -1,4 +1,7 @@
+
 import os
+os.chdir('C:\PycharmProjects_C\SchemeRep')
+
 from collections import defaultdict, Counter
 from copy import copy
 
@@ -10,8 +13,6 @@ from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
 
-
-os.chdir('C:\PycharmProjects_C\SchemeRep')
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                            flip=True, weighted=True, plot=False):
@@ -289,12 +290,10 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True)
+    get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=False)
 
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
+    get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
                               scrub=True)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 

@@ -41,6 +41,15 @@ def get_bad_sns_fp(fp):
     # TODO
     return bad_sns
 
+def get_sns_l(fps_fMRI):
+    age2sns0 = get_sns(fps_fMRI[0])
+    for fp1 in fps_fMRI[1:]:
+        age2sns1 = get_sns(fp1)
+        for age, l in age2sns1.items():
+            age2sns0[age] = set(age2sns0[age]) & set(l)
+    for age, l in age2sns0.items():
+        age2sns0[age] = sorted(list(set(l)))
+    return age2sns0
 
 def get_sns(fp_fMRI, sh=False):
     age2sn = defaultdict(list)

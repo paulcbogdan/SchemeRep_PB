@@ -9,7 +9,7 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from old.plot_gen import my_plot_surf
-from org_sns import get_sns
+from org_sns import get_sns, get_sns_l
 from organize_bhv import get_trial_info
 from utils import pickle_wrap, stdize
 import numpy as np
@@ -19,6 +19,7 @@ from time import time
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import warnings
+from utils import timing
 
 # pandas suppress SettingWithCopyWarning
 pd.options.mode.chained_assignment = None
@@ -29,18 +30,6 @@ import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
-
-def timing(f):
-    # https://stackoverflow.com/questions/1622943/timeit-versus-timing-decorator
-    @wraps(f)
-    def wrap(*args, **kw):
-        ts = time()
-        result = f(*args, **kw)
-        te = time()
-        print('func:%r args:[%r, %r] took: %2.4f sec' % \
-          (f.__name__, args, kw, te-ts))
-        return result
-    return wrap
 
 @timing
 def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
@@ -88,7 +77,7 @@ def do_activity_ERS_sn(sn, fp0='bl3_fMRI', fp1='obj7_fMRI',
     return df_sn, cols
 
 def get_df_ERS(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
-    age2sn = get_sns('all', sh=False)
+    age2sn = get_sns_l([fp0, fp1])
     sns = age2sn['healthy']
     dfs = []
     ERS_cols = []
