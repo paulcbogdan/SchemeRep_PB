@@ -291,7 +291,9 @@ def getVariableName(variable, globalVariables):
 
 def obj2str(val):
     kwargs_str = ''
-    if isinstance(val, dict):
+    if isinstance(val, np.ndarray):
+        return ''
+    elif isinstance(val, dict):
         # val_d = ''
         for key2 in sorted(val.keys()):
             kwargs_str += obj2str(val[key2])

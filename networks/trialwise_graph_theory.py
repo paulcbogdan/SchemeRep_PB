@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-from old.modularity import get_partition_matrix
+from old.modularity import get_partition_matrix, get_partition_cross
 from vendor_partitioning import get_vendor_partitions
 
 os.chdir(r'C:\PycharmProjects_C\SchemeRep')
@@ -93,44 +93,31 @@ def get_graph_scores(G):
     else:
         raise NotImplementedError
 
-def get_shortest_cc_sn_p(conn_trials_sn_p, sn):
+def get_shortest_cc_sn_p(conn_trials_sn_p, sn, rank_std=True):
     shortest_l = []
     cc_l = []
-    for conn_trial in tqdm(conn_trials_sn_p, desc=f'Doing graph trials: {sn}'):
-        conn_trial_ = np.reshape(conn_trial, -1)
-        conn_trial_r_ = np.argsort(np.argsort(conn_trial_)).astype(float)
-        conn_trial_r_[np.isnan(conn_trial_)] = np.nan
-        conn_trial_r = np.reshape(conn_trial_r_, conn_trial.shape)
-        conn_trial_r += 0.5
-        # print(f'{np.nanmax(conn_trial_r)=}')
-        # print(conn_trial_r)
-        # conn_trial_r = np.reshape(np.argsort(np.argsort(np.reshape(
-        #     conn_trial, -1))), conn_trial.shape) # ranks, NaNs go to highest
-        # conn_trial_r_ = np.reshape(conn_trial_r, -1)
 
-
-        # print(conn_trial_r.shape)
-        # print('-')
-        # print(np.isnan(conn_trial).shape)
+    if rank_std:
+        conn_trials_sn_p_ = np.reshape(conn_trials_sn_p,
+                                       (conn_trials_sn_p.shape[0], -1))
+        conn_trials_sn_p_r_ = np.argsort(np.argsort(conn_trials_sn_p_))
+        conn_trials_sn_p_r = np.reshape(conn_trials_sn_p_r_,
+                                        conn_trials_sn_p.shape)
+        conn_trials_sn_p_r = conn_trials_sn_p_r.astype(float)
+        conn_trials_sn_p_r[np.isnan(conn_trials_sn_p)] = np.nan
+        conn_trials_sn_p_r += 0.5
+        conn_trials_sn_p_r /= np.nanmax(conn_trials_sn_p_r) + 0.5
+        conn_trials_sn_p_z = stats.norm.ppf(conn_trials_sn_p_r)
+        # M = np.nanmean(conn_trials_sn_p_z)
+        # print(f'{M=}')
+        # print('toast')
         # quit()
-        # conn_trial_r[np.ix_(np.isnan(conn_trial))] = np.nan
-        # conn_trial_r += 0.5
-        conn_trial_r /= np.nanmax(conn_trial_r) + 0.5
-        # print('-'*100)
-        # print(conn_trial_r)
-        conn_trial_z = stats.norm.ppf(conn_trial_r)
-        conn_trial_exp = np.exp(-conn_trial_z)
-        # print('-'*100)
-        # print(conn_trial_z)
-        # quit()
+    else:
+        conn_trials_sn_p_z = conn_trials_sn_p
+    conn_trials_sn_p_exp = np.exp(-conn_trials_sn_p_z)
 
-
-        # conn_trial = np.exp(-conn_trial)
-        # print(conn_trial.shape)
-        # print(conn_trial)
-        # plt.imshow(conn_trial)
-        # plt.show()
-        # quit()
+    for conn_trial_exp in tqdm(conn_trials_sn_p_exp,
+                           desc=f'Doing graph trials: {sn}'):
         G = nx.from_numpy_array(conn_trial_exp)
         try:
             shortest = nx.average_shortest_path_length(G, weight='weight')
@@ -141,26 +128,36 @@ def get_shortest_cc_sn_p(conn_trials_sn_p, sn):
             cc = np.nan
         shortest_l.append(shortest)
         cc_l.append(cc)
-        print(f'{cc=}')
-        print(f'{shortest=}')
-        quit()
+        # print(f'{cc=}')
+        # print(f'{shortest=}')
+        # quit()
     return shortest_l, cc_l
 
-def apply_df_trial_graph_p(conn_trials_T, p, df_sns_l, key):
-    p_trials_T = get_partition_matrix(conn_trials_T, p)
+def apply_df_trial_graph_p(conn_trials_T, p, df_sns_l, key, p1=None,
+                           rank_std=True):
+    if p1 is None:
+        p_trials_T = get_partition_matrix(conn_trials_T, p)
+    else:
+        p_trials_T = get_partition_cross(conn_trials_T, p, p1)
     for conn_trials_sn_p, df_sn in zip(p_trials_T, df_sns_l):
         sn = df_sn['sn'].iloc[0]
-        fp_pkl = f'cache/trial_graphs/{sn}_{key}.pkl'
-        f = lambda: get_shortest_cc_sn_p(conn_trials_sn_p, sn)
-        shortest_l, cc_l = pickle_wrap(fp_pkl, f, easy_override=True)
+        rank_std_str = '_rank_std' if rank_std else ''
+        fp_pkl = f'cache/trial_graphs/{sn}_{key}{rank_std_str}.pkl'
+        f = lambda: get_shortest_cc_sn_p(conn_trials_sn_p, sn,
+                                         rank_std=rank_std)
+        shortest_l, cc_l = pickle_wrap(fp_pkl, f, easy_override=False)
+        # kwargs = {'conn_trials_sn_p': conn_trials_sn_p,
+        #           'sn': sn, 'rank_std': True}
+        # shortest_l, cc_l = pickle_wrap(None, get_shortest_cc_sn_p,
+        #                                kwargs=kwargs,
+        #                                easy_override=True)
         df_sn[f'{key}_shortest'] = shortest_l
         df_sn[f'{key}_clustering'] = cc_l
     new_cols = [f'{key}_shortest', f'{key}_clustering']
     return new_cols
 
 @timing
-def get_df_trial_graphs(fp='obj7_fMRI', combine_regions=False, anat=True,
-                        scrub=False):
+def get_df_trial_graphs(fp='obj7_fMRI', anat=True, scrub=False):
     # conn_trials, df_sns_l = pickle_wrap(None, get_dfs_conn_trials,
     #                                     kwargs={'fp': fp,
     #                                             'single': True},
@@ -179,16 +176,18 @@ def get_df_trial_graphs(fp='obj7_fMRI', combine_regions=False, anat=True,
 
     dd_cols = apply_df_trial_graph_p(conn_trials_T, p_dorsal, df_sns_l, 'dd')
     vv_cols = apply_df_trial_graph_p(conn_trials_T, p_ventral, df_sns_l, 'vv')
-    new_cols = dd_cols + vv_cols
-    # print(f'{new_cols=}')
+    # dd_cols = apply_df_trial_graph_p(conn_trials_T, p_d_pos, df_sns_l, 'dd',
+    #                                  p1=p_d_ant)
+    # vv_cols = apply_df_trial_graph_p(conn_trials_T, p_v_pos, df_sns_l, 'vv',
+    #                                  p1=p_v_ant)
+    p_dv_ant = p_d_ant + p_v_ant
+    p_dv_pos = p_d_pos + p_v_pos
+    dv_ant_cols = apply_df_trial_graph_p(conn_trials_T, p_dv_ant, df_sns_l,
+                                         'dv_ant')
+    dv_pos_cols = apply_df_trial_graph_p(conn_trials_T, p_dv_pos, df_sns_l,
+                                         'dv_pos')
+    new_cols = dd_cols + vv_cols +  dv_ant_cols + dv_pos_cols
     df = pd.concat(df_sns_l)
-    # print(df[['dd_clustering', 'vv_clustering']])
-    # for col in new_cols:
-    #
-    #     plt.hist(df[col], bins=30)
-    #     plt.title(col)
-    #     plt.show()
-
     return df, new_cols
 
 

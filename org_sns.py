@@ -20,8 +20,7 @@ def get_bad_sns_fp(fp):
     elif 'bl' in fp:
         bad_sns = {'212'}
     elif 'vis' in fp:
-        # TODO: add 138, 231 back to CON after shenyang preprocesses it
-        bad_sns = {'116', '125', '215', '133', '213', '138'}
+        bad_sns = {'116', '125', '215', '133',} #  '213', '138'
     elif 'con' in fp:
         # TODO: add 231 back to CON after shenyang preprocesses it
         bad_sns = {'116', '125',  '133', '215', '231'}
@@ -37,8 +36,6 @@ def get_bad_sns_fp(fp):
     # bad_sns.add('215') # Missing memory (CON & VIS) behavioral & fMRI data
     # bad_sns.add('224') # Was not able to finish the last run of encoding
     # bad_sns.add('231') # No conceptual retrieval or pdata
-
-    # TODO
     return bad_sns
 
 def get_sns_l(fps_fMRI):
@@ -101,10 +98,20 @@ def get_shenyang_subjects():
 
 if __name__ == '__main__':
     pd.set_option('display.max_rows', 115)
-    df_sn = get_trial_info('231', easy_override=True)
-    # TODO: look more into 231
-    print(df_sn['vis7_fMRI'])
-    print(df_sn['vis_hit'].value_counts(dropna=False))
+    # df_sn = get_trial_info('231', easy_override=True)
+    # print(df_sn['con7_fMRI'])
+    # quit()
+
+    # df_sn = get_trial_info('138', easy_override=True)
+    # print(df_sn['vis7_fMRI'])
+    # quit()
+    # df_sn = get_trial_info('213', easy_override=True)
+    # print(df_sn['vis7_fMRI'])
+    # quit()
+
+    df_sn = get_trial_info('212', easy_override=True)
+    print(df_sn['bl7_fMRI'])
+    # print(df_sn['vis_hit'].value_counts(dropna=False))
     quit()
 
 if __name__ == '__main__':

@@ -642,8 +642,8 @@ def include_conceptual(df_sn, sn):
     obj2trial = {}
     # obj2run = {}
     for run in range(1, 4):
-        if sn == '231': # TODO: use their data if I can
-            continue
+        # if sn == '231': # TODO: use their data if I can
+        #     continue
         fp_bhv = fr'behavFiles/RET_con/S{sn}_run{run}_RC.mat'
         try:
             mat_enc = io.loadmat(fp_bhv)
@@ -652,6 +652,14 @@ def include_conceptual(df_sn, sn):
             continue
 
         for i in range(48):
+            # Warning 231 may be bad.
+            # 212 BL / 231 RCON -- the order of objects in pdata
+            # ;(psychtoolbox output) doesn't match the stimtbl (which
+            # supposedly determines the object presentation
+            # order beforehand). I've gone ahead and make single-trial model
+            # based on the psychtoolbox output, but maybe proceed with caution
+            # with these two ppl
+            if sn == '231' and run == 1: continue
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
             obj2run[obj] = run
@@ -744,7 +752,7 @@ def include_vis(df_sn, sn):
             else:
                 obj2fp[obj] = glob_vic[0]
 
-            if sn == '138': # has original preprocessing but no rerun betas?
+            if sn == '138' and run == 3: # has original preprocessing but no rerun betas?
                 continue
 
             if sn[0] == '2':
@@ -765,12 +773,15 @@ def include_vis(df_sn, sn):
                 obj2fp3[obj] = None
 
             glob_vis7 = fr'{vis_root}/VIS_rerun7/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+            print(f'{glob_vis7=}')
+
             glob_vis7 = glob(glob_vis7)
             if len(glob_vis7):
                 obj2fp7[obj] = glob_vis7[0]
             else:
                 obj2fp7[obj] = None
     else:
+        print(obj2fp7)
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
         f = lambda row: np.nan if pd.isna(row['vis_resp']) else \
@@ -809,6 +820,7 @@ def include_BL(df_sn, sn):
     obj2trial = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/bl/S{sn}_run{run}.mat'
+        # fp_bhv = r'C:\PycharmProjects_C\SchemeRep\behavFiles\BL\212_redonerun1\S212_run1.mat'
         try:
             mat_enc = io.loadmat(fp_bhv)
         except FileNotFoundError:
@@ -818,6 +830,8 @@ def include_BL(df_sn, sn):
         for i in range(38):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
+            # print(f'{obj=}')
+            # quit()
             obj2run[obj] = run
             obj2trial[obj] = trial + 38 * (run - 1)
             resp = mat_enc['pdata'][0][0][8][0][i][0]

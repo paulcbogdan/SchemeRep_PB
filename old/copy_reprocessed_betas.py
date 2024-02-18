@@ -20,8 +20,8 @@ if __name__ == '__main__':
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'RVIS__full__regBPfalse',
-        # 'RCON__full__regBPfalse',
-        'BL__full__regBPfalse'
+        'RCON__full__regBPfalse',
+        # 'BL__full__regBPfalse'
     ]
 
     details = [
@@ -35,17 +35,20 @@ if __name__ == '__main__':
         # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
         # ('b_trial.nii', 'ENC_GM20_LLS1_bpF_full', 'LSS1'),
         # ('b_Object.nii', 'VIS_rerun7', 'VIS'),
-        # ('b_Object.nii', 'CON_rerun7', 'CONC')
-        ('b_Object.nii', 'BL_rerun7', 'BL'),
+        ('b_Object.nii', 'CON_rerun7', 'CONC')
+        # ('b_Object.nii', 'BL_rerun7', 'BL'),
     ]
 
 
     for scan, detail in zip(scans, details):
-        enc_dir = fr'Y:\SchemRep.01\Scripts\SingleTrialModel_SH\model_output\{scan}'
+        enc_dir = fr'Z:\SchemRep.01\Scripts\SingleTrialModel_SH\model_output\{scan}'
         enc_dir = Path(enc_dir)
         g = enc_dir.glob('*')
         g = [sn.name for sn in g]# if sn.name[:1] == '2']
         g = [sn for sn in g if sn[:1] != '3']
+        g = ['138', '213', '212', '231']
+        # print(g)
+        # quit()
         # g = [sn for sn in g if sn[:1] != '1']
 
         # g = [sn for sn in g if sn == '204']

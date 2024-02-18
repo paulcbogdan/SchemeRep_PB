@@ -2,6 +2,7 @@
 import os
 os.chdir('C:\PycharmProjects_C\SchemeRep')
 
+from pathlib import Path
 from collections import defaultdict, Counter
 from copy import copy
 
@@ -37,16 +38,13 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
     dir_out = f'result_pics/vendor/' \
               f'ttest_mod_{age2str[age]}_thr{thr}_flip{flip}{weighted_str}'
     if flip:
-        title_extra = f' (Congruen t > incongruent)'
+        title_extra = f' (Congruent > incongruent)'
     else:
-        title_extra = f' (Incogruent > Congruent)'
+        title_extra = f' (Incongruent > Congruent)'
     partitions, matrix_mask = \
         get_main_partitions(z_both, coords=None, plot=plot, threshold=thr,
                             fn_str='', overlapping=False,
                             dir_out_full=dir_out, title_extra=title_extra)
-    # print('MADE AND PLOTTED')
-    # quit()
-
 
     return partitions, matrix_mask
 
@@ -56,9 +54,9 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           age: int | str='healthy',
                           thr=.95, flip=True, anat=False,
                           weighted=False, scrub=False,
-                          plot=False):
+                          plot=False, easy_override=False):
     if anat:
-        return get_anat_vendor_partitions()
+        return get_anat_vendor_partitions(plot=plot)
     if sn_inc_conn is None or age2idxs is None:
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
@@ -76,8 +74,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                                                        age=age, thr=thr,
                                                        flip=flip,
                                                        weighted=weighted,
-                                                       plot=False),
-                    easy_override=True)
+                                                       plot=plot),
+                    easy_override=easy_override)
     atlas = get_atlas()
     coords = atlas['coords']
     p_dorsal, p_ventral = partitions[0], partitions[1]
@@ -85,18 +83,15 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
     p_v_ant, p_v_pos = anterior_posterior_split(p_ventral, coords)
     assert len(p_d_ant) + len(p_d_pos) == len(p_dorsal)
     assert len(p_v_ant) + len(p_v_pos) == len(p_ventral)
-    # print(f'{p_d_ant=}')
-    # print(f'{p_d_pos=}')
-    # print(f'{p_v_ant=}')
-    # print(f'{p_v_pos=}')
-    # quit()
-
     if scrub:
-        p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_plot_p(p_d_ant, p_d_pos,
-                                                          p_v_ant, p_v_pos,
-                                                          # scrub=scrub,
-                                                          plot=plot,
-                                                          anat=anat)
+        anat_str = '_anat' if anat else ''
+        age_str = f'_YA' if age == 1 else '_OA' if age == 2 else \
+            '_all_age' if age == 'healthy' else ''
+        bonus_str = f'{anat_str}{age_str}'
+        p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_p(p_d_ant, p_d_pos,
+                                                     p_v_ant, p_v_pos,
+                                                     plot=plot,
+                                                     bonus_str=bonus_str)
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
@@ -138,7 +133,7 @@ def anterior_posterior_split(p_dorsal, coords):
 
 
 
-def get_anat_vendor_partitions():
+def get_anat_vendor_partitions(plot=False):
     def labels2idxs(target):
         return [i for i, label in enumerate(labels) if
                 any([l in label for l in target])]
@@ -179,6 +174,12 @@ def get_anat_vendor_partitions():
     p_dorsal = p_d_ant + p_d_pos
     p_ventral = p_v_ant + p_v_pos
     matrix_mask = np.ones((246, 246), dtype=bool)
+
+    if plot:
+        bonus_str = '_anat'
+        scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=True,
+                bonus_str=bonus_str)
+
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
 
@@ -186,8 +187,8 @@ def get_anat_vendor_partitions():
 
 
 
-def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
-                 anat=False):
+def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
+            bonus_str=''):
     atlas = get_atlas()
     from nichord import plot_glassbrain
     idx_to_quadrant = {i: 'PD' for i in p_d_pos}
@@ -222,9 +223,9 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             node_sizes[i] = 1
 
     if plot:
-        anat_str = '_anat' if anat else ''
-        dir_out = r'C:\PycharmProjects_C\SchemeRep\nichord_plots\vendor'
-        fn_glass = fr'glass_first_scrub_colored2{anat_str}.png'
+        dir_out = r'C:\PycharmProjects_C\SchemeRep\results_pics\vendor'
+        Path(dir_out).mkdir(exist_ok=True, parents=True)
+        fn_glass = fr'quads_original{bonus_str}.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
         # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
         coords = atlas['coords']
@@ -237,49 +238,38 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                           'mislabeled_PD': 'darkgreen',
                           'mislabeled_PV': 'darkgoldenrod',
                           'N/A': 'black'}
-        # network_order = ['PV', 'PD', 'AV', 'AD',
-        #                  'mislabeled_PV', 'mislabeled_PD',
-        #                  'mislabeled_AV', 'mislabeled_AD',
-        #                  'N/A']
-        # glass_kwargs = {'node_size': node_sizes, 'linewidths': 15,
-        #                 'network_colors': network_colors}
-        # plot_and_combine(dir_out, fn_glass, idx_to_quadrant, edges,
-        #                  coords=coords, network_order=network_order,
-        #                  network_colors=network_colors,
-        #                  glass_kwargs=glass_kwargs)
-        # quit()
+
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
-
-        from PIL import Image
-        Image.open(fp_glass).show()
 
         for key in ['AD', 'AV', 'PD', 'PV']:
             network_colors[f'mislabeled_{key}'] = network_colors[key]
         node_sizes_copy = copy(node_sizes)
+        scrubbed = False
         for i, size in enumerate(node_sizes):
             if size < max(node_sizes) and size > 0:
                 node_sizes[i] = 0
                 node_sizes_copy[i] = max(node_sizes)
+                scrubbed = True
 
-        fp_glass = fr'{dir_out}\glass_first_original2{anat_str}.png'
-        plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
-                        coords, node_size=node_sizes_copy, linewidths=15,
-                        network_colors=network_colors,)
+        if scrubbed:
+            fp_glass = fr'{dir_out}\quads_scrubbing{bonus_str}.png'
+            plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
+                            coords, node_size=node_sizes_copy, linewidths=15,
+                            network_colors=network_colors,)
 
-        from PIL import Image
-        Image.open(fp_glass).show()
+            # from PIL import Image
+            # Image.open(fp_glass).show()
 
-        fp_glass = fr'{dir_out}\glass_first_scrubbed2{anat_str}.png'
-        plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
-                        coords, node_size=node_sizes, linewidths=15,
-                        network_colors=network_colors,)
+            fp_glass = fr'{dir_out}\quads_scrubbed{bonus_str}.png'
+            plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
+                            coords, node_size=node_sizes, linewidths=15,
+                            network_colors=network_colors,)
 
-        from PIL import Image
-        Image.open(fp_glass).show()
+            # from PIL import Image
+            # Image.open(fp_glass).show()
 
-    # if scrub:
     f = lambda i: 'mislabeled' not in idx_to_quadrant[i]
     p_d_ant_new = list(filter(f, p_d_ant))
     p_d_pos_new = list(filter(f, p_d_pos))
@@ -290,11 +280,16 @@ def scrub_plot_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
-    get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True)
-    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=False)
-
+    get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True,
+                          easy_override=True)
+    get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
+                          scrub=True, easy_override=True)
+    get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
+                          scrub=True, easy_override=True)
+    get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
+                          scrub=True, easy_override=True)
     get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-                              scrub=True)
+                          scrub=True)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

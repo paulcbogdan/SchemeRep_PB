@@ -141,12 +141,14 @@ def get_super_df(fp='obj7_fMRI', fp_col=False):
 
 def do_RSA_x_vendor(fp='obj7_fMRI'):
 
-    df, RSA_cols, fp2ERS_ROIs, vndr_cols = pickle_wrap(None, get_super_df,
-                                                       kwargs={'fp': fp},
-                                                       easy_override=False)
     df_graph, new_cols = pickle_wrap(None, get_df_trial_graphs,
                                      kwargs={'fp': fp},
                                      easy_override=True)
+
+    df, RSA_cols, fp2ERS_ROIs, vndr_cols = pickle_wrap(None, get_super_df,
+                                                       kwargs={'fp': fp},
+                                                       easy_override=False)
+
     df_graph.set_index(['sn', 'obj'], inplace=True)
     df = df.join(df_graph[new_cols])
     df.reset_index(inplace=True, drop=False)
@@ -157,9 +159,10 @@ def do_RSA_x_vendor(fp='obj7_fMRI'):
     df['dd_clustering'] = stats.zscore(df['dd_clustering'], nan_policy='omit')
     df['vv_clustering'] = stats.zscore(df['vv_clustering'], nan_policy='omit')
     # print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula = 'dd_shortest ~ 1 + dd + vv + dv_ant + dv_pos + inc' \
+    formula = 'dd_shortest ~ 1 + dd + DP_hemi + DA_hemi +' \
+              ' vv + dv_ant + dv_pos + inc' \
               '+ pd_M + ad_M + pv_M + av_M' \
-              '+ (1 | sn)'
+              '+ (1  + dd + DP_hemi + DA_hemi | sn)'
 
     from pymer4.models import Lmer
     model = Lmer(formula, data=df)
