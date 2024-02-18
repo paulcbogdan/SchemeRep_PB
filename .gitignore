@@ -1,2 +1,15 @@
 ~*
-result_pics/.DS_Store
+*.nii
+*.pkl
+*.png
+*.mat
+*.m
+*.jpg
+*.DS_Store
+*.zip
+/old/super_old
+/fMRI_in
+/behavFiles
+/.idea
+/SchemRep_tasks
+/Shenyang_R
