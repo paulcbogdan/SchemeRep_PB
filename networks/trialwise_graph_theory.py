@@ -142,7 +142,15 @@ def apply_df_trial_graph_p(conn_trials_T, p, df_sns_l, key, p1=None,
     for conn_trials_sn_p, df_sn in zip(p_trials_T, df_sns_l):
         sn = df_sn['sn'].iloc[0]
         rank_std_str = '_rank_std' if rank_std else ''
-        fp_pkl = f'cache/trial_graphs/{sn}_{key}{rank_std_str}.pkl'
+
+        p_idxs_str = ''.join([str(p_i) for p_i in p])
+        num_char = len(p_idxs_str)
+        target_char = 20
+        if target_char < num_char:
+            skip = num_char // target_char
+            p_idxs_str = p_idxs_str[::skip]
+        fp_pkl = f'cache/trial_graphs/{sn}_{p_idxs_str}{rank_std_str}.pkl'
+        # fp_pkl = f'cache/trial_graphs/{sn}_{key}{rank_std_str}.pkl'
         f = lambda: get_shortest_cc_sn_p(conn_trials_sn_p, sn,
                                          rank_std=rank_std)
         shortest_l, cc_l = pickle_wrap(fp_pkl, f, easy_override=False)

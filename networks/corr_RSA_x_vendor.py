@@ -158,11 +158,14 @@ def do_RSA_x_vendor(fp='obj7_fMRI'):
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     df['dd_clustering'] = stats.zscore(df['dd_clustering'], nan_policy='omit')
     df['vv_clustering'] = stats.zscore(df['vv_clustering'], nan_policy='omit')
+    # print(df['vv_shortest'])
     # print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula = 'dd_shortest ~ 1 + dd + DP_hemi + DA_hemi +' \
+    formula = 'vv_shortest ~ 1 + dd + DP_hemi + DA_hemi +' \
               ' vv + dv_ant + dv_pos + inc' \
               '+ pd_M + ad_M + pv_M + av_M' \
               '+ (1  + dd + DP_hemi + DA_hemi | sn)'
+    cols = get_formula_cols(df, formula)
+    print(df[cols].head(1))
 
     from pymer4.models import Lmer
     model = Lmer(formula, data=df)
