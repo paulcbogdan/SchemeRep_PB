@@ -51,7 +51,7 @@ def get_sns_l(fps_fMRI):
         age2sns0[age] = sorted(list(set(l)))
     return age2sns0
 
-def get_sns(fp_fMRI, sh=False):
+def get_sns(fp_fMRI='loose', sh=False):
     age2sn = defaultdict(list)
     bad_sns = get_bad_sns_fp(fp_fMRI)
     sh_sns = get_shenyang_subjects()

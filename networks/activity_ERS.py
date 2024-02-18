@@ -383,9 +383,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
 
     return df, cols, cols_bl, cols_alt
 
-def do_trialwise_MVPA_analysis(fp='obj7_fMRI', key='inc', vals=(1, 3)
-                               # key='inc_run', vals=(11, 13, 21, 23, 31, 33)
-                               ):
+def do_trialwise_MVPA_analysis(fp='obj7_fMRI', key='inc', vals=(1, 3)):
     np.set_printoptions(precision=3, suppress=True)
     warnings.simplefilter(action='ignore',
                           category=pd.errors.PerformanceWarning)
