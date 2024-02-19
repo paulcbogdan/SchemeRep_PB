@@ -1,5 +1,5 @@
 import os
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 from collections import defaultdict
 

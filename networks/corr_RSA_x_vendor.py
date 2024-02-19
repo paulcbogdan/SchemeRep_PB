@@ -6,7 +6,7 @@ from organize_bhv import get_trial_info
 from trialwise_graph_theory import get_df_trial_graphs
 from ven_x_dor import get_vendor_df
 
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 import numpy as np
 import pandas as pd
@@ -143,7 +143,7 @@ def do_RSA_x_vendor(fp='obj7_fMRI'):
 
     df_graph, new_cols = pickle_wrap(None, get_df_trial_graphs,
                                      kwargs={'fp': fp},
-                                     easy_override=True)
+                                     easy_override=False)
 
     df, RSA_cols, fp2ERS_ROIs, vndr_cols = pickle_wrap(None, get_super_df,
                                                        kwargs={'fp': fp},
@@ -158,11 +158,21 @@ def do_RSA_x_vendor(fp='obj7_fMRI'):
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
     df['dd_clustering'] = stats.zscore(df['dd_clustering'], nan_policy='omit')
     df['vv_clustering'] = stats.zscore(df['vv_clustering'], nan_policy='omit')
+
+
+    fp_out = fr'csv_out/{fp}_super_first.csv'
+    with open(fp_out, 'w') as f:
+        df.to_csv(f, index=False)
+        quit()
+
+    # print(df['vv_shortest'])
     # print(df['age']) # dv_ant + dv_pos + inc + all_M +
-    formula = 'dd_shortest ~ 1 + dd + DP_hemi + DA_hemi +' \
+    formula = 'vv_shortest ~ 1 + dd + DP_hemi + DA_hemi +' \
               ' vv + dv_ant + dv_pos + inc' \
               '+ pd_M + ad_M + pv_M + av_M' \
               '+ (1  + dd + DP_hemi + DA_hemi | sn)'
+    cols = get_formula_cols(df, formula)
+    print(df[cols].head(1))
 
     from pymer4.models import Lmer
     model = Lmer(formula, data=df)

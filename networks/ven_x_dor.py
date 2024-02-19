@@ -1,7 +1,6 @@
 # import os
 # os.chdir(r'C:\PycharmProjects_C\SchemeRep\networks')
 # import sys
-# sys.path.extend([r'C:\PycharmProjects_C\SchemeRep'])
 from atlas_utils import get_atlas
 # from corr_RSA_x_vendor import get_module_trialwise_z
 

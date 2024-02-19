@@ -15,7 +15,7 @@ from ven_x_dor import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 from statannotations.Annotator import Annotator
 
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 
 def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):

@@ -10,7 +10,7 @@ from plot_conn_nice import HC_t
 from utils import pickle_wrap
 from vendor_partitioning import get_vendor_partitions_, get_vendor_partitions, get_anat_vendor_partitions
 
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 def plot_quadrants(anat=True):
     kwargs = {'fp': 'obj7_fMRI',

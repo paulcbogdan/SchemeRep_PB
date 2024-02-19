@@ -131,7 +131,7 @@ def add_ROI_info(atlas):
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
     if shenyang:
-        fp_atlas = r'C:\PycharmProjects_C\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
+        fp_atlas = r'E:\PycharmProjects_E\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
         print('Shenyang atlas')
     else:
@@ -139,7 +139,7 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
         print('Defunct atlas')
 
     # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    fp_labels = 'C:\PycharmProjects_C\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
+    fp_labels = 'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()
@@ -165,11 +165,11 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
 def get_BN_and_resample(combine_bilateral=False, new_space=True,
                         shenyang=True):
     if new_space:
-        fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
+        fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
                  r'fMRI_in/102/Enc_rerun3/obj/' \
                  r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
     else:
-        fp_ref = r'C:\PycharmProjects_C\SchemeRep/' \
+        fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
                  r'fMRI_in/102/all_ENCruns_sorted/objects/' \
                  r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
 
@@ -333,7 +333,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False,
     return atlas
 
 def org_BNA_coords():
-    fp_coords_pre = r'C:\PycharmProjects_C\SchemeRep\cache\BNA_coords_pre.csv'
+    fp_coords_pre = r'E:\PycharmProjects_E\SchemeRep\cache\BNA_coords_pre.csv'
     df = pd.read_csv(fp_coords_pre)
     coords = []
     for l_coord, r_coord in zip(df['L_coord'], df['R_coord']):

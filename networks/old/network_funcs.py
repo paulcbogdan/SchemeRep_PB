@@ -661,7 +661,7 @@ if __name__ == '__main__':
               'key': 'inc',
               'key_vals': (1, 3),
               }
-    cache_dir = r'C:\PycharmProjects_C\SchemeRep\cache'
+    cache_dir = r'E:\PycharmProjects_E\SchemeRep\cache'
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity_ = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir=cache_dir)

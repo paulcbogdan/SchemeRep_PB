@@ -119,7 +119,7 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             print(f'Plot: {fn=}')
             title = f'Partition {i+1}{title_extra}'
             # cur_dir = os.getcwd()
-            cur_dir = r'C:\PycharmProjects_C\SchemeRep'
+            cur_dir = r'E:\PycharmProjects_E\SchemeRep'
             if dir_out_full:
                 dir_out_ = dir_out_full
             elif dir_out:

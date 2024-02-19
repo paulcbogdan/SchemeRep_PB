@@ -1,6 +1,6 @@
 
 import os
-os.chdir('C:\PycharmProjects_C\SchemeRep')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 from pathlib import Path
 from collections import defaultdict, Counter
@@ -223,7 +223,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             node_sizes[i] = 1
 
     if plot:
-        dir_out = r'C:\PycharmProjects_C\SchemeRep\results_pics\vendor'
+        dir_out = r'E:\PycharmProjects_E\SchemeRep\result_pics\vendor'
         Path(dir_out).mkdir(exist_ok=True, parents=True)
         fn_glass = fr'quads_original{bonus_str}.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
@@ -280,16 +280,17 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
+    THRESHOLD = 1.65
     get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True,
-                          easy_override=True)
+                          easy_override=True, thr=THRESHOLD)
     get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
-                          scrub=True, easy_override=True)
+                          scrub=True, easy_override=True, thr=THRESHOLD)
     get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
-                          scrub=True, easy_override=True)
+                          scrub=True, easy_override=True, thr=THRESHOLD)
     get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
-                          scrub=True, easy_override=True)
-    get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-                          scrub=True)
+                          scrub=True, easy_override=True, thr=THRESHOLD)
+    # get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
+    #                       scrub=True)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

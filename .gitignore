@@ -1,2 +1,5 @@
 ~*
 result_pics/.DS_Store
+*.png
+*.pkl
+*.nii

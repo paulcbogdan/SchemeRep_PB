@@ -244,18 +244,6 @@ SCENE_CATEGORY =  {'Airport1.jpg': 'outdoor_developed',
  'woods1.jpg': 'outdoor_nature',
  'zoo1.jpg': 'outdoor_developed'}
 
-# from pprint import pprint
-# dir_in = r'C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks\updatedScenesResampled'
-# fns = os.listdir(dir_in)
-# fns = [fn for fn in fns if fn != '.DS_Store']
-# fns.sort()
-# d = {}
-# for fn in fns:
-#     d[fn] = None
-#
-# pprint(d)
-# quit()
-
 NAME_RENAMER = {'inside of a car': 'car',
                'surfing board': 'surfboard', # object
                'tropical volcano': 'volcano',
@@ -299,7 +287,7 @@ NAME_RENAMER = {'inside of a car': 'car',
 def get_trial_info(sn, easy_override=False, ret=True):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
-    fp = fr'C:\PycharmProjects_C\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
+    fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
 
     dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
     df_sn = pickle_wrap(fp, lambda: get_trial_info_(sn, ret),
@@ -820,7 +808,6 @@ def include_BL(df_sn, sn):
     obj2trial = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/bl/S{sn}_run{run}.mat'
-        # fp_bhv = r'C:\PycharmProjects_C\SchemeRep\behavFiles\BL\212_redonerun1\S212_run1.mat'
         try:
             mat_enc = io.loadmat(fp_bhv)
         except FileNotFoundError:

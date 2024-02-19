@@ -51,7 +51,7 @@ tblStim=pd.read_csv(r"/SchemRep_tasks/PTBtasks/fullStimList.csv")
 tblStim.head()
 
 filelist=tblStim['ObjectFile'].to_list()
-padImagePath=r"C:\PycharmProjects_C\SchemeRep\SchemRep_tasks\PTBtasks\updatedObjectsResampled"+chr(92)
+padImagePath=r"E:\PycharmProjects_E\SchemeRep\SchemRep_tasks\PTBtasks\updatedObjectsResampled"+chr(92)
 
 
 

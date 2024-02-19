@@ -8,7 +8,7 @@ from stim import get_img_fns
 
 def get_stim_RDM_lifu(df_sn):
     print('Loading existing...')
-    fp_in = r'C:\PycharmProjects_C\SchemeRep\RSAmodels\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
+    fp_in = r'E:\PycharmProjects_E\SchemeRep\RSAmodels\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
             r'\RSM_VGG16_PCA.mat'
     mat = io.loadmat(fp_in)
     RDM_stim = mat['R']
