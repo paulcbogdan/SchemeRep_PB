@@ -12,7 +12,7 @@ from connRSA.conn_utils import get_BNA_ROIs
 from old.network_clf import generic_prep
 from old.plot_gen import my_plot_surf
 from utils import stdize
-from connsearch import print_list_stats
+# from connsearch import print_list_stats
 
 def get_many_samples(act_seed_cond, act_tar_cond, n_samples=50, size=7):
     # for run in range(3):
@@ -243,13 +243,12 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         vmin = min(vmin, np.nanquantile(dif_t, 0.025))
         vmax = max(vmax, np.nanquantile(dif_t, 0.975))
 
-
     for age in [1, 2]:
         coords = atlas['coords']
         dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
         age2str = {1: 'YA', 2: 'OA'}
         fn_pic = f'{region.replace(":", "")}_{age2str[age]}.png'
-        fp_pic = f'mass_ttest/{dir_out}/{fn_pic}'
+        fp_pic = f'results_pics/seed_conn/{dir_out}/{fn_pic}'
         Path(fp_pic).parent.mkdir(exist_ok=True, parents=True)
         acc = accs[region][age-1]
         if acc is None:
@@ -285,7 +284,8 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
         pos = 'OA\n↑Hit'
 
     dir_out = f'{kwargs["fp"]}_{kwargs["key"]}'
-    fp_pic = f'mass_ttest/{dir_out}/{region.replace(":", "")}_interaction.png'
+    fp_pic = (f'results_pics/seed_conn/{dir_out}'
+              f'/{region.replace(":", "")}_interaction.png')
     itr_t = run_two_sample_on_2D(all_conns[0][:, 0] - all_conns[0][:, 1],
                                  all_conns[1][:, 0] - all_conns[1][:, 1])
     # plot_ROI_scores(itr_t, coords, fp_out=fp_pic, show=False,
@@ -294,7 +294,8 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
     my_plot_surf(-itr_t, atlas, itr_title,
                  fp_out=fp_pic, neg=neg, pos=pos)
 
-    fp_pic = f'mass_ttest/{dir_out}/{region.replace(":", "")}_age_eff.png'
+    fp_pic = (f'results_pics/seed_conn/{dir_out}'
+              f'/{region.replace(":", "")}_age_eff.png')
     age_t = run_two_sample_on_2D(all_conns[0][:, 0] + all_conns[0][:, 1],
                                  all_conns[1][:, 0] + all_conns[1][:, 1])
     # plot_ROI_scores(age_t, coords, fp_out=fp_pic, show=False,
@@ -403,47 +404,21 @@ def get_keep_idxs(combine_regions=False):
 
 def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
     fp = 'obj7_fMRI'
-    kwargs = {'fp': fp, 'split': False,
+    kwargs = {'fp': fp,
+              'split': False,
               'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 3),
-              'odd_even': False,
+              'key_vals': (1, 2, 3),
               }
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'con_hit',
-    #           'atlas_name': 'BNA',
-    #           'key_vals': (False, True)
-    #           }
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'hit_hit',
-    #           'atlas_name': 'BNA',
-    #           'key_vals': (False, True)
-    #           }
-    # kwargs = {'fp': fp,
-    #           'split': False,
-    #           'key': 'inc_hit_hit',
-    #           'atlas_name': 'BNA',
-    #           'key_vals': ('30', '31')
-    #           }
-    # kwargs = {'fp': fp, 'split': False,
-    #           'key': 'vis_hit',
-    #           'atlas_name': 'schaefer',
-    #           'key_vals': (False, True),
-    #           'odd_even': False,
-    #           }
+
     partitions, sn_inc_activity_tar, age2idxs, top_edges_mat, i2name = \
         generic_prep(kwargs, threshold=threshold)
     keep_idxs, drop_idxs = get_keep_idxs()
-    # sn_inc_activity_tar = sn_inc_activity_tar[:, :, keep_idxs, :]
     sn_inc_activity_tar[:, :, drop_idxs, :] = np.nan
 
     kwargs1 = kwargs.copy()
     kwargs1['atlas_name'] = 'BNA'
     _, sn_inc_activity_bna, _, _, _ = generic_prep(kwargs1,
                                                    threshold=threshold)
-
 
     BNA = get_atlas()
     ROIs = get_BNA_ROIs()
@@ -462,10 +437,6 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
             continue
         idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
         sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
-        # plot_M(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs, region,
-        #        atlas_tar)
-        # continue
-
         if perm:
             OA_accs = []
             YA_accs = []

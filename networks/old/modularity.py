@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 from nichord.combine import plot_and_combine
 
+from atlas_utils import get_atlas
 from utils import pickle_wrap
 
 import matplotlib.pyplot as plt
@@ -66,7 +67,15 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         assert corr is not None, 'Either corr or edges and edge_weights must ' \
                                  'be provided'
         edges, edge_weights = convert_matrix(corr)
-    idx_to_label = get_idx_to_label(coords, atlas='yeo')
+
+    fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}.pkl'
+    idx_to_label = pickle_wrap(fp_idx_to_label,
+                               lambda: get_idx_to_label(coords, atlas='yeo'))
+    # labels = get_atlas()['labels']
+    # for i in range(len(labels)):
+    #     print(f'{labels[i]} | {idx_to_label[i]}')
+    # # print(idx_to_label)
+    # quit()
 
     network_colors = {'Uncertain': 'black', 'Visual': 'purple',
                       'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
@@ -115,6 +124,7 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             #     continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
+            assert M_corr_part.shape == (246, 246)
             fn = f'{fn_str}thr{threshold}_p{i}_Feb9.png'
             print(f'Plot: {fn=}')
             title = f'Partition {i+1}{title_extra}'

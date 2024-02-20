@@ -13,7 +13,7 @@ from ttest_mat import get_stats_graphs
 from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap
-
+import matplotlib.pyplot as plt
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                            flip=True, weighted=True, plot=False):
@@ -32,6 +32,19 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
             get_stats_graphs(sn_inc_conn[age2idxs[age], 0, :, :],
                              sn_inc_conn[age2idxs[age], 1, :, :])
     z_both = -z_both if flip else z_both
+
+    atlas = get_atlas()
+    labels = atlas['labels']
+    bad_labels = {'Str', 'Tha'}
+    for i, label in enumerate(labels):
+        for bad_label in bad_labels:
+            if bad_label in label:
+                z_both[i, :] = np.nan
+                z_both[:, i] = np.nan
+                break
+    # plt.imshow(z_both)
+    # plt.show()
+    # quit()
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''

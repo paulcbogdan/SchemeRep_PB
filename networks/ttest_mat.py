@@ -16,15 +16,14 @@ def get_stats_graphs(graph0, graph1, weights=None):
     return get_1sample_graph(dif_graph, weights=weights)
 
 def get_1sample_graph(dif_graph, weights=None):
-    sum_graph = np.nansum(dif_graph, axis=0)
-    weight_graph = (~np.isnan(dif_graph))
-
     M_graph = np.nanmean(dif_graph, axis=0)
     SD_graph = np.nanstd(dif_graph, axis=0)
     N_graph = np.nansum(~np.isnan(dif_graph), axis=0)
     SE_graph = SD_graph / (N_graph ** 0.5)
     t_graph = M_graph / SE_graph
     p_graph = stats.t.cdf(t_graph, N_graph - 1)
+    # p_graph[p_graph > .25] = np.nan
+    # p_graph *= 2
     z_graph = stats.norm.ppf(p_graph)
     p_graph = np.min([p_graph, 1 - p_graph], axis=0)
     return M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph

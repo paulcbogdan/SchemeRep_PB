@@ -761,7 +761,7 @@ def include_vis(df_sn, sn):
                 obj2fp3[obj] = None
 
             glob_vis7 = fr'{vis_root}/VIS_rerun7/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            print(f'{glob_vis7=}')
+            # print(f'{glob_vis7=}')
 
             glob_vis7 = glob(glob_vis7)
             if len(glob_vis7):

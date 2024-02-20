@@ -320,6 +320,8 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
         args_str = '_'.join(args)
     else:
         args_str = ''
+    if kwargs is None:
+        kwargs = {}
     signature = inspect.signature(callback)
     for k, v in signature.parameters.items():
         if v.default is v.empty: continue # exclude args, only want kwargs
@@ -330,8 +332,8 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
             val = kwargs[key]
             kwargs_str += obj2str(val)
         kwargs_str = kwargs_str[:-1]  # remove last underscore
-    else:
-        kwargs_str = ''
+    # else:
+    #     kwargs_str = ''
     name = callback.__name__
     func_dir = f'{cache_dir}/{name}'
     Path(func_dir).mkdir(parents=True, exist_ok=True)

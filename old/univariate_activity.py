@@ -1,3 +1,9 @@
+import os
+
+from tqdm import tqdm
+
+os.chdir('E:\PycharmProjects_E\SchemeRep')
+
 from collections import defaultdict
 from pathlib import Path
 
@@ -16,6 +22,15 @@ from collections.abc import Iterable as iterable
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import scipy.stats as stats
+import warnings
+
+# suppress FutureWarning with "DataFrame.applymap has been deprecated"
+warnings.filterwarnings('ignore',
+                        message='DataFrame.applymap has been deprecated. '
+                                'Use DataFrame.map instead.')
+warnings.filterwarnings('ignore',
+                        message='Error while trying to convert the column '
+                                '"obj". Fall back to string conversion.')
 
 def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
                                    keys=('inc', 'con_hit'),
@@ -187,38 +202,7 @@ def do_obj_vs_scn():
         ts_scn = []
         df = df_all[df_all['age'] == age]
         for ROI in ROI_cols:
-            # if 'PhG' not in ROI and 'FuG' not in ROI:
-            #     continue
 
-            # if 'EVC_R_5_1' not in ROI:
-            #     continue
-            # formula = f'{ROI} ~ cat + (1 + cat |sn)'
-            #
-            # # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
-            # keys = keys_from_formula(formula)
-            # model = Lmer(formula, data=df[keys].dropna())
-            # try:
-            #     model.fit(REML=True, verbose=False, summary=False)
-            # except Exception as e:
-            #     print(f'Error fitting model: {e}')
-            #     continue
-            # print(df.groupby('cat')[ROI].mean())
-            # print(model.summary())
-            # # quit()
-            #
-            # res = model.coefs
-            # ts.append(res['T-stat'].iloc[1])
-            # if res['P-val'].iloc[1] < .01:
-            #     print(f'Sig: {ROI=}')
-            #     print(model.summary())
-            # else:
-            #     print('Insignificant')
-            # print(ROI)
-            # if ROI != 'pSTS_L_2_1':
-            #     continue
-            # print(df[df['cat'] == 'obj'])
-            # print(df[df['cat'] == 'obj'].groupby('sn')[ROI].mean())
-            # quit()
             obj_s = df[df['cat'] == 'obj'].groupby('sn')[ROI].mean()
             scn_s = df[df['cat'] == 'scn'].groupby('sn')[ROI].mean()
             M_obj = obj_s.mean()
@@ -272,23 +256,33 @@ def do_obj_vs_scn():
 
 def simple_effect(df, ROI_cols, key, fp):
     df_grp = df.groupby(['age', 'sn', 'inc'])[ROI_cols].mean()
-    age2ts = {'OA': [], 'YA': []}
-    age2ps = {'OA': [], 'YA': []}
+    ages = ['healthy']
+    age2ts = {'OA': [], 'YA': [], 'healthy': []}
+    age2ps = {'OA': [], 'YA': [], 'healthy': []}
 
     for ROI in ROI_cols:
-        for age in ['OA', 'YA']:
-            t, p = stats.ttest_rel(df_grp.loc[age, :, 1][ROI],
-                                   df_grp.loc[age, :, 3][ROI],
+        for age in ages:
+            if age == 'healthy':
+                age_keys = ['YA', 'OA']
+            else:
+                age_keys = [age]
+            # else:
+                # age_keys =
+            # print(df_grp)
+            # quit()
+            t, p = stats.ttest_rel(df_grp.loc[age_keys, :, 1][ROI],
+                                   df_grp.loc[age_keys, :, 3][ROI],
                                    nan_policy='omit')
             age2ts[age].append(t)
             age2ps[age].append(p)
             if p < .01:
                 print(f'{ROI=}, {age=}, {t=:.2f}, {p=:.3f}')
     atlas = get_atlas(combine_regions=False)
-    for age in ['OA', 'YA']:
+    for age in ages:
         ts = np.array(age2ts[age])
         sigs, p_corr, alpha_sidak, alpha_bon = \
             multipletests(age2ps[age], alpha=.05, method='fdr_bh')
+        vmax = 4#np.min(np.abs(ts[sigs]))
         print(f'FDR corrected, {age}: {ts[sigs]=}')
         fp_pic = f'mass_ttest/activity/{fp}_{key}_{age}.png'
         Path(fp_pic).parent.mkdir(parents=True, exist_ok=True)
@@ -296,22 +290,118 @@ def simple_effect(df, ROI_cols, key, fp):
                     'scn7_fMRI': 'Scene betas',
                     'con7_fMRI': 'Conceptual retrieval betas',
                     'vis7_fMRI': 'Visual retrieval betas'}
-        my_plot_surf(ts, atlas, f'{fp2title[fp]}\n{age}, Congruent vs. Incongruent',
+        my_plot_surf(ts, atlas,
+                     f'{fp2title[fp]}\n{age}, Congruent vs. Incongruent',
                      fp_out=fp_pic, neg='Con', pos='Inc',
-                     thresh=2.85)
+                     thresh=2.85, vmax=vmax)
+
+def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
+    pd.set_option('display.max_rows', 115)
+    kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 2, 3),
+              'only_sh_sns': True, 'combine_regions': False}
+    df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
+                               kwargs=kwargs, cache_dir='cache',
+                               easy_override=False)
+    df.reset_index(inplace=True)
+    df['obj'] = df['obj'].astype(str)
+    ts = []
+    ps = []
+
+    os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
+    import statsmodels.formula.api as smf
+
+    pd.set_option('display.precision', 5)
+
+    df_grp = df.groupby(['sn', 'inc'])[ROI_cols].mean()
+    df_grp = df_grp.reset_index()
+
+    for ROI in tqdm(ROI_cols):
+        if do_lm:
+            formula = f'{ROI} ~ inc + sn'
+            keys = keys_from_formula(formula)
+            model = smf.ols(formula=formula, data=df_grp[keys].dropna())
+            res = model.fit()
+            p = res.pvalues.loc['inc']
+            t = -res.tvalues.loc['inc']
+            ts.append(-t)
+            ps.append(p)
+            if p < .005:
+                corr = .05 / p
+                super_signif = corr > len(ROI_cols)
+                print(f'{ROI=} | {t=:.2f}, {p=:.5f}, {corr=:.1f}, '
+                      f'{super_signif=}')
+        else:
+            from pymer4.models import Lmer
+            formula = f'{ROI} ~ inc + (1 + inc | sn) + (1 | obj)'
+            keys = keys_from_formula(formula)
+            model = Lmer(formula, data=df[keys].dropna())
+            model.fit(verbose=False, summarize=False)
+            res = model.coefs
+            t, p = res.loc['inc', ['T-stat', 'P-val']]
+            ts.append(-t)
+            ps.append(p)
+            if p < .005:
+                res['corr'] = .05 / res['P-val']
+                res['FWE'] = res['corr'] > len(ROI_cols)
+                res['FWE'] = res['FWE'].apply(lambda x: 'Super signif' if x else '')
+                print(f'{ROI=}')
+                print(res[['T-stat', 'P-val', 'corr']].loc['inc'])
+                print('-'*50)
+
+    ts = np.array(ts)
+
+    sigs, p_corr, alpha_sidak, alpha_bon = (
+        multipletests(ps, alpha=.05, method='fdr_bh'))
+
+    # print(ts)
+    # print('-----------')
+    # print(f'{sigs=}')
+    # print(ts[sigs])
+    # print(f'FDR corrected: {ts[sigs]=}')
+
+
+    atlas = get_atlas()
+    er_str = '' if do_lm else 'er'
+    fp_pic = f'mass_ttest/activity/{fp}_inc_healthy_lm{er_str}.png'
+    vmin = np.min(np.abs(ts[sigs]))
+    my_plot_surf(ts, atlas,
+                 f'Activation ~ congruency (FDR)',
+                 fp_out=fp_pic, neg='Con', pos='Inc',
+                 thresh=vmin, vmax=4)
+
+    regions = atlas['ROI_regions_laterality']
+    region_in = set()
+    for i, region in enumerate(regions):
+        if sigs[i]:
+            pn = 'p' if ts[i] > 0 else 'n'
+            region_in.add(f'{region}_{pn}')
+    print(f'{region_in=}')
+    ts_clean = []
+    for i, region in enumerate(regions):
+        pn = 'p' if ts[i] > 0 else 'n'
+        if f'{region}_{pn}' in region_in:
+            ts_clean.append(ts[i])
+        else:
+            ts_clean.append(0)
+
+    fp_pic = f'mass_ttest/activity/{fp}_inc_healthy_lm{er_str}_low_thresh.png'
+    my_plot_surf(ts_clean, atlas,
+                 f'Activation ~ congruency (FDR+)',
+                 fp_out=fp_pic, neg='Con', pos='Inc',
+                 thresh=2.0, vmax=4)
 
 def do_univariate_analysis(fp='cmb3_fMRI'):
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True, 'combine_regions': False}
     df, ROI_cols = pickle_wrap(None, prep_activation_for_univariate,
-                               kwargs=kwargs, cache_dir='../cache',
+                               kwargs=kwargs, cache_dir='cache',
                                easy_override=False)
 
-    df = df[~pd.isna(df['con_hit'])]
-    df = df[~pd.isna(df['per_inc'])]
-    df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
-    df = include_shenyang_memory(df)
+    # df = df[~pd.isna(df['con_hit'])]
+    # df = df[~pd.isna(df['per_inc'])]
+    # df['con_hit'] = df['con_hit'].apply(lambda x: 'Hit' if x else 'Miss')
+    # df = include_shenyang_memory(df)
     df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
     df['obj'] = df['obj'].astype(str)
     df.reset_index(inplace=True)
@@ -321,8 +411,8 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
     for ROI in ROI_cols:
         # if 'ITG' not in ROI:
         #     continue
-
-        formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
+        # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
+        formula = f'{ROI} ~ age*inc + (1|sn) + (1|obj)'
         # formula = f'{ROI} ~ age*per_inc14_str*con_hit + (1|sn) + (1|obj)'
 
         keys = keys_from_formula(formula)
@@ -387,14 +477,7 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
         return
 
 if __name__ == '__main__':
-    # do_obj_vs_scn()
-    # quit()
-    # prep_activation_for_univariate('bl3_fMRI')
-    # do_univariate_living()
-    # do_obj_vs_scn()
-
-    # do_univariate_analysis(fp='con7_fMRI')
-    # do_univariate_analysis(fp='vis7_fMRI')
-    do_univariate_analysis(fp='con7_fMRI')
+    # do_univariate_analysis(fp='obj7_fMRI')
+    plot_congruency_lmer(fp='obj7_fMRI')
 
 
