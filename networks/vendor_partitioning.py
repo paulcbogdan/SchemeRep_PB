@@ -43,13 +43,14 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                 z_both[:, i] = np.nan
                 break
     # plt.imshow(z_both)
-    # plt.show()
-    # quit()
+
+    num_non_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''
-    dir_out = f'result_pics/vendor/' \
-              f'ttest_mod_{age2str[age]}_thr{thr}_flip{flip}{weighted_str}'
+    dir_out = f'result_pics/ttest_modules/' \
+              f'flip{flip}_thr{thr}_{age2str[age]}{weighted_str}' \
+              f'_n{num_non_nans}'
     if flip:
         title_extra = f' (Congruent > incongruent)'
     else:
@@ -78,7 +79,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
             pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                        easy_override=True, cache_dir='cache')
+                        easy_override=False, cache_dir='cache')
+
 
     fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}_{weighted}_n65.pkl'
     partitions, matrix_mask = \
@@ -236,9 +238,12 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             node_sizes[i] = 1
 
     if plot:
-        dir_out = r'E:\PycharmProjects_E\SchemeRep\result_pics\vendor'
+        dir_out = r'E:\PycharmProjects_E\SchemeRep\result_pics\ttest_modules'
         Path(dir_out).mkdir(exist_ok=True, parents=True)
-        fn_glass = fr'quads_original{bonus_str}.png'
+        if 'anat' in bonus_str:
+            fn_glass = 'quads_anat.png'
+        else:
+            fn_glass = fr'quads_original{bonus_str}.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
         # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
         coords = atlas['coords']
@@ -296,14 +301,14 @@ if __name__ == '__main__':
     THRESHOLD = .9
     get_vendor_partitions(age='healthy', flip=True, plot=True,
                           scrub=True, easy_override=True, thr=THRESHOLD)
-    get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD)
-    get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD)
-    get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD)
-    # get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-    #                       scrub=True)
+    # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
+    #                       scrub=True, easy_override=False, thr=THRESHOLD)
+    # get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
+    #                       scrub=True, easy_override=False, thr=THRESHOLD)
+    # get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
+    #                       scrub=True, easy_override=False, thr=THRESHOLD)
+    get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
+                          scrub=True)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
