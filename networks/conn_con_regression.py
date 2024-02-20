@@ -41,18 +41,30 @@ def combine_bl(sn_inc_conn):
 
 def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
                    comb_bl=True):
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc',
+    #           'key_vals': (1, 2, 3),
+    #           'combine_regions': combine_regions,
+    #           'combine_bilateral': comb_bl
+    #           }
+
     kwargs = {'fp': fp,
               'split': False,
-              'key': 'inc',
-              'key_vals': (1, 2, 3),
-              'combine_regions': combine_regions
+              'key': 'per_inc',
+              'key_vals': (1, 2, 3, 4),
+              'combine_regions': combine_regions,
+              'combine_bilateral': comb_bl
               }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
+    # print(np.sum(~np.isnan(sn_inc_activity)))
+    # quit()
     sn_inc_activity = np.nanmean(sn_inc_activity, axis=1)
-    atlas = get_atlas(combine_regions=combine_regions)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=comb_bl)
     labels = atlas['ROI_regions']
     bad_labels = {'Str', 'Tha', 'Amyg'}
     for i, label in enumerate(labels):
@@ -79,31 +91,35 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     idxs = age2idxs[age]
     sn_inc_conn = sn_inc_conn[idxs]
 
-    n_sn = sn_inc_activity.shape[0]
-    sns = [str(i) for i in range(n_sn) for _ in range(3)]
-    incs = [1, 2, 3] * n_sn
+    n_sn = sn_inc_conn.shape[0]
+    sns = [str(i) for i in range(n_sn) for _ in range(sn_inc_conn.shape[1])]
+    incs = [1, 2, 3, 4] * n_sn
     new_nrows = sn_inc_conn.shape[0]*sn_inc_conn.shape[1]
     nrois = sn_inc_conn.shape[-1]
     sn_inc_conn = np.reshape(sn_inc_conn, (new_nrows, nrois, nrois))
 
     cols = []
     vals = []
+    np.set_printoptions(precision=4)
     for i in range(nrois):
         for j in range(i):
             cols.append(f'r{i}_{j}')
-            vals.append(sn_inc_conn[:, i, j])
+            z = stats.zscore(sn_inc_conn[:, i, j], nan_policy='omit')
+            z[np.abs(z) > 4] = np.nan
+            # max_z = np.nanmax(np.abs(z))
+            vals.append(z)
+            # print(f'{max_z=}')
+            # if max_z > 3:
+            #     i_label = atlas['ROI_regions'][i]
+            #     j_label = atlas['ROI_regions'][j]
+            #     print(f'Too damn high ({i_label}, {j_label}): {max_z=:.3f} ')
+
     vals = np.array(vals).T
     df = pd.DataFrame(vals, columns=cols)
     df['sn'] = sns
     df['inc'] = incs
-    # sn_inc_conn = sn_inc_conn[df['inc'] != 2]
-
-    # df = df[df['inc'] != 2]
-
-
 
     t_mat = np.full((nrois, nrois), np.nan)
-    # p_mat = np.full((nrois, nrois), np.nan)
     p_l = []
     idx2roi = []
 
@@ -126,24 +142,13 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
             formula = formula_gen.format(ROI=f'r{i}_{j}')
             model = smf.ols(formula=formula, data=df_vars)
             res = model.fit()
-            # print(res.summary())
-            # quit()
+
             p = res.pvalues.loc['inc']
             t = -res.tvalues.loc['inc']
 
             t_mat[i, j] = t_mat[j, i] = t
             # p_mat[i, j] = p_mat[j, i] = p
             p_l.append(p)
-    #
-    # plot_connectivity(nans_mat,
-    #                   atlas['ticks'],
-    #                   atlas['tick_labels'],
-    #                   atlas['tick_lows'],
-    #                   no_avg=True,
-    #                   title=f'NaNs',
-    #                   vmin=0, vmax=50,
-    #                   cbar_label='z-score')
-    # quit()
 
     p_mat = stats.t.cdf(t_mat, df=len(df)-1)
     z_mat = stats.norm.ppf(p_mat)
@@ -175,12 +180,13 @@ def get_paired_ttest_zs(fp='obj7_fMRI', combine_regions=False,
 
 
 
-def plot_reg_zs(combine_regions=True, lm=True):
+def plot_reg_zs(combine_regions=True, combine_bl=False, lm=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
             pickle_wrap(None, get_con_reg_zs,
                         kwargs={'combine_regions': combine_regions,
-                                'age': 'healthy'},
+                                'age': 'healthy',
+                                'comb_bl': combine_bl},
                         easy_override=True)
     else:
         z_mat, t_mat, p_l, idx2roi = \
@@ -209,10 +215,11 @@ def plot_reg_zs(combine_regions=True, lm=True):
 
     print(f'{cutoff_str=}')
 
-    atlas = get_atlas(combine_regions=combine_regions)
-    atlas['ticks'] = atlas['ticks'][::2]
-    atlas['tick_labels'] = atlas['tick_labels'][::2]
-    atlas['tick_lows'] = atlas['tick_lows'][::2]
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_bl)
+    # atlas['ticks'] = atlas['ticks'][::2]
+    # atlas['tick_labels'] = atlas['tick_labels'][::2]
+    # atlas['tick_lows'] = atlas['tick_lows'][::2]
 
     plot_connectivity(z_mat,
                       atlas['ticks'],

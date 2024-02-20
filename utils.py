@@ -457,3 +457,20 @@ if __name__ == '__main__':
         # print(isinstance(v, ))
         print(f'{k}: {v.default=}')
         # print(v.default is v.empty)
+
+
+def run_two_sample_on_2D(ar0, ar1):
+    YA_M = np.nanmean(ar0, axis=0)
+    OA_M = np.nanmean(ar1, axis=0)
+    YA_sd = np.nanstd(ar0, axis=0)
+    OA_sd = np.nanstd(ar1, axis=0)
+    YA_N = np.sum(~np.isnan(ar0), axis=0)
+    OA_N = np.sum(~np.isnan(ar1), axis=0)
+
+    both_sd = ((YA_sd ** 2) * (YA_N - 1) +
+               (OA_sd ** 2) * (OA_N - 1)) / \
+              (YA_N + OA_N - 2)
+    both_se = np.sqrt(both_sd * (1 / YA_N + 1 / OA_N))
+    t = (YA_M - OA_M) / both_se
+    t[np.isnan(t)] = 0
+    return t

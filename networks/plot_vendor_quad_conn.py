@@ -6,7 +6,7 @@ import numpy as np
 from atlas_utils import get_atlas
 from ttest_mat import get_stats_graphs
 from old.network_funcs import load_FC_for_Lifu
-from plot_conn_nice import HC_t
+from plot_conn_nice import seed_conn_t
 from utils import pickle_wrap
 from vendor_partitioning import get_vendor_partitions_, get_vendor_partitions, get_anat_vendor_partitions
 
@@ -37,8 +37,8 @@ def plot_quadrants(anat=True):
     atlas = get_atlas()
     for p, name in zip(quads, names):
         accs_faux = {name: defaultdict(lambda: None)}
-        HC_t(age2idxs, sn_inc_activity[:, :, p, :], sn_inc_activity,
-             kwargs, name, accs_faux, atlas)
+        seed_conn_t(age2idxs, sn_inc_activity[:, :, p, :], sn_inc_activity,
+                    kwargs, name, accs_faux, atlas)
 
 
 if __name__ == '__main__':

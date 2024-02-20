@@ -20,12 +20,12 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
                      do_sort=False, fp_all=False, voxelwise=False,
                      regionwise=False, combine_regions=False, get_df_sn=False,
-                     loose_sns=False):
+                     loose_sns=False, combine_bilateral=False):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
         atlas = get_atlas(combine_regions=combine_regions,
-                          combine_bilateral=False,
+                          combine_bilateral=combine_bilateral,
                           split=split, split_code='xyz',
                           new_space='3' in fp or '4' in fp or '7' in fp)
 
@@ -49,13 +49,18 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         #     ROIs_l = get_BNA_ROIs(code='schaefer')
         # else:
         if combine_regions:
-            ROIs_l = get_BNA_ROIs(code='BNA_region')
+            if combine_bilateral:
+                ROIs_l = atlas['ROI_regions']
+            else:
+                ROIs_l = get_BNA_ROIs(code='BNA_region')
         else:
-            ROIs_l = get_BNA_ROIs(code=atlas_name)
+            if combine_bilateral:
+                ROIs_l = atlas['ROIs']
+            else:
+                ROIs_l = get_BNA_ROIs(code=atlas_name)
 
         for sn in sns:
-            print(f'Prepping FC: {sn=}')
-            print(sn_idx)
+            print(f'Prepping FC: {sn=} (idx: {sn_idx})')
             df_sn = get_trial_info(sn, easy_override=True)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
@@ -68,7 +73,6 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                                      combine_regions=combine_regions)
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:
-                # for ROI in ROIs_l:
                     ROI2act[ROI].append(ROI2vecs0[ROI])
                 y = []
                 for v in df_sn[key]:

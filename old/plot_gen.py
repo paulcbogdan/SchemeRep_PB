@@ -139,23 +139,23 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         img_data[atlas_data == (i + 1)] = val
         above_thresh = np.abs(val) > thresh
         continue
-        if above_thresh:
-            mat = np.zeros((n_non_nans, n_non_nans))
-            mat[i, :] = 1
-            mat[:, i] = 1
-            colors = ['b'] * i + ['r'] + ['b'] * (n_non_nans - i - 1)
-            coords_not_nans = atlas['coords'][~np.isnan(Ms)]
-            plotting.plot_connectome(mat, coords_not_nans,
-                                     edge_threshold=0.1,
-                                     edge_kwargs={'linewidth': 1,
-                                                  'color': 'k'},
-                                     node_size=10,
-                                     node_color=colors,
-                                     # node_kwargs={'c': 'k',
-                                     #              'size': 10},
-                                     title=f'i = {i}',
-                                     )
-            plotting.show()
+        # if above_thresh:
+        #     mat = np.zeros((n_non_nans, n_non_nans))
+        #     mat[i, :] = 1
+        #     mat[:, i] = 1
+        #     colors = ['b'] * i + ['r'] + ['b'] * (n_non_nans - i - 1)
+        #     coords_not_nans = atlas['coords'][~np.isnan(Ms)]
+        #     plotting.plot_connectome(mat, coords_not_nans,
+        #                              edge_threshold=0.1,
+        #                              edge_kwargs={'linewidth': 1,
+        #                                           'color': 'k'},
+        #                              node_size=10,
+        #                              node_color=colors,
+        #                              # node_kwargs={'c': 'k',
+        #                              #              'size': 10},
+        #                              title=f'i = {i}',
+        #                              )
+        #     plotting.show()
 
     vabs = np.nanmax(np.abs(Ms))
     # Ms = np.array(Ms)
