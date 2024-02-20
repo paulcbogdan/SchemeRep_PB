@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
-from connsearch.report import plot_ROI_scores
+# from connsearch.report import plot_ROI_scores
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
