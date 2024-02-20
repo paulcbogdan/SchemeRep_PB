@@ -96,23 +96,23 @@ def get_shenyang_subjects():
               '221 222 225 230 233 234'
     return set(sns_str.split())
 
-if __name__ == '__main__':
-    pd.set_option('display.max_rows', 115)
-    # df_sn = get_trial_info('231', easy_override=True)
-    # print(df_sn['con7_fMRI'])
-    # quit()
-
-    # df_sn = get_trial_info('138', easy_override=True)
-    # print(df_sn['vis7_fMRI'])
-    # quit()
-    # df_sn = get_trial_info('213', easy_override=True)
-    # print(df_sn['vis7_fMRI'])
-    # quit()
-
-    df_sn = get_trial_info('212', easy_override=True)
-    print(df_sn['bl7_fMRI'])
-    # print(df_sn['vis_hit'].value_counts(dropna=False))
-    quit()
+# if __name__ == '__main__':
+#     pd.set_option('display.max_rows', 115)
+#     # df_sn = get_trial_info('231', easy_override=True)
+#     # print(df_sn['con7_fMRI'])
+#     # quit()
+#
+#     # df_sn = get_trial_info('138', easy_override=True)
+#     # print(df_sn['vis7_fMRI'])
+#     # quit()
+#     # df_sn = get_trial_info('213', easy_override=True)
+#     # print(df_sn['vis7_fMRI'])
+#     # quit()
+#
+#     df_sn = get_trial_info('212', easy_override=True)
+#     print(df_sn['bl7_fMRI'])
+#     # print(df_sn['vis_hit'].value_counts(dropna=False))
+#     quit()
 
 if __name__ == '__main__':
     # test = get_sns('loos')
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
     # test_fp('bl7_fMRI')
     test_fp('obj7_fMRI')
-    test_fp('vis7_fMRI')
+    # test_fp('vis7_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)
     # pd.set_option('display.max_rows', 115)

@@ -134,6 +134,8 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     atlas_data = atlas['maps'].get_fdata()
     Ms = [np.min([m, 5]) for m in Ms]
 
+    Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
+
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
@@ -169,6 +171,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
 
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                     cmap=cmap, title=title,
+                                    vmin=-vmax,
                                     vmax=vmax)
 
     if neg:

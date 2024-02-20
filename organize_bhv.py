@@ -448,7 +448,7 @@ def get_trial_info_(sn, ret=True):
             per_inc14 = resp if resp in [1, 4] else np.nan
             per_inc_str = np.nan if pd.isna(resp) else per2str[resp]
             per_inc14_str = np.nan if pd.isna(per_inc14) else per2str[per_inc14]
-
+            per_inc_bool = 1 if resp < 2.5 else 3
 
             if pd.isna(resp):
                 inc_match14 = inc_match = inc_match14_strict = np.nan
@@ -502,6 +502,7 @@ def get_trial_info_(sn, ret=True):
                  'inc_run_cnt': inc_run_cnt[inc_run] - 1,
                  'inc_str': inc_str,
                  'inc_rt': rt,
+                 'per_inc_bool': per_inc_bool,
                  'per_inc': resp, # higher (up to 4) = seen as congruent
                  'per_inc_str': per_inc_str,
                  'per_inc14': per_inc14,

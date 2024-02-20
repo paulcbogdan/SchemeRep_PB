@@ -78,7 +78,7 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
             pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                        easy_override=False, cache_dir='cache')
+                        easy_override=True, cache_dir='cache')
 
     fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}_{weighted}_n65.pkl'
     partitions, matrix_mask = \
@@ -293,9 +293,9 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
-    THRESHOLD = 1.65
-    get_vendor_partitions(age='healthy', flip=True, plot=True, scrub=True,
-                          easy_override=True, thr=THRESHOLD)
+    THRESHOLD = .9
+    get_vendor_partitions(age='healthy', flip=True, plot=True,
+                          scrub=True, easy_override=True, thr=THRESHOLD)
     get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
                           scrub=True, easy_override=True, thr=THRESHOLD)
     get_vendor_partitions(age=1, flip=True, anat=False, plot=True,

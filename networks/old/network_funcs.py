@@ -13,7 +13,7 @@ from fMRI_proc import get_ROI_vecs
 from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
 from org_sns import get_sns
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
@@ -99,6 +99,16 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             sn_conn.append(conn_no_cond)
             activity_inc = []
             conns = []
+
+            # print(activity_ar.shape)
+            nan_trials = np.any(np.isnan(activity_ar), axis=0)
+            good_trials = ~nan_trials
+            # print(nan_trials)
+            # quit()
+            if sum(nan_trials) > 0:
+                print('Participant has NaNs!')
+
+
             for i, inc in enumerate(key_vals):
                 if key == 'rand':
                     if key_vals == (1, 2, 3):
@@ -135,8 +145,23 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                         activity_ar[:, matching_trials]
                     activity_inc.append(activity_ar_matched)
 
-                    conn_inc = np.corrcoef(activity_ar[:, matching_trials])
+                    # if not combine_regions:
+                    activity_ar_std = stdize(activity_ar_matched, axis=1,
+                                             nans=True)
+                    trial_z = (activity_ar_std[None, :, :] *
+                               activity_ar_std[:, None, :])
+                    conn_inc = np.nanmean(trial_z, axis=-1)
                     conns.append(conn_inc)
+
+                    # plt.imshow(conn_inc)
+                    # plt.show()
+                    # quit()
+                    # print(activity_ar.shape)
+                    # quit()
+
+                    # conn_inc = np.corrcoef(activity_ar[:,
+                    #                        matching_trials & good_trials])
+                    # conns.append(conn_inc)
 
             conns = np.array(conns)
             sn_inc_conn.append(conns)
