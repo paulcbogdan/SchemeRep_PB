@@ -13,9 +13,10 @@ import scipy.stats as stats
 
 from ven_x_dor import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
-# from statannotations.Annotator import Annotator
+from statannotations.Annotator import Annotator
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 
 def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
@@ -24,14 +25,13 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 3),
-              'loose_sns': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
-                              flip=True, thr=.9, scrub=False)
+                              flip=True, thr=None, scrub=False)
     n_rois = sn_inc_activity.shape[2]
 
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
@@ -64,25 +64,10 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
 
     flat_between = np.stack((dv_ant, dv_pos), axis=-1)
     agg_between = np.nanmean(flat_between, axis=-1)
-    # agg_between = get_module_cross_trialwise_z(conn_trials, p_dorsal, p_ventral,
-    #                                            trialwise=False)
-    # print(agg_between.shape)
 
 
     n_sn = agg_within.shape[0]
-    # print(f'{agg_within.shape=}')
-    # vals = list(agg_within.T.reshape(-1))
-    # incs = ['Inc'] * n_sn + ['Con'] * n_sn
-    # ages = (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
-    # wbs = ['Within'] * (2 * n_sn)
-    # subj_nums = list(range(n_sn)) * 2
-    #
-    # vals += list(agg_between.T.reshape(-1))
-    #
-    # incs *= 2
-    # ages *= 2
-    # wbs += ['Between'] * (2 * n_sn)
-    # subj_nums *= 2
+
     incs = []
     ages = []
     wbs = []
@@ -109,15 +94,80 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
          'age': ages, 'subj_num': subj_nums}
 
     df_agg = pd.DataFrame(d)
+    plot_con_vs_inc(df_agg)
 
     # bad_sns = df_agg.loc[df_agg['vals'] < -.2, 'subj_num']
     # df_agg = df_agg[~df_agg['subj_num'].isin(bad_sns)]
 
     # df_agg.dropna(inplace=True)
     # plot_sns_bars(df_agg)
-    plot_four(df_agg)
+    # plot_four(df_agg)
 
+def plot_con_vs_inc(df_agg):
+    plot_params = {
+        # 'data': df_agg,
+        'y': 'vals',
+        'x': 'inc',
+        'hue': 'within_between',
+        'hue_order': ['Within', 'Between'],
+        'kind': 'bar'
+    }
 
+    cond_sets = [('Within', 'Between')]
+    for cond_set in cond_sets:
+        df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
+
+        g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
+                        hue=plot_params['hue'],
+                        data=df_set[['inc', 'vals', 'within_between']],
+                        kind='bar', ci='sd',
+                        errwidth=1.5, edgecolor='k',
+                        capsize=0.1, height=4, alpha=0.5, linewidth=.7,
+                        palette=sns.color_palette())
+
+        g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
+              hue=plot_params['hue'], alpha=.4,
+              data=df_set[['inc', 'vals', 'within_between']],
+              palette=sns.color_palette(), dodge=True, edgecolor='k',
+              linewidth=0.7)
+
+        if cond_set == ('Within', 'Between'):
+            df_pivot = df_set.pivot_table(index=['subj_num'],
+                                          columns=['inc', 'within_between'],
+                                          values='vals', aggfunc='mean')
+            df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
+                                     df_pivot[('Inc', 'Between')]
+            df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
+                                    df_pivot[('Inc', 'Within')]
+            t_itr, p_itr = stats.ttest_rel(df_pivot['between_ef'],
+                                           df_pivot['within_ef'])
+            supt = f'Two-way interaction: p = {p_itr:.3f}'
+            plt.suptitle(supt)
+
+            sns.move_legend(
+                g, "lower center",
+                bbox_to_anchor=(0.9, 0.5), ncol=1,
+                title=None, frameon=False,
+            )
+
+            pairs = [
+                [('Inc', 'Between'), ('Con', 'Between')],
+                [('Inc', 'Within'), ('Con', 'Within')],
+            ]
+
+                # subset the table otherwise the stats were calculated on the whole dataset
+            annot = Annotator(plt.gca(), pairs, **plot_params,
+                              data=df_set)
+            annot.configure(test='t-test_paired', text_format='simple',
+                            show_test_name=False, verbose=2)
+            # annot.apply_test().annotate()
+            annot.apply_and_annotate()
+        plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
+        plt.xlim(-.5, 1.5)
+        plt.xlabel('')
+        plt.ylabel('Mean connectivity')
+        plt.show()
+        quit()
 
 def plot_sns_bars(df_agg):
     plot_params = {
