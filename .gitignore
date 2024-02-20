@@ -8,3 +8,14 @@ result_pics/.DS_Store
 *.csv
 *.pdf
 *.xlsx
+*.zip
+*.nii.gz
+*.lnk
+/behavFiles/*
+/cache/*
+/old/super_old/*
+/Shenyang_R/*
+/fMRI_in/*
+/.idea/*
+/SchemRep_tasks/*
+

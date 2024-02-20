@@ -212,7 +212,8 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
     age2t = {}
     vmin = 1e6
     vmax = -1e6
-    for age in [1, 2, 'healthy']:
+    age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
+    for age in ['healthy']:
         age_idxs = age2idxs[age]
         seed_age = sn_inc_activity_seed[age_idxs]
         seed_age = np.nanmean(seed_age, axis=2)
@@ -233,7 +234,7 @@ def HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs, region,
             age_conns.append(sn_conns)
         age_conns = np.array(age_conns)
         all_conns.append(age_conns)
-        dif_conn = age_conns[:, 0] - age_conns[:, 1]
+        dif_conn = age_conns[:, 0] - age_conns[:, 2]
         dif_M = np.nanmean(dif_conn, axis=0)
         dif_std = np.nanstd(dif_conn, axis=0)
         dif_N = np.sum(~np.isnan(dif_conn), axis=0)
@@ -415,8 +416,8 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
     keep_idxs, drop_idxs = get_keep_idxs()
     sn_inc_activity_tar[:, :, drop_idxs, :] = np.nan
 
+    kwargs['atlas_name'] = 'BNA'
     kwargs1 = kwargs.copy()
-    kwargs1['atlas_name'] = 'BNA'
     _, sn_inc_activity_bna, _, _, _ = generic_prep(kwargs1,
                                                    threshold=threshold)
 
@@ -453,8 +454,9 @@ def run_HC_schaef(threshold=0.95, laterality=False, perm=False):
                     print_list_stats(YA_accs)
             continue
         else:
-            accs_rg = HC_clf(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar,
-                             region, n_repeats=10, super_sample=True)
+            accs_rg = 0
+            # accs_rg = HC_clf(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar,
+            #                  region, n_repeats=10, super_sample=True)
         accs[region] = accs_rg
         HC_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
              region, accs, atlas_tar)
