@@ -16,6 +16,9 @@ from vendor_partitioning import get_vendor_partitions
 from utils import timing, pickle_wrap, stdize, get_formula_cols
 import scipy.stats as stats
 from warnings import filterwarnings
+import os
+
+os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
 
 filterwarnings('ignore', category=UserWarning)
 
@@ -221,7 +224,6 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
-
     assert set(p_d_pos).intersection(p_d_ant) == set()
     assert set(p_d_pos).intersection(p_v_ant) == set()
     assert set(p_d_pos).intersection(p_v_pos) == set()
@@ -280,6 +282,7 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     df_sns['age'] = df_sns['sn'].apply(lambda x: int(x[0]))
 
     if hemis:
+        print('Onto hemi-cross vendor df')
         df_hemi, cols_hemi = pickle_wrap(None, get_hemi_cross_vendor_df,
                                          kwargs={'fp': fp,
                                                  'anat': anat,
@@ -291,28 +294,33 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
     return df_sns, all_new_cols
 
-def vendor_lmer(fp='vis7_fMRI'):
+def vendor_lmer(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
-                                                  'anat': True,
+                                                  'anat': False,
                                                   'scrub': False,
                                                   'hemis': False},
-                     cache_dir='cache', easy_override=False)
+                     cache_dir='cache', easy_override=True)
 
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
     df = df.merge(df_mem, on=['sn', 'obj'], how='left')
 
-    df['age'] = stats.zscore(df['age'], nan_policy='omit')
-    df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
-    df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
-    df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
+
+    # df['age'] = stats.zscore(df['age'], nan_policy='omit')
+    # df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
+    # df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
+    # df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
     # formula_gen = 'dd ~ 1 + inc + vv + dv_ant + dv_pos + brain_M + ' \
     #               '(1 | sn)'
-    df['hit_hit'] = stats.zscore(df['hit_hit'], nan_policy='omit')
-    formula_gen = 'hit_hit ~ 1 + dd*vv + brain_M + ' \
-                  '(1 + dd*vv| sn)'
+    print('About to lmer...')
+    formula_gen = 'dd_vv ~ 1 + inc*all_M + inc*cross + ' \
+                  '(1 + inc*all_M + inc*cross | sn)'
 
     cols = get_formula_cols(df, formula_gen)
+    for col in cols:
+        if col in ['sn']: continue
+        print(f'z-scoring: {col}')
+        df[col] = stats.zscore(df[col], nan_policy='omit')
     df_vals = df[cols].dropna()
     from pymer4 import Lmer
     model = Lmer(formula_gen, data=df_vals)
@@ -320,6 +328,7 @@ def vendor_lmer(fp='vis7_fMRI'):
     print(model.summary())
 
     print(df[['dd', 'vv', 'dv_ant', 'dv_pos', 'brain_M']].corr())
+    quit()
 
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
@@ -357,7 +366,7 @@ if __name__ == '__main__':
     # hemi_vendor_corr()
     # meta_corr_triangle()
     # plot_conn_matrix()
-    vendor_lmer()
-    # vendor_lmer_Feb12()
+    # vendor_lmer()
+    vendor_lmer_Feb12()
     # get_trialwise_vendor()
     # plot_meta_corr_matrix()

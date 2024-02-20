@@ -6,6 +6,7 @@ from scipy import stats as stats
 
 from atlas_utils import get_atlas
 from emotemporal_bar import get_stars
+from old.modularity import get_modules
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from ven_x_dor import get_hemi_vendor_df, get_vendor_df, get_hemi_cross_vendor_df
@@ -156,25 +157,13 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
     return beta_main, p_main, beta_itr, p_itr
 
 
-def plot_massive_hemi_corr_matrix(fp='vis7_fMRI', anat=True, scrub=False):
+def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
     df, cols = pickle_wrap(None, get_hemi_vendor_df,
                            kwargs={'fp': fp,
                                    'anat': anat,
                                    'scrub': scrub},
                            cache_dir='cache', easy_override=False)
 
-    # df_vnd = pickle_wrap(None, get_vendor_df,
-    #                      kwargs={'fp': fp,
-    #                              'scrub': scrub,
-    #                              'anat': anat,
-    #                              'hemis': True,},
-    #                      cache_dir='cache', easy_override=False)
-    # print(df_vnd['DP_hemi'])
-    # return
-    # df = df.merge(df_vnd, on=['sn', 'obj'])
-
-    # print(cols)
-    # quit()
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
@@ -201,22 +190,15 @@ def plot_massive_hemi_corr_matrix(fp='vis7_fMRI', anat=True, scrub=False):
     cols_order = ['da_dp', 'va_vp', 'dp_vp', 'da_va',
                   'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
 
+    cols_order = ['Lda_Ldp', 'Rda_Rdp',
+                  'Lva_Lvp', 'Rva_Rvp',
+                  'Ldp_Lvp', 'Rdp_Rvp',
+                  'Lda_Lva', 'Rda_Rva',
+                  'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
+
     # cols_order += ['dd', 'vv']
 
     df.dropna(subset=cols_order, inplace=True)
-    # df['dd_test'] = df['Ldp_Lda'] + df['Rdp_Rda'] + \
-    #                 df['Ldp_Rda'] + df['Lda_Rdp']
-    # df['vv_test'] = df['Lvp_Lva'] + df['Rvp_Rva'] + \
-    #                 df['Lvp_Rva'] + df['Lva_Rvp']
-    # r, p = stats.pearsonr(df['dd'], df['da_dp'])
-    # outlier = (df[cols_order].abs() > 5).any(axis=1)
-    # df = df[~outlier]
-    # print(outlier)
-
-    # plt.scatter(df['dd'], df['da_dp'])
-    # plt.show()
-    # print(f'{r=:.2f}')
-    # quit()
 
     cols_within = ['Ldp_Ldp', 'Lda_Lda', 'Lvp_Lvp', 'Lva_Lva',
                    'Rdp_Rdp', 'Rda_Rda', 'Rvp_Rvp', 'Rva_Rva']
@@ -235,11 +217,24 @@ def plot_massive_hemi_corr_matrix(fp='vis7_fMRI', anat=True, scrub=False):
     tick_labels = cols_order
 
     print(df[cols_order].corr())
-    # print(df[cols_order])
-    # return
 
     corr = np.array(df[cols_order].corr())
     corr[corr > .99] = np.nan
+
+    median = np.nanmedian(corr)
+    print(f'{median=}')
+
+    corr[corr > 0] = 1
+    corr[corr < 0] = 0
+    partitions = get_modules(corr)
+
+    # plt.imshow(corr)
+    # plt.show()
+    for i, p in enumerate(partitions):
+        p_named = [cols_order[j] for j in p]
+        print(f'{i}: {p=} ({p_named})')
+    quit()
+
     # corr = np.array(corr)
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
                       no_avg=True, title=fp, vmin=-0.3, vmax=0.3)
@@ -303,7 +298,7 @@ if __name__ == '__main__':
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
 
-    # plot_massive_hemi_corr_matrix()
+    plot_massive_hemi_corr_matrix()
     # quit()
     # lmer_triangle()
-    plot_meta_corr_matrix()
+    # plot_meta_corr_matrix()

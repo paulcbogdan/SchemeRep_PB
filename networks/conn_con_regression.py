@@ -231,7 +231,7 @@ def do_ROI_clf(df, grps, cols, kernel='rbf'):
 
     return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=27, kernel='rbf'):
+def conn_clf(df, combine_regions=False, nrois=27, kernel='linear'):
 
 
     sns = get_sns()
@@ -286,7 +286,7 @@ def conn_clf(df, combine_regions=False, nrois=27, kernel='rbf'):
     num_rois = len(zs)
     fp_out = f'result_pics/FC/ROIwise_clf_{num_rois}_{kernel}.png'
     my_plot_surf(zs, atlas, title_str, fp_out=fp_out,
-                 neg='test', pos='Effect',)
+                 neg='', pos='Effect',)
 
 
 def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):

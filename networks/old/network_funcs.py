@@ -33,6 +33,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     #                  sh=False)
 
     age2sn = get_sns(fp, sh=False)
+    print(f'{age2sn=}')
     sn_inc_conn = []
     sn_inc_activity = []
     sn_conn = []

@@ -243,7 +243,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
         if 'anat' in bonus_str:
             fn_glass = 'quads_anat.png'
         else:
-            fn_glass = fr'quads_original{bonus_str}.png'
+            fn_glass = fr'quads_scrubbing{bonus_str}.png'
         fp_glass = fr'{dir_out}\{fn_glass}'
         # fp_glass = fr'{dir_out}\glass_first_scrub_colored.png'
         coords = atlas['coords']
@@ -257,6 +257,8 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                           'mislabeled_PV': 'darkgoldenrod',
                           'N/A': 'black'}
 
+        print(f'{node_sizes=}')
+        print(f'{fp_glass=}')
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
@@ -272,21 +274,15 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                 scrubbed = True
 
         if scrubbed:
-            fp_glass = fr'{dir_out}\quads_scrubbing{bonus_str}.png'
+            fp_glass = fr'{dir_out}\quads_original{bonus_str}.png'
             plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                             coords, node_size=node_sizes_copy, linewidths=15,
                             network_colors=network_colors,)
-
-            # from PIL import Image
-            # Image.open(fp_glass).show()
 
             fp_glass = fr'{dir_out}\quads_scrubbed{bonus_str}.png'
             plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                             coords, node_size=node_sizes, linewidths=15,
                             network_colors=network_colors,)
-
-            # from PIL import Image
-            # Image.open(fp_glass).show()
 
     f = lambda i: 'mislabeled' not in idx_to_quadrant[i]
     p_d_ant_new = list(filter(f, p_d_ant))
@@ -294,13 +290,11 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     p_v_ant_new = list(filter(f, p_v_ant))
     p_v_pos_new = list(filter(f, p_v_pos))
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
-    # else:
-    #     return p_d_ant, p_d_pos, p_v_ant, p_v_pos
 
 if __name__ == '__main__':
-    THRESHOLD = .9
+    THRESHOLD = 1.65
     get_vendor_partitions(age='healthy', flip=True, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD)
+                          scrub=True, easy_override=False, thr=THRESHOLD)
     # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
     # get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
