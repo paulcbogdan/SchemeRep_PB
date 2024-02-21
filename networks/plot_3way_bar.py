@@ -18,20 +18,102 @@ from statannotations.Annotator import Annotator
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
+import statsmodels.formula.api as smf
+
+def activity_partition_4bar(fp='obj7_fMRI', anat=True, ):
+    kwargs = {'fp': fp,
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
+                    easy_override=False, cache_dir='cache')
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', anat=anat, flip=True, thr=.9,
+                              scrub=False)
+
+    ps = [p_d_ant, p_d_pos, p_v_ant, p_v_pos]
+    names = ['DP', 'DA', 'VP', 'VA']
+    vals = []
+    partitions = []
+    sn = []
+    incs = []
+    for i in range(sn_inc_activity.shape[1]):
+        for p, name in zip(ps, names):
+            print(sn_inc_activity.shape)
+            vals += list(np.nanmean(sn_inc_activity[:, i, p, :], axis=(1, 2)))
+            partitions += [name] * len(sn_inc_activity)
+            incs += [i] * len(sn_inc_activity)
+            sn += list(range(len(sn_inc_activity)))
+
+    df = pd.DataFrame({'vals': vals, 'partition': partitions, 'sn': sn,
+                       'inc': incs})
+    for name in names:
+        df.loc[df['partition'] == name, 'vals'] = (
+            stats.zscore(df.loc[df['partition'] == name, 'vals']))
+    df['inc'] = df['inc'].map({0: 'Inc', 1: 'Neu', 2: 'Con'})
+    # print(df)
+    # df_pivot = df.pivot_table(index=['sn'],
+    #                           columns=['inc', 'partition'],
+    #                           values='vals', aggfunc='mean')
+    # print(df_pivot)
+
+    plot_params = {
+        # 'data': df_agg,
+        'y': 'vals',
+        'x': 'inc',
+        'hue': 'partition',
+        'hue_order': names,
+        'kind': 'bar'
+    }
+
+    print(df)
+
+    g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
+                    hue=plot_params['hue'],
+                    data=df,
+                    kind='bar',  # ci='sd',
+                    errwidth=1.5, edgecolor='k',
+                    capsize=0.1, height=4, alpha=0.5, linewidth=.7,
+                    palette=sns.color_palette())
+
+    # g.map(sns.stripplot, plot_params["x"], plot_params["y"],
+    #       plot_params["hue"],
+    #       hue_order=plot_params["hue_order"],  # order=plot_params["order"],
+    #       palette=sns.color_palette(), dodge=True, alpha=0.15,
+    #       linewidth=1)
+
+    pairs = [[('Inc', c), ('Con', c)] for c in names]
+    # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
+    plt.ylim(-1, 1)
+
+    print(f'{pairs=}')
+    ax = plt.gca()
+    # subset the table otherwise the stats were calculated on the whole dataset
+    annot = Annotator(ax, pairs, **plot_params,
+                      data=df)
+    annot.configure(test='t-test_paired', text_format='simple',
+                    show_test_name=False, verbose=2)
+    annot.apply_and_annotate()
+    plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
+
+    plt.show()
+
 
 def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
-              'key_vals': (1, 3),
+              'key_vals': (1, 2, 3),
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                     easy_override=False, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
-                              flip=True, thr=None, scrub=False)
+                              flip=True, thr=.9, scrub=False)
     n_rois = sn_inc_activity.shape[2]
 
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
@@ -81,17 +163,17 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
     for key, flat in zip(keys, data):
         # print(f'{flat.shape=}')
         # quit()
-        incs += ['Inc'] * n_sn + ['Con'] * n_sn
-        ages += (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*2
-        wbs += [key] * (2 * n_sn)
-        subj_nums += list(range(n_sn)) * 2
+        incs += ['Inc'] * n_sn + ['Neu'] * n_sn + ['Con'] * n_sn
+        ages += (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*3
+        wbs += [key] * (3 * n_sn)
+        subj_nums += list(range(n_sn)) * 3
         vals += list(flat.T.reshape(-1))
 
     print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
 
 
     d = {'vals': vals, 'inc': incs, 'within_between': wbs,
-         'age': ages, 'subj_num': subj_nums}
+         'age': ages, 'sn': subj_nums}
 
     df_agg = pd.DataFrame(d)
     plot_con_vs_inc(df_agg)
@@ -109,30 +191,49 @@ def plot_con_vs_inc(df_agg):
         'y': 'vals',
         'x': 'inc',
         'hue': 'within_between',
-        'hue_order': ['Within', 'Between'],
+        # 'hue_order': ['Within', 'Between'],
         'kind': 'bar'
     }
 
-    cond_sets = [('Within', 'Between')]
+    cond_sets = [('Within', 'Between'),
+                 ('dd', 'dv_pos'),
+                 ('vv', 'dv_ant'),]
+    # cond_sets = [('Within', 'Between')]
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
 
         g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
-                        kind='bar', ci='sd',
+                        kind='bar', #ci='sd',
                         errwidth=1.5, edgecolor='k',
                         capsize=0.1, height=4, alpha=0.5, linewidth=.7,
                         palette=sns.color_palette())
 
-        g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
-              hue=plot_params['hue'], alpha=.4,
-              data=df_set[['inc', 'vals', 'within_between']],
-              palette=sns.color_palette(), dodge=True, edgecolor='k',
-              linewidth=0.7)
+        df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
+        df_set['wb_num'] = df_set['within_between'].map(
+            {'Within': -0.5, 'Between': 0.5,})
+
+        # df_set = df_set[df_set['inc'] != 'Neu']
+        df_set['sn_str'] = df_set['sn'].astype(str)
+
+        formula = 'vals ~ inc_num*within_between + within_between*sn_str'
+        # print(df_set)
+        model = smf.ols(formula=formula, data=df_set)
+        res = model.fit()
+        key = cond_set[0]
+        print(res.pvalues)
+        p_reg = res.pvalues.iloc[-1]#f'inc_num:within_between[T.{key}]']
+
+
+        # g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
+        #       hue=plot_params['hue'], alpha=.4,
+        #       data=df_set[['inc', 'vals', 'within_between']],
+        #       palette=sns.color_palette(), dodge=True, edgecolor='k',
+        #       linewidth=0.7)
 
         if cond_set == ('Within', 'Between'):
-            df_pivot = df_set.pivot_table(index=['subj_num'],
+            df_pivot = df_set.pivot_table(index=['sn'],
                                           columns=['inc', 'within_between'],
                                           values='vals', aggfunc='mean')
             df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
@@ -141,33 +242,40 @@ def plot_con_vs_inc(df_agg):
                                     df_pivot[('Inc', 'Within')]
             t_itr, p_itr = stats.ttest_rel(df_pivot['between_ef'],
                                            df_pivot['within_ef'])
-            supt = f'Two-way interaction: p = {p_itr:.3f}'
+            supt = (f'Two-level [Inc/Con] x Direction: p = {p_itr:.3f}\n'
+                    f'Three-level [Inc/Neu/Con] x Direction: p = {p_reg:.3f} ')
             plt.suptitle(supt)
 
             sns.move_legend(
                 g, "lower center",
-                bbox_to_anchor=(0.9, 0.5), ncol=1,
+                bbox_to_anchor=(0.9, 0.63), ncol=1,
                 title=None, frameon=False,
             )
 
-            pairs = [
-                [('Inc', 'Between'), ('Con', 'Between')],
-                [('Inc', 'Within'), ('Con', 'Within')],
-            ]
+        #     pairs = [
+        #         [('Inc', 'Between'), ('Con', 'Between')],
+        #         [('Inc', 'Within'), ('Con', 'Within')],
+        #     ]
+        # else:
+        pairs = [[('Inc', c), ('Con', c)] for c in cond_set]
+        # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
 
+        print(f'{pairs=}')
+        ax = plt.gca()
                 # subset the table otherwise the stats were calculated on the whole dataset
-            annot = Annotator(plt.gca(), pairs, **plot_params,
-                              data=df_set)
-            annot.configure(test='t-test_paired', text_format='simple',
-                            show_test_name=False, verbose=2)
-            # annot.apply_test().annotate()
-            annot.apply_and_annotate()
-        plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
-        plt.xlim(-.5, 1.5)
+        annot = Annotator(ax, pairs, **plot_params,
+                          data=df_set)
+        annot.configure(test='t-test_paired', text_format='simple',
+                        show_test_name=False, verbose=2)
+        # annot.apply_test().annotate()
+        annot.apply_and_annotate()
+        plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
+        # plt.xlim(-.5, 1.5)
         plt.xlabel('')
         plt.ylabel('Mean connectivity')
+        plt.tight_layout()
         plt.show()
-        quit()
+        # quit()
 
 def plot_sns_bars(df_agg):
     plot_params = {
@@ -360,5 +468,6 @@ def plot_four(df_agg):
 
 if __name__ == '__main__':
     conn_partition_3bar()
+    # activity_partition_4bar()
 
 

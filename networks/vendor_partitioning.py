@@ -16,7 +16,9 @@ from utils import pickle_wrap
 import matplotlib.pyplot as plt
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
-                           flip=True, weighted=True, plot=False):
+                           flip=True, weighted=True, plot=False,
+                           combine_regions=False):
+
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     if weighted:
         M_YA, _, _, _, _, p_YA, z_YA = \
@@ -33,7 +35,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                              sn_inc_conn[age2idxs[age], 1, :, :])
     z_both = -z_both if flip else z_both
 
-    atlas = get_atlas()
+    atlas = get_atlas(combine_regions=combine_regions)
     labels = atlas['labels']
     bad_labels = {'Str', 'Tha'}
     for i, label in enumerate(labels):
@@ -48,17 +50,24 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''
+    comb_str = '_comb' if combine_regions else ''
     dir_out = f'result_pics/ttest_modules/' \
-              f'flip{flip}_thr{thr}_{age2str[age]}{weighted_str}' \
+              f'flip{flip}_thr{thr}_{age2str[age]}{comb_str}{weighted_str}' \
               f'_n{num_non_nans}'
     if flip:
         title_extra = f' (Congruent > incongruent)'
     else:
         title_extra = f' (Incongruent > Congruent)'
     partitions, matrix_mask = \
-        get_main_partitions(z_both, coords=None, plot=plot, threshold=thr,
+        get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
+                            threshold=thr,
                             fn_str='', overlapping=False,
-                            dir_out_full=dir_out, title_extra=title_extra)
+                            dir_out_full=dir_out, title_extra=title_extra,)
+
+    for i, p in enumerate(partitions):
+        labels = [atlas['labels'][i] for i in p]
+        print(f'Partition {i}: {labels}')
+    quit()
 
     return partitions, matrix_mask
 
@@ -68,31 +77,38 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           age: int | str='healthy',
                           thr=.95, flip=True, anat=False,
                           weighted=False, scrub=False,
-                          plot=False, easy_override=False):
+                          plot=False, easy_override=False,
+                          combine_regions=False):
     if anat:
-        return get_anat_vendor_partitions(plot=plot)
+        return get_anat_vendor_partitions(plot=plot,
+                                          combine_regions=combine_regions)
     if sn_inc_conn is None or age2idxs is None:
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
                   'atlas_name': 'BNA',
                   'key_vals': (1, 3),
+                  'combine_regions': combine_regions
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
             pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
                         easy_override=False, cache_dir='cache')
 
+    comb_str = f'_comb' if combine_regions else ''
+    fp = (f'cache/{age}_ttest_modules_thr{thr}_flip{flip}{comb_str}_'
+          f'{weighted}_n65.pkl')
 
-    fp = f'cache/{age}_ttest_modules_thr{thr}_flip{flip}_{weighted}_n65.pkl'
     partitions, matrix_mask = \
         pickle_wrap(fp, lambda: get_vendor_partitions_(sn_inc_conn=sn_inc_conn,
                                                        age2idxs=age2idxs,
                                                        age=age, thr=thr,
                                                        flip=flip,
                                                        weighted=weighted,
-                                                       plot=plot),
-                    easy_override=easy_override)
-    atlas = get_atlas()
+                                                       plot=plot,
+                                    combine_regions=combine_regions),
+                    easy_override=True)
+    atlas = get_atlas(combine_regions=combine_regions)
     coords = atlas['coords']
+    # print(len(coords))
     p_dorsal, p_ventral = partitions[0], partitions[1]
     p_d_ant, p_d_pos = anterior_posterior_split(p_dorsal, coords)
     p_v_ant, p_v_pos = anterior_posterior_split(p_ventral, coords)
@@ -102,7 +118,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
         anat_str = '_anat' if anat else ''
         age_str = f'_YA' if age == 1 else '_OA' if age == 2 else \
             '_all_age' if age == 'healthy' else ''
-        bonus_str = f'{anat_str}{age_str}'
+        thresh_str = f'_thr{thr}'
+        bonus_str = f'{anat_str}{age_str}{thresh_str}{comb_str}'
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_p(p_d_ant, p_d_pos,
                                                      p_v_ant, p_v_pos,
                                                      plot=plot,
@@ -148,12 +165,12 @@ def anterior_posterior_split(p_dorsal, coords):
 
 
 
-def get_anat_vendor_partitions(plot=False):
+def get_anat_vendor_partitions(plot=False, v1=True, combine_regions=False):
     def labels2idxs(target):
         return [i for i, label in enumerate(labels) if
                 any([l in label for l in target])]
 
-    atlas = get_atlas()
+    atlas = get_atlas(combine_regions=combine_regions)
     coords, labels = atlas['coords'], atlas['labels']
     split_keys = ['PhG', 'ITG', 'MTG', 'STG', 'FuG']
     split2l = defaultdict(list)
@@ -177,10 +194,18 @@ def get_anat_vendor_partitions(plot=False):
                 else:
                     labels[i] = f'{key}_p'
 
-    p_d_ant_labels = ['IFG', 'SFG', 'MFG', 'OrG']
-    p_d_pos_labels = ['IPL', 'Pcun', 'PCC']
-    p_v_ant_labels = ['ATL', 'PhG_a', 'ITG_a', 'MTG_a', 'STG_a', 'FuG_a']
-    p_v_pos_labels = ['EVC', 'LOC', 'ITG_p', 'MTG_p', 'FuG_p']
+    if v1:
+        p_d_ant_labels = ['IFG', 'SFG', 'MFG',] #  'OrG'
+        p_d_pos_labels = ['IPL', 'SPL', 'Pcun', ] # 'PCC'
+        p_v_ant_labels = ['ATL', 'PhG_a',
+                          'ITG_a', 'MTG_a', 'STG_a', 'FuG_a']
+        p_v_pos_labels = ['sOcG', 'EVC', 'LOC', 'PhG_p',
+                          'ITG_p', 'MTG_p', 'STG_p','FuG_p']
+    else:
+        p_d_ant_labels = ['IFG', 'SFG', 'MFG', 'OrG']
+        p_d_pos_labels = ['IPL', 'Pcun', 'PCC']
+        p_v_ant_labels = ['ATL', 'PhG_a', 'ITG_a', 'MTG_a', 'STG_a', 'FuG_a']
+        p_v_pos_labels = ['EVC', 'LOC', 'ITG_p', 'MTG_p', 'FuG_p']
     p_d_ant = labels2idxs(p_d_ant_labels)
     p_d_pos = labels2idxs(p_d_pos_labels)
     p_v_ant = labels2idxs(p_v_ant_labels)
@@ -193,7 +218,7 @@ def get_anat_vendor_partitions(plot=False):
     if plot:
         bonus_str = '_anat'
         scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=True,
-                bonus_str=bonus_str)
+                bonus_str=bonus_str, combine_regions=combine_regions)
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
@@ -203,8 +228,10 @@ def get_anat_vendor_partitions(plot=False):
 
 
 def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
-            bonus_str=''):
-    atlas = get_atlas()
+            bonus_str='', combine_regions=False):
+
+    atlas = get_atlas(combine_regions=combine_regions)
+
     from nichord import plot_glassbrain
     idx_to_quadrant = {i: 'PD' for i in p_d_pos}
     idx_to_quadrant.update({i: 'PV' for i in p_v_pos})
@@ -218,7 +245,9 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             node_sizes.append(0)
         else:
             quadrant = idx_to_quadrant[i]
-            label = atlas['labels'][i].split(' ')[1].split('_')[0]
+            label = atlas['labels'][i]
+            print(f'Pre: {label=}')
+            label = label.split(' ')[1].split('_')[0]
             quadrant2labels[quadrant].append(label)
             # print(f'{i}, {quadrant}: {label}')
             node_sizes.append(5)
@@ -233,7 +262,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
         if quadrant == 'N/A':
             continue
         label = atlas['labels'][i].split(' ')[1].split('_')[0]
-        if label not in valid_labels[quadrant]:
+        if label not in valid_labels[quadrant] and 'anat' not in bonus_str:
             idx_to_quadrant[i] = f'mislabeled_{quadrant}'
             node_sizes[i] = 1
 
@@ -257,8 +286,6 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
                           'mislabeled_PV': 'darkgoldenrod',
                           'N/A': 'black'}
 
-        print(f'{node_sizes=}')
-        print(f'{fp_glass=}')
         plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_glass,
                         coords, node_size=node_sizes, linewidths=15,
                         network_colors=network_colors,)
@@ -292,9 +319,10 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    THRESHOLD = 1.65
-    get_vendor_partitions(age='healthy', flip=True, plot=True,
-                          scrub=True, easy_override=False, thr=THRESHOLD)
+    THRESHOLD = .8
+    # get_vendor_partitions(age='healthy', flip=True, plot=True,
+    #                       scrub=True, easy_override=False, thr=THRESHOLD,
+    #                       combine_regions=False)
     # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
     # get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
@@ -302,7 +330,7 @@ if __name__ == '__main__':
     # get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
     get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-                          scrub=True)
+                          scrub=True, combine_regions=False)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

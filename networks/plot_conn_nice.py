@@ -2,6 +2,8 @@ import os
 
 from tqdm import tqdm
 
+from vendor_partitioning import get_vendor_partitions
+
 os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 from pathlib import Path
@@ -17,23 +19,27 @@ from utils import stdize, run_two_sample_on_2D
 
 def seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs,
                 region, accs, atlas):
+    # print(sn_inc_activity_seed.shape)
+    # quit()
     all_conns = []
     age2t = {}
     vmin = 1e6
     vmax = -1e6
-    ages = [2, 'healthy']
+    ages = ['healthy']
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     for age in ages:
         age_idxs = age2idxs[age]
         seed_age = sn_inc_activity_seed[age_idxs]
         seed_age = np.nanmean(seed_age, axis=2)
+        seed_age = stdize(seed_age, axis=2, nans=True)
+        # print(seed_age.shape)
+        # quit()
         tar_age = sn_inc_activity_sch[age_idxs]
         age_conns = []
         for i in range(seed_age.shape[0]):
             seed_age_sn = seed_age[i]
             tar_age_sn = tar_age[i]
             sn_conns = []
-
             for cond in range(seed_age_sn.shape[0]):
                 seed_age_sn_cond = seed_age_sn[cond]
                 tar_age_sn_cond = tar_age_sn[cond]
@@ -80,7 +86,7 @@ def seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs,
             raise ValueError
 
         my_plot_surf(age2t[age], atlas, title_str, fp_out=fp_pic,
-                     neg=neg, pos=pos)
+                     neg=neg, pos=pos, vmax=4, thresh=2.32)
 
 def plot_M(age2idxs, sn_inc_activity_hc, sn_inc_activity_sch, kwargs, region,
            atlas):
@@ -210,15 +216,29 @@ def make_seed_plots(threshold=0.95, laterality=False, perm=False):
     atlas_tar['name'] = kwargs['atlas_name']
     # atlas_tar['coords'] = [atlas_tar['coords'][i] for i in keep_idxs]
 
-    specific_region = None
-    for region in tqdm(regions, desc='Making seed conn plots'):
-        if specific_region and (specific_region not in region):
-            continue
-        idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
-        sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', anat=True, flip=True, thr=.9,
+                              scrub=False)
 
+    name2p = {'Dorsal Pos': p_d_pos, 'Ventral Pos': p_v_pos,
+              'Dorsal Ant': p_d_ant, 'Ventral Ant': p_v_ant}
+
+    for name, p in name2p.items():
+        sn_inc_activity_seed = sn_inc_activity_bna[:, :, p, :]
         seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
-                    region, accs, atlas_tar)
+                    name, accs, atlas_tar)
+    quit()
+
+    for region_bl in tqdm(regions, desc='Making seed conn plots'):
+        for lr in ['L', 'R']:
+            region = f'{region_bl}_{lr}'
+            # if specific_region and (specific_region not in region):
+            #     continue
+            idxs = [i for i, ROI in enumerate(ROIs) if region in ROI]
+            sn_inc_activity_seed = sn_inc_activity_bna[:, :, idxs, :]
+
+            seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
+                        region, accs, atlas_tar)
 
 if __name__ == '__main__':
     make_seed_plots()

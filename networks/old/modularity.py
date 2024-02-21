@@ -69,13 +69,22 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         edges, edge_weights = convert_matrix(corr)
 
     fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}.pkl'
+    # print(f'{fp_idx_to_label=}')
     idx_to_label = pickle_wrap(fp_idx_to_label,
                                lambda: get_idx_to_label(coords, atlas='yeo'))
-    # labels = get_atlas()['labels']
+    # labels = get_atlas(combine_regions=True)['labels']
     # for i in range(len(labels)):
     #     print(f'{labels[i]} | {idx_to_label[i]}')
     # # print(idx_to_label)
     # quit()
+
+    # print(f'{edges=}')
+    # print(f'{edge_weights=}')
+    # quit()
+
+    if len(edge_weights) == 0:
+        print('Zero edge weights!')
+        return
 
     network_colors = {'Uncertain': 'black', 'Visual': 'purple',
                       'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
@@ -84,10 +93,14 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
     network_order = ['FPCN', 'DMN', 'DAN', 'Visual', 'SM', 'Limbic',
                      'Uncertain', 'VAN']
     Path(dir_out).mkdir(exist_ok=True, parents=True)
+    print('Plotting and combining NiChord')
     plot_and_combine(dir_out, fn, idx_to_label, edges,
                      edge_weights=edge_weights, coords=coords,
                      network_order=network_order, network_colors=network_colors,
                      title=title, chord_kwargs={'alphas': .5})
+    # print(f'{dir_out=}')
+    # print(f'{fn=}')
+    # quit()
 
 def get_BNA_coords(code='BNA'):
     if code == 'BNA':
@@ -102,9 +115,11 @@ def get_BNA_coords(code='BNA'):
 
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                         threshold=.95, fn_str='', overlapping=False,
-                        dir_out=None, dir_out_full=None, title_extra=''):
+                        dir_out=None, dir_out_full=None, title_extra='',
+                        ):
     if coords is None:
         coords = get_BNA_coords()
+
     M_conn = np.nanmean(sn_inc_conn,
                         axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
 
@@ -124,7 +139,14 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
             #     continue
             print(f'Plotting partition: {i} | {p=}')
             M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-            assert M_corr_part.shape == (246, 246)
+
+            # plt.imshow(M_corr_part)
+            # plt.show()
+            # print(M_corr_part)
+            # quit()
+            # print(len(coords))
+            # quit()
+            assert M_corr_part.shape in [(246, 246), (54, 54)]
             fn = f'{fn_str}thr{threshold}_p{i}_Feb9.png'
             print(f'Plot: {fn=}')
             title = f'Partition {i+1}{title_extra}'

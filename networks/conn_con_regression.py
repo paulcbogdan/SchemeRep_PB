@@ -139,8 +139,8 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     df_full = pd.DataFrame(vals_full, columns=cols_full)
     df_full['sn'] = sns
     df_full['inc'] = incs
-    conn_clf(df_full, combine_regions=combine_regions, nrois=nrois)
-    quit()
+    # conn_clf(df_full, combine_regions=combine_regions, nrois=nrois)
+    # quit()
 
     t_mat = np.full((nrois, nrois), np.nan)
     p_l = []
