@@ -1,4 +1,6 @@
 import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 from collections import defaultdict
 
 import pandas as pd
@@ -8,7 +10,6 @@ from tqdm import tqdm
 from org_sns import get_sns
 from ttest_mat import get_stats_graphs
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 from scipy import stats
 
@@ -231,9 +232,8 @@ def do_ROI_clf(df, grps, cols, kernel='rbf'):
 
     return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=27, kernel='linear'):
-
-
+def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
+             thresh=2.32):
     sns = get_sns()
     sns = sns[1] + sns[2]
     print(f'{sns=}')
@@ -284,9 +284,9 @@ def conn_clf(df, combine_regions=False, nrois=27, kernel='linear'):
 
     title_str = f'Shows effect'
     num_rois = len(zs)
-    fp_out = f'result_pics/FC/ROIwise_clf_{num_rois}_{kernel}.png'
+    fp_out = f'result_pics/FC/ROIwise_clf_{num_rois}_{kernel}_thr{thresh}.png'
     my_plot_surf(zs, atlas, title_str, fp_out=fp_out,
-                 neg='', pos='Effect',)
+                 neg='', pos='Effect', thresh=thresh)
 
 
 def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
@@ -347,7 +347,7 @@ def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
     #                   no_avg=True,
     #                   title=f't-val'
     #                         f'{cutoff_str}',
-    #                   vmin=-3, vmax=3,
+    #                   vmin=-3, vmax=3,py
     #                   cbar_label='z-score')
 
 # def t2z(t, df=999):

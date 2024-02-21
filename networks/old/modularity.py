@@ -3,7 +3,7 @@ import pickle
 from pathlib import Path
 
 import numpy as np
-from nichord.combine import plot_and_combine
+# from nichord.combine import plot_and_combine
 
 from atlas_utils import get_atlas
 from utils import pickle_wrap

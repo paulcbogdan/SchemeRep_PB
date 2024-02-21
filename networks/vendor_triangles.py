@@ -4,9 +4,9 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy import stats as stats
 
-from atlas_utils import get_atlas
-from emotemporal_bar import get_stars
-from old.modularity import get_modules
+# from atlas_utils import get_atlas
+# from emotemporal_bar import get_stars
+from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from ven_x_dor import get_hemi_vendor_df, get_vendor_df, get_hemi_cross_vendor_df
@@ -19,7 +19,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
 
-def lmer_triangle(fp='con7_fMRI', plot=False, hemi=True, scrub=False, anat=True):
+def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False, anat=True):
     df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
                                                   'scrub': scrub,
                                                   'anat': anat,
@@ -187,14 +187,14 @@ def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
     cols_order += cols_order_dd + cols_order_vv + cols_order_p + cols_order_a
     # cols_order += cols_order_L + cols_order_R
 
-    cols_order = ['da_dp', 'va_vp', 'dp_vp', 'da_va',
-                  'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
-
-    cols_order = ['Lda_Ldp', 'Rda_Rdp',
-                  'Lva_Lvp', 'Rva_Rvp',
-                  'Ldp_Lvp', 'Rdp_Rvp',
-                  'Lda_Lva', 'Rda_Rva',
-                  'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
+    # cols_order = ['da_dp', 'va_vp', 'dp_vp', 'da_va',
+    #               'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
+    #
+    # cols_order = ['Lda_Ldp', 'Rda_Rdp',
+    #               'Lva_Lvp', 'Rva_Rvp',
+    #               'Ldp_Lvp', 'Rdp_Rvp',
+    #               'Lda_Lva', 'Rda_Rva',
+    #               'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
 
     # cols_order += ['dd', 'vv']
 
@@ -230,16 +230,24 @@ def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
 
     # plt.imshow(corr)
     # plt.show()
+
+    corr_v0 = get_partition_matrix(np.ones(corr.shape), partitions[0],
+                                   w_zeros=True)
+
     for i, p in enumerate(partitions):
         p_named = [cols_order[j] for j in p]
         print(f'{i}: {p=} ({p_named})')
-    quit()
+    # quit()
+
+    corr_v1 = get_partition_matrix(np.ones(corr.shape), partitions[1],
+                                   w_zeros=True)
 
     # corr = np.array(corr)
-    plot_connectivity(corr, ticks, tick_labels, tick_lows,
+    plot_connectivity(corr_v0, ticks, tick_labels, tick_lows,
                       no_avg=True, title=fp, vmin=-0.3, vmax=0.3)
 
-
+    plot_connectivity(corr_v1, ticks, tick_labels, tick_lows,
+                      no_avg=True, title=fp, vmin=-0.3, vmax=0.3)
 
 
 def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
@@ -297,8 +305,8 @@ if __name__ == '__main__':
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
-
-    plot_massive_hemi_corr_matrix()
+    lmer_triangle()
+    # plot_massive_hemi_corr_matrix()
     # quit()
     # lmer_triangle()
     # plot_meta_corr_matrix()
