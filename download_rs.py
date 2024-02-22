@@ -126,32 +126,118 @@ def high_variance_conn_confounds(conn_trials, tile=.02, n_confounds=5):
 
     return conn_trials
 
+def normalize_std_over_time(sn_roi_act):
+    sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
+    # print(sn_roi_act.shape)
+    sn_SD_trial = np.nanstd(sn_roi_act, axis=1)
+    sn_SD_M = np.nanmean(sn_SD_trial, axis=1)
+    sn_SD_trial_rel = sn_SD_trial / sn_SD_M[:, None]
+    # print(sn_SD_trial_rel.shape)
+    # print(sn_SD_trial_rel[12])
+    sn_roi_act /= sn_SD_trial_rel[:, None, :]
+    return sn_roi_act
+
+
 def analyze_vendor():
     sn_roi_act, sns = pickle_wrap(load_resting_data, easy_override=False)
+    sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
-    sns = [sn for sn in sns if sn not in bad_rs_sns]
-    sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
+    sn_roi_act = normalize_std_over_time(sn_roi_act)
+
+    sn_roi_act = np.random.normal(size=sn_roi_act.shape)
+
 
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
 
-    # conn_trials = high_variance_conn_confounds(conn_trials)
+    fp_pkl = rf'cache/high_var_conn_trials.pkl'
+    # conn_trials = pickle_wrap(lambda: high_variance_conn_confounds(conn_trials),
+    #                           fp_pkl, easy_override=False)
     conn_trials = conn_trials[:, None, :, :, :]
     diag = np.diag_indices(conn_trials.shape[3])
     conn_trials[:, 0, diag[0], diag[1], :] = np.nan
+    #
+    conn_super_flat = conn_trials.reshape(-1)
+    # h, bins = np.histogram(conn_super_flat[~np.isnan(conn_super_flat)],
+    #                        bins=100)
 
-    for i in range(conn_trials.shape[0]):
-        sn_conn = conn_trials[i, 0, :, :, :]
-        rs = []
-        rand = np.random.randint(0, sn_conn.shape[0], (4, 100))
-        for x0, y0, x1, y1 in rand.T:
-            try:
-                r, p = stats.pearsonr(sn_conn[x0, y0, :], sn_conn[x1, y1, :])
-            except ValueError:
-                continue
-            rs.append(r)
-        print(f'{np.mean(rs)=:.3f}')
+    # plt.hist(conn_super_flat[~np.isnan(conn_super_flat)], bins=100)
+    # plt.show()
+    # quit()
+
+    # for h, bins in zip(h, bins):
+    #     print(f'{h=}, {bins=}')
+    # # plt.hist(conn_super_flat, bins=100)
+    # # plt.show()
+    # #
+    # print(conn_trials.shape)
+    # quit()
+
+    tril = np.tril_indices(conn_trials.shape[3], k=-1)
+    flat_trials = conn_trials[:, 0, tril[0], tril[1], :]
+
+    for i in range(flat_trials.shape[0]):
+        rand = np.random.randint(0, flat_trials.shape[1], 100)
+        sn_rand_trials = stdize(flat_trials[i, rand, :], axis=1)
+
+        plt.imshow(sn_roi_act[0, :, :], aspect='auto')
+        plt.colorbar()
+        plt.show()
+        # plt.imshow(flat_trials[i, :100, :])
+        # plt.show()
+        # quit()
+
+        sn_rand_trials0 = sn_rand_trials[None, :, :]
+        sn_rand_trials1 = sn_rand_trials[:, None, :]
+        rand_corr = sn_rand_trials0 * sn_rand_trials1
+        print(rand_corr.shape)
+        print(rand_corr)
+        # rand_corr[np.abs(rand_corr) > 10.0] = np.nan
+        plt.imshow(rand_corr[0, :, :], aspect='auto')
+        plt.colorbar()
+        plt.show()
+        quit()
+        # rand_corr = np.corrcoef(sn_rand_trials)
+
+        rand_corr_flat = rand_corr[
+                         *np.tril_indices(rand_corr.shape[0], k=-1), :]
+        # print(rand_corr_flat)
+        plt.imshow(rand_corr_flat, aspect='auto')
+        plt.colorbar()
+        plt.show()
+        quit()
+        m_corr = np.nanmean(rand_corr_flat, axis=0)
+        print(m_corr.shape)
+
+        plt.plot(m_corr)
+        plt.show()
+
+        # print(f'{rand_corr_flat.shape=}')
+        # print(rand_corr.shape)
+        quit()
+
+    print(flat_trials.shape)
     quit()
+
+    # for i in range(conn_trials.shape[0]):
+    #     sn_conn = conn_trials[i, 0, :, :, :]
+    #     rs = []
+    #     # rand = np.random.randint(0, sn_conn.shape[0], (4, 100))
+    #     # for j in range(100):
+    #     y = np.random.randint(0, sn_conn.shape[1], 2)
+    #     v0 = np.nanmean(sn_conn[y[0], :123, :], axis=0)
+    #     v1 = np.nanmean(sn_conn[y[0], 123:, :], axis=0)
+    #     r, p = stats.pearsonr(v0, v1)
+    #     print(f'{r=:.3f} ({y})')
+    #     # quit()
+    #     # for x0, y0, x1, y1 in rand.T:
+    #     #     try:
+    #     #         r, p = stats.pearsonr(sn_conn[x0, y0, :], sn_conn[x1, y1, :])
+    #     #     except ValueError:
+    #     #         continue
+    #     #     rs.append(r)
+    #     # print(f'{np.mean(rs)=:.3f}')
+    # quit()
 
     # print(conn_trials.shape)
     # quit()
