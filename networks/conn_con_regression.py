@@ -72,8 +72,7 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     #           }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
 
     # print(np.sum(~np.isnan(sn_inc_activity)))
@@ -190,8 +189,7 @@ def get_paired_ttest_zs(fp='obj7_fMRI', combine_regions=False,
               'combine_regions': combine_regions
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     idxs = age2idxs[age]
     M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph = \
@@ -292,17 +290,13 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
 def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
-            pickle_wrap(None, get_con_reg_zs,
-                        kwargs={'combine_regions': combine_regions,
-                                'age': 'healthy',
-                                'comb_bl': combine_bl},
-                        easy_override=True)
+            pickle_wrap(get_con_reg_zs, None, kwargs={'combine_regions': combine_regions,
+                                                      'age': 'healthy',
+                                                      'comb_bl': combine_bl}, easy_override=True)
     else:
         z_mat, t_mat, p_l, idx2roi = \
-            pickle_wrap(None, get_paired_ttest_zs,
-                        kwargs={'combine_regions': combine_regions,
-                                'age': 'healthy'},
-                        easy_override=False)
+            pickle_wrap(get_paired_ttest_zs, None, kwargs={'combine_regions': combine_regions,
+                                                           'age': 'healthy'}, easy_override=False)
 
     p_l = p_l[~np.isnan(p_l)] / 2
     n_tests = np.sum(~np.isnan(p_l))

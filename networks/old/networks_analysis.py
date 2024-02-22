@@ -22,13 +22,12 @@ def subject_specific(threshold=0.9):
               'key_vals': (1, 3),
               'odd_even': True}
 
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                  easy_override=False, verbose=1,
                                                                   cache_dir='../../cache')
     fp = 'cache/test.pkl'
-    partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
-        sn_conn, plot=False, threshold=threshold), easy_override=False)
+    partitions, top_edges_mat = pickle_wrap(lambda: get_main_partitions(
+        sn_conn, plot=False, threshold=threshold), fp, easy_override=False)
     # partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
     #                                                 threshold=threshold)
     # partitions = [[0, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 50, 51, 62, 164, 166, 167, 176, 177, 178, 179, 186, 187, 232], [48, 49, 68, 69, 76, 77, 78, 80, 82, 83, 86, 87, 88, 89, 92, 93, 94, 95, 102, 103, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 165, 210, 211, 212, 213, 214, 215, 216, 217], [6, 7, 8, 9, 52, 53, 54, 55, 56, 57, 58, 59, 63, 64, 65, 66, 67, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 138, 139, 147, 148, 149, 154, 155, 158, 159, 160, 161, 182, 183, 184], [81, 84, 85, 90, 91, 96, 97, 98, 99, 100, 101, 104, 105, 106, 107, 134, 135, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209], [218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245], [60, 61, 70, 71, 72, 73, 74, 75, 79, 120, 121, 122, 123, 144, 145, 156, 157, 162, 163, 168, 169, 170, 171, 172, 173], [136, 137, 140, 141, 142, 143, 146, 150, 151, 152, 153, 174, 175, 180, 181, 185]]
@@ -55,9 +54,8 @@ def INC_reconfig(threshold=0.9):
               'key': 'inc',
               # 'key': 'rand',
               'key_vals': (1, 2, 3)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                  easy_override=False, verbose=1,
                                                                   cache_dir='../../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                     threshold=threshold)
@@ -94,9 +92,8 @@ def rand_test(threshold=0.9, way3=False):
                   # 'key': 'inc',
                   'key': 'rand',
                   'key_vals': (1, 2, 3) if way3 else (False, True)}
-        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                      load_FC_for_Lifu, kwargs=kwargs,
-                                                                      verbose=1, easy_override=True,
+        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                      easy_override=True, verbose=1,
                                                                       cache_dir='../../cache')
         partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                         threshold=threshold)

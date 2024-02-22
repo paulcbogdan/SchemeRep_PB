@@ -85,9 +85,9 @@ def get_df_ERS(fp0='scn7_fMRI', fp1='vis7_fMRI', combine_regions=True):
     for sn in tqdm(sns, desc='Making ERS dfs'):
         cmb_str = '_cmb' if combine_regions else ''
         fp_pkl = f'cache/ERS_df_{sn}_{fp0}_{fp1}{cmb_str}_fixed.pkl'
-        df_sn, ERS_cols = pickle_wrap(fp_pkl, lambda: do_activity_ERS_sn(sn,
-                combine_regions=combine_regions, fp0=fp0, fp1=fp1,),
-                                      easy_override=False)
+        df_sn, ERS_cols = pickle_wrap(lambda: do_activity_ERS_sn(sn,
+                                                                 combine_regions=combine_regions, fp0=fp0, fp1=fp1, ),
+                                      fp_pkl, easy_override=False)
         ERS_cols_bilateral = sorted(list(set([col[:-2] for col in ERS_cols])))
         for col in ERS_cols_bilateral:
             try:
@@ -358,8 +358,7 @@ def get_df_trialwise_MVPA(fp, key='inc', vals=(1, 3),
         fp_pkl = f'cache/smlr_MVPA_df_{sn}_{fp}_{cmb_str}.pkl'
         f = lambda: do_activity_corr_sn(sn, fp, key=key, vals=vals,
                                         combine_regions=combine_regions)
-        df_sn, cols, cols_simp, cols_alt = pickle_wrap(fp_pkl, f,
-                                                       easy_override=True)
+        df_sn, cols, cols_simp, cols_alt = pickle_wrap(f, fp_pkl, easy_override=True)
         cols_bl = sorted(list(set([col[:-2] for col in cols])))
         # for col in cols_bl:
         #     try:
@@ -431,7 +430,7 @@ def do_activity_MVPA(fp='scn7_fMRI', key='inc', vals=(1, 3),
         corr_str = '_corr' if corr else ''
         fp_pkl = f'cache/ERS_df_{sn}_{fp}_{key}_{vals}{cmb_str}{corr_str}.pkl'
 
-        accs, ROIs = pickle_wrap(fp_pkl, lambda: do_activity_MVPA_sn(sn, fp))
+        accs, ROIs = pickle_wrap(lambda: do_activity_MVPA_sn(sn, fp), fp_pkl)
         accs_l.append(accs)
         df_sn = pd.DataFrame([accs], columns=ROIs, index=[sn])
         dfs_l.append(df_sn)
@@ -505,11 +504,9 @@ def do_activity_group_MVPA(fp='obj7_fMRI', key='inc', vals=(1, 3),
                            combine_regions=False, age=2, n_repeats=10):
     cmb_str = '_cmb' if combine_regions else ''
     fp_pkl = f'cache/ERS_activity_grp_MVPA_{age}_{fp}_{key}_{vals}{cmb_str}.pkl'
-    X_all, Y_all, groups_all = pickle_wrap(fp_pkl,
-                               lambda: prep_data_for_group_MVPA(fp, key, vals,
-                                                                combine_regions,
-                                                                age),
-                               easy_override=False)
+    X_all, Y_all, groups_all = pickle_wrap(lambda: prep_data_for_group_MVPA(fp, key, vals,
+                                                                            combine_regions,
+                                                                            age), fp_pkl, easy_override=False)
     for ROI in X_all.keys():
         X = X_all[ROI]
         Y = Y_all[ROI]

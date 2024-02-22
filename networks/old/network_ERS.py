@@ -67,7 +67,7 @@ def run_network_ERS(threshold=0.95, top_edges_only=False):
                            age2idxs, edges, activity=True)
                 fp = f'cache/p_ers_act_{threshold}_{name0}_{name1}_' \
                      f'{kwargs0["key"]}_{fp}_{fp1}.pkl'
-                out_strs =  pickle_wrap(fp, f)
+                out_strs = pickle_wrap(f, fp)
                 for out_str in out_strs:
                     print(out_str)
                 print(f'------- {i2name[i]} within conn -------')
@@ -90,7 +90,7 @@ def run_network_ERS(threshold=0.95, top_edges_only=False):
                        age2idxs, edges)
             fp_pkl = f'cache/p_ers_conn_{threshold}_{name0}_{name1}_' \
                  f'{kwargs["key"]}_{fp}_{fp1}.pkl'
-            out_strs = pickle_wrap(f, fp_pkl)
+            out_strs = pickle_wrap(fp_pkl, f)
             for out_str in out_strs:
                 print(out_str)
             print(f'-*- top edges only -*-')

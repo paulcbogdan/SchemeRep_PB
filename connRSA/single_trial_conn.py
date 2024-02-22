@@ -233,17 +233,15 @@ def run_settings_healthy(settings, ISPC=False):
 
     settings1 = settings.copy()
     del settings1['age']
-    results1 = pickle_wrap(None, run_settings, kwargs=settings1,
-                          cache_dir=dir_results, easy_override=EASY_OVERRIDE,
-                          dt_max=dt_max, verbose=0)
+    results1 = pickle_wrap(run_settings, None, kwargs=settings1, easy_override=EASY_OVERRIDE, verbose=0,
+                           cache_dir=dir_results, dt_max=dt_max)
     print(f'{Fore.CYAN}Young people:{Fore.RESET}')
     report_results(results1)
 
     settings2 = settings.copy()
     settings2['age'] = 2
-    results2 = pickle_wrap(None, run_settings, kwargs=settings2,
-                          cache_dir=dir_results, easy_override=EASY_OVERRIDE,
-                          dt_max=dt_max, verbose=0)
+    results2 = pickle_wrap(run_settings, None, kwargs=settings2, easy_override=EASY_OVERRIDE, verbose=0,
+                           cache_dir=dir_results, dt_max=dt_max)
     print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
     report_results(results2)
 
@@ -316,19 +314,16 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
     if age == 'healthy':
         print('\n')
         print('*' + '-*' * 120)
-        results = pickle_wrap(None, run_settings_healthy,
-                              kwargs={'settings': settings},
-                              cache_dir=dir_results, easy_override=True,
-                              dt_max=dt_max)
+        results = pickle_wrap(run_settings_healthy, None, kwargs={'settings': settings}, easy_override=True,
+                              cache_dir=dir_results, dt_max=dt_max)
         print(f'{Fore.RED}Combined people:{Fore.RESET}')
     else:
         if age == 2:
             assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
         else:
             del settings['age']
-        results = pickle_wrap(None, run_settings, kwargs=settings,
-                              cache_dir=dir_results, easy_override=EASY_OVERRIDE,
-                              dt_max=dt_max, verbose=1)
+        results = pickle_wrap(run_settings, None, kwargs=settings, easy_override=EASY_OVERRIDE, verbose=1,
+                              cache_dir=dir_results, dt_max=dt_max)
         print(f'Finished!')
 
     if ('plotting' in settings) and ('ROIs' in settings['plotting']):

@@ -34,8 +34,8 @@ def generic_prep(kwargs, threshold=0.9):
             kwargs_['fp'] = fp
             kwargs_['key'] = key
             sn_inc_conn_, sn_conn_, age2idxs, sn_inc_activity_ = \
-                pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs_, verbose=1,
-                            easy_override=False, cache_dir='../cache')
+                pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs_, easy_override=False, verbose=1,
+                            cache_dir='../cache')
             sn_inc_conn.append(sn_inc_conn_)
             sn_conn.append(sn_conn_)
             sn_inc_activity.append(sn_inc_activity_)
@@ -53,9 +53,8 @@ def generic_prep(kwargs, threshold=0.9):
     fp = f'cache/obj4_partitions_test_{atlas_name}_thr{threshold}.pkl'
     print(f'Partitions: {fp=}')
     coords = get_BNA_coords(atlas_name)
-    partitions, top_edges_mat = pickle_wrap(fp, lambda: get_main_partitions(
-        sn_conn, plot=True, threshold=threshold, coords=coords),
-                                            easy_override=False)
+    partitions, top_edges_mat = pickle_wrap(lambda: get_main_partitions(
+        sn_conn, plot=True, threshold=threshold, coords=coords), fp, easy_override=False)
     # print(top_edges_mat.shape)
     # quit()
     sn_inc_conn_unthresh = sn_inc_conn.copy()
@@ -183,14 +182,14 @@ def loop_over_ROIs(threshold=0.9, group=True):
                                             trial_mapper=trial_mapper,
                                             stratification_strategy=1,
                                             linear=True)
-            t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
+            t_YA, t_OA = pickle_wrap(f, fp_pkl, easy_override=False)
         else:
             print('Conn:')
             f = lambda: partition_classifier(sn_inc_activity, age2idxs, edges,
                                              trial_mapper=trial_mapper,
                                              stratification_strategy=1,
                                              linear=True)
-            t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=False)
+            t_YA, t_OA = pickle_wrap(f, fp_pkl, easy_override=False)
         print(f'{t_YA=:.2f}, {t_OA=:.2f}')
 
 
@@ -325,8 +324,7 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
                                                 stratification_strategy=1,
                                                 activity=True,
                                                      linear=linear)
-                    t_YA_act, t_OA_act = pickle_wrap(fp_pkl, f,
-                                                     easy_override=True)
+                    t_YA_act, t_OA_act = pickle_wrap(f, fp_pkl, easy_override=True)
                     results_YA[i2col[i], 0] = round(t_YA_act, 3)
                     results_OA[i2col[i], 0] = round(t_OA_act, 3)
                     print(f'{t_YA_act=:.2f}, {t_OA_act=:.2f}')
@@ -339,8 +337,7 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
                                                     acttivity=True,
                                                     linear=linear
                                                     )
-                    t_YA_act, t_OA_act = pickle_wrap(fp_pkl, f,
-                                                     easy_override=True)
+                    t_YA_act, t_OA_act = pickle_wrap(f, fp_pkl, easy_override=True)
                     results_YA[i2col[i], 0] = round(t_YA_act, 3)
                     results_OA[i2col[i], 0] = round(t_OA_act, 3)
                     print(f'{t_YA_act=:.2f}, {t_OA_act=:.2f}')
@@ -356,14 +353,14 @@ def module_based_clf(threshold=0.95, group=True, linear=False):
                                               trial_mapper=trial_mapper,
                                               stratification_strategy=1,
                                                 linear=linear)
-                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=True)
+                t_YA, t_OA = pickle_wrap(f, fp_pkl, easy_override=True)
             else:
                 print('Conn:')
                 f = lambda: partition_classifier(sn_inc_activity, age2idxs, edges,
                                                   trial_mapper=trial_mapper,
                                                   stratification_strategy=1,
                                                  linear=linear)
-                t_YA, t_OA = pickle_wrap(fp_pkl, f, easy_override=True)
+                t_YA, t_OA = pickle_wrap(f, fp_pkl, easy_override=True)
             print(f'{t_YA=:.2f}, {t_OA=:.2f}')
 
             print('-')

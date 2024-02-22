@@ -177,8 +177,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     print(f'Load ROI2vecs: {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                   org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
-    r2vecs = pickle_wrap(fp_cache, f, verbose=False,
-                         easy_override=easy_override,)
+    r2vecs = pickle_wrap(f, fp_cache, easy_override=easy_override, verbose=False)
     return r2vecs
 
 
@@ -475,8 +474,7 @@ def run_multi_settings():
                                                shuffle=False
                                                )
                     dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
-                    d = pickle_wrap(fp_out, f, easy_override=False,
-                                    verbose=True, dt_max=dt_max)
+                    d = pickle_wrap(f, fp_out, easy_override=False, verbose=True, dt_max=dt_max)
 
 
 if __name__ == '__main__':

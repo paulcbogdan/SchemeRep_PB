@@ -1,17 +1,17 @@
 from pathlib import Path
 
-import gensim
+# import gensim
 import numpy as np
 import pandas as pd
 from PIL import Image
 from utils import pickle_wrap
 from sklearn import decomposition
-try:
-    from torchvision import models as models, transforms as transforms
-    import torch
-except OSError:
-    # Can't get this to work on my py3.11
-    pass
+# try:
+#     from torchvision import models as models, transforms as transforms
+#     import torch
+# except OSError:
+#     # Can't get this to work on my py3.11
+#     pass
 
 import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
@@ -239,8 +239,7 @@ def get_semantic_vectors(normalize=True):
     # fit using python 3.11
     norm_string = '_norm' if normalize else ''
     fp_vecs = f'cache/schemerep_sem_vecs{norm_string}.pkl'
-    d_vecs = pickle_wrap(fp_vecs, lambda: get_semantic_vectors_(normalize),
-                         easy_override=False)
+    d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs, easy_override=False)
     return d_vecs
 
 
@@ -329,10 +328,8 @@ def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False):
     PCA_str = '_PCA' if PCA else ''
     PCA_obj_str = '' if PCA_obj else '_PCAallImg'
     fp_DNN_vecs = fr'cache/DNN_vecs_{dnn_str}{PCA_str}{PCA_obj_str}.pkl'
-    return pickle_wrap(fp_DNN_vecs,
-                       lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
-                                             PCA_obj=PCA_obj),
-                       easy_override=easy_override)
+    return pickle_wrap(lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
+                                             PCA_obj=PCA_obj), fp_DNN_vecs, easy_override=easy_override)
 
 
 def get_img_fns(get_dict=False):

@@ -20,8 +20,7 @@ def brain_x_bhv():
               }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     M1_graph, SD1_graph, SE1_graph, N1_graph, t2_graph, p1_graph, z2_graph = \
         get_stats_graphs(sn_inc_conn[age2idxs[1], 0, :, :],

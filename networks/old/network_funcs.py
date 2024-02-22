@@ -693,6 +693,5 @@ if __name__ == '__main__':
               }
     cache_dir = r'E:\PycharmProjects_E\SchemeRep\cache'
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity_ = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir=cache_dir)
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir=cache_dir)
     get_main_partitions(sn_inc_conn, plot=True)

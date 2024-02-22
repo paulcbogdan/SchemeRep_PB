@@ -22,8 +22,10 @@ os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
 
 filterwarnings('ignore', category=UserWarning)
 
-def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True):
-    conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
+def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True,
+                                 transpose=True):
+    if transpose:
+        conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
     conn_trials_cross = get_partition_cross(conn_trials, p_mod0, p_mod1)
     flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
                                                 conn_trials_cross.shape[1],
@@ -64,10 +66,8 @@ def get_DMN_p(exclude_ps=None):
     atlas = get_atlas()
 
     from nichord.coord_labeler import get_idx_to_label
-    idx_to_label = pickle_wrap(None, get_idx_to_label,
-                               kwargs={'coords': atlas['coords'],
-                                       'atlas': 'yeo'},
-                               )
+    idx_to_label = pickle_wrap(get_idx_to_label, None, kwargs={'coords': atlas['coords'],
+                                                               'atlas': 'yeo'})
     DMN_idxs = [idx for idx, label in idx_to_label.items() if 'DMN' in label]
     # print(DMN_idxs)
 
@@ -129,8 +129,7 @@ def get_dfs_conn_trials(fp='obj7_fMRI', single=False):
               'get_df_sn': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
@@ -196,9 +195,8 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
     return df_sns, new_cols
 
 def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
-    df, cols = pickle_wrap(None, get_hemi_vendor_df,
-                           kwargs={'fp': fp, 'scrub': scrub, 'anat': anat},
-                           cache_dir='cache', easy_override=True)
+    df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp, 'scrub': scrub, 'anat': anat},
+                           easy_override=True, cache_dir='cache')
     cross_cols = ['Ldp_Rdp', 'Lda_Rda', 'Lvp_Rvp', 'Lva_Rva',]
     rename = {'Ldp_Rdp': 'DP_hemi',
               'Lda_Rda': 'DA_hemi',
@@ -219,8 +217,7 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
               'get_df_sn': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
@@ -239,7 +236,7 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     #                         conn_trials.shape[-1], axis=4) * conn_trials[..., :]
     #                         idk why I can't just broadcast matrix_mask
 
-    sn_inc_act_M_p_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :],axis=(1, 2))
+    sn_inc_act_M_p_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :], axis=(1, 2))
     sn_inc_act_M_a_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :], axis=(1, 2))
     sn_inc_act_M_p_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :], axis=(1, 2))
     sn_inc_act_M_a_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :], axis=(1, 2))
@@ -283,23 +280,20 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
     if hemis:
         print('Onto hemi-cross vendor df')
-        df_hemi, cols_hemi = pickle_wrap(None, get_hemi_cross_vendor_df,
-                                         kwargs={'fp': fp,
-                                                 'anat': anat,
-                                                 'scrub': scrub},
-                                         cache_dir='cache',
-                                         easy_override=True)
+        df_hemi, cols_hemi = pickle_wrap(get_hemi_cross_vendor_df, None, kwargs={'fp': fp,
+                                                                                 'anat': anat,
+                                                                                 'scrub': scrub}, easy_override=True,
+                                         cache_dir='cache')
         df_sns = df_sns.merge(df_hemi, on=['sn', 'obj'])
         all_new_cols.update(cols_hemi)
 
     return df_sns, all_new_cols
 
 def vendor_lmer(fp='obj7_fMRI'):
-    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
-                                                  'anat': False,
-                                                  'scrub': False,
-                                                  'hemis': False},
-                     cache_dir='cache', easy_override=True)
+    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
+                                                             'anat': False,
+                                                             'scrub': False,
+                                                             'hemis': False}, easy_override=True, cache_dir='cache')
 
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
@@ -331,10 +325,9 @@ def vendor_lmer(fp='obj7_fMRI'):
     quit()
 
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
-    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
-                                                  'scrub': False,
-                                                  'anat': True},
-                     cache_dir='cache', easy_override=False)
+    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
+                                                             'scrub': False,
+                                                             'anat': True}, easy_override=False, cache_dir='cache')
 
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)

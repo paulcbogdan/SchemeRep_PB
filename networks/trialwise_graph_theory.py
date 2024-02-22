@@ -15,7 +15,7 @@ from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
 from utils import timing, stdize, pickle_wrap
 from ven_x_dor import get_dfs_conn_trials
-import networkx as nx
+# import networkx as nx
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
@@ -153,7 +153,7 @@ def apply_df_trial_graph_p(conn_trials_T, p, df_sns_l, key, p1=None,
         # fp_pkl = f'cache/trial_graphs/{sn}_{key}{rank_std_str}.pkl'
         f = lambda: get_shortest_cc_sn_p(conn_trials_sn_p, sn,
                                          rank_std=rank_std)
-        shortest_l, cc_l = pickle_wrap(fp_pkl, f, easy_override=False)
+        shortest_l, cc_l = pickle_wrap(f, fp_pkl, easy_override=False)
         # kwargs = {'conn_trials_sn_p': conn_trials_sn_p,
         #           'sn': sn, 'rank_std': True}
         # shortest_l, cc_l = pickle_wrap(None, get_shortest_cc_sn_p,

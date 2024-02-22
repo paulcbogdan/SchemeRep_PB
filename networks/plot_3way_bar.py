@@ -27,8 +27,7 @@ def activity_partition_4bar(fp='obj7_fMRI', anat=True, ):
               'key_vals': (1, 2, 3),
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, flip=True, thr=.9,
                               scrub=False)
@@ -109,8 +108,7 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
               'key_vals': (1, 2, 3),
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
                               flip=True, thr=.9, scrub=False)

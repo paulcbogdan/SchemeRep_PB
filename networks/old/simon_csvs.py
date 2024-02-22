@@ -29,8 +29,7 @@ if __name__ == '__main__':
             if cr:
                 kwargs['combine_regions'] = True
             sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-                pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                            easy_override=False, cache_dir='../cache')
+                pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='../cache')
 
             M_YA_graph = np.nanmean(sn_inc_conn[age2idxs[1], :, :, :], axis=(0, 1))
             M_OA_graph = np.nanmean(sn_inc_conn[age2idxs[2], :, :, :], axis=(0, 1))

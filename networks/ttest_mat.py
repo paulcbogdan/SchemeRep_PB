@@ -119,8 +119,7 @@ def plot_M():
               'key_vals': (1, 3)
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     print(sn_inc_conn.shape)
     atlas = get_atlas(schaefer=False)
     fp2name = {'obj4_fMRI': 'obj. encoding',
@@ -145,8 +144,7 @@ def ANOVA_edges():
                            'living_plant', 'dead_medium')
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     n_groups = sn_inc_conn.shape[1]
     print(f'{n_groups=}')
@@ -204,8 +202,7 @@ def run_ttests(min_cluster_size=50, alpha_thresh=.05):
               }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     print(sn_inc_conn[age2idxs[1], ...].shape)
     print(sn_inc_conn[age2idxs[2], ...].shape)
     quit()
@@ -291,8 +288,7 @@ def ttest_modularity():
               }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     M1_graph, SD1_graph, SE1_graph, N1_graph, t1_graph, p1_graph, z1_graph = \
         get_stats_graphs(sn_inc_conn[age2idxs[1], 0, :, :],
@@ -321,8 +317,7 @@ def ttest_modularity():
               }
 
     sn_inc_conn_mem, _, _, _ = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     sn_inc_conn_mem[:, :, matrix_mask == 0] = np.nan
     for i, p0 in enumerate(partitions):
         pmat = get_partition_matrix(sn_inc_conn_mem, p0)

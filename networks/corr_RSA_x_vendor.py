@@ -84,19 +84,22 @@ def get_trialwise_RSA(semantic=True, inc=None, bilateral=False,
     df = pd.concat(df_l)
     return df, RSA_cols
 
-def get_plain_df_sn():
-    age2sns = pickle_wrap(None, get_sns, kwargs={'fp_fMRI': 'loose'},
-                          easy_override=True)
+def get_plain_df_sn(bad_sns=None):
+    age2sns = pickle_wrap(get_sns, None, kwargs={'fp_fMRI': 'loose'}, easy_override=True)
     df_sns_l = []
-    for age, sns in age2sns.items():
+    sns = []
+    for age, sns_age in age2sns.items():
         if age not in [1, 2]: continue
-        df_sns_l.extend([get_trial_info(sn) for sn in sns])
+        sns.extend(sns_age)
+    if bad_sns is not None:
+        sns = [sn for sn in sns if sn not in bad_sns]
+    df_sns_l.extend([get_trial_info(sn) for sn in sns])
     df_sns = pd.concat(df_sns_l)
     df_sns['age'] = df_sns['sn'].apply(lambda sn: int(str(sn)[0]))
-    return df_sns
+    return df_sns, df_sns_l
 
 def get_super_df(fp='obj7_fMRI', fp_col=False):
-    df = get_plain_df_sn()
+    df, _ = get_plain_df_sn()
     df.set_index(['sn', 'obj'], inplace=True)
 
     kwargs = {
@@ -105,8 +108,7 @@ def get_super_df(fp='obj7_fMRI', fp_col=False):
         'semantic': True,
         'combine_regions': True
     }
-    df_RSA, RSA_cols = pickle_wrap(None, get_trialwise_RSA, kwargs=kwargs,
-                               cache_dir='cache', easy_override=True)
+    df_RSA, RSA_cols = pickle_wrap(get_trialwise_RSA, None, kwargs=kwargs, easy_override=True, cache_dir='cache')
     print(df_RSA.columns)
     # print(RSA_cols)
     # quit()
@@ -117,16 +119,14 @@ def get_super_df(fp='obj7_fMRI', fp_col=False):
     fp2ERS_ROIs = {}
     for fp1 in fps_all:
         if fp1 == fp: continue
-        df_ERS, ERS_ROIs, _ = pickle_wrap(None, get_df_ERS,
-                                          kwargs={'fp0': fp, 'fp1': fp1},
-                                          cache_dir='cache', easy_override=True)
+        df_ERS, ERS_ROIs, _ = pickle_wrap(get_df_ERS, None, kwargs={'fp0': fp, 'fp1': fp1}, easy_override=True,
+                                          cache_dir='cache')
         df_ERS.set_index(['sn', 'obj'], inplace=True)
         df = df.join(df_ERS[ERS_ROIs])
         fp2ERS_ROIs[fp1] = ERS_ROIs
 
 
-    df_vdr, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
-                                    cache_dir='cache', easy_override=False)
+    df_vdr, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp}, easy_override=False, cache_dir='cache')
     df_vdr.set_index(['sn', 'obj'], inplace=True)
     if fp_col:
         vdr_key_cols = [f'{col}_{fp}' for col in vndr_cols]
@@ -141,13 +141,9 @@ def get_super_df(fp='obj7_fMRI', fp_col=False):
 
 def do_RSA_x_vendor(fp='obj7_fMRI'):
 
-    df_graph, new_cols = pickle_wrap(None, get_df_trial_graphs,
-                                     kwargs={'fp': fp},
-                                     easy_override=False)
+    df_graph, new_cols = pickle_wrap(get_df_trial_graphs, None, kwargs={'fp': fp}, easy_override=False)
 
-    df, RSA_cols, fp2ERS_ROIs, vndr_cols = pickle_wrap(None, get_super_df,
-                                                       kwargs={'fp': fp},
-                                                       easy_override=False)
+    df, RSA_cols, fp2ERS_ROIs, vndr_cols = pickle_wrap(get_super_df, None, kwargs={'fp': fp}, easy_override=False)
 
     df_graph.set_index(['sn', 'obj'], inplace=True)
     df = df.join(df_graph[new_cols])

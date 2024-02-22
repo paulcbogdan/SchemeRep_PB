@@ -19,8 +19,7 @@ def plot_quadrants(anat=True):
               'key_vals': (1, 3),
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
 
     # if anat:

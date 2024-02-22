@@ -70,8 +70,7 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
 
     fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}.pkl'
     # print(f'{fp_idx_to_label=}')
-    idx_to_label = pickle_wrap(fp_idx_to_label,
-                               lambda: get_idx_to_label(coords, atlas='yeo'))
+    idx_to_label = pickle_wrap(lambda: get_idx_to_label(coords, atlas='yeo'), fp_idx_to_label)
     # labels = get_atlas(combine_regions=True)['labels']
     # for i in range(len(labels)):
     #     print(f'{labels[i]} | {idx_to_label[i]}')

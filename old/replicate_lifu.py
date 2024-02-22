@@ -8,10 +8,8 @@ from utils import pickle_wrap
 def Fig15_Table2_analyses(fp='obj_fMRI', threshold=0.9):
     labels = ['Inc', 'Neu', 'Con']
     kwargs = {'fp': fp, 'split': False, 'key': 'inc', 'key_vals': (1, 2, 3)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,  #f'cache/FC_data_{fp}.pkl',
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                  easy_override=False, verbose=1, cache_dir='../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                     threshold=threshold,
                                                     fn_str=fp)
@@ -56,10 +54,8 @@ def Fig16a_analyses(fp='obj_fMRI', threshold=0.9, memory_type='vis_hit'):
         raise ValueError(f'Unknown memory type: {memory_type=}')
     kwargs = {'fp': fp, 'split': False, 'key': memory_type,
               'key_vals': (False, True)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                  easy_override=False, verbose=1, cache_dir='../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
                                                     threshold=threshold)
     sn_inc_conn[:, :, ~top_edges_mat] = np.nan
@@ -88,10 +84,8 @@ def Fig17_analyses(fp='obj_fMRI',
                    threshold=0.9, plot=True):
     kwargs = {'fp': fp, 'split': False, 'key': 'vis_hit',
               'key_vals': (False, True)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(None,
-                                                                  load_FC_for_Lifu, kwargs=kwargs,
-                                                                  verbose=1, easy_override=False,
-                                                                  cache_dir='../cache')
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                                                                  easy_override=False, verbose=1, cache_dir='../cache')
 
 
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,

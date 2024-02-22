@@ -166,8 +166,7 @@ def similarity_analysis(age2idxs, ar00, ar01, ar10, ar11, mask=None):
 def get_p_mask(kwargs):
     kwargs = kwargs.copy()
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                    easy_override=False, cache_dir='../cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='../cache')
     M2_graph, SD2_graph, SE2_graph, N2_graph, t2_graph, p2_graph, z2_graph = \
         get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
                          sn_inc_conn[age2idxs[2], 1, :, :])

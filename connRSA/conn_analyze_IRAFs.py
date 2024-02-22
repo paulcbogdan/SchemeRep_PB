@@ -40,8 +40,8 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
     if age == 1:
         del settings['age']
 
-    results_conn = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
-                               cache_dir=dir_results, easy_override=False)
+    results_conn = pickle_wrap(run_settings, None, kwargs=settings, easy_override=False, verbose=1,
+                               cache_dir=dir_results)
     print('-' * 100)
     report_results(results_conn, do_lmer=True)
     print('-' * 100)
@@ -51,8 +51,8 @@ def load_for_lmer(RSA, semantic, split, four_tasks, do_networks,
                 'second_order': 'spear', 'four_tasks': four_tasks,
                 'combine_regions': False, 'split': False,
                 'RDM_method': RDM_method, 'age': age}
-    results_bold = pickle_wrap(None, run_settings, kwargs=settings, verbose=1,
-                               cache_dir=dir_results, easy_override=False)
+    results_bold = pickle_wrap(run_settings, None, kwargs=settings, easy_override=False, verbose=1,
+                               cache_dir=dir_results)
     # report_results(results_bold, do_lmer=True)
     return results_bold, results_conn
 

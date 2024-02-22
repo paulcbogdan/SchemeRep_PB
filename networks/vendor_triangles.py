@@ -4,8 +4,8 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy import stats as stats
 
+from emotemporal_bar import get_stars
 # from atlas_utils import get_atlas
-# from emotemporal_bar import get_stars
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
@@ -20,11 +20,10 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
 def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False, anat=True):
-    df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp,
-                                                  'scrub': scrub,
-                                                  'anat': anat,
-                                                  'hemis': hemi},
-                     cache_dir='cache', easy_override=True)
+    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
+                                                             'scrub': scrub,
+                                                             'anat': anat,
+                                                             'hemis': hemi}, easy_override=True, cache_dir='cache')
 
     # sides = ['dd', 'vv', 'dv_ant', 'dv_pos']
     sides = ['dd', 'vv', 'dv_pos', 'dv_ant']
@@ -158,11 +157,9 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
 
 
 def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
-    df, cols = pickle_wrap(None, get_hemi_vendor_df,
-                           kwargs={'fp': fp,
-                                   'anat': anat,
-                                   'scrub': scrub},
-                           cache_dir='cache', easy_override=False)
+    df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp,
+                                                             'anat': anat,
+                                                             'scrub': scrub}, easy_override=False, cache_dir='cache')
 
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
@@ -252,21 +249,17 @@ def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
 
 def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
     if hemis:
-        df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
-                         cache_dir='cache', easy_override=False)
+        df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp}, easy_override=False, cache_dir='cache')
 
-        df_hemi, cols_hemi = pickle_wrap(None, get_hemi_cross_vendor_df,
-                                         kwargs={'fp': fp},
-                                         cache_dir='cache',
-                                         easy_override=True)
+        df_hemi, cols_hemi = pickle_wrap(get_hemi_cross_vendor_df, None, kwargs={'fp': fp}, easy_override=True,
+                                         cache_dir='cache')
         df = df.merge(df_hemi, on=['sn', 'obj'])
         # cols = ['dd', 'vv', 'dv_ant', 'dv_pos'] + cols_hemi
         cols = ['dd', 'vv', 'dv_ant', 'dv_pos',
                 'DP_hemi', 'DA_hemi', 'VP_hemi', 'VA_hemi']
 
     else:
-        df, vndr_cols = pickle_wrap(None, get_vendor_df, kwargs={'fp': fp},
-                             cache_dir='cache', easy_override=False)
+        df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp}, easy_override=False, cache_dir='cache')
         cols = ['dd', 'vv', 'dv_ant', 'dv_pos']
     for age, df_age in df.groupby('age'):
         print(age, ':', len(df_age['sn'].unique()))

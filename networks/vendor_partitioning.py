@@ -67,7 +67,6 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
     for i, p in enumerate(partitions):
         labels = [atlas['labels'][i] for i in p]
         print(f'Partition {i}: {labels}')
-    quit()
 
     return partitions, matrix_mask
 
@@ -90,22 +89,20 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                   'combine_regions': combine_regions
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-            pickle_wrap(None, load_FC_for_Lifu, kwargs=kwargs, verbose=1,
-                        easy_override=False, cache_dir='cache')
+            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
 
     comb_str = f'_comb' if combine_regions else ''
     fp = (f'cache/{age}_ttest_modules_thr{thr}_flip{flip}{comb_str}_'
           f'{weighted}_n65.pkl')
 
     partitions, matrix_mask = \
-        pickle_wrap(fp, lambda: get_vendor_partitions_(sn_inc_conn=sn_inc_conn,
-                                                       age2idxs=age2idxs,
-                                                       age=age, thr=thr,
-                                                       flip=flip,
-                                                       weighted=weighted,
-                                                       plot=plot,
-                                    combine_regions=combine_regions),
-                    easy_override=True)
+        pickle_wrap(lambda:
+                    get_vendor_partitions_(sn_inc_conn=sn_inc_conn,
+                                           age2idxs=age2idxs, age=age, thr=thr,
+                                           flip=flip, weighted=weighted,
+                                           plot=plot,
+                                           combine_regions=combine_regions), fp,
+                    easy_override=easy_override)
     atlas = get_atlas(combine_regions=combine_regions)
     coords = atlas['coords']
     # print(len(coords))
@@ -185,7 +182,6 @@ def get_anat_vendor_partitions(plot=False, v1=True, combine_regions=False):
             split2median[key] = np.sort(split2l[key][:, 1])[3] + .0001
         else:
             split2median[key] = np.median(split2l[key][:, 1])
-    # quit()
     for i, (coord, label) in enumerate(zip(coords, labels)):
         for key in split_keys:
             if key in label:
@@ -220,6 +216,7 @@ def get_anat_vendor_partitions(plot=False, v1=True, combine_regions=False):
         scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=True,
                 bonus_str=bonus_str, combine_regions=combine_regions)
 
+    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
 
@@ -319,7 +316,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    THRESHOLD = .8
+    THRESHOLD = .9
     # get_vendor_partitions(age='healthy', flip=True, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD,
     #                       combine_regions=False)

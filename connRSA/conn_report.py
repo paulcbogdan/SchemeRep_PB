@@ -222,7 +222,7 @@ def visualize_region_matrix(results, plot_lmer=False):
     lmer_fp = get_default_fp(None, settings, get_lmer_matrix,
                              r'../cache/lmer_ar', False)
 
-    lmer_ar = pickle_wrap(lmer_fp, lambda: get_lmer_matrix(results))
+    lmer_ar = pickle_wrap(lambda: get_lmer_matrix(results), lmer_fp)
 
     plot_connectivity(lmer_ar,
                       # ticks,

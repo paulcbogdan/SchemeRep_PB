@@ -351,7 +351,7 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     # quit()
     return filepath
 
-def pickle_wrap(filepath, callback, args=None, kwargs=None, easy_override=False,
+def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=False,
                 verbose=0, cache_dir='cache', dt_max=None):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)

@@ -176,17 +176,15 @@ def run_settings_ISPC_healthy(settings):
 
 	settings1 = settings.copy()
 	del settings1['age']
-	results1 = pickle_wrap(None, run_settings_ISPC, kwargs=settings1,
-						   cache_dir=dir_results, easy_override=False,
-						   verbose=0)
+	results1 = pickle_wrap(run_settings_ISPC, None, kwargs=settings1, easy_override=False, verbose=0,
+						   cache_dir=dir_results)
 	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
 	report_results(results1, ISPC=True)
 
 	settings2 = settings.copy()
 	settings2['age'] = 2
-	results2 = pickle_wrap(None, run_settings_ISPC, kwargs=settings2,
-						   cache_dir=dir_results, easy_override=False,
-							verbose=0)
+	results2 = pickle_wrap(run_settings_ISPC, None, kwargs=settings2, easy_override=False, verbose=0,
+						   cache_dir=dir_results)
 	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
 	report_results(results2, ISPC=True)
 
@@ -221,18 +219,15 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	print(f'Before: {settings=}')
 	dir_results = r'../cache/conn_RSA'
 	if age == 'healthy':
-		results = pickle_wrap(None, run_settings_ISPC_healthy,
-							  kwargs={'settings': settings},
-							  cache_dir=dir_results, easy_override=True,
-							  verbose=0)
+		results = pickle_wrap(run_settings_ISPC_healthy, None, kwargs={'settings': settings}, easy_override=True,
+							  verbose=0, cache_dir=dir_results)
 		print(f'{Fore.RED}Combined people:{Fore.RESET}')
 	else:
 		if age == 2:
 			assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
 		else:
 			del settings['age']
-		results = pickle_wrap(None, run_settings_ISPC, kwargs=settings,
-							  cache_dir=dir_results, easy_override=False)
+		results = pickle_wrap(run_settings_ISPC, None, kwargs=settings, easy_override=False, cache_dir=dir_results)
 		print(f'{Fore.RED}Finished!{Fore.RESET}')
 	report_results(results, ISPC=True)
 
