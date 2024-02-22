@@ -57,7 +57,13 @@ def get_partition_matrix(mat, idx, w_zeros=False):
         return mat[slicer]
 
 def get_partition_cross(mat, idx0, idx1):
-    meshy = np.ix_(idx0, idx1)
+    try:
+        meshy = np.ix_(idx0, idx1)
+    except ValueError as e:
+        print(f'{e=}')
+        print(f'{idx0=}')
+        print(f'{idx1=}')
+        quit()
     slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
     return mat[slicer]
 

@@ -202,6 +202,8 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
+# def get_rs_vendor_df():
+
 
 def analyze_vendor():
     sn_roi_act, sns = pickle_wrap(load_resting_data, easy_override=False)
@@ -209,12 +211,12 @@ def analyze_vendor():
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
     sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
-    # sn_roi_act = normalize_std_over_time(sn_roi_act)
-    # conn_trials = sn_roi_act[..., None, :] * \
-    #               sn_roi_act[..., None, :, :]
+    sn_roi_act = normalize_std_over_time(sn_roi_act)
+    conn_trials = sn_roi_act[..., None, :] * \
+                  sn_roi_act[..., None, :, :]
 
-    sn_roi_act = stats.rankdata(sn_roi_act, axis=2)
-    conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
+    # sn_roi_act = stats.rankdata(sn_roi_act, axis=2)
+    # conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
 
     # sn_roi_act = np.random.normal(size=sn_roi_act.shape)
     fp_pkl = rf'cache/high_var_conn_trials.pkl'
@@ -225,12 +227,20 @@ def analyze_vendor():
     conn_trials[:, 0, diag[0], diag[1], :] = np.nan
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=False, scrub=False)
+        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
 
     p_d_ant = p_d_ant[:32] # Making all equal length
     p_d_pos = p_d_pos[:32]
     p_v_ant = p_v_ant[:32]
     p_v_pos = p_v_pos[:32]
+
+    ad_else = list(set(range(246)) - set(p_d_ant))
+    pd_else = list(set(range(246)) - set(p_d_pos))
+    dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
+
+    # print(f'{p_d_ant=}')
+    # print(f'{p_d_pos=}')
+    # quit()
 
     # print(f'{len(p_dorsal)=}')
     # print(f'{len(p_ventral)=}')
@@ -240,9 +250,11 @@ def analyze_vendor():
     # print(f'{len(p_v_pos)=}')
     # quit()
 
-    conn_keys = ['dd', 'vv', 'dv_ant', 'dv_pos', 'dpva', 'vpda']
+    conn_keys = ['dd', 'vv', 'dv_ant', 'dv_pos', 'dpva', 'vpda',
+                 'pd_else', 'ad_else',] #  'dd_else', (p_dorsal, dd_else)
     conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant), (p_d_ant, p_v_ant),
-               (p_d_pos, p_v_pos), (p_d_pos, p_v_ant), (p_v_pos, p_d_ant)]
+               (p_d_pos, p_v_pos), (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
+               (p_d_pos, pd_else), (p_d_ant, ad_else)]
     key2conn = {}
     for key, (p0, p1) in zip(conn_keys, conn_ps):
         key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
@@ -275,7 +287,9 @@ def analyze_vendor():
             df_as_d[key].extend(stats.zscore(M[i, :]))
         df_as_d['sn'].extend([sn] * n_TRs)
     df = pd.DataFrame(df_as_d)
-    do_modularity_hemi(df)
+    # do_modularity_hemi(df)
+
+    hemis = get_interesting_hemi_cols()
 
     # keys = act_keys + conn_keys
     pd.set_option('display.max_columns', None)
@@ -292,9 +306,16 @@ def analyze_vendor():
     df['vert'] = df['dv_ant'] + df['dv_pos']
     df['age'] = stats.zscore(df['age'], nan_policy='omit') #
     formula = ('dd ~ vv + dv_ant + dv_pos + dpva + vpda + '
-               'FC_all + '
+               'FC_all + pd_else + ad_else + ' #  dd_else +
                'dp + da + vp + va + '
                '(1 | sn)')
+
+    # drop = {'Ldp_Lda', 'Rdp_Rda', 'Lda_Ldp', 'Rda_Rdp',
+    #         'Ldp_Rda', 'Rdp_Lda', 'Rda_Ldp', 'Lda_Rdp', }
+    # hemis_str = '+'.join([hemi for hemi in hemis if hemi not in drop])
+    # formula = ('dd ~ ' + hemis_str + ' + '
+    #            'FC_all + '
+    #            '(1 | sn)')
 
     from pymer4 import Lmer
     model = Lmer(formula, data=df)
