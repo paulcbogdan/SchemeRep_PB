@@ -240,32 +240,59 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     sn_inc_act_M_p_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :], axis=(1, 2))
     sn_inc_act_M_a_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :], axis=(1, 2))
     sn_inc_act_M_overall = np.nanmean(sn_inc_activity, axis=(1, 2))
-    sn_trials_dd = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant)
-    sn_trials_vv = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant)
-    sn_trials_dv_a = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant)
-    sn_trials_dv_p = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos)
-    sn_trials_dpva = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant)
-    sn_trials_vpda = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant)
+    # sn_trials_dd = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant)
+    # sn_trials_vv = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant)
+    # sn_trials_dv_a = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant)
+    # sn_trials_dv_p = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos)
+    # sn_trials_dpva = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant)
+    # sn_trials_vpda = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant)
+
+    ad_else = list(set(range(246)) - set(p_d_ant))
+    pd_else = list(set(range(246)) - set(p_d_pos))
+    av_else = list(set(range(246)) - set(p_v_ant))
+    pv_else = list(set(range(246)) - set(p_v_pos))
+    dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
+    vv_else = list(set(range(246)) - set(p_v_ant + p_v_pos))
+
+    conn_keys = ['dd', 'vv',
+                 'dv_ant', 'dv_pos',
+                 'dpva', 'vpda',
+                 'pd_else', 'ad_else',
+                 'pv_else', 'av_else',
+                 'dd_else', 'vv_else' ]
+    conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant),
+               (p_d_ant, p_v_ant), (p_d_pos, p_v_pos),
+               (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
+               (p_d_pos, pd_else), (p_d_ant, ad_else),
+               (p_v_pos, pv_else), (p_v_ant, av_else),
+               (p_dorsal, dd_else), (p_ventral, vv_else)]
+    key2conn = {}
+    for key, (p0, p1) in zip(conn_keys, conn_ps):
+        key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
+    key2conn['FC_all'] = get_module_trialwise_z(conn_trials, list(range(246)))
 
     all_new_cols = set()
     for i, df_sn in enumerate(df_sns_l):
         old_cols = set(df_sn.columns)
-        df_sn['pd_M'] = sn_inc_act_M_p_d[i, :]
-        df_sn['ad_M'] = sn_inc_act_M_a_d[i, :]
+        df_sn['dp'] = df_sn['pd_M'] = sn_inc_act_M_p_d[i, :]
+        df_sn['da'] = df_sn['ad_M'] = sn_inc_act_M_a_d[i, :]
         df_sn['d_M'] = df_sn['pd_M'] + df_sn['ad_M']
-        df_sn['pv_M'] = sn_inc_act_M_p_v[i, :]
-        df_sn['av_M'] = sn_inc_act_M_a_v[i, :]
+        df_sn['vp'] = df_sn['pv_M'] = sn_inc_act_M_p_v[i, :]
+        df_sn['va'] = df_sn['av_M'] = sn_inc_act_M_a_v[i, :]
         df_sn['v_M'] = df_sn['pv_M'] + df_sn['av_M']
 
         df_sn['all_M'] = df_sn['d_M'] + df_sn['v_M']
         df_sn['brain_M'] = sn_inc_act_M_overall[i, :]
 
-        df_sn['dd'] = sn_trials_dd[i, :]
-        df_sn['vv'] = sn_trials_vv[i, :]
-        df_sn['dv_ant'] = sn_trials_dv_a[i, :]
-        df_sn['dv_pos'] = sn_trials_dv_p[i, :]
-        df_sn['dpva'] = sn_trials_dpva[i, :]
-        df_sn['vpda'] = sn_trials_vpda[i, :]
+        for key, conn in key2conn.items():
+            df_sn[key] = conn[i, :]
+
+        # df_sn['dd'] = sn_trials_dd[i, :]
+        # df_sn['vv'] = sn_trials_vv[i, :]
+        # df_sn['dv_ant'] = sn_trials_dv_a[i, :]
+        # df_sn['dv_pos'] = sn_trials_dv_p[i, :]
+        # df_sn['dpva'] = sn_trials_dpva[i, :]
+        # df_sn['vpda'] = sn_trials_vpda[i, :]
 
         df_sn['dd_vv'] = df_sn['dd'] + df_sn['vv']
         df_sn['cross'] = df_sn['dv_ant'] + df_sn['dv_pos']
@@ -324,33 +351,42 @@ def vendor_lmer(fp='obj7_fMRI'):
     quit()
 
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
-    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
-                                                             'scrub': False,
-                                                             'anat': True}, easy_override=False, cache_dir='cache')
-
+    df, vndr_cols = pickle_wrap(get_vendor_df, None,
+                                kwargs={'fp': fp, 'scrub': False, 'anat': True},
+                                easy_override=True, cache_dir='cache')
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
     df = df.merge(df_mem, on=['sn', 'obj'], how='left')
 
-    for col in ['age', 'dd_vv', 'cross', 'dd', 'vv',
-                'hit_hit', 'hc']: # 'con_hit', 'vis_hit',
+    for col in ['age', 'hit_hit', 'hc']: # 'con_hit', 'vis_hit',
         df[col] = stats.zscore(df[col], nan_policy='omit')
 
-    iv = 'hit_hit'
-    brain = 'vv'
-    dvs = ['dd_vv', 'cross', 'dd', 'vv']
-    for dv in dvs:
-        formula_gen = f'{dv} ~ 1 + {brain}*{iv} + age*{iv} + ' \
-                      f'(1 + {brain}*{iv} + age*{iv} | sn)'
-        cols = get_formula_cols(df, formula_gen)
-        df_vals = df[cols].dropna()
-        from pymer4 import Lmer
-        model = Lmer(formula_gen, data=df_vals)
-        model.fit(REML=True, verbose=False, summary=False)
-        print(model.summary())
-        print('-'*10)
-        print(f'{dv=}')
-        print('-'*50)
+    formula = ('dd ~ vv + dv_ant + dv_pos + '
+               'pd_else + ad_else + pv_else + av_else + ' # pv_else + av_else + 
+               'FC_all + ' #  dd_else + # pd_else + ad_else +
+               'dp + da + vp + va + '
+               '(1 | sn)')
+    from pymer4 import Lmer
+    cols = get_formula_cols(df, formula)
+    df_vals = df[cols].dropna()
+    model = Lmer(formula, data=df_vals)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+
+    # iv = 'hit_hit'
+    # brain = 'vv'
+    # dvs = ['dd_vv', 'cross', 'dd', 'vv']
+    # for dv in dvs:
+    #     formula_gen = f'{dv} ~ 1 + {brain}*{iv} + age*{iv} + ' \
+    #                   f'(1 + {brain}*{iv} + age*{iv} | sn)'
+    #     cols = get_formula_cols(df, formula_gen)
+    #     df_vals = df[cols].dropna()
+    #     model = Lmer(formula_gen, data=df_vals)
+    #     model.fit(REML=True, verbose=False, summary=False)
+    #     print(model.summary())
+    #     print('-'*10)
+    #     print(f'{dv=}')
+    #     print('-'*50)
 
 
 if __name__ == '__main__':

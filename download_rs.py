@@ -236,7 +236,10 @@ def analyze_vendor():
 
     ad_else = list(set(range(246)) - set(p_d_ant))
     pd_else = list(set(range(246)) - set(p_d_pos))
+    av_else = list(set(range(246)) - set(p_v_ant))
+    pv_else = list(set(range(246)) - set(p_v_pos))
     dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
+    vv_else = list(set(range(246)) - set(p_v_ant + p_v_pos))
 
     # print(f'{p_d_ant=}')
     # print(f'{p_d_pos=}')
@@ -250,11 +253,18 @@ def analyze_vendor():
     # print(f'{len(p_v_pos)=}')
     # quit()
 
-    conn_keys = ['dd', 'vv', 'dv_ant', 'dv_pos', 'dpva', 'vpda',
-                 'pd_else', 'ad_else',] #  'dd_else', (p_dorsal, dd_else)
-    conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant), (p_d_ant, p_v_ant),
-               (p_d_pos, p_v_pos), (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
-               (p_d_pos, pd_else), (p_d_ant, ad_else)]
+    conn_keys = ['dd', 'vv',
+                 'dv_ant', 'dv_pos',
+                 'dpva', 'vpda',
+                 'pd_else', 'ad_else',
+                 'pv_else', 'av_else',
+                 'dd_else', 'vv_else' ]
+    conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant),
+               (p_d_ant, p_v_ant), (p_d_pos, p_v_pos),
+               (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
+               (p_d_pos, pd_else), (p_d_ant, ad_else),
+               (p_v_pos, pv_else), (p_v_ant, av_else),
+               (p_dorsal, dd_else), (p_ventral, vv_else)]
     key2conn = {}
     for key, (p0, p1) in zip(conn_keys, conn_ps):
         key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
@@ -268,7 +278,6 @@ def analyze_vendor():
                                                               ps_hemi[p0],
                                                               ps_hemi[p1])
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials, list(range(246)))
-
 
     act_keys = ['dp', 'da', 'vp', 'va']
     act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
@@ -305,10 +314,18 @@ def analyze_vendor():
     df['horz'] = df['dd'] + df['vv']
     df['vert'] = df['dv_ant'] + df['dv_pos']
     df['age'] = stats.zscore(df['age'], nan_policy='omit') #
-    formula = ('dd ~ vv + dv_ant + dv_pos + dpva + vpda + '
+    formula = ('dd ~ vv + dv_ant + dv_pos + ' # dpva + vpda + 
                'FC_all + pd_else + ad_else + ' #  dd_else +
                'dp + da + vp + va + '
-               '(1 | sn)')
+               '(1 + vv + dv_ant + dv_pos | sn)')
+
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+
+    # formula = ('dd_vv ~ dv_dv + ' # dpva + vpda +
+    #            'FC_all + ' #  dd_else + # pd_else + ad_else +
+    #            'dp + da + vp + va + '
+    #            '(1 + vv + dv_ant + dv_pos | sn)')
 
     # drop = {'Ldp_Lda', 'Rdp_Rda', 'Lda_Ldp', 'Rda_Rdp',
     #         'Ldp_Rda', 'Rdp_Lda', 'Rda_Ldp', 'Lda_Rdp', }
@@ -316,6 +333,12 @@ def analyze_vendor():
     # formula = ('dd ~ ' + hemis_str + ' + '
     #            'FC_all + '
     #            '(1 | sn)')
+
+    formula = ('dd ~ vv + dv_ant + dv_pos + ' # dpva + vpda + 
+               'pd_else + ad_else + ' # pv_else + av_else + 
+               'FC_all + ' # 
+               'dp + da + vp + va + '
+               '(1 + vv + dv_ant + dv_pos | sn)')
 
     from pymer4 import Lmer
     model = Lmer(formula, data=df)
