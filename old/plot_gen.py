@@ -111,8 +111,8 @@ def get_split_cmap(vabs, thresh, cmap):
     prop_colored = 1 - prop_black
     n_colored = int(n * prop_colored)
     vals_colored = cmap(np.linspace(0., 1., n))
-    vals_low = vals_colored[:int(n/2)]
-    vals_high = vals_colored[int(n/2):]
+    vals_low = vals_colored[int(n/10):int(n/2)]
+    vals_high = vals_colored[int(n/2):n-int(n/10)]
     vals = np.concatenate([vals_low, vals_black, vals_high])
 
 

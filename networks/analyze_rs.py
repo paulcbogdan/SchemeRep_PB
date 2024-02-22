@@ -345,7 +345,7 @@ def analyze_vendor():
                'pd_no + ad_no + pv_no + av_no +' # pv_else + av_else + 
                'FC_all + ' #  FC_all + 
                'dp + da + vp + va + '
-               '(1 | sn)') # + vv + dv_ant + dv_pos
+               '(1 + dv_dv | sn)') # + vv + dv_ant + dv_pos
 
     from pymer4 import Lmer
     model = Lmer(formula, data=df)
