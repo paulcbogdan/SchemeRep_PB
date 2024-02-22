@@ -287,16 +287,19 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
                  neg='', pos='Effect', thresh=thresh)
 
 
+
 def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
-            pickle_wrap(get_con_reg_zs, None, kwargs={'combine_regions': combine_regions,
-                                                      'age': 'healthy',
-                                                      'comb_bl': combine_bl}, easy_override=True)
+            pickle_wrap(get_con_reg_zs, None,
+                        kwargs={'combine_regions': combine_regions,
+                                'age': 'healthy', 'comb_bl': combine_bl},
+                        easy_override=True)
     else:
         z_mat, t_mat, p_l, idx2roi = \
-            pickle_wrap(get_paired_ttest_zs, None, kwargs={'combine_regions': combine_regions,
-                                                           'age': 'healthy'}, easy_override=False)
+            pickle_wrap(get_paired_ttest_zs, None,
+                        kwargs={'combine_regions': combine_regions,
+                                'age': 'healthy'}, easy_override=False)
 
     p_l = p_l[~np.isnan(p_l)] / 2
     n_tests = np.sum(~np.isnan(p_l))

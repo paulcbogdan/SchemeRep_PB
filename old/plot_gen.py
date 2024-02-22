@@ -86,9 +86,11 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     # cbar.ax.tick_params(rotation=45, fontsize=12)
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
+        plt.tight_layout()
         plt.savefig(fp)
     if ax is None:
         plt.gca().invert_yaxis()
+        plt.tight_layout()
         plt.show()
 
 # def plot_surf(combine_regions=True, bilateral=False):

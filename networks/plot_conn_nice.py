@@ -2,6 +2,7 @@ import os
 
 from tqdm import tqdm
 
+from old.network_funcs import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
 
 os.chdir('E:\PycharmProjects_E\SchemeRep')
@@ -13,8 +14,8 @@ import numpy as np
 from atlas_utils import get_atlas
 from connRSA.conn_utils import get_BNA_ROIs
 from old.network_clf import generic_prep
-from old.plot_gen import my_plot_surf
-from utils import stdize, run_two_sample_on_2D
+from old.plot_gen import my_plot_surf, plot_connectivity
+from utils import stdize, run_two_sample_on_2D, pickle_wrap
 
 
 def seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs,
@@ -240,8 +241,37 @@ def make_seed_plots(threshold=0.95, laterality=False, perm=False):
             seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_tar, kwargs,
                         region, accs, atlas_tar)
 
+def plot_M_mat(fp='obj7_fMRI', combine_regions=False):
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc',
+              'key_vals': (1, 2, 3),
+              'combine_regions': combine_regions,
+              }
+
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False,
+                    verbose=1, cache_dir='cache')
+    corr = np.nanmean(sn_inc_conn, axis=(0, 1))
+    atlas = get_atlas()
+    fp2title = {'obj7_fMRI': 'Object betas',
+                'scn7_fMRI': 'Scene betas',
+                'con7_fMRI': 'Conceptual retrieval betas',
+                'vis7_fMRI': 'Visual retrieval betas'}
+    plot_connectivity(corr,
+                      atlas['ticks'],
+                      atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      no_avg=True,
+                      title=f'{fp2title[fp]} connectivity',
+                      cbar_label='r',
+                      vmin=-.3, vmax=1.0)
+    quit()
+
+
 if __name__ == '__main__':
-    make_seed_plots()
+    plot_M_mat()
+    # make_seed_plots()
 
 
 

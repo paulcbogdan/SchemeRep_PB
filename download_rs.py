@@ -27,6 +27,7 @@ from ven_x_dor import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 import scipy.stats as stats
 from scipy import linalg
+from random import random
 
 def get_sn_rs(sn):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
@@ -134,24 +135,50 @@ def analyze_vendor():
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
 
-    # print(np.sum(np.isnan(conn_trials[27])))
-    # quit()
-    # conn_trials = np.concatenate([conn_trials[:27]
-    conn_trials = high_variance_conn_confounds(conn_trials)
+    # conn_trials = high_variance_conn_confounds(conn_trials)
     conn_trials = conn_trials[:, None, :, :, :]
-
-    print(conn_trials.shape)
+    diag = np.diag_indices(conn_trials.shape[3])
+    conn_trials[:, 0, diag[0], diag[1], :] = np.nan
 
     for i in range(conn_trials.shape[0]):
+        sn_conn = conn_trials[i, 0, :, :, :]
         rs = []
-        for j in range(2, 200):
-            r, p = stats.pearsonr(conn_trials[i, 0, 0, 1, :],
-                                  conn_trials[i, 0, 0, j, :])
+        rand = np.random.randint(0, sn_conn.shape[0], (4, 100))
+        for x0, y0, x1, y1 in rand.T:
+            try:
+                r, p = stats.pearsonr(sn_conn[x0, y0, :], sn_conn[x1, y1, :])
+            except ValueError:
+                continue
             rs.append(r)
-        r = np.mean(rs)
-        print(f'{r=:.3f}')
+        print(f'{np.mean(rs)=:.3f}')
     quit()
 
+    # print(conn_trials.shape)
+    # quit()
+    # corr = np.mean(conn_trials, axis=(0, 1, 4))
+    # atlas = get_atlas()
+    # plot_connectivity(corr,
+    #                   atlas['ticks'],
+    #                   atlas['tick_labels'],
+    #                   atlas['tick_lows'],
+    #                   no_avg=True,
+    #                   title='Resting state connectivity',
+    #                   cbar_label='r',
+    #                   vmin=-.3, vmax=1.0)
+    # quit()
+
+    # print(conn_trials.shape)
+    #
+    # for i in range(conn_trials.shape[0]):
+    #     rs = []
+    #     for j in range(2, 200):
+    #         r, p = stats.pearsonr(conn_trials[i, 0, 0, 1, :],
+    #                               conn_trials[i, 0, 0, j, :])
+    #         rs.append(r)
+    #     r = np.mean(rs)
+    #     print(f'{r=:.3f}')
+    # quit()
+    #
 
     print(conn_trials.shape)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

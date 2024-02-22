@@ -45,6 +45,8 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                 z_both[:, i] = np.nan
                 break
     # plt.imshow(z_both)
+    # plt.show()
+    # quit()
 
     num_non_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
 
@@ -63,6 +65,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                             threshold=thr,
                             fn_str='', overlapping=False,
                             dir_out_full=dir_out, title_extra=title_extra,)
+
 
     for i, p in enumerate(partitions):
         labels = [atlas['labels'][i] for i in p]
@@ -316,18 +319,23 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    THRESHOLD = .9
-    # get_vendor_partitions(age='healthy', flip=True, plot=True,
-    #                       scrub=True, easy_override=False, thr=THRESHOLD,
-    #                       combine_regions=False)
+    THRESHOLD = .95
+    get_vendor_partitions(age='healthy', flip=True, plot=True,
+                          scrub=True, easy_override=True, thr=THRESHOLD,
+                          combine_regions=False)
+    # THRESHOLD = .8
+    get_vendor_partitions(age='healthy', flip=False, plot=True,
+                          scrub=True, easy_override=True, thr=THRESHOLD,
+                          combine_regions=False)
+
     # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
     # get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
     # get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)
-    get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-                          scrub=True, combine_regions=False)
+    # get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
+    #                       scrub=True, combine_regions=False)
     # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

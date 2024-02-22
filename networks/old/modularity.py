@@ -3,7 +3,9 @@ import pickle
 from pathlib import Path
 
 import numpy as np
-# from nichord.combine import plot_and_combine
+from nichord import AttrDict
+from nichord.combine import plot_and_combine
+from nichord.peak import _read_atlas_peak
 
 from atlas_utils import get_atlas
 from utils import pickle_wrap
@@ -68,13 +70,17 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                                  'be provided'
         edges, edge_weights = convert_matrix(corr)
 
-    fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}.pkl'
+    search_closest=False
+    fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}_{search_closest}.pkl'
     # print(f'{fp_idx_to_label=}')
-    idx_to_label = pickle_wrap(lambda: get_idx_to_label(coords, atlas='yeo'), fp_idx_to_label)
-    # labels = get_atlas(combine_regions=True)['labels']
+    print(f'{coords=}')
+    idx_to_label = pickle_wrap(lambda: get_idx_to_label(
+        coords, atlas='yeo', search_closest=search_closest),
+                               fp_idx_to_label, easy_override=True,)
+    # labels = get_atlas(combine_regions=False)['labels']
     # for i in range(len(labels)):
-    #     print(f'{labels[i]} | {idx_to_label[i]}')
-    # # print(idx_to_label)
+    #     print(f'{i} | {labels[i]} | {idx_to_label[i]} | {coords[i]}')
+    # print(idx_to_label)
     # quit()
 
     # print(f'{edges=}')
@@ -124,11 +130,19 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
 
     matrix_binary, matrix_mask = get_binary_matrix(M_conn,
                                                      threshold=threshold)
+    matrix_binary[np.isnan(matrix_binary)] = 0
     M_conn_masked = M_conn * matrix_mask
     if overlapping:
         partitions = get_modules_overlapping(matrix_binary, algo=overlapping)
     else:
         partitions = get_modules(matrix_binary)
+
+
+    # plt.imshow(matrix_binary)
+    # plt.show()
+    # for p in partitions:
+    #     print(f'{p=}')
+    # quit()
     if plot:
 
         for i, p in enumerate(partitions):
@@ -164,5 +178,47 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                          dir_out=dir_out_,)
     partitions = [p for p in partitions]
     return partitions, matrix_mask
+
+
+if __name__ == '__main__':
+    from nilearn import datasets
+    from nilearn import image
+    import numpy as np
+
+    yeo = datasets.fetch_atlas_yeo_2011()
+    atlas = yeo.thick_7
+
+    yeo_fetched = datasets.fetch_atlas_yeo_2011()
+    atlas_yeo = yeo_fetched.thick_7
+    img = image.load_img(atlas_yeo)
+    mni_coord = [-6, 52, -19]
+    # print(img.affine)
+    # print(np.linalg.inv(img.affine))
+    #
+    # quit()
+    coord = image.coord_transform(mni_coord[0], mni_coord[1], mni_coord[2],
+                                  np.linalg.inv(img.affine))
+    coord = np.array(coord).astype(int)
+
+    data = img.get_fdata()
+    print(data.shape)
+
+    val = data[coord[0], coord[1], coord[2]]
+    print(val)
+
+
+    quit()
+
+    yeo = AttrDict()
+
+    import pandas as pd
+    yeo.labels = pd.DataFrame({'name': ['uncertain', 'Visual', 'SM', 'DAN',
+                                        'VAN', 'Limbic', 'FPCN', 'DMN']})
+    yeo.atlas = 'yeo'
+    yeo.image = image.load_img(atlas_yeo)
+
+    region = _read_atlas_peak(yeo, mni_coord)
+    print(f'{region=}')
+
 
 
