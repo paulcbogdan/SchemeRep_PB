@@ -134,9 +134,10 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     n_non_nans = np.sum(~np.isnan(Ms))
     img_data = np.zeros(atlas['maps'].shape)
     atlas_data = atlas['maps'].get_fdata()
-    Ms = [np.min([m, 5]) for m in Ms]
+    # Ms = [np.min([m, 5]) for m in Ms]
 
-    Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
+    if fp_out is not None:
+        Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
 
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
@@ -176,7 +177,11 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                     vmin=-vmax,
                                     vmax=vmax)
 
-    if neg:
+    if thresh > 5:
+        axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
+                          [-vmax, -thresh, thresh, vmax],
+                          fontsize=8)
+    elif neg:
         axs[4].set_xticks([-vmax, -2, 2, vmax],
                           [f'({neg})',
                            '-2', '2',

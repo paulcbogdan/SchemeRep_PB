@@ -1,8 +1,6 @@
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-from collections import defaultdict
-
 import pandas as pd
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
@@ -14,11 +12,9 @@ from ttest_mat import get_stats_graphs
 from scipy import stats
 
 from atlas_utils import get_atlas
-from old.modularity import get_BNA_coords, plot_nichord, get_main_partitions, get_partition_matrix
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity, my_plot_surf
 from utils import pickle_wrap
-from NBS import get_NBS_clusters
 import numpy as np
 import statsmodels.formula.api as smf
 
@@ -204,9 +200,6 @@ def perm_conn_clf():
     pass
 
 def do_ROI_clf(df, grps, cols, kernel='rbf'):
-    from sklearn import linear_model
-    from sklearn.model_selection import LeaveOneGroupOut, cross_val_score
-    import matplotlib.pyplot as plt
     from sklearn.svm import SVC
     y_trues = []
     y_preds = []

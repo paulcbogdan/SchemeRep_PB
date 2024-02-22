@@ -11,7 +11,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
-from ven_x_dor import get_module_cross_trialwise_z
+from vendor_lmers import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 from statannotations.Annotator import Annotator
 

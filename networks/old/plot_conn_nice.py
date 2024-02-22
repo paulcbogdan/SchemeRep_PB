@@ -5,7 +5,7 @@ from tqdm import tqdm
 from old.network_funcs import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir('/')
 
 from pathlib import Path
 
@@ -251,7 +251,7 @@ def plot_M_mat(fp='obj7_fMRI', combine_regions=False):
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False,
-                    verbose=1, cache_dir='cache')
+                    verbose=1, cache_dir='../cache')
     corr = np.nanmean(sn_inc_conn, axis=(0, 1))
     atlas = get_atlas()
     fp2title = {'obj7_fMRI': 'Object betas',

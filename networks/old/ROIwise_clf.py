@@ -1,5 +1,5 @@
 import os
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir('/')
 
 from pathlib import Path
 

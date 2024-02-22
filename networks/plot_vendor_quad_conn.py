@@ -1,14 +1,11 @@
 import os
 from collections import defaultdict
 
-import numpy as np
-
 from atlas_utils import get_atlas
-from ttest_mat import get_stats_graphs
 from old.network_funcs import load_FC_for_Lifu
-from plot_conn_nice import seed_conn_t
+from old.plot_conn_nice import seed_conn_t
 from utils import pickle_wrap
-from vendor_partitioning import get_vendor_partitions_, get_vendor_partitions, get_anat_vendor_partitions
+from vendor_partitioning import get_vendor_partitions
 
 os.chdir('E:\PycharmProjects_E\SchemeRep')
 

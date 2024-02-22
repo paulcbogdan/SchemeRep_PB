@@ -15,7 +15,7 @@ def plot_conn_matrix(combine_regions=True):
               'combine_regions': combine_regions
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='../cache')
 
     _, _, _, _, _, p_both, z_both = \
         get_stats_graphs(sn_inc_conn[:, 0, :, :],

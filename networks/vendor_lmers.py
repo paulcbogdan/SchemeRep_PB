@@ -62,63 +62,6 @@ def get_memory_p():
                 break
     return p_mem
 
-def get_DMN_p(exclude_ps=None):
-    atlas = get_atlas()
-
-    from nichord.coord_labeler import get_idx_to_label
-    idx_to_label = pickle_wrap(get_idx_to_label, None, kwargs={'coords': atlas['coords'],
-                                                               'atlas': 'yeo'})
-    DMN_idxs = [idx for idx, label in idx_to_label.items() if 'DMN' in label]
-    # print(DMN_idxs)
-
-
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=False, scrub=False)
-    # exclude_ps = p_dorsal + p_ventral
-
-    for i in DMN_idxs:
-        BNA_label = atlas['ROIs'][i]
-        if i in p_d_pos:
-            print(f'{BNA_label} ({i}): In: Dor-Pos')
-        elif i in p_d_ant:
-            print(f'{BNA_label} ({i}): In: Dor-Ant')
-        elif i in p_v_pos:
-            print(f'{BNA_label} ({i}): In: Ven-Pos')
-        elif i in p_v_ant:
-            print(f'{BNA_label} ({i}): In: Ven-Ant')
-        else:
-            print(f'{BNA_label} ({i}): Not in any')
-
-    print('--------')
-
-    cnt = defaultdict(lambda: 0)
-    for i in p_d_pos:
-        yeo = idx_to_label[i]
-        cnt[yeo] += 1
-    cnt = dict(cnt)
-    print(f'Dor-Pos: {cnt}')
-
-    cnt = defaultdict(lambda: 0)
-    for i in p_d_ant:
-        yeo = idx_to_label[i]
-        cnt[yeo] += 1
-    cnt = dict(cnt)
-    print(f'Dor-Ant: {cnt}')
-
-    cnt = defaultdict(lambda: 0)
-    for i in p_v_pos:
-        yeo = idx_to_label[i]
-        cnt[yeo] += 1
-    cnt = dict(cnt)
-    print(f'Ven-Pos: {cnt}')
-
-    cnt = defaultdict(lambda: 0)
-    for i in p_v_ant:
-        yeo = idx_to_label[i]
-        cnt[yeo] += 1
-    cnt = dict(cnt)
-    print(f'Ven-Ant: {cnt}')
-
 
 @timing
 def get_dfs_conn_trials(fp='obj7_fMRI', single=False):
@@ -208,7 +151,7 @@ def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
 @timing
 @cache
 def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
-                  hemis=True):
+                  hemis=True, roiwise=False):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -231,21 +174,12 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
-    # conn_trials = np.repeat(matrix_mask[None, None, ..., None],
-    #                         conn_trials.shape[-1], axis=4) * conn_trials[..., :]
-    #                         idk why I can't just broadcast matrix_mask
 
     sn_inc_act_M_p_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :], axis=(1, 2))
     sn_inc_act_M_a_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :], axis=(1, 2))
     sn_inc_act_M_p_v = np.nanmean(sn_inc_activity[:, :, p_v_pos, :], axis=(1, 2))
     sn_inc_act_M_a_v = np.nanmean(sn_inc_activity[:, :, p_v_ant, :], axis=(1, 2))
     sn_inc_act_M_overall = np.nanmean(sn_inc_activity, axis=(1, 2))
-    # sn_trials_dd = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant)
-    # sn_trials_vv = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant)
-    # sn_trials_dv_a = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant)
-    # sn_trials_dv_p = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos)
-    # sn_trials_dpva = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant)
-    # sn_trials_vpda = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant)
 
     ad_else = list(set(range(246)) - set(p_d_ant))
     pd_else = list(set(range(246)) - set(p_d_pos))
@@ -271,6 +205,15 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
         key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials, list(range(246)))
 
+    if roiwise:
+        quads = ['dp', 'da', 'vp', 'va']
+        quad2p = {'dp': p_d_pos, 'da': p_d_ant, 'vp': p_v_pos, 'va': p_v_ant}
+        for i in range(246):
+            for quad in quads:
+                key2conn[f'{quad}_{i}'] = \
+                    get_module_cross_trialwise_z(conn_trials, [i],
+                                                 quad2p[quad])
+
     all_new_cols = set()
     for i, df_sn in enumerate(df_sns_l):
         old_cols = set(df_sn.columns)
@@ -286,13 +229,6 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
         for key, conn in key2conn.items():
             df_sn[key] = conn[i, :]
-
-        # df_sn['dd'] = sn_trials_dd[i, :]
-        # df_sn['vv'] = sn_trials_vv[i, :]
-        # df_sn['dv_ant'] = sn_trials_dv_a[i, :]
-        # df_sn['dv_pos'] = sn_trials_dv_p[i, :]
-        # df_sn['dpva'] = sn_trials_dpva[i, :]
-        # df_sn['vpda'] = sn_trials_vpda[i, :]
 
         df_sn['dd_vv'] = df_sn['dd'] + df_sn['vv']
         df_sn['cross'] = df_sn['dv_ant'] + df_sn['dv_pos']
@@ -314,46 +250,10 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
         all_new_cols.update(cols_hemi)
 
     return df_sns, all_new_cols
-
-def vendor_lmer(fp='obj7_fMRI'):
-    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
-                                                             'anat': False,
-                                                             'scrub': False,
-                                                             'hemis': False}, easy_override=True, cache_dir='cache')
-
-    p_mem = get_memory_p()
-    df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
-    df = df.merge(df_mem, on=['sn', 'obj'], how='left')
-
-
-    # df['age'] = stats.zscore(df['age'], nan_policy='omit')
-    # df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
-    # df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
-    # df['brain_M'] = stats.zscore(df['brain_M'], nan_policy='omit')
-    # formula_gen = 'dd ~ 1 + inc + vv + dv_ant + dv_pos + brain_M + ' \
-    #               '(1 | sn)'
-    print('About to lmer...')
-    formula_gen = 'dd_vv ~ 1 + inc*all_M + inc*cross + ' \
-                  '(1 + inc*all_M + inc*cross | sn)'
-
-    cols = get_formula_cols(df, formula_gen)
-    for col in cols:
-        if col in ['sn']: continue
-        print(f'z-scoring: {col}')
-        df[col] = stats.zscore(df[col], nan_policy='omit')
-    df_vals = df[cols].dropna()
-    from pymer4 import Lmer
-    model = Lmer(formula_gen, data=df_vals)
-    model.fit(REML=True, verbose=False, summary=False)
-    print(model.summary())
-
-    print(df[['dd', 'vv', 'dv_ant', 'dv_pos', 'brain_M']].corr())
-    quit()
-
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,
                                 kwargs={'fp': fp, 'scrub': False, 'anat': True},
-                                easy_override=True, cache_dir='cache')
+                                easy_override=False, cache_dir='cache')
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
     df = df.merge(df_mem, on=['sn', 'obj'], how='left')
@@ -362,6 +262,12 @@ def vendor_lmer_Feb12(fp='obj7_fMRI'):
         df[col] = stats.zscore(df[col], nan_policy='omit')
 
     formula = ('dd ~ vv + dv_ant + dv_pos + '
+               'pd_else + ad_else + pv_else + av_else + ' # pv_else + av_else + 
+               'FC_all + ' #  dd_else + # pd_else + ad_else +
+               'dp + da + vp + va + '
+               '(1 | sn)')
+
+    formula = ('vv ~ dd + dv_ant + dv_pos + '
                'pd_else + ad_else + pv_else + av_else + ' # pv_else + av_else + 
                'FC_all + ' #  dd_else + # pd_else + ad_else +
                'dp + da + vp + va + '

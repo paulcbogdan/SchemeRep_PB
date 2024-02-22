@@ -9,7 +9,7 @@ from emotemporal_bar import get_stars
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from ven_x_dor import get_hemi_vendor_df, get_vendor_df, get_hemi_cross_vendor_df
+from vendor_lmers import get_hemi_vendor_df, get_vendor_df, get_hemi_cross_vendor_df
 
 # filter PerformanceWarning
 import warnings
@@ -17,13 +17,64 @@ import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
+def plot_2x2_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False,
+                      anat=True):
+    df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
+                                                             'scrub': scrub,
+                                                             'anat': anat,
+                                                             'hemis': hemi},
+                                easy_override=False, cache_dir='cache')
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    df['age_str'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
+
+    sides_names = {'dd_vv': 'Ven-Dor\n(Horizontal)',
+                   'dv_dv': 'Post-Ant\n(Vertical)',
+                   'age_str': 'Age',
+                   }
+    sides = ['Ven-Dor\n(Horizontal)', 'Post-Ant\n(Vertical)']
+    df = df.rename(columns=sides_names)
+
+    df_names = df[list(sides_names.values())]
+    sns.set(font_scale=1.15)
+    g = sns.pairplot(df_names,
+                     hue='Age',
+                     kind="reg",
+                     palette={'YA': 'green', 'OA': 'magenta'},
+                     plot_kws={'scatter_kws': {'alpha': .05,
+                                               }},  # 'color': 'orange'
+                     diag_kws={'common_norm': False})
+    df_ya = df[df['Age'] == 'YA'].dropna(subset=sides)
+    df_oa = df[df['Age'] == 'OA'].dropna(subset=sides)
+    for i, s0 in enumerate(sides):
+        for j, s1 in enumerate(sides):
+            if i == j:
+                continue
+            g.axes[i][j].set_xlim(-11, 11)
+            g.axes[i][j].set_ylim(-11, 11)
+            r_ya, p_ya = stats.pearsonr(df_ya[s0], df_ya[s1])
+            r_oa, p_oa = stats.pearsonr(df_oa[s0], df_oa[s1])
+            # g.axes[i][j].get_children()[3].set_alpha(.01)
+
+            # if abs(r_oa - r_ya) < .1:
+            #     for k in range(6):
+            #         if k % 2 == 0: continue
+            #         g.axes[i][j].get_children()[k].set_alpha(.001)
+                    # g.axes[i][j].get_children()[k].set_color("black")
+    for lh in g._legend.legendHandles:
+        lh.set_alpha(1)
+        lh._sizes = [50]
+    # plt.savefig('2x2_vendor_postant_triangle.png', dpi=300)
+    # plt.show()
+
 
 
 def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False, anat=True):
     df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
                                                              'scrub': scrub,
                                                              'anat': anat,
-                                                             'hemis': hemi}, easy_override=True, cache_dir='cache')
+                                                             'hemis': hemi},
+                                easy_override=True, cache_dir='cache')
 
     # sides = ['dd', 'vv', 'dv_ant', 'dv_pos']
     sides = ['dd', 'vv', 'dv_pos', 'dv_ant']
@@ -298,7 +349,8 @@ if __name__ == '__main__':
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
-    lmer_triangle()
+    plot_2x2_triangle()
+    # lmer_triangle()
     # plot_massive_hemi_corr_matrix()
     # quit()
     # lmer_triangle()

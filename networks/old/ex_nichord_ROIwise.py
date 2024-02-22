@@ -1,5 +1,5 @@
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 
 from atlas_utils import get_atlas
 import numpy as np

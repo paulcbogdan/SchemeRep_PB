@@ -29,7 +29,7 @@ def permutation_test(n_voxels=10, linear=False, full_perms=100):
               'voxelwise': True
               }
     ROI2act, Y_all, groups_all, age2idxs = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='../cache')
     Y_all = np.array(Y_all)
     groups_all = np.array(groups_all)
     age2accs = defaultdict(list)
@@ -131,7 +131,7 @@ def voxelwise_vis_clf(linear=True, group_level=True, n_repeats=25):
               'voxelwise': True
               }
     ROI2act, Y_all, groups_all, age2idxs = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='../cache')
     Y_all = np.array(Y_all)
     groups_all = np.array(groups_all)
     # print(groups)

@@ -4,11 +4,11 @@ os.chdir('E:\PycharmProjects_E\SchemeRep')
 from scipy import stats
 
 from atlas_utils import get_atlas
-from old.modularity import get_BNA_coords, plot_nichord, get_main_partitions, get_partition_matrix
+from old.modularity import get_main_partitions, get_partition_matrix
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from NBS import get_NBS_clusters
+from old.NBS import get_NBS_clusters
 import numpy as np
 
 def get_stats_graphs(graph0, graph1, weights=None):

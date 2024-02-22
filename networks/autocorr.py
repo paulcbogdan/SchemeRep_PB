@@ -2,7 +2,7 @@ import pandas as pd
 import scipy.stats as stats
 
 from utils import pickle_wrap
-from ven_x_dor import get_vendor_df
+from vendor_lmers import get_vendor_df
 
 def add_prev(df, key, sess):
     for sn, df_sn in df.groupby('sn'):

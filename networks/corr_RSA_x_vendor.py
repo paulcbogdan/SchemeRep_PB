@@ -1,10 +1,10 @@
 import os
 
-from activity_ERS import get_df_ERS, get_df_trialwise_MVPA
+from old.activity_ERS import get_df_ERS
 from org_sns import get_sns
 from organize_bhv import get_trial_info
-from trialwise_graph_theory import get_df_trial_graphs
-from ven_x_dor import get_vendor_df
+from old.trialwise_graph_theory import get_df_trial_graphs
+from vendor_lmers import get_vendor_df
 
 os.chdir('E:\PycharmProjects_E\SchemeRep')
 
