@@ -198,7 +198,8 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
-def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False):
+def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
+                     zscore=True):
     sn_roi_act, sns = pickle_wrap(load_resting_data, easy_override=False)
     sn_roi_act = sn_roi_act[:, :, 4:]  # bad trials to start?
     bad_rs_sns = {'133'}
@@ -288,17 +289,23 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False):
                                                  quad2p[quad])
 
 
-
     df_as_d = defaultdict(list)
     n_TRs = sn_roi_act.shape[-1]
     for i, sn in enumerate(sns):
         for key, conn in key2conn.items():
-            df_as_d[key].extend(stats.zscore(conn[i, :]))
+            vals = conn[i, :]
+            if zscore: vals = stats.zscore(vals)
+            df_as_d[key].extend(vals)
         if do_hemi:
             for key, conn in key2conn_hemi.items():
-                df_as_d[key].extend(stats.zscore(conn[i, :]))
+                vals = conn[i, :]
+                if zscore: vals = stats.zscore(vals)
+                df_as_d[key].extend(vals)
         for key, M in key2p_M.items():
-            df_as_d[key].extend(stats.zscore(M[i, :]))
+            vals = M[i, :]
+            if zscore: vals = stats.zscore(vals)
+            df_as_d[key].extend(vals)
+
         df_as_d['sn'].extend([sn] * n_TRs)
     df = pd.DataFrame(df_as_d)
     return df, conn_keys
