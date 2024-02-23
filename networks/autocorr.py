@@ -6,10 +6,8 @@ from vendor_lmers import get_vendor_df
 
 def add_prev(df, key, sess):
     for sn, df_sn in df.groupby('sn'):
-        # print(f'{sn=} , {len(df_sn)=}')
-        # quit()
         df_sn = df_sn.sort_values(f'{sess}_trial')
-        df_sn[key] = stats.zscore(df_sn[key])
+        # df_sn[key] = stats.zscore(df_sn[key])
         df_sn[f'{key}_prev'] = df_sn[key].shift(1)
         df.loc[df_sn.index, f'{key}_prev'] = df_sn[f'{key}_prev']
 

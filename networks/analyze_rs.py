@@ -198,7 +198,7 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
-def get_rs_vendor_df(roiwise=False, do_hemi=False):
+def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False):
     sn_roi_act, sns = pickle_wrap(load_resting_data, easy_override=False)
     sn_roi_act = sn_roi_act[:, :, 4:]  # bad trials to start?
     bad_rs_sns = {'133'}
@@ -212,9 +212,10 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False):
     # conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
 
     # sn_roi_act = np.random.normal(size=sn_roi_act.shape)
-    fp_pkl = rf'cache/high_var_conn_trials.pkl'
-    conn_trials = pickle_wrap(lambda: high_variance_conn_confounds(conn_trials),
-                              fp_pkl, easy_override=False)
+    if high_var_confounds:
+        fp_pkl = rf'cache/high_var_conn_trials.pkl'
+        conn_trials = pickle_wrap(lambda: high_variance_conn_confounds(conn_trials),
+                                  fp_pkl, easy_override=True)
     conn_trials = conn_trials[:, None, :, :, :]
     diag = np.diag_indices(conn_trials.shape[3])
     conn_trials[:, 0, diag[0], diag[1], :] = np.nan
@@ -260,6 +261,12 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False):
     for key, (p0, p1) in zip(conn_keys, conn_ps):
         key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
 
+    act_keys = ['dp', 'da', 'vp', 'va']
+    act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
+    key2p_M = {}
+    for key, p in zip(act_keys, act_p):
+        key2p_M[key] = np.nanmean(sn_roi_act[:, p, :], axis=1)
+
     if do_hemi:
         ps_hemi = get_key2conn_hemi(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
         key2conn_hemi = {}
@@ -280,11 +287,7 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False):
                     get_module_cross_trialwise_z(conn_trials, [i],
                                                  quad2p[quad])
 
-    act_keys = ['dp', 'da', 'vp', 'va']
-    act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
-    key2p_M = {}
-    for key, p in zip(act_keys, act_p):
-        key2p_M[key] = np.nanmean(sn_roi_act[:, p, :], axis=1)
+
 
     df_as_d = defaultdict(list)
     n_TRs = sn_roi_act.shape[-1]

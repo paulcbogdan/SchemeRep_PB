@@ -444,6 +444,7 @@ def get_formula_cols(df, formula):
     formula = re.split(' |[*]|\)|\(', formula)
     cols = []
     for col in df.columns:
+        # if col == 'sn': continue
         if col in formula:
             cols.append(col)
     return cols

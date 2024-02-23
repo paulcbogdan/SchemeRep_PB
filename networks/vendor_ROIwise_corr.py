@@ -11,11 +11,13 @@ import statsmodels.formula.api as smf
 from utils import get_formula_cols
 import numpy as np
 
-def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
+# def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
+def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='dp'):
 
     if fp == 'rs':
         df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': True,
-                                                              'do_hemi': False},
+                                                              'do_hemi': False,
+                                    'high_var_confounds': False},
                                     easy_override=False)
     else:
         df, vndr_cols = pickle_wrap(get_vendor_df, None,
@@ -23,11 +25,17 @@ def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
                                             'anat': True,
                                             'roiwise': True},
                                     easy_override=False, cache_dir='cache')
-    # print(df['ad_no'])
-    # quit()
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
+
+    df['va_else'] = df['av_else']
+    df['vp_else'] = df['pv_else']
+    df['da_else'] = df['ad_else']
+    df['dp_else'] = df['pd_else']
+    df['vp_no'] = df['pv_no']
+    df['va_no'] = df['av_no']
+    df['dp_no'] = df['pd_no']
 
     df['dd_vv'] = df['dd'] + df['vv']
 
@@ -36,15 +44,21 @@ def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
               'dv_ant': p_d_ant + p_v_ant, 'dv_pos': p_d_pos + p_v_pos}
 
     # pd_no + ad_no + pv_no + av_no +
-    formula_gen = ('{base} ~ '
-                   '1 + {seed_roi} + FC_all')
+
+    seed_cols = [f'{seed}_{i}' for i in range(246)]
+    df['seed_all'] = df[seed_cols].mean(axis=1)
+
+    # when I regress {seed}_else that essentially makes everything seed relative
+    #   to the effect with everything else
+    formula_gen = ('{base} ~ 1 + {seed_roi} + FC_all + {seed}_else') #
+
     for i in range(246):
         seed_roi = f'{seed}_{i}'
         # if i in base2p[exclude]:
         #     scores.append(0)
         #     continue
 
-        formula = formula_gen.format(base=base, seed_roi=seed_roi)
+        formula = formula_gen.format(base=base, seed_roi=seed_roi, seed=seed)
         cols = get_formula_cols(df, formula)
         df_ = df[cols].dropna()
 
@@ -57,18 +71,20 @@ def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
         # r, p = stats.pearsonr(df_[base], df_[seed_roi])
         # scores.append(r*100)
 
-    # score = np.array(scores)
-    # if np.max(np.abs(scores)) > 10:
-    #     factor = np.max(np.abs(scores)) / 10
-    #     scores /= factor
+    score = np.array(scores)
+    print(f'Min score: {np.min(score)} | max: {np.max(score)}')
+    if np.min(np.abs(scores)) > 10:
+        factor = np.max(np.abs(scores)) / 10
+        scores /= factor
+        print(f'Factor divide: {factor}')
 
     # plt.hist(scores)
     # plt.show()
     # quit()
     atlas = get_atlas()
-    my_plot_surf(scores, atlas, f'{fp}: {base} x {seed}_i',
+    my_plot_surf(scores, atlas, f'{fp}: {formula}',
                  neg='',
-                 thresh=2, vmax=10)
+                 thresh=2, vmax=50)
 
 
 

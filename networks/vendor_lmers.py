@@ -252,7 +252,8 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     return df_sns, all_new_cols
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,
-                                kwargs={'fp': fp, 'scrub': False, 'anat': True},
+                                kwargs={'fp': fp, 'scrub': False,
+                                        'anat': True},
                                 easy_override=False, cache_dir='cache')
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
@@ -272,6 +273,16 @@ def vendor_lmer_Feb12(fp='obj7_fMRI'):
                'FC_all + ' #  dd_else + # pd_else + ad_else +
                'dp + da + vp + va + '
                '(1 | sn)')
+
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    formula = ('dd_vv ~ dv_dv + FC_all + '
+               'dp + da + vp + va + '
+               '(1 | sn)')
+
+    formula = ('dd ~ dp * da + FC_all +'
+               '(1 | sn)')
+
     from pymer4 import Lmer
     cols = get_formula_cols(df, formula)
     df_vals = df[cols].dropna()
