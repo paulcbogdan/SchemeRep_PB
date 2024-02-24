@@ -53,29 +53,32 @@ def get_network_partitions():
 def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
     if f is not None:
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f)
+    elif fp == 'sanity':
+        f  = partial(load_resting_data, YA_only=False, sanity=True)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
+                                                     easy_override=False)
     elif fp == 'raw_enc':
         f = partial(load_resting_data, raw_enc=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
                                                      easy_override=False)
-    elif fp == 'pb_lss':
-        f = partial(load_resting_data, raw_enc=False, lss_enc=True)
+    elif fp == 'pb_lsa':
+        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=False)
+                                                     easy_override=True)
+    elif fp == 'pb_lss':
+        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=False)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
+                                                     easy_override=True)
     elif fp == 'rs':
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True)
     else:
         sn_roi_act, conn_trials, sns = \
             pickle_wrap(get_dfs_conn_trials, kwargs={'fp': fp, 'single': False,
                                                      'w_activity': True,
                                                      'squeeze': True})
-    # print(conn_trials.shape)
-    # plt.imshow(conn_trials[0, :, :].mean(axis=-1))
-    # plt.show()
-    # quit()
-    # print(f'{sn_roi_act.shape=}')
-    # print(f'{conn_trials.shape=}')
-    # plt.imshow(sn_roi_act[0, :, :])
-    # plt.show()
+    # sn_roi_act = sn_roi_act[:, :, :30]
+    # print(sn_roi_act.shape)
     # quit()
     network2p = pickle_wrap(get_network_partitions)
 
@@ -105,6 +108,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
             vals = conn[i, :]
             if zscore: vals = stats.zscore(vals)
             df_as_d[key].extend(vals)
+            n_TRs = len(vals)
         df_as_d['sn'].extend([sn] * n_TRs)
     df = pd.DataFrame(df_as_d)
     networks += ['dd', 'vv', 'dv_ant', 'dv_pos']
@@ -129,7 +133,7 @@ def partial_corr_df(df, cols, cov):
     print(df_result)
 
 
-def analyze_networks(fp='pb_lss'):
+def analyze_networks(fp='pb_lsa'):
     df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
                                                         'norm_std': True,
                                                         'zscore': True},
@@ -138,10 +142,12 @@ def analyze_networks(fp='pb_lss'):
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
+    pd.set_option('display.max_rows', 1000)
 
-    partial_corr_df(df, networks, cov=['FC_all', 'ad_no', 'pd_no'])
+    partial_corr_df(df, networks, cov=['FC_all'])
     print('-'*10)
-    partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])
+    partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv',
+                                       'dv_ant', 'dv_pos'])
 
 if __name__ == '__main__':
     analyze_networks()

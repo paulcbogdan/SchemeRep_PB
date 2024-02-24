@@ -80,22 +80,22 @@ if __name__ == '__main__':
                 fp_obj_out.parent.mkdir(exist_ok=True, parents=True)
                 shutil.copyfile(fp_obj, fp_obj_out)
 
-                continue
-
-                fp_obj = trial.joinpath('b_Object.nii')
-                fn_obj_out = trial.name + '.nii'
-                dir_enc_out = Path(dir_out).joinpath(sn).joinpath('Enc_rerun')
-                fp_obj_out = dir_enc_out.joinpath('obj').joinpath(fn_obj_out)
-                if fp_obj_out.exists():
-                    continue
-                fp_obj_out.parent.mkdir(exist_ok=True, parents=True)
-                shutil.copyfile(fp_obj, fp_obj_out)
-
-
-                fp_scn = trial.joinpath('b_Object.nii')
-                dir_enc_out = Path(dir_out).joinpath(sn).joinpath('Enc_rerun')
-                fp_scn_out = dir_enc_out.joinpath('scn').joinpath(fn_obj_out)
-                if fp_scn_out.exists():
-                    continue
-                fp_scn_out.parent.mkdir(exist_ok=True, parents=True)
-                shutil.copyfile(fp_scn, fp_scn_out)
+                # continue
+                #
+                # fp_obj = trial.joinpath('b_Object.nii')
+                # fn_obj_out = trial.name + '.nii'
+                # dir_enc_out = Path(dir_out).joinpath(sn).joinpath('Enc_rerun')
+                # fp_obj_out = dir_enc_out.joinpath('obj').joinpath(fn_obj_out)
+                # if fp_obj_out.exists():
+                #     continue
+                # fp_obj_out.parent.mkdir(exist_ok=True, parents=True)
+                # shutil.copyfile(fp_obj, fp_obj_out)
+                #
+                #
+                # fp_scn = trial.joinpath('b_Object.nii')
+                # dir_enc_out = Path(dir_out).joinpath(sn).joinpath('Enc_rerun')
+                # fp_scn_out = dir_enc_out.joinpath('scn').joinpath(fn_obj_out)
+                # if fp_scn_out.exists():
+                #     continue
+                # fp_scn_out.parent.mkdir(exist_ok=True, parents=True)
+                # shutil.copyfile(fp_scn, fp_scn_out)

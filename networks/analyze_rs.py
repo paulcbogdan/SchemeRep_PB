@@ -13,16 +13,18 @@ from atlas_utils import get_atlas
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from org_sns import get_sns
-from utils import pickle_wrap, stdize
+from organize_bhv import get_trial_info
+from utils import pickle_wrap, stdize, load_ni_w_nan_fps
 from vendor_lmers import get_module_cross_trialwise_z, get_module_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 
 
-def get_sn_rs(sn):
+def get_sn_rs(sn, clean=False):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
-    confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
-    img = image.clean_img(img, confounds=confounds)
+    if clean:
+        confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
+        img = image.clean_img(img, confounds=confounds)
     data = img.get_fdata()
     return data
 
@@ -37,13 +39,26 @@ def get_sn_raw_enc(sn):
     data = img.get_fdata()
     return data
 
-def get_LSS_SchemeRep(sn, run=1):
-    data = get_LSS_img(sn, run, hcp=False)
+def get_LSS_SchemeRep(sn, run=1, lsa=False):
+    if sn in ['116', '125', '135', '138']:
+        data = np.full((97, 115, 97, 38), np.nan)
+    else:
+        data = get_LSS_img(sn, run, hcp=False, lsa=lsa)
     return data
 
-def load_resting_data(raw_enc=False, lss_enc=False):
+def sanity_load(sn):
+    df_sn = get_trial_info(sn)
+    data, _ = load_ni_w_nan_fps(df_sn['obj7_fMRI'])
+    # data = img.get_fdata()
+    return data
+
+def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
+                      sanity=False):
     age2sn = get_sns()
-    sns = age2sn[1] + age2sn[2]
+    if YA_only:
+        sns = age2sn[1]
+    else:
+        sns = age2sn[1] + age2sn[2]
     sn_roi_act = []
     atlas = get_atlas()
     bad_rs_sns = {'133'}
@@ -52,8 +67,12 @@ def load_resting_data(raw_enc=False, lss_enc=False):
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
-        if lss_enc:
-            data = pickle_wrap(get_LSS_SchemeRep, kwargs={'sn': sn})
+        if sanity:
+            data = pickle_wrap(sanity_load, kwargs={'sn': sn})
+        elif lss_enc:
+            data = pickle_wrap(get_LSS_SchemeRep, kwargs={'sn': sn,
+                                                          'lsa': lsa},
+                               easy_override=False)
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
@@ -75,26 +94,15 @@ def load_resting_data(raw_enc=False, lss_enc=False):
 
 def high_variance_conn_confounds(conn_trials, tile=.02, n_confounds=5):
     for i in tqdm(range(conn_trials.shape[0]), desc='high variance confounds'):
-        # if i != 27: continue
         sn_conn = conn_trials[i]
-        # print(np.sum(np.isnan(sn_conn)))
         trils = np.tril_indices(sn_conn.shape[1], k=-1)
         sn_flat_T = sn_conn[trils[0], trils[1], :].T
         v_flat = np.nanvar(sn_flat_T, axis=0) # participant 27 has all zero in two trials
         v_flat[np.isnan(v_flat)] = 0
-        # print(v_flat.shape)
-        # plt.hist(v_flat)
-        # plt.show()
-        # continue
         top_tile_idx = int(v_flat.shape[0] * tile)
         top_idxs = np.argsort(v_flat)[-top_tile_idx:]
         sn_top_T = sn_flat_T[:, top_idxs]
-        # print(v_flat[top_idxs])
-        # quit()
         num_nans = np.sum(np.isnan(sn_top_T))
-        # print(f'{i}: {num_nans}')
-        # print(sn_top_T.shape)
-
         try:
             U, S, Vh = np.linalg.svd(sn_top_T)
         except np.linalg.LinAlgError:

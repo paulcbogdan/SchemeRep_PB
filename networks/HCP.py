@@ -16,10 +16,12 @@ from atlas_utils import get_atlas
 from fluctuations import get_df_networks, partial_corr_df
 
 
-def get_sn_HCP(sn, lr, easy_override=False, LSS=False):
+def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=True,
+               clean_confounds=False):
     if LSS:
-        return get_LSS_img(sn, lr, easy_override=easy_override)
-    fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_clean.nii' # .nii are smaller than .pkl
+        return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
+
+    fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}.nii' # .nii are smaller than .pkl
     if os.path.isfile(fp_clean) and not easy_override:
         img = image.load_img(fp_clean)
         data = img.get_fdata()
@@ -69,7 +71,8 @@ def apply_HCP_mask(data, sn, lr):
     return data
 
 
-def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True):
+def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
+                 LSA=True, clean_confounds=True):
     sns = os.listdir(HCP_ROOT)
     sns = sns[:N]
     # sns = sns[::-1]
@@ -84,7 +87,8 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True):
     ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading fMRI'):
         if lr_only:
-            data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS)
+            data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
+                              LSA=LSA, clean_confounds=clean_confounds)
             if do_chop:
                 data = chop_data(data)
             if mask:
@@ -117,7 +121,8 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True):
     return sn_roi_act, sns
 
 def get_HCP_df(N=20):
-    f = partial(load_HCP_act, N=N, do_chop=False)
+    f = partial(load_HCP_act, N=N, do_chop=False, clean_confounds=False,
+                LSS=True, mask=True, LSA=True)
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = get_df_networks(f=f, zscore=True)
 
