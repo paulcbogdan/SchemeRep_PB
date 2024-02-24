@@ -12,7 +12,7 @@ from utils import get_formula_cols
 import numpy as np
 
 # def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
-def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='dp'):
+def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='da'):
 
     if fp == 'rs':
         df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': True,
@@ -48,9 +48,12 @@ def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='dp'):
     seed_cols = [f'{seed}_{i}' for i in range(246)]
     df['seed_all'] = df[seed_cols].mean(axis=1)
 
+    noise_cols = [f'{seed}_{i}' for i in range(220, 245)]
+    df[f'{seed}_noise'] = df[noise_cols].mean(axis=1)
+
     # when I regress {seed}_else that essentially makes everything seed relative
     #   to the effect with everything else
-    formula_gen = ('{base} ~ 1 + {seed_roi} + FC_all + {seed}_else') #
+    formula_gen = ('{base} ~ 1 + {seed_roi} + FC_all + {seed}_noise') #  + {seed}_else
 
     for i in range(246):
         seed_roi = f'{seed}_{i}'

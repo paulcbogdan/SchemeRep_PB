@@ -170,6 +170,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     #     multipletests(ps, alpha=0.05, method='fdr_bh')
 
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
+    # cmap = 'cold_hot'
     img = image.new_img_like(atlas['maps'], img_data)
 
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,

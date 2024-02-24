@@ -24,7 +24,7 @@ def regress_out_FC_all(df, key='dd_vv'):
     df[key] -= df['FC_all'] * res.params['FC_all']
     return df
 
-def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
+def do_OA_vs_YA_vendor(fp='rs', base='dv_ant', exclude='va', seed='va'):
     df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': True,
                                                           'do_hemi': False,
                                                           'zscore': False,
@@ -34,26 +34,22 @@ def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
         t = list(range(206))
         df.loc[df_sn.index, 'rs_trial'] = t
 
-    keys = ['dd_vv', 'FC_all', 'dp', 'dv_dv', 'dd', 'vv']
-    for key in keys:
-        add_prev(df, key, 'rs')
-        add_prev(df, f'{key}_prev', 'rs')
-        add_prev(df, f'{key}_prev_prev', 'rs')
+    df['dd_vv'] = df['dd'] + df['vv']
+    # df['dd_vv'] = df['da'] * df['dp']
+    df['age'] = df['sn'].apply(lambda sn: int(str(sn)[0]))
 
-    df.dropna(subset=['dd_vv_prev_prev_prev'], inplace=True)
-    print(len(df))
-    formula = ('FC_all ~ 1 + '
-               'FC_all_prev + FC_all_prev_prev + FC_all_prev_prev_prev + '
-               'FC_all_prev')
-    # formula = ('dp ~ 1 + '
-    #            'dp_prev + dp_prev_prev + dp_prev_prev_prev')
-    cols = get_formula_cols(df, formula)
-    for col in cols:
-        df[col] = stats.zscore(df[col])
-    model = smf.ols(formula=formula, data=df[cols])
-    res = model.fit()
-    print(res.summary())
+    key = 'dd_vv'
+    df = regress_out_FC_all(df, key=key)
 
+    df_grp = df.groupby(['age', 'sn'])[key].mean()
+    plt.hist(df_grp.loc[1, :], label='YA', alpha=.75)
+    plt.hist(df_grp.loc[2, :], label='OA', alpha=.5)
+
+    t, p = stats.ttest_ind(df_grp.loc[1, :], df_grp.loc[2, :])
+    plt.legend()
+    plt.title(f'YA vs. OA: {t=:.2f}, {p=:.3f}, {key}')
+    plt.show()
+    quit()
 
 if __name__ == '__main__':
-    do_rs_t()
+    do_OA_vs_YA_vendor()

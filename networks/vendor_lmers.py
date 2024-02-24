@@ -39,7 +39,7 @@ def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True,
         agg_rs = np.nanmean(rs, axis=-1)
         return agg_rs
 
-def get_module_trialwise_z(sn_inc_conn_trials, p_module):
+def get_module_trialwise_z(sn_inc_conn_trials, p_module, add_dim=False):
     # sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
     #                      sn_inc_activity_std[..., None, :, :]
     sn_inc_conn_trials = np.transpose(sn_inc_conn_trials, (0, 1, 4, 2, 3))
@@ -64,7 +64,8 @@ def get_memory_p():
 
 
 @timing
-def get_dfs_conn_trials(fp='obj7_fMRI', single=False):
+def get_dfs_conn_trials(fp='obj7_fMRI', single=False, w_activity=False,
+                        squeeze=False):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -73,10 +74,15 @@ def get_dfs_conn_trials(fp='obj7_fMRI', single=False):
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
-
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
+    if squeeze:
+        sn_roi_act = np.nanmean(sn_inc_activity, axis=1)
+        conn_trials = np.nanmean(conn_trials, axis=1)
+        sns = age2idxs[1] + age2idxs[2]
+        return sn_roi_act, conn_trials, sns
+
     if single:
         return conn_trials[[0]], [df_sns_l[0]]
     else:
@@ -172,8 +178,12 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     matrix_mask[~matrix_mask] = np.nan
 
     sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
+
+    diag = np.diag_indices(conn_trials.shape[3])
+    conn_trials[:, :, diag[0], diag[1], :] = np.nan
 
     sn_inc_act_M_p_d = np.nanmean(sn_inc_activity[:, :, p_d_pos, :], axis=(1, 2))
     sn_inc_act_M_a_d = np.nanmean(sn_inc_activity[:, :, p_d_ant, :], axis=(1, 2))
@@ -254,7 +264,7 @@ def vendor_lmer_Feb12(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,
                                 kwargs={'fp': fp, 'scrub': False,
                                         'anat': True},
-                                easy_override=False, cache_dir='cache')
+                                easy_override=True, cache_dir='cache')
     p_mem = get_memory_p()
     df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
     df = df.merge(df_mem, on=['sn', 'obj'], how='left')

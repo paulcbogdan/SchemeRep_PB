@@ -162,8 +162,8 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
     return atlas
 
 
-def get_BN_and_resample(combine_bilateral=False, new_space=True,
-                        shenyang=True):
+def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
+                        HCP=False):
     if new_space:
         fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
                  r'fMRI_in/102/Enc_rerun3/obj/' \
@@ -176,8 +176,18 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True,
     img = image.load_img(fp_ref)
     atlas = get_BN_atlas(combine_bilaterally=combine_bilateral,
                          shenyang=shenyang)
-    atlas['maps'] = image.resample_to_img(atlas['maps'], img,
-                                          interpolation='nearest')
+    if HCP:
+        affine = [[-2., 0., 0., 90.],
+                  [0., 2., 0., -126.],
+                  [0., 0., 2., -72.],
+                  [0., 0., 0., 1.]]
+        affine = np.array(affine)
+        atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
+                                           target_shape=(91, 109, 91),
+                                           interpolation='nearest')
+    else:
+        atlas['maps'] = image.resample_to_img(atlas['maps'], img,
+                                              interpolation='nearest')
     atlas['shenyang'] = shenyang
     # atlas['maps'].to_filename('test.nii')
     # print(atlas['maps'].shape)
@@ -314,10 +324,9 @@ def split_BNA(new_space=True, split_code='xyz'):
     return atlas_new
 
 
-def get_atlas(combine_regions=False, combine_bilateral=False,
-              split=False,
-              new_space=True, split_code='xyz', schaefer=False,
-              shenyang=True):
+def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
+              new_space=True, split_code='xyz', schaefer=False, shenyang=True,
+              HCP=False):
     if schaefer:
         atlas = get_Schaefer_atlas()
     elif split:
@@ -329,7 +338,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False,
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space,
-                                    shenyang=shenyang)
+                                    shenyang=shenyang, HCP=HCP)
     return atlas
 
 def org_BNA_coords():

@@ -29,17 +29,15 @@ def get_sn_rs(sn):
 def load_resting_data():
     age2sn = get_sns()
     sns = age2sn[1] + age2sn[2]
-    atlas = get_atlas()
     sn_roi_act = []
+    atlas = get_atlas()
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
+    ROIs = atlas['ROIs']
+    ROI_nums = atlas['ROI_nums']
+    ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading fMRI'):
-        # if sn in bad_rs_sns:
-        #     continue
         data = pickle_wrap(get_sn_rs, kwargs={'sn': sn})
-        ROIs = atlas['ROIs']
-        ROI_nums = atlas['ROI_nums']
-        ROI_regions = atlas['ROI_regions']
         ar = []
         for j, (ROI, ROI_num, region) in enumerate(
                 zip(ROIs, ROI_nums, ROI_regions)):
@@ -50,18 +48,6 @@ def load_resting_data():
         ar = np.array(ar)
         print(f'{sn} | {ar.shape=}')
         sn_roi_act.append(ar)
-        # corr = np.corrcoef(ar)
-        #
-        # plot_connectivity(corr,
-        #                   atlas['ticks'],
-        #                   atlas['tick_labels'],
-        #                   atlas['tick_lows'],
-        #                   no_avg=True,
-        #                   cbar_label='t-value')
-        #
-        #
-        #
-        # quit()
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
@@ -198,37 +184,20 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
-def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
-                     zscore=True):
-    sn_roi_act, sns = pickle_wrap(load_resting_data, easy_override=False)
-    sn_roi_act = sn_roi_act[:, :, 4:]  # bad trials to start?
+def load_act_conn(norm_std, f=None):
+    if f is None:
+        f = load_resting_data
+    sn_roi_act, sns = pickle_wrap(f, easy_override=False)
+    sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
     sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
-    sn_roi_act = normalize_std_over_time(sn_roi_act)
+    if norm_std: sn_roi_act = normalize_std_over_time(sn_roi_act)
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
+    return sn_roi_act, sns, conn_trials
 
-    # sn_roi_act = stats.rankdata(sn_roi_act, axis=2)
-    # conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
-
-    # sn_roi_act = np.random.normal(size=sn_roi_act.shape)
-    if high_var_confounds:
-        fp_pkl = rf'cache/high_var_conn_trials.pkl'
-        conn_trials = pickle_wrap(lambda: high_variance_conn_confounds(conn_trials),
-                                  fp_pkl, easy_override=True)
-    conn_trials = conn_trials[:, None, :, :, :]
-    diag = np.diag_indices(conn_trials.shape[3])
-    conn_trials[:, 0, diag[0], diag[1], :] = np.nan
-
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
-
-    p_d_ant = p_d_ant[:32]  # Making all equal length
-    p_d_pos = p_d_pos[:32]
-    p_v_ant = p_v_ant[:32]
-    p_v_pos = p_v_pos[:32]
-
+def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     ad_else = list(set(range(246)) - set(p_d_ant))
     pd_else = list(set(range(246)) - set(p_d_pos))
     av_else = list(set(range(246)) - set(p_v_ant))
@@ -258,6 +227,34 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
                (p_d_pos, no_match), (p_d_ant, no_match),
                (p_v_pos, no_match), (p_v_ant, no_match),
                (p_dorsal, no_match), (p_ventral, no_match)]
+    return conn_keys, conn_ps
+
+def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
+                     zscore=True, norm_std=True, f=None):
+    sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f)
+
+    # sn_roi_act = stats.rankdata(sn_roi_act, axis=2)
+    # conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
+
+    # sn_roi_act = np.random.normal(size=sn_roi_act.shape)
+    if high_var_confounds:
+        fp_pkl = rf'cache/high_var_conn_trials.pkl'
+        conn_trials = pickle_wrap(lambda: high_variance_conn_confounds(conn_trials),
+                                  fp_pkl, easy_override=True)
+    conn_trials = conn_trials[:, None, :, :, :]
+    diag = np.diag_indices(conn_trials.shape[3])
+    conn_trials[:, 0, diag[0], diag[1], :] = np.nan
+
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
+
+    p_d_ant = p_d_ant[:32]  # Making all equal length
+    p_d_pos = p_d_pos[:32]
+    p_v_ant = p_v_ant[:32]
+    p_v_pos = p_v_pos[:32]
+
+    conn_keys, conn_ps = prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos,
+                                      p_v_ant, p_v_pos)
     key2conn = {}
     for key, (p0, p1) in zip(conn_keys, conn_ps):
         key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
@@ -311,7 +308,11 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
     return df, conn_keys
 
 def analyze_vendor():
-    df, conn_keys = pickle_wrap(get_rs_vendor_df, easy_override=True)
+    df, conn_keys = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': False,
+                                                          'do_hemi': False,
+                                                          'zscore': False,
+                                'high_var_confounds': False},
+                                easy_override=False)
 
     hemis = get_interesting_hemi_cols()
 
@@ -350,12 +351,13 @@ def analyze_vendor():
     #            '(1 | sn)')
 
     # pd_else + ad_else +
+    #                'pd_no + ad_no + pv_no + av_no +' # pv_else + av_else +
 
-    formula = ('dd_vv ~ dv_dv + ' # dpva + vpda + 
-               'pd_no + ad_no + pv_no + av_no +' # pv_else + av_else + 
+    formula = ('vv ~ dv_ant + dv_pos + dd + ' # dpva + vpda +  dpva + vpda + 
+               'pd_no + ad_no + pv_else + av_else + ' # pv_else + av_else +  + pv_else + av_else +
                'FC_all + ' #  FC_all + 
                'dp + da + vp + va + '
-               '(1 + dv_dv | sn)') # + vv + dv_ant + dv_pos
+               '(1 + dv_ant + dv_pos | sn)') # + vv + dv_ant + dv_pos
 
     from pymer4 import Lmer
     model = Lmer(formula, data=df)

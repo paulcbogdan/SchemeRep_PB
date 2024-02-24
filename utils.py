@@ -11,6 +11,7 @@ from pickle import UnpicklingError
 import pandas as pd
 from nilearn import image
 import inspect
+import functools
 
 def regress_out(x, y):
     x = np.array(x)
@@ -314,15 +315,10 @@ def obj2str(val):
 
     return kwargs_str
 
-def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
-    if verbose: print(f'Making default filepath: {kwargs=}')
-    if args is not None:
-        args_str = '_'.join(args)
-    else:
-        args_str = ''
+def f2str(callback, kwargs=None):
     if kwargs is None:
         kwargs = {}
-    signature = inspect.signature(callback)
+    signature = inspect.signature(callback) # functools.partial impacts sig
     for k, v in signature.parameters.items():
         if v.default is v.empty: continue # exclude args, only want kwargs
         if k not in kwargs: kwargs[k] = v.default
@@ -331,10 +327,20 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
         for key in sorted(kwargs.keys()):
             val = kwargs[key]
             kwargs_str += obj2str(val)
-        kwargs_str = kwargs_str[:-1]  # remove last underscore
-    # else:
-    #     kwargs_str = ''
-    name = callback.__name__
+        kwargs_str = kwargs_str[:-1]
+    return kwargs_str
+
+def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
+    if verbose: print(f'Making default filepath: {kwargs=}')
+    if args is not None:
+        args_str = '_'.join(args)
+    else:
+        args_str = ''
+    kwargs_str = f2str(callback, kwargs)
+    if isinstance(callback, functools.partial):
+        name = callback.func.__name__
+    else:
+        name = callback.__name__
     func_dir = f'{cache_dir}/{name}'
     Path(func_dir).mkdir(parents=True, exist_ok=True)
     filepath = f'{func_dir}/{args_str}_{kwargs_str}.pkl'
