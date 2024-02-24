@@ -481,3 +481,7 @@ def run_two_sample_on_2D(ar0, ar1):
     t = (YA_M - OA_M) / both_se
     t[np.isnan(t)] = 0
     return t
+
+
+HCP_ROOT = r'F:\HCP_Preprocessing\HCP\HCP_WM_data'
+HCP_CACHE = r'E:\PycharmProjects_E\SchemeRep\cache\HCP_nii'

@@ -1,79 +1,39 @@
 import os
-from functools import partial
 
-from collections import defaultdict
+from LSS import get_LSS_img, load_motion
+from utils import HCP_ROOT, HCP_CACHE
+
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+from functools import partial
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from nilearn import image
 from nilearn.image import high_variance_confounds
-from scipy import linalg, stats as stats
 from tqdm import tqdm
 
-from analyze_rs import load_act_conn, get_rs_vendor_df
 from atlas_utils import get_atlas
 from fluctuations import get_df_networks, partial_corr_df
-from old.modularity import get_modules, get_partition_matrix
-from old.plot_gen import plot_connectivity
-from org_sns import get_sns
-from utils import pickle_wrap, stdize, f2str
-from vendor_lmers import get_module_cross_trialwise_z, get_module_trialwise_z
-from vendor_partitioning import get_vendor_partitions
-
-HCP_ROOT = r'F:\HCP_Preprocessing\HCP\HCP_WM_data'
-HCP_CACHE = r'E:\PycharmProjects_E\SchemeRep\cache\HCP_nii'
-from time import time
-
-# def get_LSS_imgs():
-
-def load_motion(sn, lr):
-    subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
-    fp_in = fr'{subj_dir}\tfMRI_WM_{lr}\tfMRI_WM_{lr}.nii'
-    fp_motion = fr'{subj_dir}\tfMRI_WM_{lr}\Movement_Regressors.txt'
-    motion = np.loadtxt(fp_motion)[:, :6]
-    add_reg_names = ["tx", "ty", "tz", "rx", "ry", "rz"]
-    df = pd.DataFrame(motion, columns=add_reg_names)
-    return df
 
 
-
-
-def get_sn_HCP(sn, lr, easy_override=False):
+def get_sn_HCP(sn, lr, easy_override=False, LSS=False):
+    if LSS:
+        return get_LSS_img(sn, lr, easy_override=easy_override)
     fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_clean.nii' # .nii are smaller than .pkl
     if os.path.isfile(fp_clean) and not easy_override:
         img = image.load_img(fp_clean)
         data = img.get_fdata()
         return data
-
     subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
     fp_in = fr'{subj_dir}\tfMRI_WM_{lr}\tfMRI_WM_{lr}.nii'
-
-    # t_st = time()
     img = image.load_img(fp_in)
-    # print(f'Load in {time() - t_st:.2f} s')
-    # t_st = time()
     img.get_fdata()
-    # print(f'Test get_fdata: {time() - t_st:.2f} s')
-    # t_st = time()
     confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
-
     motion_confounds = load_motion(sn, lr)
     confounds = pd.concat([confounds, motion_confounds], axis=1)
-    # print(f'Confound in {time() - t_st:.2f} s')
     img = image.clean_img(img, confounds=confounds)
-
-    # print(f'Clean in {time() - t_st:.2f} s')
-
-    # fp_test = r'E:\PycharmProjects_E\SchemeRep\test.nii'
     img.to_filename(fp_clean)
-
-
-    # print(f'{img.affine=}')
-    # print(f'{img.shape=}')
     data = img.get_fdata()
-
-
     return data
 
 def chop_data(data):
@@ -100,12 +60,20 @@ def chop_data(data):
     data_new = np.concatenate(data_new, axis=-1)
     return data_new
 
+def apply_HCP_mask(data, sn, lr):
+    subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
+    fp_mask = fr'{subj_dir}\tfMRI_WM_{lr}\brainmask_fs.2.nii.gz'
+    mask = image.load_img(fp_mask)
+    mask_data = mask.get_fdata()
+    data[mask_data < 0.5, :] = np.nan
+    return data
 
 
-def load_HCP_act(N=50, lr_only=True, do_chop=True):
+def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True):
     sns = os.listdir(HCP_ROOT)
     sns = sns[:N]
-    sns = sns[::-1]
+    # sns = sns[::-1]
+    # sns = sns[:5]
     sn_roi_act = []
     atlas = get_atlas(HCP=True)
     # print(f'{atlas["maps"].shape=}')
@@ -116,13 +84,20 @@ def load_HCP_act(N=50, lr_only=True, do_chop=True):
     ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading fMRI'):
         if lr_only:
-            data = get_sn_HCP(sn, 'LR', easy_override=False)
+            data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS)
             if do_chop:
                 data = chop_data(data)
+            if mask:
+                apply_HCP_mask(data, sn, 'LR')
+            # print(data)
+            # quit()
+            # plt.imshow(data[40, :, :, 0])
+            # plt.show()
+            # quit()
             # data = pickle_wrap(get_sn_HCP, kwargs={'sn': sn,
             #                                        'lr': 'LR'},
             #                    easy_override=False)
-            print(f'{sn=}, {data.shape=}')
+            # print(f'{sn=}, {data.shape=}')
         else:
             raise NotImplementedError
         ar = []
@@ -131,32 +106,39 @@ def load_HCP_act(N=50, lr_only=True, do_chop=True):
             # a = atlas['maps'].get_fdata()
             atlas_roi = atlas['maps'].get_fdata() == ROI_num
             region_vecs = data[atlas_roi]
+            # print(region_vecs)
             ts = np.nanmean(region_vecs, axis=0)
             ar.append(ts)
         ar = np.array(ar)
+        # quit()
         # print(f'{sn} | {ar.shape=}')
         sn_roi_act.append(ar)
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-def get_HCP_df(N=10):
-    f = partial(load_HCP_act, N=N, do_chop=True)
+def get_HCP_df(N=20):
+    f = partial(load_HCP_act, N=N, do_chop=False)
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
-    df, networks = get_df_networks(f=f)
-
-    print(df['FC_all'])
+    df, networks = get_df_networks(f=f, zscore=True)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
+    pd.set_option('display.max_rows', 1000)
+    # print(df[networks[:3]])
 
-    partial_corr_df(df, networks, cov=['FC_all', ])
+    # print(df[networks].corr())
+    # quit()
+
+    partial_corr_df(df, networks, cov=['FC_all', 'ad_no', 'pd_no',
+                                       'av_no', 'pv_no'])
     print('-'*10)
     partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])
 
 
 
 if __name__ == '__main__':
+    # TODO: brain mask
     get_HCP_df()
     quit()
     # get_HCP_df()

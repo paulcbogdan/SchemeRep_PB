@@ -11,7 +11,8 @@ import pingouin as pg
 
 import matplotlib.pyplot as plt
 from vendor_partitioning import get_vendor_partitions
-
+from analyze_rs import load_resting_data
+from functools import partial
 
 # TODO: set up windows backups
 
@@ -49,9 +50,17 @@ def get_network_partitions():
     return network2p
 
 
-def get_df_networks(fp='rs', norm_std=False, zscore=False, f=None):
+def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
     if f is not None:
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f)
+    elif fp == 'raw_enc':
+        f = partial(load_resting_data, raw_enc=True)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
+                                                     easy_override=False)
+    elif fp == 'pb_lss':
+        f = partial(load_resting_data, raw_enc=False, lss_enc=True)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
+                                                     easy_override=False)
     elif fp == 'rs':
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std)
     else:
@@ -59,6 +68,10 @@ def get_df_networks(fp='rs', norm_std=False, zscore=False, f=None):
             pickle_wrap(get_dfs_conn_trials, kwargs={'fp': fp, 'single': False,
                                                      'w_activity': True,
                                                      'squeeze': True})
+    # print(conn_trials.shape)
+    # plt.imshow(conn_trials[0, :, :].mean(axis=-1))
+    # plt.show()
+    # quit()
     # print(f'{sn_roi_act.shape=}')
     # print(f'{conn_trials.shape=}')
     # plt.imshow(sn_roi_act[0, :, :])
@@ -69,6 +82,7 @@ def get_df_networks(fp='rs', norm_std=False, zscore=False, f=None):
     key2conn = {}
     for network, p in network2p.items():
         key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
+
     networks = list(key2conn)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
@@ -102,23 +116,30 @@ def partial_corr_df(df, cols, cov):
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
             if i < j:
-                out = (pg.partial_corr(data=df, x=col_i, y=col_j, covar=cov).
-                       round(3))
+                # print(df[[col_i, col_j]])
+                try:
+                    out = (pg.partial_corr(data=df, x=col_i, y=col_j,
+                                           covar=cov).
+                           round(3))
+                except AssertionError:
+                    ar[i, j] = np.nan
+
                 ar[i, j] = out['r'].values[0]
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
     print(df_result)
 
 
-def analyze_networks(fp='obj7_fMRI'):
+def analyze_networks(fp='pb_lss'):
     df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
-                                                        'norm_std': True},
-                               easy_override=False)
+                                                        'norm_std': True,
+                                                        'zscore': True},
+                               easy_override=True)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
 
-    partial_corr_df(df, networks, cov=['FC_all'])
+    partial_corr_df(df, networks, cov=['FC_all', 'ad_no', 'pd_no'])
     print('-'*10)
     partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])
 

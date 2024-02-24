@@ -8,6 +8,7 @@ from nilearn.image import high_variance_confounds
 from scipy import linalg, stats as stats
 from tqdm import tqdm
 
+from LSS import get_LSS_img
 from atlas_utils import get_atlas
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
@@ -25,8 +26,22 @@ def get_sn_rs(sn):
     data = img.get_fdata()
     return data
 
+def get_sn_raw_enc(sn):
+    fp_in = fr'G:\SchemeRep_raw_data_dir_preproc\{sn}\ENC\BOLD_run1.nii'
+    try:
+        img = image.load_img(fp_in)
+    except ValueError:
+        return np.full((97, 115, 97, 276), np.nan)
+    confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
+    img = image.clean_img(img, confounds=confounds)
+    data = img.get_fdata()
+    return data
 
-def load_resting_data():
+def get_LSS_SchemeRep(sn, run=1):
+    data = get_LSS_img(sn, run, hcp=False)
+    return data
+
+def load_resting_data(raw_enc=False, lss_enc=False):
     age2sn = get_sns()
     sns = age2sn[1] + age2sn[2]
     sn_roi_act = []
@@ -36,9 +51,15 @@ def load_resting_data():
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
-    for sn in tqdm(sns, desc='Loading fMRI'):
-        data = pickle_wrap(get_sn_rs, kwargs={'sn': sn})
+    for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
+        if lss_enc:
+            data = pickle_wrap(get_LSS_SchemeRep, kwargs={'sn': sn})
+        elif raw_enc:
+            data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
+        else:
+            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn})
         ar = []
+
         for j, (ROI, ROI_num, region) in enumerate(
                 zip(ROIs, ROI_nums, ROI_regions)):
             atlas_roi = atlas['maps'].get_fdata() == ROI_num
@@ -184,10 +205,10 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
-def load_act_conn(norm_std, f=None):
+def load_act_conn(norm_std, f=None, easy_override=False):
     if f is None:
         f = load_resting_data
-    sn_roi_act, sns = pickle_wrap(f, easy_override=False)
+    sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override)
     sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
