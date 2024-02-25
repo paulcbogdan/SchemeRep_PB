@@ -17,6 +17,7 @@ from organize_bhv import get_trial_info
 from utils import pickle_wrap, stdize, load_ni_w_nan_fps
 from vendor_lmers import get_module_cross_trialwise_z, get_module_trialwise_z
 from vendor_partitioning import get_vendor_partitions
+import logging
 
 
 def get_sn_rs(sn, clean=False):
@@ -39,26 +40,31 @@ def get_sn_raw_enc(sn):
     data = img.get_fdata()
     return data
 
-def get_LSS_SchemeRep(sn, run=1, lsa=False):
+def get_LSS_SchemeRep(sn, run=1, lsa=False, easy_override=True):
     if sn in ['116', '125', '135', '138']:
         data = np.full((97, 115, 97, 38), np.nan)
     else:
-        data = get_LSS_img(sn, run, hcp=False, lsa=lsa)
+        data = get_LSS_img(sn, run, hcp=False, lsa=lsa, easy_override=easy_override)
     return data
 
 def sanity_load(sn):
     df_sn = get_trial_info(sn)
+    # print(df_sn[['obj_trial', 'obj']])
+    # quit()
     data, _ = load_ni_w_nan_fps(df_sn['obj7_fMRI'])
     # data = img.get_fdata()
     return data
 
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
                       sanity=False):
+
     age2sn = get_sns()
     if YA_only:
         sns = age2sn[1]
     else:
         sns = age2sn[1] + age2sn[2]
+    # sns = sns[:5]
+
     sn_roi_act = []
     atlas = get_atlas()
     bad_rs_sns = {'133'}
@@ -67,6 +73,7 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
+        logging.debug(f'{sn=}')
         if sanity:
             data = pickle_wrap(sanity_load, kwargs={'sn': sn})
         elif lss_enc:

@@ -66,7 +66,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
                                                      easy_override=True)
     elif fp == 'pb_lss':
-        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=False)
+        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=False,
+                    YA_only=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
                                                      easy_override=True)
     elif fp == 'rs':

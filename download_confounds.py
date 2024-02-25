@@ -3,14 +3,19 @@ import os
 from tqdm import tqdm
 import shutil
 
+from org_sns import get_sns
 
 if __name__ == '__main__':
     root = r'Z:\Cabeza\SchemRep.01\Data\fMRIprep_by_subject_out'
     dir_out = r'cache\confounds'
     sn_dirs = [sn for sn in Path(root).glob('sub-*') if sn.is_dir()]
     print(sn_dirs)
+    age2sns = get_sns()
+    good_sns = age2sns[1] + age2sns[2]
     for sn_dir in tqdm(sn_dirs, desc='Downloading BOLD'):
         sn = sn_dir.name.split('-')[1]
+        if sn not in good_sns:
+            continue
         print(sn)
         did_rs = False
         for sess in range(1, 4):
@@ -30,15 +35,19 @@ if __name__ == '__main__':
                         name = 'RVIS'
                 else:
                     raise ValueError
+                if name != 'ENC': continue
 
                 fp_fMRI = (sess_dir / 'func' /
-                           f'sub-{sn}_ses-{sess}_task-{name}_run-0{run}_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz')
-                dir_fMRI_out = fr'G:\SchemeRep_raw_data_dir_preproc\{sn}\{name}'
+                           f'sub-{sn}_ses-{sess}_task-{name}_run-0{run}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz')
+                dir_fMRI_out = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in_BOLD\{sn}\{name}'
                 dir_fMRI_out = Path(dir_fMRI_out)
                 dir_fMRI_out.mkdir(parents=True, exist_ok=True)
+                fp_fMRI_out = dir_fMRI_out / f'BOLD_run{run}.nii.gz'
+                if os.path.exists(fp_fMRI_out):
+                    continue
+
                 fMRI_exists = fp_fMRI.exists()
                 if fMRI_exists:
-                    fp_fMRI_out = dir_fMRI_out / f'BOLD_run{run}.nii.gz'
                     shutil.copyfile(fp_fMRI, fp_fMRI_out)
                 continue
 

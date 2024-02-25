@@ -16,6 +16,10 @@ from org_sns import get_sns
 from utils import HCP_CACHE, HCP_ROOT
 import matplotlib.pyplot as plt
 from copy import deepcopy
+import psutil
+import logging
+from scipy import io
+
 
 def lss_transformer(df, row_number):
     """Label one trial for one LSS model.
@@ -77,8 +81,11 @@ def block2trials(df, skip_rate=4):
     return df_new
 
 
-def get_LSS_img(sn, run, only_2bk=True, easy_override=False, skip_rate=4,
+def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
+                skip_rate=4,
                 hcp=True, lsa=False):
+
+
     if hcp:
         lsa_str = 'lsa' if lsa else 'lss'
         fp_lss = (fr'{HCP_CACHE}_lss\{sn}_{run}_{only_2bk}_{skip_rate}_'
@@ -90,6 +97,24 @@ def get_LSS_img(sn, run, only_2bk=True, easy_override=False, skip_rate=4,
         img = image.load_img(fp_lss)
         data = img.get_fdata()
         return data
+    process = psutil.Process()
+
+    rand_int = np.random.randint(0, 10000)
+    fp_log = fr"E:\PycharmProjects_E\SchemeRep\pb_crash_log_{rand_int}.log"
+    print(fp_log)
+    logging.basicConfig(filemode='w',
+        filename=fp_log,
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        datefmt='%m-%d %H:%M',
+        level=logging.DEBUG,)
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    # set a format which is simpler for console use
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # tell the handler to use this format
+    console.setFormatter(formatter)
+    # add the handler to the root logger
+    logging.getLogger().addHandler(console)
 
     if hcp:
         subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
@@ -117,42 +142,79 @@ def get_LSS_img(sn, run, only_2bk=True, easy_override=False, skip_rate=4,
     else:
         df_all = pd.read_csv(r'cache/trial_info_ENC.csv')
         df_sn = df_all[df_all['Subject'] == int(sn)]
+
         df_trials = df_sn[df_sn['Run'] == run]
-        df_trials = df_trials[['OnsetObj']]
-        df_trials.rename(columns={'OnsetObj': 'onset'}, inplace=True)
-        df_trials['duration'] = 1
+        df_copy = df_trials.copy()
+        df_copy['onset'] = df_copy['OnsetScene']
+        # df_copy['onset'] -= 2
+        df_trials['onset'] = df_trials['OnsetObj']
+        # df_trials['onset'] += 2
+        df_copy['duration'] = 3
+        df_copy = df_copy[['onset', 'duration']]
+        df_copy['trial_type'] = 'scn'
+        # df_copy['trial_type'] = 'obj'
+        df_trials['duration'] = 4
+        df_trials = df_trials[['onset', 'duration']]
         df_trials['trial_type'] = 'obj'
-        fp_in = fr'G:\SchemeRep_raw_data_dir_preproc\{sn}\ENC\BOLD_run{run}.nii'
+        df_trials = pd.concat([df_trials, df_copy], axis=0)
+        # df_trials = df_trials[['OnsetObj']]
+        # df_trials.rename(columns={'OnsetObj': 'onset'}, inplace=True)
+        # df_trials['duration'] = 4
+        sess2name = {1: 'BL', 2: 'ENC'}
+        sess_name = sess2name[sess]
+        fp_in = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in_BOLD\{sn}\{sess_name}\BOLD_run{run}.nii.gz'
+        MBs = process.memory_info().rss / 1024 / 1024
+        logging.debug(f'Loading BOLD image: {MBs=:.2f}')
         img = image.load_img(fp_in)
 
-        fp_confounds = rf'cache\confounds\102_2_{run}_confounds.tsv'
-        if not os.path.isfile(fp_confounds):
-            print(f'No confounds found ({sn}): {fp_confounds=}')
-            df_confounds = pd.DataFrame(high_variance_confounds(img, percentile=2))
-        else:
-            df_confounds = pd.read_csv(fp_confounds, delimiter='\t')
+        img = image.index_img(img, list(range(4, img.shape[-1])))
+        frame_times = np.arange(img.shape[-1]) * 2
 
-        nuisance_cols = ["global_signal", "white_matter", "csf",
+        dir_mat = r'E:\PycharmProjects_E\SchemeRep\nuisance_regressors'
+        fp_mat = fr'{dir_mat}\sub-{sn}_ses-{sess}_task-{sess_name}_run-0{run}_' \
+                    'desc-confounds_timeseries_use_univ.mat'
+
+        fp_confounds = rf'cache\confounds\102_{sess}_{run}_confounds.tsv'
+        if os.path.isfile(fp_confounds):
+            df_confounds = pd.read_csv(fp_confounds, delimiter='\t')
+            df_confounds = df_confounds.iloc[4:] #
+            confounds = ["global_signal", "white_matter", "csf",
                          "dvars", "framewise_displacement", "rmsd",
                          "trans_x", "trans_y", "trans_z", "rot_x",
                          "rot_y", "rot_z"]
-        df_confounds = df_confounds[nuisance_cols]
+            df_confounds = df_confounds[confounds]
+        elif False and os.path.isfile(fp_mat):
+            mat_enc = io.loadmat(fp_mat)
+            names = [name[0] for name in mat_enc['names'][0]]
+            df_confounds = pd.DataFrame(mat_enc['R'], columns=names)
+        else:
+            print(f'No confounds found ({sn}): {fp_confounds=}')
+            df_confounds = pd.DataFrame(high_variance_confounds(img,
+                                                                percentile=2))
 
-        frame_times = np.arange(img.shape[-1]) * 2
-        num_vols = img.shape[-1]
-        sample_masks = list(range(2, num_vols))
-    sample_masks = np.array(sample_masks)
+        # sample_masks = list(range(2, num_vols))
+    # sample_masks = np.array(sample_masks)
     df_trials.reset_index(drop=True, inplace=True)
     num_nans = df_confounds.isna().sum().sum()
+
     # print(f'Number of nans in df_confounds: {num_nans=}')
     # print(f'{df_confounds.isna()=}')
     # for col in df_confounds.columns:
     #     num_nans = df_confounds[col].isna().sum()
     #     print(f'{col=}, {num_nans=}')
+    # print(f'{len(df_trials)=}')
+    # quit()
 
 
     assert num_nans < 10, f'df_confounds: {num_nans=}'
     df_confounds.fillna(0, inplace=True)
+    print(f'Running beta-models: {lsa=}')
+
+
+
+    logging.debug(f'Running beta-models ({sn}): {lsa=}')
+    # print(img.shape)
+    # quit()
 
     # print(len(df_trials))
     # quit()
@@ -161,64 +223,116 @@ def get_LSS_img(sn, run, only_2bk=True, easy_override=False, skip_rate=4,
     # return
     # print(f'{len(df_trials)=}')
     # quit()
+
+    # log = open(r"E:\PycharmProjects_E\SchemeRep\pb_crash_log.log", "a")
+
+
     if lsa:
         condition_counter = defaultdict(lambda: 0)
         for i_trial, trial in df_trials.iterrows():
             trial_condition = trial["trial_type"]
+            if 'scn' in trial_condition: continue
+
             condition_counter[trial_condition] += 1
             trial_name = f"{trial_condition}__{condition_counter[trial_condition]:03d}"
             df_trials.loc[i_trial, "trial_type"] = trial_name
+        # print(df_trials['trial_type'].value_counts())
+        # quit()
 
+        MBs = process.memory_info().rss / 1024 / 1024
+        logging.debug(f'Making design matrix: {MBs=:.2f}')
         X1 = make_first_level_design_matrix(
             frame_times,
             df_trials,
-            drift_model="polynomial",
-            drift_order=3,
+            # drift_model="polynomial",
+            # drift_order=3,
             add_regs=df_confounds,
-            hrf_model='glover',
+            hrf_model='spm + derivative  + dispersion',  #
         )
         # plot_design_matrix(X1)
         # plt.show()
-        # quiT()
-        glm = FirstLevelModel()
-        glm = glm.fit(img, design_matrices=X1, sample_masks=sample_masks)
+        # quit()
+
+        MBs = process.memory_info().rss / 1024 / 1024
+        logging.debug(f'Making first level model: {MBs=:.2f}')
+        glm = FirstLevelModel(slice_time_ref=0.5, t_r=2.0,
+                              signal_scaling=(0, 1), high_pass=1/128,
+                              minimize_memory=True,
+                              verbose=100)
+        MBs = process.memory_info().rss / 1024 / 1024
+        logging.debug(f'Fitting first level model: {MBs=:.2f}')
+        glm = glm.fit(img, design_matrices=X1)
+        MBs = process.memory_info().rss / 1024 / 1024
+        logging.debug(f'Succesfully fit: {MBs=:.2f}')
         del X1
         betas = []
         for i_trial, trial in df_trials.iterrows():
             trial_name = trial["trial_type"]
+            if 'obj__' not in trial_name:
+                continue
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Onto trial {i_trial}, {trial}: {MBs=:.2f}')
+
             # print(f'Commute contrast: {i_trial} | {trial_name}')
             beta_map = glm.compute_contrast(trial_name,
                                             output_type='effect_size')
-            # betas.append(beta_map.get_fdata()[..., 0])
 
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Getting beta map fdata {beta_map.shape=}: {MBs=:.2f}')
             beta = beta_map.get_fdata()[..., 0]
             del beta_map
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Making a deep copy: {MBs=:.2f}')
             betas.append(deepcopy(beta))
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Appended beta deepcopy: {MBs=:.2f}')
     else:
         betas = []
         for i in tqdm(range(len(df_trials)), desc=f'Cooking LSS: {sn}',
                       position=0, leave=True):
-            print(f'{i=}')
+            # print(f'{i=}')
             df_trial, i_name = lss_transformer(df_trials, i)
+            print(f'{i_name=}')
+            if 'obj__' not in i_name:
+                continue
 
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Onto trial {i}, {i_name}: {MBs=:.2f}')
+
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Making design matrix: {MBs=:.2f}')
             X1 = make_first_level_design_matrix(
                 frame_times,
                 df_trial,
-                drift_model="polynomial",
-                drift_order=3,
+                # drift_model="polynomial",
+                # drift_order=3,
                 add_regs=df_confounds,
-                hrf_model='glover',
+                hrf_model='spm + derivative + dispersion', #
             )
-            glm = FirstLevelModel(memory=r'cache\nilearn_memory',
-                                  memory_level=1)
-            glm = glm.fit(img, design_matrices=X1, sample_masks=sample_masks)
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Making first level model: {MBs=:.2f}')
+            glm = FirstLevelModel(slice_time_ref=0.5, t_r=2.0,
+                                  signal_scaling=(0, 1), high_pass=1/128,
+                                  minimize_memory=True,
+                                  verbose=100)
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Fitting first level model: {MBs=:.2f}')
+            glm = glm.fit(img, design_matrices=X1)
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Computing contrast: {MBs=:.2f}')
             beta_map = glm.compute_contrast(i_name,
                                             output_type='effect_size')
             del glm
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Getting beta map fdata {beta_map.shape=}: {MBs=:.2f}')
             beta = beta_map.get_fdata()[..., 0]
             del beta_map
             del X1
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Making a deep copy: {MBs=:.2f}')
             betas.append(deepcopy(beta))
+            MBs = process.memory_info().rss / 1024 / 1024
+            logging.debug(f'Appended beta deepcopy: {MBs=:.2f}')
 
     betas = np.array(betas)
     betas = np.transpose(betas, (1, 2, 3, 0))
@@ -241,20 +355,22 @@ def load_motion(sn, lr):
     return df
 
 if __name__ == '__main__':
-    run = 1
-    fp =  rf'cache\confounds\104_2_{run}_confounds.tsv'
-    df = pd.read_csv(fp, delimiter='\t')
-    print(plt.plot(df['global_signal']))
-    plt.show()
-    # print(df)
-    quit()
+    # run = 1
+    # fp =  rf'cache\confounds\104_2_{run}_confounds.tsv'
+    # df = pd.read_csv(fp, delimiter='\t')
+    # print(plt.plot(df['global_signal']))
+    # plt.show()
+    # # print(df)
+    # quit()
 
     age2sns = get_sns()
     sns = age2sns[1] + age2sns[2]
     for sn in sns:
         print(f'{sn=}')
         if sn in ['116', '125', '135']: continue
+
         try:
+            # get_LSS_img(sn, 1, hcp=False, lsa=False, easy_override=False)
             get_LSS_img(sn, 1, hcp=False, lsa=True, easy_override=False)
         except ValueError as e:
             print(f'({sn}), {e=}')
