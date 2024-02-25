@@ -24,8 +24,21 @@ def get_sn_rs(sn, clean=False):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
     if clean:
-        confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
-        img = image.clean_img(img, confounds=confounds)
+        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
+        fp_mask = fr'{dir_mask}\{fn_mask}'
+
+        fp_in = fr'E:\PycharmProjects_E\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
+        df_confounds = pd.read_csv(fp_in, delimiter='\t')
+        df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
+        img = image.index_img(img, slice(4, None))
+        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+        df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        # print('oooo')
+        img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+                              standardize=False, t_r=2, mask_img=fp_mask)
+        # print('ook')
+        # quit()
     data = img.get_fdata()
     return data
 
@@ -40,11 +53,22 @@ def get_sn_raw_enc(sn):
     data = img.get_fdata()
     return data
 
-def get_LSS_SchemeRep(sn, run=1, lsa=False, easy_override=True):
+def get_LSS_SchemeRep(sn, run=1, lsa=False, easy_override=False):
     if sn in ['116', '125', '135', '138']:
         data = np.full((97, 115, 97, 38), np.nan)
     else:
         data = get_LSS_img(sn, run, hcp=False, lsa=lsa, easy_override=easy_override)
+    data_mask = sanity_load(sn)
+
+    data_bads = np.isnan(data_mask)[..., :data.shape[-1]]
+    num_nans = np.sum(data_bads[..., 0])
+    print(f'{sn}, {num_nans=}')
+    data[data_bads] = np.nan
+
+    # print(data_mask.shape)
+    # print(data.shape)
+    # # quit()
+
     return data
 
 def sanity_load(sn):
@@ -63,12 +87,15 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
         sns = age2sn[1]
     else:
         sns = age2sn[1] + age2sn[2]
-    # sns = sns[:5]
+
+    # if (lss_enc and not lsa) or sanity:
+    #     sns = sns[10:15]
 
     sn_roi_act = []
     atlas = get_atlas()
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
+    print(f'{sns=}')
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
@@ -77,13 +104,15 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
         if sanity:
             data = pickle_wrap(sanity_load, kwargs={'sn': sn})
         elif lss_enc:
-            data = pickle_wrap(get_LSS_SchemeRep, kwargs={'sn': sn,
-                                                          'lsa': lsa},
-                               easy_override=False)
+            data = get_LSS_SchemeRep(sn, lsa=lsa, easy_override=False)
+            # data = pickle_wrap(get_LSS_SchemeRep, kwargs={'sn': sn,
+            #                                               'lsa': lsa},
+            #                    easy_override=True)
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
-            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn})
+            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True})
+
         ar = []
 
         for j, (ROI, ROI_num, region) in enumerate(
@@ -224,7 +253,7 @@ def load_act_conn(norm_std, f=None, easy_override=False):
     if f is None:
         f = load_resting_data
     sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override)
-    sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
+    # sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
     sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)

@@ -16,7 +16,8 @@ from atlas_utils import get_atlas
 from fluctuations import get_df_networks, partial_corr_df
 
 
-def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=True,
+
+def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
                clean_confounds=False):
     if LSS:
         return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
@@ -29,11 +30,28 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=True,
     subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
     fp_in = fr'{subj_dir}\tfMRI_WM_{lr}\tfMRI_WM_{lr}.nii'
     img = image.load_img(fp_in)
-    img.get_fdata()
-    confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
-    motion_confounds = load_motion(sn, lr)
-    confounds = pd.concat([confounds, motion_confounds], axis=1)
-    img = image.clean_img(img, confounds=confounds)
+    img = image.index_img(img, slice(4, None))
+
+    # img.get_fdata()
+    # confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
+    # motion_confounds = load_motion(sn, lr)
+    # confounds = pd.concat([confounds, motion_confounds], axis=1)
+    # img = image.clean_img(img, confounds=confounds)
+
+    dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+    fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
+    fp_mask = fr'{dir_mask}\{fn_mask}'
+
+
+    df_confounds = load_motion(sn, 'lr')  # TODO: compcor not used previously
+    df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
+
+    df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+    df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+
+    img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+                          standardize=False, t_r=.72, mask_img=fp_mask)
+
     img.to_filename(fp_clean)
     data = img.get_fdata()
     return data
@@ -82,6 +100,7 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
     # print(f'{atlas["maps"].shape=}')
     # print(atlas['maps'].affine)
     # quit()
+
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
@@ -89,10 +108,11 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
         if lr_only:
             data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                               LSA=LSA, clean_confounds=clean_confounds)
+
             if do_chop:
                 data = chop_data(data)
-            if mask:
-                apply_HCP_mask(data, sn, 'LR')
+            # if mask and not LSS:
+            #     apply_HCP_mask(data, sn, 'LR')
             # print(data)
             # quit()
             # plt.imshow(data[40, :, :, 0])
@@ -104,6 +124,7 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
             # print(f'{sn=}, {data.shape=}')
         else:
             raise NotImplementedError
+
         ar = []
         for j, (ROI, ROI_num, region) in enumerate(
                 zip(ROIs, ROI_nums, ROI_regions)):
@@ -120,9 +141,9 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-def get_HCP_df(N=20):
+def get_HCP_df(N=15):
     f = partial(load_HCP_act, N=N, do_chop=False, clean_confounds=False,
-                LSS=True, mask=True, LSA=True)
+                LSS=False, mask=False, LSA=False)
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = get_df_networks(f=f, zscore=True)
 
@@ -143,8 +164,4 @@ def get_HCP_df(N=20):
 
 
 if __name__ == '__main__':
-    # TODO: brain mask
     get_HCP_df()
-    quit()
-    # get_HCP_df()
-    load_HCP_act()

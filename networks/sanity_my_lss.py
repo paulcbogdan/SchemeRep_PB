@@ -11,8 +11,8 @@ import pandas as pd
 if __name__ == '__main__':
     pd.set_option('display.max_rows', 100)
 
-    data0 = sanity_load('102')
-    data1 = get_LSS_SchemeRep('102', lsa=False)
+    data0 = sanity_load('103')
+    data1 = get_LSS_SchemeRep('103', lsa=False)
     # data0 = get_LSS_SchemeRep('102', lsa=False)
 
     print(data0.shape)

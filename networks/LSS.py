@@ -20,6 +20,8 @@ import psutil
 import logging
 from scipy import io
 
+# import sys
+# sys.stderr = open('E:\PycharmProjects_E\SchemeRep\stderr.txt', 'w')
 
 def lss_transformer(df, row_number):
     """Label one trial for one LSS model.
@@ -82,9 +84,7 @@ def block2trials(df, skip_rate=4):
 
 
 def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
-                skip_rate=4,
-                hcp=True, lsa=False):
-
+                skip_rate=4, hcp=True, lsa=False):
 
     if hcp:
         lsa_str = 'lsa' if lsa else 'lss'
@@ -101,7 +101,6 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
 
     rand_int = np.random.randint(0, 10000)
     fp_log = fr"E:\PycharmProjects_E\SchemeRep\pb_crash_log_{rand_int}.log"
-    print(fp_log)
     logging.basicConfig(filemode='w',
         filename=fp_log,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -115,7 +114,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     console.setFormatter(formatter)
     # add the handler to the root logger
     logging.getLogger().addHandler(console)
-
+    logging.debug(f'Running LSS: {sn=}, {run=}, {hcp=}, {lsa=}')
     if hcp:
         subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
         fp_in = fr'{subj_dir}\tfMRI_WM_{run}\tfMRI_WM_{run}.nii'
@@ -137,9 +136,14 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
             df_events = df_events.loc[df_events['trial_type'] == '2bk']
         df_trials = block2trials(df_events, skip_rate=skip_rate)
         frame_times = np.arange(405) * .72
-        num_vols = img.shape[-1]
-        sample_masks = list(range(num_vols))
+        fp_mask = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results\tfMRI_WM_LR\brainmask_fs.2.nii.gz'
+
+        # num_vols = img.shape[-1]
+        # sample_masks = list(range(num_vols))
     else:
+        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
+        fp_mask = fr'{dir_mask}\{fn_mask}'
         df_all = pd.read_csv(r'cache/trial_info_ENC.csv')
         df_sn = df_all[df_all['Subject'] == int(sn)]
 
@@ -174,7 +178,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
         fp_mat = fr'{dir_mat}\sub-{sn}_ses-{sess}_task-{sess_name}_run-0{run}_' \
                     'desc-confounds_timeseries_use_univ.mat'
 
-        fp_confounds = rf'cache\confounds\102_{sess}_{run}_confounds.tsv'
+        fp_confounds = rf'cache\confounds\{sn}_{sess}_{run}_confounds.tsv'
         if os.path.isfile(fp_confounds):
             df_confounds = pd.read_csv(fp_confounds, delimiter='\t')
             df_confounds = df_confounds.iloc[4:] #
@@ -247,7 +251,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
             # drift_model="polynomial",
             # drift_order=3,
             add_regs=df_confounds,
-            hrf_model='spm + derivative  + dispersion',  #
+            hrf_model='spm + derivative + dispersion',  #
         )
         # plot_design_matrix(X1)
         # plt.show()
@@ -255,9 +259,10 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
 
         MBs = process.memory_info().rss / 1024 / 1024
         logging.debug(f'Making first level model: {MBs=:.2f}')
-        glm = FirstLevelModel(slice_time_ref=0.5, t_r=2.0,
+        glm = FirstLevelModel(slice_time_ref=0.5, t_r=.72 if hcp else 2.0,
                               signal_scaling=(0, 1), high_pass=1/128,
                               minimize_memory=True,
+                              mask_img=fp_mask,
                               verbose=100)
         MBs = process.memory_info().rss / 1024 / 1024
         logging.debug(f'Fitting first level model: {MBs=:.2f}')
@@ -290,15 +295,15 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
         betas = []
         for i in tqdm(range(len(df_trials)), desc=f'Cooking LSS: {sn}',
                       position=0, leave=True):
-            # print(f'{i=}')
+
             df_trial, i_name = lss_transformer(df_trials, i)
             print(f'{i_name=}')
-            if 'obj__' not in i_name:
-                continue
-
             MBs = process.memory_info().rss / 1024 / 1024
             logging.debug(f'Onto trial {i}, {i_name}: {MBs=:.2f}')
-
+            if ('obj__' not in i_name) and ('2bk__' not in i_name):
+                continue
+            # print('test')
+            # quit()
             MBs = process.memory_info().rss / 1024 / 1024
             logging.debug(f'Making design matrix: {MBs=:.2f}')
             X1 = make_first_level_design_matrix(
@@ -311,9 +316,10 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
             )
             MBs = process.memory_info().rss / 1024 / 1024
             logging.debug(f'Making first level model: {MBs=:.2f}')
-            glm = FirstLevelModel(slice_time_ref=0.5, t_r=2.0,
+            glm = FirstLevelModel(slice_time_ref=0.5, t_r=.72 if hcp else 2.0,
                                   signal_scaling=(0, 1), high_pass=1/128,
                                   minimize_memory=True,
+                                  mask_img=fp_mask,
                                   verbose=100)
             MBs = process.memory_info().rss / 1024 / 1024
             logging.debug(f'Fitting first level model: {MBs=:.2f}')
@@ -333,6 +339,8 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
             betas.append(deepcopy(beta))
             MBs = process.memory_info().rss / 1024 / 1024
             logging.debug(f'Appended beta deepcopy: {MBs=:.2f}')
+    MBs = process.memory_info().rss / 1024 / 1024
+    logging.debug(f'Done! {MBs=:.2f}')
 
     betas = np.array(betas)
     betas = np.transpose(betas, (1, 2, 3, 0))
@@ -341,8 +349,10 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     beta_img = image.new_img_like(img, betas)
     # beta_img = image.concat_imgs(betas)
     beta_img.to_filename(fp_lss)
+    MBs = process.memory_info().rss / 1024 / 1024
+    logging.debug(f'saved: {MBs=:.2f}')
     data = beta_img.get_fdata()
-    print(f'{data.shape=}')
+    print(f'Betas img shape: {data.shape}')
     return data
 
 
