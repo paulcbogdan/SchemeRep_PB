@@ -113,6 +113,11 @@ def vendor_lmer_BL_resp(fp='bl7_fMRI'):
     formula = ('va ~ vp * da * dp + '
                '(1  | sn)')
 
+    # kinda ok: va~vp*da*dp+(1+vp*da*dp|sn)
+
+    formula = ('va ~ vp * dd + da + dp + '
+               '(1  | sn)')
+
     from pymer4 import Lmer
     cols = get_formula_cols(df, formula)
     df_vals = df[cols].dropna()
