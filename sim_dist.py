@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 from analyze_rs import get_rs_vendor_df
 from fluctuations import get_df_networks, partial_corr_df
 from utils import pickle_wrap
+import os
+import pandas as pd
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+from scipy.spatial import distance
 
 
 def sim_second_order_corr(r=-.5):
@@ -31,7 +35,16 @@ def sim_second_order_corr(r=-.5):
     print(f'{r_yz=:.2f}')
 
 
-
+def euc(a, b):
+    # dist = distance.euclidean(a, b)
+    dif = a - b
+    dif = np.mean(np.abs(dif))
+    # print()
+    # print(f'{a=}')
+    # print(f'{b=}')
+    # print(dist)
+    # quit()
+    return dif
 
 if __name__ == '__main__':
     # sim_second_order_corr()
@@ -51,11 +64,13 @@ if __name__ == '__main__':
 
     df['da_dp'] = df['da'] + df['dp']
     df['va_vp'] = df['va'] + df['vp']
-    print(df[['da', 'dp', 'va', 'vp']].corr())
+    # print(df[['da', 'dp', 'va', 'vp', 'da_dp', 'va_vp']].corr(euc))
+
+
+
     # cov = [[1.0, -0.14, -0.48],
     #        [-0.14, 1.0, -0.21],
     #        [-0.48, -0.21, 1.0]]
-
 
     cov[0][1] = 0
     cov[0][2] = 0
@@ -66,15 +81,24 @@ if __name__ == '__main__':
     cov[2][0] = 0
     cov[3][1] = 0
     cov[3][2] = 0
-
+    #
     cov[2][1] = 0
     cov[1][2] = 0
 
+    cov = np.zeros((4, 4))
+    # cov[0][3] = -0.5
+    # cov[3][0] = -0.5
+    cov[1][2] = -0.5
+    cov[2][1] = -0.5
+
     print(cov)
+
+    # cov = np.zeros((4, 4))
+    cov[np.diag_indices_from(cov)] = 1
 
     da, dp, va, vp = np.random.multivariate_normal([0, 0, 0, 0],
                                                    cov,
-                                                   10_000).T
+                                                   100_000).T
 
     # stats.pearsonr()
 
@@ -86,7 +110,11 @@ if __name__ == '__main__':
 
     ar = np.array([dd, vv, dv_ant, dv_pos])
     print('-*- sim -*-')
-    print(np.corrcoef(ar))
+    df_ar = pd.DataFrame(ar.T, columns=['dd', 'vv', 'dv_ant', 'dv_pos'])
+    # print(np.corrcoef(ar))
+
+    cov_ar = df_ar[['dd', 'vv', 'dv_ant', 'dv_pos']].corr()
+    print(cov_ar)
 
     # vv_dv_ant, _ = stats.pearsonr(vv, dv_ant)
     # print(f'Sim: {vv_dv_ant=:.3f}')
@@ -100,9 +128,10 @@ if __name__ == '__main__':
     dd_vv = dd + vv
     dv_dv = dv_ant + dv_pos
 
-    print('----')
     r, _ = stats.pearsonr(dd_vv, dv_dv)
     print(f'Sim: {r=:.3f}')
+    print()
+    print('----')
 
     df['dd_vv'] = df['dd'] + df['vv']
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
@@ -110,8 +139,16 @@ if __name__ == '__main__':
     r, _ = stats.pearsonr(df_cols['dd_vv'], df_cols['dv_dv'])
     print(f'Actual: {r=:.3f}')
 
+
     cov_network = df[['dd', 'vv', 'dv_ant', 'dv_pos']].corr()
     print(cov_network)
+    print()
+    print('-- control FC_all --')
+
+    partial_corr_df(df, ['dd', 'vv', 'dv_ant', 'dv_pos',
+                         'dd_vv', 'dv_dv'],
+                    cov=['FC_all'])
+
 
     # partial_corr_df(df, ['dd', 'vv', 'dv_ant', 'dv_pos',
     #                      'dd_vv', 'dv_dv'],

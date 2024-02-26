@@ -151,6 +151,9 @@ def partial_corr_df(df, cols, cov):
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
+            if (col_i.split('_')[0] in col_j or
+                    col_j.split('_')[0] in col_i):
+                continue
             if i < j:
                 # print(df[[col_i, col_j]])
                 try:
@@ -161,6 +164,7 @@ def partial_corr_df(df, cols, cov):
                     ar[i, j] = np.nan
 
                 ar[i, j] = out['r'].values[0]
+                ar[j, i] = ar[i, j]
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
     print(df_result)
 

@@ -82,27 +82,51 @@ def vendor_lmer_BL_resp(fp='bl7_fMRI'):
 
     #  FC_all * task +
 
-    df = df[df['task'] == 'RS']
+    # df = df[df['task'] == 'RS']
 
-    df['dp_va'] = df['dp'] * df['va']
-    df['dp_va'] = stats.zscore(df['dp_va'], nan_policy='omit')
-    df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
+    # df = df[df['vp'] > 0]
+    # df = df[df['dp'] > 0]
+    # df = df[df['dd'] > 0]
+    # df = df[df['vv'] > 0]
 
-    formula = ('dv_pos ~ vv * task + '
+    df['dd'] = df['dd'] * (df['dp'] + df['da']) / 2
+    df['vv'] = df['vv'] * (df['vp'] + df['va']) / 2
+
+    cols = ['da', 'dp', 'va', 'vp', 'dd', 'vv']
+    for col in cols:
+        df[col] = stats.zscore(df[col], nan_policy='omit')
+        df[f'{col}2'] = df[col]
+
+    formula = ('dd ~ vv*task + FC_all +'
                '(1 | sn)')
 
 
-    formula = ('dv_pos ~ vv * dp_va + '
-               '(1 + vv * dp_va | sn)')
+    #
+    df = df[df['task'] != 'RS']
+    #
+    # # formula = 'va ~ da * dp * vp + (1 + da * dp * vp | sn)'
+    for col in cols:
+        df = df[df[col].abs() < 5]
+    for col in cols:
+        df[col] = stats.zscore(df[col], nan_policy='omit')
 
-    # formula = ('dp ~ va * task + '
-    #            '(1 | sn)')
+    formula = ('va ~ vp * da * dp + '
+               '(1  | sn)')
 
-    # formula = ('dv_pos ~ dd + FC_all + '
-    #            '(1 + dd + FC_all | sn)')
+    from pymer4 import Lmer
+    cols = get_formula_cols(df, formula)
+    df_vals = df[cols].dropna()
+    for col in cols:
+        if 'sn' in col or 'task' in col: continue
+        df_vals[col] = stats.zscore(df_vals[col])
+    model = Lmer(formula, data=df_vals)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+    quit()
 
-    # formula = ('dd_vv ~ dv_dv * task +'
-    #            '(1 | sn)')
+    # df['M'] = df['da'] + df['va'] + df['dp'] + df['vp']
+
+    formula = 'da ~ va * dp * vp + FC_all + task + (1 + va * dp * vp | sn)'
 
     from pymer4 import Lmer
     cols = get_formula_cols(df, formula)

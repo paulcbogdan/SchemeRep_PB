@@ -82,18 +82,25 @@ def vendor_lmer_BL_resp(fp='bl7_fMRI'):
 
     #  FC_all * task +
 
-    df = df[df['task'] == 'RS']
+    # df = df[df['task'] == 'RS']
 
     df['dp_va'] = df['dp'] * df['va']
     df['dp_va'] = stats.zscore(df['dp_va'], nan_policy='omit')
+    df['da_vp'] = df['da'] * df['vp']
+    df['da_vp'] = stats.zscore(df['da_vp'], nan_policy='omit')
+
     df['vv'] = stats.zscore(df['vv'], nan_policy='omit')
+    df['dd'] = stats.zscore(df['dd'], nan_policy='omit')
 
     formula = ('dv_pos ~ vv * task + '
                '(1 | sn)')
 
+    # However, this is only the case for RS
+    # formula = ('dv_pos ~ vv * dp_va + '
+    #            '(1 + vv * dp_va | sn)')
 
-    formula = ('dv_pos ~ vv * dp_va + '
-               '(1 + vv * dp_va | sn)')
+    formula = ('dv_pos ~ dd * da_vp + '
+               '(1 + dd * da_vp | sn)') # sum of dd + da_vp = dd:da_vp coef
 
     # formula = ('dp ~ va * task + '
     #            '(1 | sn)')
