@@ -67,11 +67,16 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
                     replace('4', '').replace('7', '')
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
-            ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
+            try:
+                ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=regionwise,
                                      easy_override=False,
                                      combine_regions=combine_regions)
+            except TypeError as e:
+                print(f'Error missing files ({sn}):', e)
+                quit()
+                # ROI2vecs0
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:
                     ROI2act[ROI].append(ROI2vecs0[ROI])

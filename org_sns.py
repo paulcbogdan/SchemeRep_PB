@@ -20,7 +20,7 @@ def get_bad_sns_fp(fp):
     elif 'bl' in fp:
         bad_sns = {'212'}
     elif 'vis' in fp:
-        bad_sns = {'116', '125', '215', '133',} #  '213', '138'
+        bad_sns = {'116', '125', '215', '133', '213',} #   '138'
     elif 'con' in fp:
         # TODO: add 231 back to CON after shenyang preprocesses it
         bad_sns = {'116', '125',  '133', '215', '231'}

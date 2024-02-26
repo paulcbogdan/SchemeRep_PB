@@ -20,9 +20,6 @@ import psutil
 import logging
 from scipy import io
 
-# import sys
-# sys.stderr = open('E:\PycharmProjects_E\SchemeRep\stderr.txt', 'w')
-
 def lss_transformer(df, row_number):
     """Label one trial for one LSS model.
 
@@ -359,8 +356,9 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
 def load_motion(sn, lr):
     subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
     fp_motion = fr'{subj_dir}\tfMRI_WM_{lr}\Movement_Regressors.txt'
-    motion = np.loadtxt(fp_motion)[:, :6]
-    add_reg_names = ["tx", "ty", "tz", "rx", "ry", "rz"]
+    motion = np.loadtxt(fp_motion)[:, :12]
+    add_reg_names = ["tx", "ty", "tz", "rx", "ry", "rz",
+                     "dtx", "dty", "dtz", "drx", "dry", "drz"]
     df = pd.DataFrame(motion, columns=add_reg_names)
     return df
 

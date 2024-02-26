@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from vendor_partitioning import get_vendor_partitions
 from analyze_rs import load_resting_data
 from functools import partial
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 # TODO: set up windows backups
 
@@ -87,7 +89,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
     elif fp == 'rs':
         print('load act conn')
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True)
+                                                     easy_override=True,
+                                                     )
     else:
         sn_roi_act, conn_trials, sns = \
             pickle_wrap(get_dfs_conn_trials, kwargs={'fp': fp, 'single': False,
@@ -118,6 +121,13 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
                                                      p0, p1)
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials[:, None],
                                                 list(range(246)))
+
+    act_keys = ['dp', 'da', 'vp', 'va']
+    act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
+    key2p_M = {}
+    for key, p in zip(act_keys, act_p):
+        key2p_M[key] = np.nanmean(sn_roi_act[:, p, :], axis=1)
+
     df_as_d = defaultdict(list)
     n_TRs = sn_roi_act.shape[-1]
     for i, sn in enumerate(sns):
@@ -126,6 +136,11 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
             if zscore: vals = stats.zscore(vals)
             df_as_d[key].extend(vals)
             n_TRs = len(vals)
+        for key, M in key2p_M.items():
+            vals = M[i, :]
+            if zscore: vals = stats.zscore(vals)
+            df_as_d[key].extend(vals)
+
         df_as_d['sn'].extend([sn] * n_TRs)
     df = pd.DataFrame(df_as_d)
     networks += ['dd', 'vv', 'dv_ant', 'dv_pos']
@@ -154,17 +169,51 @@ def analyze_networks(fp='rs'):
     df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
                                                         'norm_std': False,
                                                         'zscore': True},
-                               easy_override=True)
+                               easy_override=False)
+
+    # conn_keys = ['dd', 'vv',
+    #              'dv_ant', 'dv_pos',
+    #              'dpva', 'vpda',
+    #              ]
+
+    # for key in conn_keys:
+    #     M = df[key].mean()
+    #     print(f'{key}: {M=:.4f}')
+    # quit()
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', 1000)
     pd.set_option('display.max_rows', 1000)
 
+
+    df['da_dp'] = df['da'] + df['dp']
+    df['va_vp'] = df['va'] + df['vp']
+
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+
+    # networks += ['da_dp', 'va_vp', 'dd_vv', 'dv_dv']
+
+    print(df[networks].corr())
+    print('--------------')
+
+    # I need to zscore lest i deal with outliers.
+    #   Otherwise, must drop extremes
     partial_corr_df(df, networks, cov=['FC_all'])
     print('-'*10)
+    quit()
+
+
     partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv',
                                        'dv_ant', 'dv_pos'])
+
+    from pymer4.models import Lmer
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    model = Lmer('dd_vv ~ dv_dv + FC_all + (1 | sn)', data=df)
+    model.fit(REML=True, verbose=False, summary=True)
+    print(model.summary())
 
 if __name__ == '__main__':
     analyze_networks()

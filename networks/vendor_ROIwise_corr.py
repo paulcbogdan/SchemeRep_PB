@@ -12,7 +12,9 @@ from utils import get_formula_cols
 import numpy as np
 
 # def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
-def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='da'):
+# def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='vp'):
+# def do_vendor_ROIwise(fp='rs', base='vv', exclude='va', seed='va'):
+def do_vendor_ROIwise(fp='rs', base='dv_pos', exclude='va', seed='dp'):
 
     if fp == 'rs':
         df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': True,
@@ -53,7 +55,7 @@ def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='da'):
 
     # when I regress {seed}_else that essentially makes everything seed relative
     #   to the effect with everything else
-    formula_gen = ('{base} ~ 1 + {seed_roi} + FC_all + {seed}_noise') #  + {seed}_else
+    formula_gen = ('{base} ~ 1 + {seed_roi} + FC_all') #  + {seed}_else
 
     for i in range(246):
         seed_roi = f'{seed}_{i}'
@@ -69,10 +71,7 @@ def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='da'):
         res = model.fit()
         t = res.tvalues.loc[f'{seed_roi}']
         scores.append(t)
-        # print(res.summary())
-        # quit()
-        # r, p = stats.pearsonr(df_[base], df_[seed_roi])
-        # scores.append(r*100)
+
 
     score = np.array(scores)
     print(f'Min score: {np.min(score)} | max: {np.max(score)}')
@@ -81,15 +80,30 @@ def do_vendor_ROIwise(fp='rs', base='dd', exclude='va', seed='da'):
         scores /= factor
         print(f'Factor divide: {factor}')
 
-    # plt.hist(scores)
-    # plt.show()
-    # quit()
     atlas = get_atlas()
     my_plot_surf(scores, atlas, f'{fp}: {formula}',
                  neg='',
                  thresh=2, vmax=50)
 
-
+    scores = []
+    formula_ctrl = ('vp ~ 1 + {seed_roi}') #  + {seed}_else  + FC_all
+    for i in range(246):
+        seed_roi_M = f'M_{i}'
+        # print(df[seed_roi_M])
+        formula = formula_ctrl.format(seed_roi=seed_roi_M)
+        cols = get_formula_cols(df, formula)
+        df_ = df[cols].dropna()
+        # print(df_)
+        model = smf.ols(formula=formula, data=df_)
+        res = model.fit()
+        # print(res.summary())
+        # quit()
+        t = res.tvalues.loc[f'{seed_roi_M}']
+        scores.append(t)
+    atlas = get_atlas()
+    my_plot_surf(scores, atlas, f'{fp}: {formula_ctrl}',
+                 neg='',
+                 thresh=2, vmax=50)
 
 
 def get_ROIwise_df():

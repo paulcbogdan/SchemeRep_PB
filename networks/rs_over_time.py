@@ -1,3 +1,9 @@
+import os
+
+from fluctuations import get_df_networks
+
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 from analyze_rs import get_rs_vendor_df
 from atlas_utils import get_atlas
 from old.plot_gen import my_plot_surf
@@ -25,34 +31,122 @@ def regress_out_FC_all(df, key='dd_vv'):
     return df
 
 def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
-    df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': True,
-                                                          'do_hemi': False,
-                                                          'zscore': False,
-                                'high_var_confounds': True},
+    df, vndr_cols = pickle_wrap(get_rs_vendor_df,
+                                kwargs={'roiwise': True, 'zscore': True,
+                                        'norm_std': True, 'YA_only': False,
+                                        'high_var_confounds': False},
                                 easy_override=False)
+
+    # df, vndr_cols = pickle_wrap(get_vendor_df, None,
+    #                             kwargs={'fp': 'obj7_fMRI',
+    #                                     'scrub': False,
+    #                                     'anat': True,
+    #                                     'roiwise': False},
+    #                             easy_override=False, cache_dir='cache')
+
+    # df, networks = pickle_wrap(get_df_networks, kwargs={'fp': 'obj7_fMRI',
+    #                                                     'norm_std': False,
+    #                                                     'zscore': False},
+    #                            easy_override=False)
+    # #
+    conn_keys = ['dd', 'vv',
+                 'dv_ant', 'dv_pos',
+                 'dpva', 'vpda',
+                 ]
+    #
+    # df['da_dp'] = df['da'] + df['dp']
+    # df['va_vp'] = df['va'] + df['vp']
+    # print(df[['da_dp', 'va_vp']].corr())
+    # quit()
+
+    # print(df)
+
+    # 'dp',
+    print(df[['da', 'dp', 'va', 'vp']].corr())
+    print(np.array(df[['da', 'dp', 'va', 'vp']].corr()))
+    #
+    # print(df[['dv_ant', 'vv']].corr())
+    # # print(df[['dv_pos', 'dd']].corr())
+    #
+    quit()
+    #
+    #
+    # df['dd_dv_pos'] = df['dd'] * df['dv_pos']
+    # conn_keys += ['dd_dv_pos']
+    #
+    # for key in conn_keys:
+    #
+    #     M = df[key].mean()
+    #     SD = df[key].std()
+    #     # M /= SD
+    #
+    #     print(f'{key}: {M=:.4f} ({SD:.4f})')
+    #
+    # quit()
+
+
+
+    # df = df[df['dd'].abs() < 5]
+    # df = df[df['vv'].abs() < 5]
+
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    df['age'] = df['sn'].map(lambda x: int(x[0]))
+    # df = df[df['age'] > 1.5]
+
+    bad_sns = {'116', '117', '130', '232'}
+    df = df[~df['sn'].isin(bad_sns)]
+
     for sn, df_sn in df.groupby('sn'):
-        t = list(range(206))
+        t = list(range(len(df_sn)))
         df.loc[df_sn.index, 'rs_trial'] = t
+    #     r, p = stats.spearmanr(df_sn['dd_vv'], df_sn['dv_dv'])
+    #     # print(f'{r=:.3f}')
+    #     if r > -.3:
+    #         plt.title(f'{r=:.2f} ({sn})')
+    #         plt.plot(df_sn['dd_vv'])
+    #         plt.plot(df_sn['dv_dv'])
+    #         plt.show()
+    #         quit()
+    # quit()
+    #     plt.title(sn)
+    #     plt.show()
+    # quit()
+        # quit()
 
     keys = ['dd_vv', 'FC_all', 'dp', 'dv_dv', 'dd', 'vv']
     for key in keys:
         add_prev(df, key, 'rs')
         add_prev(df, f'{key}_prev', 'rs')
         add_prev(df, f'{key}_prev_prev', 'rs')
+        add_prev(df, f'{key}_prev_prev_prev', 'rs')
+
 
     df.dropna(subset=['dd_vv_prev_prev_prev'], inplace=True)
-    print(len(df))
-    formula = ('FC_all ~ 1 + '
-               'FC_all_prev + FC_all_prev_prev + FC_all_prev_prev_prev + '
-               'FC_all_prev')
-    # formula = ('dp ~ 1 + '
-    #            'dp_prev + dp_prev_prev + dp_prev_prev_prev')
+    # print(len(df))
+    # formula = ('dd_vv ~ 1 + '
+    #            'dd_vv_prev + dd_vv_prev_prev + dd_vv_prev_prev_prev')
+    # model = smf.ols(formula=formula, data=df[cols])
+    # res = model.fit()
+    # print(res.summary())
+    formula = ('dd_vv ~ dd_vv_prev + dd_vv_prev_prev + '
+               'dd_vv_prev_prev_prev + dd_vv_prev_prev_prev_prev + (1 | sn)')
+
+    formula = ('dd ~ dv_pos + (1 | sn)')
+
     cols = get_formula_cols(df, formula)
-    for col in cols:
-        df[col] = stats.zscore(df[col])
-    model = smf.ols(formula=formula, data=df[cols])
-    res = model.fit()
-    print(res.summary())
+    print(df[cols])
+    # print('------')
+    # for col in cols:
+    #     if col == 'sn': continue
+    #
+    #     df[col] = stats.zscore(df[col], nan_policy='omit')
+    #
+    # print(df[cols])
+    from pymer4.models import Lmer
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=True)
+    print(model.summary())
 
 
 if __name__ == '__main__':

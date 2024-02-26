@@ -505,9 +505,9 @@ def get_trial_info_(sn, ret=True):
                  'per_inc_str': per_inc_str,
                  'per_inc14': per_inc14,
                  'per_inc14_str': per_inc14_str,
-                    'inc_match': inc_match,
-                    'inc_match14': inc_match14,
-                    'inc_match14_strict': inc_match14_strict,
+                 'inc_match': inc_match,
+                 'inc_match14': inc_match14,
+                 'inc_match14_strict': inc_match14_strict,
                  }
             df_sn_as_l.append(d)
     df_sn = pd.DataFrame(df_sn_as_l)
@@ -852,6 +852,9 @@ def include_BL(df_sn, sn):
         df_sn['bl7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
+    df_sn['bl_resp'] = df_sn['bl_resp'].apply(
+        lambda x: x[0] if isinstance(x, np.ndarray) else x)
+
     return df_sn
 
 

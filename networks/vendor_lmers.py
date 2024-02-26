@@ -157,7 +157,7 @@ def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
 @timing
 @cache
 def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
-                  hemis=True, roiwise=False):
+                  hemis=True, roiwise=False, zscore=True):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -165,7 +165,8 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
               'get_df_sn': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
@@ -246,7 +247,8 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
         new_cols = list(set(df_sn.columns) - old_cols)
         all_new_cols.update(new_cols)
         for col in new_cols:
-            df_sn[col] = stats.zscore(df_sn[col], nan_policy='omit')
+            if zscore:
+                df_sn[col] = stats.zscore(df_sn[col], nan_policy='omit')
     df_sns = pd.concat(df_sns_l)
     df_sns['age'] = df_sns['sn'].apply(lambda x: int(x[0]))
 

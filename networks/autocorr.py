@@ -15,7 +15,8 @@ def test_vendor_corr(fp='obj7_fMRI', plot=True, hemi=True, scrub=False,
                      anat=True):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,
                                 kwargs={'fp': fp, 'scrub': scrub, 'anat': anat,
-                                                             'hemis': hemi}, easy_override=False, cache_dir='cache')
+                                        'hemis': hemi}, easy_override=False,
+                                cache_dir='cache')
 
     names = ['dd', 'vv', 'dv_ant', 'dv_pos',
              'pd_M', 'ad_M', 'pv_M', 'av_M']

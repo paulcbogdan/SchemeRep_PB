@@ -35,6 +35,8 @@ def get_sn_rs(sn, clean=False):
         df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
         df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
         # print('oooo')
+        if int(sn) in [221, 222]:
+            fp_mask = None
         img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
                               standardize=False, t_r=2, mask_img=fp_mask)
         # print('ook')
@@ -79,7 +81,7 @@ def sanity_load(sn):
     # data = img.get_fdata()
     return data
 
-def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
+def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                       sanity=False):
 
     age2sn = get_sns()
@@ -111,7 +113,8 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=True,
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
-            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True})
+            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True},
+                               easy_override=False)
 
         ar = []
 
@@ -179,14 +182,6 @@ def normalize_std_over_time(sn_roi_act):
     return sn_roi_act
 
 
-def measure_trialwise_dFC_M():
-    pass
-
-
-def measure_trialwise_M_FC():
-    pass
-
-
 def get_key2conn_hemi(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     atlas = get_atlas()
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos,}
@@ -249,10 +244,11 @@ def do_modularity_hemi(df):
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
                           no_avg=True, title='', vmin=0, vmax=1)
 
-def load_act_conn(norm_std, f=None, easy_override=False):
+def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False):
     if f is None:
         f = load_resting_data
-    sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override)
+    sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override,
+                                  kwargs={'YA_only': YA_only})
     # sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
@@ -295,8 +291,9 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     return conn_keys, conn_ps
 
 def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
-                     zscore=True, norm_std=True, f=None):
-    sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f)
+                     zscore=True, norm_std=True, f=None, YA_only=False):
+    sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
+                                                 YA_only=YA_only)
 
     # sn_roi_act = stats.rankdata(sn_roi_act, axis=2)
     # conn_trials = np.abs(sn_roi_act[..., None, :] - sn_roi_act[..., None, :, :])
@@ -349,6 +346,7 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
                 key2conn[f'{quad}_{i}'] = \
                     get_module_cross_trialwise_z(conn_trials, [i],
                                                  quad2p[quad])
+            key2p_M[f'M_{i}'] = sn_roi_act[:, i, :]
 
 
     df_as_d = defaultdict(list)

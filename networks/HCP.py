@@ -1,4 +1,5 @@
 import os
+import time
 
 from LSS import get_LSS_img, load_motion
 from utils import HCP_ROOT, HCP_CACHE
@@ -32,25 +33,25 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
     img = image.load_img(fp_in)
     img = image.index_img(img, slice(4, None))
 
+
     # img.get_fdata()
     # confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
     # motion_confounds = load_motion(sn, lr)
     # confounds = pd.concat([confounds, motion_confounds], axis=1)
     # img = image.clean_img(img, confounds=confounds)
 
-    dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
-    fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
-    fp_mask = fr'{dir_mask}\{fn_mask}'
+    if clean_confounds:
+        fp_mask = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results\tfMRI_WM_LR\brainmask_fs.2.nii.gz'
+        mask_exist = os.path.isfile(fp_mask)
+        print(f'{mask_exist=} | {fp_mask=}')
+        df_confounds = load_motion(sn, 'lr')  # TODO: compcor not used previously
+        df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
 
+        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+        df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
 
-    df_confounds = load_motion(sn, 'lr')  # TODO: compcor not used previously
-    df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
-
-    df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-    df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
-
-    img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
-                          standardize=False, t_r=.72, mask_img=fp_mask)
+        img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+                              standardize=True, t_r=.72, mask_img=fp_mask)
 
     img.to_filename(fp_clean)
     data = img.get_fdata()
@@ -106,11 +107,17 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
     ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading fMRI'):
         if lr_only:
-            data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
-                              LSA=LSA, clean_confounds=clean_confounds)
+            try:
+                data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
+                                  LSA=LSA, clean_confounds=clean_confounds,)
+            except ValueError as e:
+                print(f'{sn=}, {e=}')
+                time.sleep(5)
+                data = get_sn_HCP(sn, 'RL', easy_override=False, LSS=LSS,
+                                  LSA=LSA, clean_confounds=clean_confounds,)
 
-            if do_chop:
-                data = chop_data(data)
+            # if do_chop:
+            #     data = chop_data(data)
             # if mask and not LSS:
             #     apply_HCP_mask(data, sn, 'LR')
             # print(data)
@@ -141,9 +148,9 @@ def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-def get_HCP_df(N=15):
-    f = partial(load_HCP_act, N=N, do_chop=False, clean_confounds=False,
-                LSS=False, mask=False, LSA=False)
+def get_HCP_df(N=25):
+    f = partial(load_HCP_act, N=N, do_chop=False, clean_confounds=True,
+                LSS=True, mask=False, LSA=False)
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = get_df_networks(f=f, zscore=True)
 
@@ -156,8 +163,8 @@ def get_HCP_df(N=15):
     # print(df[networks].corr())
     # quit()
 
-    partial_corr_df(df, networks, cov=['FC_all', 'ad_no', 'pd_no',
-                                       'av_no', 'pv_no'])
+    partial_corr_df(df, networks, cov=['FC_all', ]) # 'ad_no', 'pd_no',
+                                      # 'av_no', 'pv_no'
     print('-'*10)
     partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])
 
