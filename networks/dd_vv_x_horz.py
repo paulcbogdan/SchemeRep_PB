@@ -51,13 +51,24 @@ def do_dd_vv_x_horz(fp='rs'):
     df['vendor'] = df['dd_vv'] - df['dv_dv']
     df['alt'] = df['dd'] - df['vv'] + df['dv_ant'] - df['dv_pos']
 
-    df = df[df['task'] == 'OBJ']
-    df['abs_horz'] = df['horz'].abs()
-    df['da2'] = df['da']
-    df['dp2'] = df['dp']
-    df['horz'] = stats.zscore(df['horz'], nan_policy='omit')
-    formula = ('dp ~ 1 + da*horz + inc + '
-               '(1 + da*horz + inc | sn)')
+    df = df[df['task'] == 'BL']
+    # df = df[df['task'] == 'RS']
+
+    # df['abs_horz'] = df['horz'].abs()
+    # df['da2'] = df['da']
+    # df['dp2'] = df['dp']
+    # df['horz'] = stats.zscore(df['horz'], nan_policy='omit')
+    df['inc'] = df['inc'].astype(float) - 2
+    df.dropna(subset=['bl_resp', 'horz', 'dd_vv'], inplace=True)
+    df['bl_resp'] = df['bl_resp'].apply(lambda x: x[0])
+    # print(df['bl_resp'])
+    # quit()
+
+    formula = ('bl_resp ~ 1 + horz + dd_vv +'
+               '(1 + horz + dd_vv | sn)')
+    # print(df['inc'])
+    # formula = (' ~ 1 + inc_str  + '
+    #            '(1 + inc_str | sn)')
     from pymer4.models import Lmer
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
