@@ -14,6 +14,8 @@ from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 from utils import pickle_wrap, stdize
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
@@ -694,9 +696,11 @@ if __name__ == '__main__':
     kwargs = {'fp': 'obj7_fMRI',
               'split': False,
               'key': 'inc',
-              'key_vals': (1, 3),
+              'key_vals': (1, 2, 3),
               }
     cache_dir = r'E:\PycharmProjects_E\SchemeRep\cache'
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity_ = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir=cache_dir)
-    get_main_partitions(sn_inc_conn, plot=True)
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir=cache_dir)
+    get_main_partitions(sn_inc_conn, plot=True,
+                        dir_out_full=f'result_pics\classic_modules')
