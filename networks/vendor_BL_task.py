@@ -25,14 +25,17 @@ def get_all_task_vendor(zscore=True, scrub=True):
     for fp in fps:
         if fp == 'rs' and not scrub:
             df, networks = pickle_wrap(get_df_networks,
-                                       kwargs={'fp': 'rs', 'norm_std': False,
+                                       kwargs={'fp': 'rs',
+                                               'norm_std': False,
                                                'zscore': zscore},
                                        easy_override=False)
             df['task'] = 'RS'
         elif fp != 'rs':
             df, vndr_cols = pickle_wrap(get_vendor_df, None,
-                                        kwargs={'fp': fp, 'scrub': scrub,
-                                                'zscore': zscore, 'anat': True},
+                                        kwargs={'fp': fp,
+                                                'scrub': scrub,
+                                                'zscore': zscore,
+                                                'anat': True},
                                         easy_override=False)
             df['task'] = fp.split('_')[0][:-1].upper()
         df_l.append(df)
