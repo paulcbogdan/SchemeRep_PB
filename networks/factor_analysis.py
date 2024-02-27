@@ -210,7 +210,9 @@ def state_test(df):
         # quit()
         formula = f'is_{state} ~ 1 + inc'
 
-        formula = f'inc ~ 1 + horz + dd_vv + sn'
+        df['abs_horz'] = np.abs(df['horz'])
+
+        formula = f'dd_vv ~ 1 + horz'
         # df.dropna(subset=[f'is_{state}', 'inc'], inplace=True)
         # print(df[['inc', f'is_{state}']])
         # quit()
