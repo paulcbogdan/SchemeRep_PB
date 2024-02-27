@@ -13,94 +13,16 @@ import scipy.stats as stats
 
 from vendor_lmers import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
-from statannotations.Annotator import Annotator
+# from statannotations.Annotator import Annotator
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 import statsmodels.formula.api as smf
 
-def activity_partition_4bar(fp='obj7_fMRI', anat=True, ):
-    kwargs = {'fp': fp,
-              'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 2, 3),
-              }
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=anat, flip=True, thr=.9,
-                              scrub=False)
 
-    ps = [p_d_ant, p_d_pos, p_v_ant, p_v_pos]
-    names = ['DP', 'DA', 'VP', 'VA']
-    vals = []
-    partitions = []
-    sn = []
-    incs = []
-    for i in range(sn_inc_activity.shape[1]):
-        for p, name in zip(ps, names):
-            print(sn_inc_activity.shape)
-            vals += list(np.nanmean(sn_inc_activity[:, i, p, :], axis=(1, 2)))
-            partitions += [name] * len(sn_inc_activity)
-            incs += [i] * len(sn_inc_activity)
-            sn += list(range(len(sn_inc_activity)))
-
-    df = pd.DataFrame({'vals': vals, 'partition': partitions, 'sn': sn,
-                       'inc': incs})
-    for name in names:
-        df.loc[df['partition'] == name, 'vals'] = (
-            stats.zscore(df.loc[df['partition'] == name, 'vals']))
-    df['inc'] = df['inc'].map({0: 'Inc', 1: 'Neu', 2: 'Con'})
-    # print(df)
-    # df_pivot = df.pivot_table(index=['sn'],
-    #                           columns=['inc', 'partition'],
-    #                           values='vals', aggfunc='mean')
-    # print(df_pivot)
-
-    plot_params = {
-        # 'data': df_agg,
-        'y': 'vals',
-        'x': 'inc',
-        'hue': 'partition',
-        'hue_order': names,
-        'kind': 'bar'
-    }
-
-    print(df)
-
-    g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
-                    hue=plot_params['hue'],
-                    data=df,
-                    kind='bar',  # ci='sd',
-                    errwidth=1.5, edgecolor='k',
-                    capsize=0.1, height=4, alpha=0.5, linewidth=.7,
-                    palette=sns.color_palette())
-
-    # g.map(sns.stripplot, plot_params["x"], plot_params["y"],
-    #       plot_params["hue"],
-    #       hue_order=plot_params["hue_order"],  # order=plot_params["order"],
-    #       palette=sns.color_palette(), dodge=True, alpha=0.15,
-    #       linewidth=1)
-
-    pairs = [[('Inc', c), ('Con', c)] for c in names]
-    # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
-    plt.ylim(-1, 1)
-
-    print(f'{pairs=}')
-    ax = plt.gca()
-    # subset the table otherwise the stats were calculated on the whole dataset
-    annot = Annotator(ax, pairs, **plot_params,
-                      data=df)
-    annot.configure(test='t-test_paired', text_format='simple',
-                    show_test_name=False, verbose=2)
-    annot.apply_and_annotate()
-    plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
-
-    plt.show()
-
-
-def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=True, weighted=False):
+def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False,
+                        weighted=False):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -220,7 +142,6 @@ def plot_con_vs_inc(df_agg):
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()
         key = cond_set[0]
-        print(res.pvalues)
         p_reg = res.pvalues.iloc[-1]#f'inc_num:within_between[T.{key}]']
 
 
@@ -258,15 +179,15 @@ def plot_con_vs_inc(df_agg):
         pairs = [[('Inc', c), ('Con', c)] for c in cond_set]
         # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
 
-        print(f'{pairs=}')
+        # print(f'{pairs=}')
         ax = plt.gca()
                 # subset the table otherwise the stats were calculated on the whole dataset
-        annot = Annotator(ax, pairs, **plot_params,
-                          data=df_set)
-        annot.configure(test='t-test_paired', text_format='simple',
-                        show_test_name=False, verbose=2)
-        # annot.apply_test().annotate()
-        annot.apply_and_annotate()
+        # annot = Annotator(ax, pairs, **plot_params,
+        #                   data=df_set)
+        # annot.configure(test='t-test_paired', text_format='simple',
+        #                 show_test_name=False, verbose=2)
+        # # annot.apply_test().annotate()
+        # annot.apply_and_annotate()
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
         # plt.xlim(-.5, 1.5)
         plt.xlabel('')

@@ -90,8 +90,8 @@ def apply_HCP_mask(data, sn, lr):
     return data
 
 
-def load_HCP_act(N=50, lr_only=True, do_chop=False, LSS=True, mask=True,
-                 LSA=True, clean_confounds=True):
+def load_HCP_act(N=50, lr_only=True, LSS=False,
+                 LSA=False, clean_confounds=True):
     sns = os.listdir(HCP_ROOT)
     sns = sns[:N]
     # sns = sns[::-1]

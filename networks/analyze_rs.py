@@ -354,7 +354,8 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
     for i, sn in enumerate(sns):
         for key, conn in key2conn.items():
             vals = conn[i, :]
-            if zscore: vals = stats.zscore(vals)
+            if zscore:
+                vals = stats.zscore(vals)
             df_as_d[key].extend(vals)
         if do_hemi:
             for key, conn in key2conn_hemi.items():
@@ -363,7 +364,10 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
                 df_as_d[key].extend(vals)
         for key, M in key2p_M.items():
             vals = M[i, :]
+            if sn == '138':
+                print(f'{key=}, {vals=}')
             if zscore: vals = stats.zscore(vals)
+
             df_as_d[key].extend(vals)
 
         df_as_d['sn'].extend([sn] * n_TRs)

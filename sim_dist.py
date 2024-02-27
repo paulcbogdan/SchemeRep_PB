@@ -64,7 +64,11 @@ if __name__ == '__main__':
 
     df['da_dp'] = df['da'] + df['dp']
     df['va_vp'] = df['va'] + df['vp']
-    # print(df[['da', 'dp', 'va', 'vp', 'da_dp', 'va_vp']].corr(euc))
+    print(df[['da', 'dp', 'va', 'vp', ]].corr())
+    # M = df['dv_pos'].mean()
+    # print(f'{M=:.4f}')
+    #
+    # quit()
 
 
 
@@ -72,26 +76,26 @@ if __name__ == '__main__':
     #        [-0.14, 1.0, -0.21],
     #        [-0.48, -0.21, 1.0]]
 
-    cov[0][1] = 0
-    cov[0][2] = 0
-    cov[1][3] = 0
-    cov[2][3] = 0
-
-    cov[1][0] = 0
-    cov[2][0] = 0
-    cov[3][1] = 0
-    cov[3][2] = 0
+    # cov[0][1] = 0
+    # cov[0][2] = 0
+    # cov[1][3] = 0
+    # cov[2][3] = 0
     #
-    cov[2][1] = 0
-    cov[1][2] = 0
+    # cov[1][0] = 0
+    # cov[2][0] = 0
+    # cov[3][1] = 0
+    # cov[3][2] = 0
+    # #
+    # cov[2][1] = 0
+    # cov[1][2] = 0
 
-    cov = np.zeros((4, 4))
-    # cov[0][3] = -0.5
-    # cov[3][0] = -0.5
-    cov[1][2] = -0.5
-    cov[2][1] = -0.5
-
-    print(cov)
+    # cov = np.zeros((4, 4))
+    # # cov[0][3] = -0.5
+    # # cov[3][0] = -0.5
+    # # cov[1][2] = -0.5
+    # # cov[2][1] = -0.5
+    #
+    # print(cov)
 
     # cov = np.zeros((4, 4))
     cov[np.diag_indices_from(cov)] = 1
@@ -111,19 +115,9 @@ if __name__ == '__main__':
     ar = np.array([dd, vv, dv_ant, dv_pos])
     print('-*- sim -*-')
     df_ar = pd.DataFrame(ar.T, columns=['dd', 'vv', 'dv_ant', 'dv_pos'])
-    # print(np.corrcoef(ar))
 
     cov_ar = df_ar[['dd', 'vv', 'dv_ant', 'dv_pos']].corr()
     print(cov_ar)
-
-    # vv_dv_ant, _ = stats.pearsonr(vv, dv_ant)
-    # print(f'Sim: {vv_dv_ant=:.3f}')
-    #
-    # dd_dv_pos, _ = stats.pearsonr(dd, dv_pos)
-    # print(f'Sim: {dd_dv_pos=:.3f}')
-    #
-    # dd_vv, _ = stats.pearsonr(dd, vv)
-    # print(f'Sim: {dd_vv=:.3f}')
 
     dd_vv = dd + vv
     dv_dv = dv_ant + dv_pos

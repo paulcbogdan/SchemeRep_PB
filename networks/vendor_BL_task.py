@@ -19,19 +19,19 @@ import os
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-def get_all_task_vendor(zscore=True,):
+def get_all_task_vendor(zscore=True, scrub=True):
     fps = ['bl7_fMRI', 'con7_fMRI', 'rs', 'vis7_fMRI', 'obj7_fMRI']
     df_l = []
     for fp in fps:
-        if fp == 'rs':
+        if fp == 'rs' and not scrub:
             df, networks = pickle_wrap(get_df_networks,
                                        kwargs={'fp': 'rs', 'norm_std': False,
                                                'zscore': zscore},
                                        easy_override=False)
             df['task'] = 'RS'
-        else:
+        elif fp != 'rs':
             df, vndr_cols = pickle_wrap(get_vendor_df, None,
-                                        kwargs={'fp': fp, 'scrub': False,
+                                        kwargs={'fp': fp, 'scrub': scrub,
                                                 'zscore': zscore, 'anat': True},
                                         easy_override=False)
             df['task'] = fp.split('_')[0][:-1].upper()
@@ -89,8 +89,8 @@ def vendor_lmer_BL_resp(fp='bl7_fMRI'):
     # df = df[df['dd'] > 0]
     # df = df[df['vv'] > 0]
 
-    df['dd'] = df['dd'] * (df['dp'] + df['da']) / 2
-    df['vv'] = df['vv'] * (df['vp'] + df['va']) / 2
+    # df['dd'] = df['dd'] * (df['dp'] + df['da']) / 2
+    # df['vv'] = df['vv'] * (df['vp'] + df['va']) / 2
 
     cols = ['da', 'dp', 'va', 'vp', 'dd', 'vv']
     for col in cols:
@@ -102,21 +102,29 @@ def vendor_lmer_BL_resp(fp='bl7_fMRI'):
 
 
     #
-    df = df[df['task'] != 'RS']
+    # df = df[df['task'] == 'BL']
     #
     # # formula = 'va ~ da * dp * vp + (1 + da * dp * vp | sn)'
     for col in cols:
-        df = df[df[col].abs() < 5]
+        df.loc[df[col].abs() < 5, col] = (
+                np.sign(df.loc[df[col].abs() < 5, col]) * 5)
+
     for col in cols:
         df[col] = stats.zscore(df[col], nan_policy='omit')
 
-    formula = ('va ~ vp * da * dp + '
+    formula = ('vp ~ dp * dd + da + va +'
+               '(1 + dp * dd + da + va | sn)')
+
+    # formula = ('da ~ va * vv + vp + dp +'
+    #            '(1 + va * vv + vp + dp | sn)')
+
+    formula = ('dv_pos ~ dd + va * vp * da * dp +'
                '(1  | sn)')
 
     # kinda ok: va~vp*da*dp+(1+vp*da*dp|sn)
 
-    formula = ('va ~ vp * dd + da + dp + '
-               '(1  | sn)')
+    # formula = ('va ~ vp * dd + da + dp + '
+    #            '(1  | sn)')
 
     from pymer4 import Lmer
     cols = get_formula_cols(df, formula)

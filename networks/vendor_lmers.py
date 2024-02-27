@@ -17,10 +17,12 @@ from utils import timing, pickle_wrap, stdize, get_formula_cols
 import scipy.stats as stats
 from warnings import filterwarnings
 import os
+import statsmodels.formula.api as smf
 
 os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
 
 filterwarnings('ignore', category=UserWarning)
+filterwarnings('ignore', message='DataFrame is highly fragmented')
 
 def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True,
                                  transpose=True):
@@ -168,8 +170,13 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
+    # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+    #     get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
+
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
+        get_vendor_partitions(age='healthy', anat=anat, weighted=False,
+                              flip=True, thr=.9, scrub=scrub)
+
     assert set(p_d_pos).intersection(p_d_ant) == set()
     assert set(p_d_pos).intersection(p_v_ant) == set()
     assert set(p_d_pos).intersection(p_v_pos) == set()
@@ -224,6 +231,7 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
                 key2conn[f'{quad}_{i}'] = \
                     get_module_cross_trialwise_z(conn_trials, [i],
                                                  quad2p[quad])
+            key2conn[f'M_{i}'] = np.nanmean(sn_inc_activity[:, :, i, :], axis=1)
 
     all_new_cols = set()
     for i, df_sn in enumerate(df_sns_l):
@@ -264,15 +272,28 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     return df_sns, all_new_cols
 def vendor_lmer_Feb12(fp='obj7_fMRI'):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,
-                                kwargs={'fp': fp, 'scrub': False,
-                                        'anat': True},
-                                easy_override=True, cache_dir='cache')
-    p_mem = get_memory_p()
-    df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
-    df = df.merge(df_mem, on=['sn', 'obj'], how='left')
+                                kwargs={'fp': fp,
+                                        'scrub': False,
+                                        'anat': False},
+                                easy_override=False, cache_dir='cache')
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    df['inc'] = df['inc'].astype(int) # TODO: make sure this isn't an int8 wtf
 
-    for col in ['age', 'hit_hit', 'hc']: # 'con_hit', 'vis_hit',
-        df[col] = stats.zscore(df[col], nan_policy='omit')
+    a = df.groupby(['sn', 'inc'])[['dd', 'dv_pos', 'dd_vv']].mean().reset_index()
+    # a['inc'] -= 2
+    # print(a['inc'])
+
+    # formula = 'dd_vv ~ 1 + inc'
+    # model = smf.ols(formula=formula, data=a)
+    # res = model.fit()
+    # print(res.summary())
+    # quit()
+    # p_mem = get_memory_p()
+    # df_mem = get_df_p_x_p(p_mem, None, 'hc', fp=fp)
+    # df = df.merge(df_mem, on=['sn', 'obj'], how='left')
+    # for col in ['age', 'hit_hit', 'hc']: # 'con_hit', 'vis_hit',
+    #     df[col] = stats.zscore(df[col], nan_policy='omit')
 
     formula = ('dd ~ vv + dv_ant + dv_pos + '
                'pd_else + ad_else + pv_else + av_else + ' # pv_else + av_else + 
@@ -286,14 +307,18 @@ def vendor_lmer_Feb12(fp='obj7_fMRI'):
                'dp + da + vp + va + '
                '(1 | sn)')
 
-    df['dd_vv'] = df['dd'] + df['vv']
-    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+
     formula = ('dd_vv ~ dv_dv + FC_all + '
                'dp + da + vp + va + '
                '(1 | sn)')
 
-    formula = ('dd ~ dp * da + FC_all +'
-               '(1 | sn)')
+    # print(df['inc'].value_counts())
+    # quit()
+
+    vendor = df['dd_vv'] - df['dv_dv']
+
+    formula = ('dd ~ inc*vv + FC_all +  '
+               '(1 + inc*vv + FC_all | sn)')
 
     from pymer4 import Lmer
     cols = get_formula_cols(df, formula)
