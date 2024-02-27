@@ -1,3 +1,4 @@
+from analyze_rs import get_rs_vendor_df
 from atlas_utils import get_atlas
 
 from functools import cache
@@ -19,20 +20,28 @@ import os
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-def get_all_task_vendor(zscore=True,):
+def get_all_task_vendor(zscore=True, anat=False):
     fps = ['bl7_fMRI', 'con7_fMRI', 'rs', 'vis7_fMRI', 'obj7_fMRI']
     df_l = []
     for fp in fps:
         if fp == 'rs':
-            df, networks = pickle_wrap(get_df_networks,
-                                       kwargs={'fp': 'rs', 'norm_std': False,
-                                               'zscore': zscore},
-                                       easy_override=False)
-            df['task'] = 'RS'
+            if anat:
+                # df, networks = pickle_wrap(get_df_networks,
+                #                            kwargs={'fp': 'rs',
+                #                                    'norm_std': False,
+                #                                    'zscore': zscore},
+                #                            easy_override=False)
+                df, vndr_cols = pickle_wrap(get_rs_vendor_df,
+                                            kwargs={'roiwise': False,
+                                                    'do_hemi': False,
+                                                    'zscore': True,
+                                            'high_var_confounds': False},
+                                            easy_override=False)
+                df['task'] = 'RS'
         else:
             df, vndr_cols = pickle_wrap(get_vendor_df, None,
                                         kwargs={'fp': fp, 'scrub': False,
-                                                'zscore': zscore, 'anat': True},
+                                                'zscore': zscore, 'anat': anat},
                                         easy_override=False)
             df['task'] = fp.split('_')[0][:-1].upper()
         df_l.append(df)

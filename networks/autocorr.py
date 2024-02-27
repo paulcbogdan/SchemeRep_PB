@@ -12,6 +12,14 @@ def add_prev(df, key, sess):
         df_sn[f'{key}_prev'] = df_sn[key].shift(1)
         df.loc[df_sn.index, f'{key}_prev'] = df_sn[f'{key}_prev']
 
+def add_next(df, key, sess):
+    for sn, df_sn in df.groupby('sn'):
+        if f'{sess}_trial' in df_sn.columns:
+            df_sn = df_sn.sort_values(f'{sess}_trial')
+        # df_sn[key] = stats.zscore(df_sn[key])
+        df_sn[f'{key}_next'] = df_sn[key].shift(-1)
+        df.loc[df_sn.index, f'{key}_next'] = df_sn[f'{key}_next']
+
 def test_vendor_corr(fp='obj7_fMRI', plot=True, hemi=True, scrub=False,
                      anat=True):
     df, vndr_cols = pickle_wrap(get_vendor_df, None,

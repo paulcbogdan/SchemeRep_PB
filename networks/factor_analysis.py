@@ -1,7 +1,7 @@
 import pandas as pd
 
 from analyze_rs import get_rs_vendor_df
-from autocorr import add_prev
+from autocorr import add_prev, add_next
 from dFC_control_FC import get_all_task_vendor
 from utils import pickle_wrap
 from vendor_lmers import get_vendor_df
@@ -11,7 +11,7 @@ import statsmodels.formula.api as smf
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
-def load_FA(fp):
+def load_FA(fp, anat=False):
     if fp == 'rs':
         df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': False,
                                                               'do_hemi': False,
@@ -22,8 +22,8 @@ def load_FA(fp):
         # df = df[~df['sn'].isin(bad_sns)]
     else:
         df, vndr_cols = pickle_wrap(get_vendor_df, None,
-                                    kwargs={'fp': fp, 'scrub': False,
-                                            'anat': True,
+                                    kwargs={'fp': fp, 'scrub': True,
+                                            'anat': anat,
                                             'roiwise': False,
                                             'zscore': True},
                                     easy_override=False, cache_dir='cache')
@@ -40,14 +40,105 @@ def identify_extremely_low_variance_sn(df, key='da', limit=25):
             max_num_close = max(max_num_close, num_close)
         if max_num_close > limit:
             bad_sns.add(sn)
+        # print(f'{sn}: {max_num_close}')
     print(f'Extremely low variance sns: {bad_sns}')
     return bad_sns
 
+def plot_fluctuation(df, key='horz'):
+    # add_prev(df, key, 'RS')
+    np.set_printoptions(edgeitems=30, linewidth=100000)
+
+    x = []
+    y = []
+
+    # df = df[df[key].abs() < center_bounding]
+    # print(df.groupby('sn')[key].count().sort_values())
+    # quit()
+
+
+
+    # sns = df['sn'].unique()
+    # df = df[df['sn'] == '217']
+    # print(df[key])
+    # quit()
+    center_bounding = 0.1
+
+    add_prev(df, key, 'RS')
+    add_next(df, key, 'RS')
+
+    df[f'dn_{key}'] = df[f'{key}_next'] - df[key]
+    df[f'dp_{key}'] = df[key] - df[f'{key}_prev']
+    add_prev(df, f'dp_{key}', 'RS')
+    add_next(df, f'dp_{key}', 'RS')
+
+
+    df.dropna(subset=[f'dn_{key}', f'dp_{key}_next',
+                      f'dp_{key}_prev'], inplace=True)
+    df = df[df[key].abs() < center_bounding]
+    print(f'{len(df)=}')
+    # print(df['sn'].value_counts())
+
+    # r_test, p_test = stats.pearsonr(df[f'dp_{key}'], df[f'dp_{key}_prev'],)
+    # print(f'{r_test=:.3f}, {p_test=:.3f}')
+    # quit()
+
+    # add_prev(df, f'd_{key}', 'RS')
+    df.dropna(subset=[f'dp_{key}', f'dn_{key}'], inplace=True)
+    h, _, _, _ = plt.hist2d(df[f'dp_{key}'], df[f'dn_{key}'],
+                            range=((-3, 3), (-3, 3)), bins=21)
+
+
+    r, p = stats.pearsonr(df[f'dp_{key}'], df[f'dn_{key}'])
+    # print(h)
+    plt.title(f'{r=:.3f}, {p=:.3f}')
+    plt.xlabel('prev change')
+    plt.ylabel('next change')
+    plt.show()
+    quit()
+
+
+    prev_key = key
+    for prev_depth in range(1, 11):
+        add_prev(df, prev_key, 'RS')
+        df0 = df[df[key].abs() < center_bounding]
+        prev_key = f'{prev_key}_prev'
+        x.extend([-prev_depth]*len(df0))
+        y.extend(df0[prev_key].values)
+
+        df1 = df[df[prev_key].abs() < center_bounding]
+        x.extend([prev_depth]*len(df1))
+        y.extend(df1[key].values)
+
+
+    # print(len(x))
+    # plt.hist(y, bins=20)
+    # plt.show()
+    h, _, _, _ = plt.hist2d(x, y, range=((-10, 11), (-3, 3)), bins=21)
+    print(h)
+    plt.show()
+    quit()
+
+    # print(x)
+    # print(y)
+    # quit()
+
+    # df.dropna(subset=[f'{key}_prev', key], inplace=True)
+    plt.hist2d(df[f'{key}_prev'], df[key], range=[(-3, 3), (-3, 3)], bins=20)
+
+
+
+    plt.show()
+    quit()
+
+
+
 def do_FA(fp='rs'):
     # df = load_FA(fp)
-    df = get_all_task_vendor()
+    df = get_all_task_vendor(anat=True, zscore=False)
     # df = df[df['task'] != 'RS']
+    df = df[df['task'] == 'RS']
     bad_sns = identify_extremely_low_variance_sn(df)
+    bad_sns.add('217') # almost always near zero
     df = df[~df['sn'].isin(bad_sns)]
     df.dropna(subset=['da', 'dp', 'va', 'vp'], inplace=True)
 
@@ -56,13 +147,21 @@ def do_FA(fp='rs'):
 
     df['vert'] = df['da'] + df['dp'] - df['va'] - df['vp']
     df['horz'] = df['da'] - df['dp'] + df['va'] - df['vp']
-    df['diag'] = df['da'] - df['dp'] - df['va'] + df['vp']
+    df['diag_a'] = df['da'] - df['dp'] - df['va'] + df['vp']
+    df['diag_p'] = -df['da'] + df['dp'] + df['va'] - df['vp']
+
+    df['up'] = df['da'] + df['dp']
+    df['down'] = df['va'] + df['vp']
+    df['ant'] = df['da'] + df['va']
+    df['pos'] = df['dp'] + df['vp']
 
     df['vert'] /= np.std(df['vert'])
     df['horz'] /= np.std(df['horz'])
+    plot_fluctuation(df)
+    quit()
 
-    cov = [[1., .09],
-           [.09, 1.]]
+    # cov = [[1., .09],
+    #        [.09, 1.]]
     # df = pd.DataFrame()
     # n_samples = len(df)
     # n_samples = 100_000
@@ -71,51 +170,16 @@ def do_FA(fp='rs'):
 
     # df['vert'] = np.random.normal(size=len(df['vert']))
 
-    df['rotate'] = np.degrees(np.arctan2(df['vert'], df['horz']))
-
-    pd.set_option('display.precision', 3)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_rows', 1000)
-
-    r_v_x_h, _ = stats.pearsonr(df['vert'], df['horz'])
-    # print(f'{r_v_x_h=:.2f}')
-    # quit()
-    df = df[df['task'] == 'OBJ']
-    add_prev(df, 'horz', 'RS')
-    add_prev(df, 'vert', 'RS')
-    add_prev(df, 'vert_prev', 'RS')
-
-
-    # formula = f'horz ~ 1 + inc'
-    # formula = f' ~ 1 + da + dp + va + vp'
-    # formula = formula.replace(f' + {col}', '')
-    # formula = col + formula
-    # model = smf.ols(formula=formula, data=df)
-    # res = model.fit()
-    # print(res.summary())
-    # quit()
-
-    # df = df[df['horz'].abs() < 4]
-    # df = df[df['vert'].abs() < 4]
-
-
-    # for sn, df_sn in df.groupby('sn'):
-    #     ax = plt.figure().add_subplot(projection='3d')
-    #     ax.plot(df_sn['horz'], df_sn['vert'], zs=list(range(len(df_sn))),
-    #             )
-    #     plt.show()
-    #     print(f'{sn=}')
-
-        # df_sn.reset_index(drop=True, inplace=True)
-        # print(len(df_sn))
-        # plt.plot(df_sn['rotate'])
-        # plt.show()
-        # quit()
-
-    # N, bins, _ = plt.hist(df['rotate'], bins=36, range=(-180, 180))
+    # df['rotate'] = np.degrees(np.arctan2(df['vert'], df['horz']))
+    # plt.hist(df['rotate'], bins=36, range=(-180, 180))
     # plt.show()
     # quit()
+
+
+    # print(f'{r_v_x_h=:.2f}')
+    # quit()
+    df = df[df['task'] == 'RS']
+
 
 
 
@@ -125,6 +189,8 @@ def do_FA(fp='rs'):
     M_rsq = []
     for col in cols:
         formula = f'{col} ~ 0 + horz + vert'
+        # formula = f'{col} ~ 1 + inc'
+
         # formula = f' ~ 1 + da + dp + va + vp'
         # formula = formula.replace(f' + {col}', '')
         # formula = col + formula
@@ -134,6 +200,30 @@ def do_FA(fp='rs'):
         M_rsq.append(res.rsquared)
     M_rsq = np.mean(M_rsq)
     print(f'{M_rsq=:.3f}')
+
+
+    for sn, df_sn in df.groupby('sn'):
+        # ax = plt.figure().add_subplot(projection='3d')
+        plt.plot(df_sn['horz'])
+        # ax.plot(df_sn['horz'], df_sn['vert'])
+        plt.show()
+        print(f'{sn=}')
+
+        df_sn.reset_index(drop=True, inplace=True)
+        print(len(df_sn))
+        plt.plot(df_sn['rotate'])
+        plt.show()
+        quit()
+
+    N, bins, _ = plt.hist(df['rotate'], bins=36, range=(-180, 180))
+    plt.show()
+    quit()
+
+
+
+
+
+
     quit()
 
     pca = decomposition.PCA(n_components=2)
@@ -154,25 +244,6 @@ def do_FA(fp='rs'):
         M_rsq_pca.append(res.rsquared)
     M_rsq_pca = np.mean(M_rsq_pca)
     print(f'{M_rsq_pca=:.3f}')
-
-
-
-    # print(trans.shape)
-
-    # for sn, df_sn in df.groupby('sn'):
-    #     pca = decomposition.PCA()
-    #     X = df_sn[cols].dropna().values
-    #     pca.fit(X)
-    #     print(pca.explained_variance_ratio_)
-    #     print(pca.components_)
-    #
-    #     pca.components_ = np.random.normal(size=pca.components_.shape)
-    #     print(pca.explained_variance_ratio_)
-    #
-    #
-    #     quit()
-    #     # quit()
-
 
 
 
