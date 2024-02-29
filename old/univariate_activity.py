@@ -292,7 +292,7 @@ def simple_effect(df, ROI_cols, key, fp):
                      fp_out=fp_pic, neg='Con', pos='Inc',
                      thresh=2.85, vmax=vmax)
 
-def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
+def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True, use_neu=True, fwe=False):
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 2, 3),
               'only_sh_sns': True, 'combine_regions': False}
@@ -307,6 +307,10 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
     import statsmodels.formula.api as smf
 
     pd.set_option('display.precision', 5)
+
+    if not use_neu:
+        df = df[df['inc'] != 2]
+
 
     df_grp = df.groupby(['sn', 'inc'])[ROI_cols].mean()
     df_grp = df_grp.reset_index()
@@ -328,21 +332,19 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
                 super_signif = corr > len(ROI_cols)
                 # print(f'{ROI=} | {t=:.2f}, {p=:.5f}, {corr=:.1f}, '
                 #       f'{super_signif=}')
-            formula = f'{ROI} ~ sn + inc_str'
-            keys = keys_from_formula(formula)
-            model = smf.ols(formula=formula, data=df_grp[keys].dropna())
-            res = model.fit()
-            p_neu = res.pvalues.loc['inc_str[T.neu]']
-            neu_ef = res.params['inc_str[T.neu]']
-            inc_ef = res.params['inc_str[T.inc]']
-            if p > .005 and p_neu < .005:
-                # print(res.summary())
-                print(f'Neu ROI: {ROI=} | {neu_ef=:.3f} ({p_neu=:.4f}), {inc_ef=:.3f}')
-                # print('-'*50)
-            # print(model.fit().summary())
-            # print(f'{ROI=} | {t=:.2f}, {p=:.5f}, {corr=:.1f}, '
-            #       f'{super_signif=}')
-                # quit()
+
+            if use_neu:
+                formula = f'{ROI} ~ sn + inc_str'
+                keys = keys_from_formula(formula)
+                model = smf.ols(formula=formula, data=df_grp[keys].dropna())
+                res = model.fit()
+                p_neu = res.pvalues.loc['inc_str[T.neu]']
+                neu_ef = res.params['inc_str[T.neu]']
+                inc_ef = res.params['inc_str[T.inc]']
+                if p > .005 and p_neu < .005:
+                    print(f'Neu ROI: {ROI=} | {neu_ef=:.3f} '
+                          f'({p_neu=:.4f}), {inc_ef=:.3f}')
+
         else:
             from pymer4.models import Lmer
             formula = f'{ROI} ~ inc + (1 + inc | sn) + (1 | obj)'
@@ -364,7 +366,7 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
     ts = np.array(ts)
 
     sigs, p_corr, alpha_sidak, alpha_bon = (
-        multipletests(ps, alpha=.05, method='fdr_bh'))
+        multipletests(ps, alpha=.05, method='holm-sidak' if fwe else 'fdr_bh'))
 
     # print(ts)
     # print('-----------')
@@ -375,17 +377,33 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
 
     atlas = get_atlas()
     er_str = '' if do_lm else 'er'
-    fp_pic = rf'result_pics/activity/{fp}_inc_healthy_lm{er_str}.png'
-    vmin = np.min(np.abs(ts[sigs]))
+    neu_str = '' if use_neu else '_NoNeu'
+    fwe_str = '_FWE' if fwe else ''
+    fp_pic = (rf'result_pics/activity/{fp}_inc_healthy_lm{er_str}{neu_str}'
+              rf'{fwe_str}.png')
+    vmin = np.min(np.abs(ts[sigs])) - .01
+    if vmin > 4:
+        vmax = vmin + 1
+    else:
+        vmax = 4
+    # print(f'{vmin=}')
+    # vmin = min(vmin, 3)
+    # print(f'{ts=}')
+    # print(len(ts))
+    # vmin = 2
+    title = f'Activation ~ congruency (FDR)' if use_neu \
+        else f'Activation: congruency vs. incongruency (FDR)'
     my_plot_surf(ts, atlas,
-                 f'Activation ~ congruency (FDR)',
+                 title,
                  fp_out=fp_pic, neg='Con', pos='Inc',
-                 thresh=vmin, vmax=4)
-
+                 thresh=vmin, vmax=vmax)
+    # quit()
     regions = atlas['ROI_regions_laterality']
+    ROIs = atlas['ROIs']
     region_in = set()
     for i, region in enumerate(regions):
         if sigs[i]:
+            print(f'Sig: {ROIs[i]} | {region}: {ps[i]=}')
             pn = 'p' if ts[i] > 0 else 'n'
             region_in.add(f'{region}_{pn}')
     print(f'{region_in=}')
@@ -397,9 +415,11 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True):
         else:
             ts_clean.append(0)
 
-    fp_pic = f'result_pics/activity/{fp}_inc_healthy_lm{er_str}_low_thresh.png'
+    fp_pic = (f'result_pics/activity/{fp}_inc_healthy_lm{er_str}{neu_str}'
+              f'{fwe_str}_low_thresh.png')
+    title = title.replace('FDR', 'FDR+')
     my_plot_surf(ts_clean, atlas,
-                 f'Activation ~ congruency (FDR+)',
+                 title,
                  fp_out=fp_pic, neg='Con', pos='Inc',
                  thresh=2.0, vmax=4)
 

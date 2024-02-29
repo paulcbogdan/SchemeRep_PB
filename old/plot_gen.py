@@ -172,7 +172,8 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
     # cmap = 'cold_hot'
     img = image.new_img_like(atlas['maps'], img_data)
-
+    print(f'{thresh=}')
+    print(f'{vmax=}')
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                     cmap=cmap, title=title,
                                     vmin=-vmax,
@@ -191,6 +192,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         plotting.show()
     else:
         fig.savefig(fp_out)
+        print(f'Saving fig: {fp_out=}')
         plt.clf()
 
 

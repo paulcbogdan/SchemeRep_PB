@@ -1,5 +1,7 @@
 import os
 
+from tqdm import tqdm
+
 from analyze_rs import load_act_conn
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -10,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import random
+from time import time
 
 def shuffle_rows(sn_roi_act):
     new_ar = np.full(sn_roi_act.shape, np.nan)
@@ -38,7 +41,20 @@ def shuffle_rows(sn_roi_act):
         #     cnt = 0
     return new_ar
 
-def link_activity(do_generic=True):
+def act2conn(sn_roi_act):
+    print(f'ac2conn: {sn_roi_act.shape}')
+    t_st = time()
+    sn_roi_act0 = sn_roi_act[..., :, None, :]
+    sn_roi_act1 = sn_roi_act[..., None, :, :]
+    # print('a')
+    sn_roi_conn = sn_roi_act0 * sn_roi_act1
+    # print('b')
+    trils = np.tril_indices(sn_roi_act.shape[-2], -1)
+    sn_roi_conn = sn_roi_conn[..., trils[0], trils[1], :]
+    print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
+    return sn_roi_conn
+
+def link_activity(do_generic=True, do_conn=True, verbose=1):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
@@ -50,7 +66,7 @@ def link_activity(do_generic=True):
                                                  'squeeze': False},
                     easy_override=False)
     sns = [df['sn'].iloc[0] for df in df_sns_l]
-    good_i = [i for i, sn in enumerate(sns) if sn != '133']
+    good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
     sn_roi_act = sn_roi_act[good_i, :, :]
     sns = [sn for sn in sns if sn != '133'] # bad rs
 
@@ -63,6 +79,10 @@ def link_activity(do_generic=True):
     sns = [sn for sn in sns if sn not in bad_sns]
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
+
+    if do_conn:
+        sn_roi_act = act2conn(sn_roi_act)
+        sn_roi_rs = act2conn(sn_roi_rs)
 
     corrs = []
     sn_roi_act = shuffle_rows(sn_roi_act)
@@ -82,8 +102,8 @@ def link_activity(do_generic=True):
     # quit()
     # print(f'{generic_eff=}')
     # quit()
-
-    for sn_i in range(sn_roi_eff.shape[0]):
+    if verbose: print('Onto looping')
+    for sn_i in tqdm(range(sn_roi_eff.shape[0])):
         if do_generic:
             ef_rank = generic_rank
         else:

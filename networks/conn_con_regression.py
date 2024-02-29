@@ -319,7 +319,8 @@ def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
     # atlas['ticks'] = atlas['ticks'][::2]
     # atlas['tick_labels'] = atlas['tick_labels'][::2]
     # atlas['tick_lows'] = atlas['tick_lows'][::2]
-
+    combine_str = '_combined' if combine_regions else ''
+    fp_out = fr'result_pics/FC_matrix/congruency_regression{combine_str}.png'
     plot_connectivity(z_mat,
                       atlas['ticks'],
                       atlas['tick_labels'],
@@ -327,6 +328,7 @@ def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
                       no_avg=True,
                       title=f'Connectivity ~ congruency '
                             f'{cutoff_str}',
+                      fp=fp_out,
                       # vmin=-3, vmax=3,
                       cbar_label='z-score')
 
