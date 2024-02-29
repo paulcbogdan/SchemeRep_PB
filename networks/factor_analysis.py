@@ -253,6 +253,12 @@ def do_FA(fp='rs'):
     df['ant'] = df['da'] + df['va']
     df['pos'] = df['dp'] + df['vp']
 
+    formula = fr'da ~ 1 + inc'
+    model = smf.ols(formula=formula, data=df)
+    res = model.fit()
+    print(res.summary())
+    quit()
+
     # df = df[df['task'] == 'OBJ']
     # print(df[['up', 'down', 'ant', 'pos']].corr())
     # print(df[['da', 'dp', 'va', 'vp']].corr())
