@@ -9,16 +9,33 @@ from vendor_lmers import get_dfs_conn_trials
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+import random
 
 def shuffle_rows(sn_roi_act):
     new_ar = np.full(sn_roi_act.shape, np.nan)
-    sn_roi_act = np.nanmean(sn_roi_act, axis=1)
-    cnt = 0
-    for i in range(sn_roi_act.shape[-1]):
-        new_ar[:, cnt, i] = sn_roi_act[:, i]
-        cnt += 1
-        if cnt % 3 == 0:
-            cnt = 0
+    sn_roi_act_sq = np.nanmean(sn_roi_act, axis=1)
+    num_ea = sn_roi_act.shape[-1] // 3
+    cnt_l = [0, 1, 2] * num_ea
+    random.shuffle(cnt_l)
+    # cnt_ar = []
+    # for roi_j in range(sn_roi_act.shape[-2]):
+    #     cnt_l_ = [0, 1, 2] * num_ea
+    #     random.shuffle(cnt_l_)
+    #     cnt_ar.append(cnt_l_)
+
+    for i in range(sn_roi_act_sq.shape[-1]):
+        # for roi_j in range(sn_roi_act.shape[-2]):
+    #         cnt = cnt_ar[roi_j][i]
+    #         new_ar[:, cnt, roi_j, i] = sn_roi_act_sq[:, roi_j, i]
+
+        cnt = cnt_l[i]
+        # print(f'{sn_roi_act_sq.shape=}')
+        # print(f'{new_ar.shape=}')
+        new_ar[:, cnt, :, i] = sn_roi_act_sq[:, :, i]
+        # cnt += 1
+        # print(f'{cnt=}')
+        # if cnt % 3 == 0:
+        #     cnt = 0
     return new_ar
 
 def link_activity(do_generic=True):
@@ -41,15 +58,30 @@ def link_activity(do_generic=True):
                                                 easy_override=False)
     assert sns == sns_
 
+    bad_sns = {'116', '117', '110', '130', '232'}
+    bad_i = [i for i, sn in enumerate(sns) if sn in bad_sns]
+    sns = [sn for sn in sns if sn not in bad_sns]
+    sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
+    sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
+
     corrs = []
-    # sn_roi_act = shuffle_rows(sn_roi_act)
+    sn_roi_act = shuffle_rows(sn_roi_act)
+    # print(sn_roi_act)
+    # print(sn_roi_act.shape)
+    # quit()
     sn_roi_M = np.nanmean(sn_roi_act, axis=-1)
     sn_roi_eff = sn_roi_M[:, 2, :] - sn_roi_M[:, 0, :]
     # print(sn_roi_eff)
     # quit()
 
-    generic_eff = np.nanmean(sn_roi_eff, axis=0)
-    generic_rank = generic_eff.argsort()
+    generic_effs = np.nanmean(sn_roi_eff, axis=0)
+    generic_effs /= np.nanstd(generic_effs, axis=0)
+    generic_rank = generic_effs.argsort()
+    # plt.hist(generic_effs)
+    # plt.show()
+    # quit()
+    # print(f'{generic_eff=}')
+    # quit()
 
     for sn_i in range(sn_roi_eff.shape[0]):
         if do_generic:
@@ -57,9 +89,20 @@ def link_activity(do_generic=True):
         else:
             sn_effs = sn_roi_eff[sn_i, :]
             ef_rank = sn_effs.argsort()
+            # plt.hist(sn_effs)
+            # plt.show()
+        # random.shuffle(ef_rank)
         mid = ef_rank.size // 2
         inc_rois = ef_rank[mid:]
         con_rois = ef_rank[:mid]
+        m = np.corrcoef(sn_roi_rs[sn_i, :, :])
+        m[np.diag_indices_from(m)] = np.nan
+        # M = np.nanmean(m)
+        # plt.title(f'{M=:.3f}: {sns[sn_i]}, {sn_i}')
+        # plt.imshow(np.corrcoef(sn_roi_rs[sn_i, :, :]))
+        # plt.colorbar()
+        # plt.show()
+        # quit()
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
@@ -93,8 +136,10 @@ if __name__ == '__main__':
     # SANITY TEST WHICH RANDOMIZES BY CONDITION,
     #   EVEN THOUGH WE PERSONALLY DO NOT SEE AN A PRIORI REASON
 
+    M_corrs = []
+    for _ in range(100):
+        corrs_ss = link_activity(do_generic=False)
     corrs_gen = link_activity(do_generic=True)
-    corrs_ss = link_activity(do_generic=False)
     # corrs_ss[corrs_ss > 1.0] = np.nan
     print(len(corrs_gen))
     dif = corrs_gen - corrs_ss

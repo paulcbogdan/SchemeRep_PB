@@ -12,6 +12,7 @@ import pandas as pd
 from nilearn import image
 import inspect
 import functools
+from functools import cache
 
 def regress_out(x, y):
     x = np.array(x)
@@ -357,6 +358,8 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     # quit()
     return filepath
 
+PICKLE_CACHE = {}
+
 def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=False,
                 verbose=0, cache_dir='cache', dt_max=None):
     '''
@@ -373,6 +376,8 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
     '''
     if filepath is None:
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+    if filepath in PICKLE_CACHE:
+        return PICKLE_CACHE[filepath]
 
     if verbose:
         print(f'pickle_wrap: {filepath=}')
@@ -400,6 +405,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
                 if verbose: print(f'\tLoad time: {time()-start:.3f} s')
                 if not verbose: print(f'Pickle loaded: {filepath=} '
                                       f'({time() - start:.3f} s)')
+                PICKLE_CACHE[filepath] = pk
                 return pk
         except UnpicklingError as e:
             print(f'{e=}')
@@ -430,6 +436,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
     if verbose: print(f'\tDump time: {time()-start:.3f} s')
+    PICKLE_CACHE[filepath] = output
     return output
 
 def timing(f):
