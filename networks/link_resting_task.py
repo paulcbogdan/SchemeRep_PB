@@ -142,6 +142,8 @@ if __name__ == '__main__':
     corrs_gen = link_activity(do_generic=True)
     # corrs_ss[corrs_ss > 1.0] = np.nan
     print(len(corrs_gen))
+
+    # -0.313 gives p = .04 per my 100 sims
     dif = corrs_gen - corrs_ss
 
 
