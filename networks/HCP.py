@@ -2,7 +2,7 @@ import os
 import time
 
 from LSS import get_LSS_img, load_motion
-from utils import HCP_ROOT, HCP_CACHE
+from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 from functools import partial
@@ -17,21 +17,27 @@ from atlas_utils import get_atlas
 from fluctuations import get_df_networks, partial_corr_df
 
 
-
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
-               clean_confounds=False):
+               clean_confounds=False, RS=True):
     if LSS:
         return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
 
-    fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}.nii' # .nii are smaller than .pkl
+    RS_str = f'_RS' if RS else ''
+    fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}{RS_str}.nii' # .nii are smaller than .pkl
     if os.path.isfile(fp_clean) and not easy_override:
         img = image.load_img(fp_clean)
         data = img.get_fdata()
         return data
-    subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
-    fp_in = fr'{subj_dir}\tfMRI_WM_{lr}\tfMRI_WM_{lr}.nii'
+    if RS:
+        subj_dir = fr'{HCP_RS_ROOT}\{sn}\MNINonLinear\Results\rfMRI_REST1_LR'
+        fp_in = fr'{subj_dir}\rfMRI_REST1_LR.nii.gz'
+    else:
+        subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
+        fp_in = fr'{subj_dir}\tfMRI_WM_{lr}\tfMRI_WM_{lr}.nii'
     img = image.load_img(fp_in)
-    img = image.index_img(img, slice(4, None))
+    # print(img.shape)
+    # quit()
+    # img = image.index_img(img, slice(4, None))
 
 
     # img.get_fdata()
@@ -44,14 +50,16 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
         fp_mask = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results\tfMRI_WM_LR\brainmask_fs.2.nii.gz'
         mask_exist = os.path.isfile(fp_mask)
         print(f'{mask_exist=} | {fp_mask=}')
-        df_confounds = load_motion(sn, 'lr')  # TODO: compcor not used previously
-        df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
-
+        df_confounds = load_motion(sn, 'lr', rs=RS)  # TODO: compcor not used previously
+        df_confounds = df_confounds.reset_index(drop=True)
+        # print(f'num nans: {pd.isna(df_confounds).sum()=}')
         df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
         df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        # print(f'num nans: {pd.isna(df_compcor).sum()=}')
 
         img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
                               standardize=True, t_r=.72, mask_img=fp_mask)
+        # quit()
 
     img.to_filename(fp_clean)
     data = img.get_fdata()
@@ -90,9 +98,17 @@ def apply_HCP_mask(data, sn, lr):
     return data
 
 
-def load_HCP_act(N=50, lr_only=True, LSS=False,
+def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                  LSA=False, clean_confounds=True):
     sns = os.listdir(HCP_ROOT)
+    if RS:
+        sns_ = []
+        for sn in sns:
+            dir_candidate = fr'E:\HCP_RS\{sn}'
+            if os.path.isdir(dir_candidate):
+                sns_.append(sn)
+        sns = sns_
+
     sns = sns[:N]
     # sns = sns[::-1]
     # sns = sns[:5]
@@ -107,13 +123,19 @@ def load_HCP_act(N=50, lr_only=True, LSS=False,
     ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading fMRI'):
         if lr_only:
+            # if WM:
+            # data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
+            #                   LSA=LSA, clean_confounds=clean_confounds,
+            #                   RS=RS)
+            # else:
             try:
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
-                                  LSA=LSA, clean_confounds=clean_confounds,)
+                                  LSA=LSA, clean_confounds=clean_confounds,
+                                  RS=RS)
             except ValueError as e:
                 print(f'{sn=}, {e=}')
                 time.sleep(5)
-                data = get_sn_HCP(sn, 'RL', easy_override=False, LSS=LSS,
+                data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                   LSA=LSA, clean_confounds=clean_confounds,)
 
             # if do_chop:

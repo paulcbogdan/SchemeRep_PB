@@ -13,7 +13,7 @@ from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
 from org_sns import get_sns
-from utils import HCP_CACHE, HCP_ROOT
+from utils import HCP_CACHE, HCP_ROOT, HCP_RS_ROOT
 import matplotlib.pyplot as plt
 from copy import deepcopy
 import psutil
@@ -81,12 +81,13 @@ def block2trials(df, skip_rate=4):
 
 
 def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
-                skip_rate=4, hcp=True, lsa=False):
+                skip_rate=4, hcp=True, lsa=False, RS=True):
 
     if hcp:
         lsa_str = 'lsa' if lsa else 'lss'
+        RS_str = '_RS' if RS else ''
         fp_lss = (fr'{HCP_CACHE}_lss\{sn}_{run}_{only_2bk}_{skip_rate}_'
-                  fr'{lsa_str}.nii')
+                  fr'{lsa_str}{RS_str}.nii')
     else:
         lsa_str = 'lsa' if lsa else 'lss'
         fp_lss = fr'cache\pb_LSS\{sn}_r{run}_{lsa_str}.nii'
@@ -353,9 +354,13 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     return data
 
 
-def load_motion(sn, lr):
-    subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
-    fp_motion = fr'{subj_dir}\tfMRI_WM_{lr}\Movement_Regressors.txt'
+def load_motion(sn, lr, rs=True):
+    if rs:
+        subj_dir = fr'{HCP_RS_ROOT}\{sn}\MNINonLinear\Results'
+        fp_motion = fr'{subj_dir}\rfMRI_REST1_{lr}\Movement_Regressors.txt'
+    else:
+        subj_dir = fr'{HCP_ROOT}\{sn}\MNINonLinear\Results'
+        fp_motion = fr'{subj_dir}\tfMRI_WM_{lr}\Movement_Regressors.txt'
     motion = np.loadtxt(fp_motion)[:, :12]
     add_reg_names = ["tx", "ty", "tz", "rx", "ry", "rz",
                      "dtx", "dty", "dtz", "drx", "dry", "drz"]

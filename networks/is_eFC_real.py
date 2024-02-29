@@ -20,9 +20,10 @@ import os
 import statsmodels.formula.api as smf
 
 
-def test_reality(fp='HCP_WM', norm_std=True, alpha=.01):
-    if fp == 'HCP_WM':
-        sn_roi_act, sns = pickle_wrap(load_HCP_act, kwargs={'N': 10})
+def test_reality(fp='HCP_RS', norm_std=True, alpha=.01):
+    if fp == 'HCP_RS':
+        sn_roi_act, sns = pickle_wrap(load_HCP_act, kwargs={'N': 5,
+                                                            'RS': True})
         # print(f'{sn_roi_act.shape=}')
         # quit()
     elif fp == 'rs':
@@ -35,18 +36,25 @@ def test_reality(fp='HCP_WM', norm_std=True, alpha=.01):
                                                          'single': False,
                                                          'w_activity': True,
                                                          'squeeze': True})
-    print(sn_roi_act.shape)
+    # print(sn_roi_act.shape)
+    # print(f'{len(sns)=}')
+    # quit()
     n_roi = sn_roi_act.shape[1]
     n_sn = sn_roi_act.shape[0]
     ps = []
     ps_basic = []
     cnt = defaultdict(lambda: 0)
+    cnt_sim = defaultdict(lambda: 0)
     nsim = 10_000
     prop_var_explained = []
     r_basics = []
     itr_ests = []
     r_sims = []
+    itr_sims = []
     r_sims2 = []
+
+    p_sims = []
+    p_sims_itr = []
     bad_i = [8, 14, 15, 26, 33, 60]
     for _ in tqdm(range(nsim), desc='sim eFC'):
         a, b, c, d = np.random.choice(n_roi, 4, replace=False)
@@ -111,6 +119,17 @@ def test_reality(fp='HCP_WM', norm_std=True, alpha=.01):
         df_sim['cd'] = df_sim['c'] * df_sim['d']
         r_sim, p_sim = stats.pearsonr(df_sim['ab'], df_sim['cd'])
         r_sims.append(r_sim)
+        p_sims.append(p_sim)
+
+        formula = 'a ~ 1 + b * c * d'
+        model = smf.ols(formula=formula, data=df_sim)
+        res = model.fit()
+        key = 'b:c:d'
+        p_sim_itr = res.pvalues[key]
+        est_eFC = res.params[key]
+        itr_sims.append(est_eFC)
+        p_sims_itr.append(p_sim_itr)
+
 
         ar2 = np.random.multivariate_normal([0, 0, 0, 0], cov,
                                            len(df))
@@ -119,6 +138,9 @@ def test_reality(fp='HCP_WM', norm_std=True, alpha=.01):
         df_sim2['cd'] = df_sim2['c'] * df_sim2['d']
         r_sim2, _ = stats.pearsonr(df_sim2['ab'], df_sim2['cd'])
         r_sims2.append(r_sim2)
+
+        cnt_sim[(p_sim_itr < alpha, p_sim < alpha)] += 1
+
 
     ps = np.array(ps)
     ps_basic = np.array(ps_basic)
@@ -188,23 +210,38 @@ def test_reality(fp='HCP_WM', norm_std=True, alpha=.01):
     plt.xlabel('node-node-node-node interaction')
     plt.show()
 
+    p_sims_itr = np.array(p_sims_itr)
+    p_sims = np.array(p_sims)
+    itr_sim_sigs = p_sims_itr < alpha
+    r_sim_sigs = p_sims < alpha
+
+    itr_only = np.logical_and(itr_sim_sigs, ~r_sim_sigs)
+    r_only = np.logical_and(~itr_sim_sigs, r_sim_sigs)
+    both = np.logical_and(itr_sim_sigs, r_sim_sigs)
+    neither = np.logical_and(~itr_sim_sigs, ~r_sim_sigs)
+
     l = r_sims
     plt.scatter(l[neither], r_basics[neither], color='k',
                 label='Neither' + label2corr['neither'], alpha=.05)
     plt.scatter(l[r_only], r_basics[r_only], color='r',
-                label='Correlation only' + label2corr['r_only'], alpha=.1)
+                label='Correlation only' + label2corr['r_only'], alpha=.05)
     plt.scatter(l[both], r_basics[both], color='g',
-                label='Both' + label2corr['both'], alpha=.3)
+                label='Both' + label2corr['both'], alpha=.05)
     plt.scatter(l[itr_only], r_basics[itr_only], color='dodgerblue',
-                label='Interaction only' + label2corr['itr_only'], alpha=.3)
+                label='Interaction only' + label2corr['itr_only'], alpha=.05)
     plt.legend(frameon=False)
+
+    both_sig = cnt_sim[(True, True)]
+    proper_sig = cnt_sim[(True, False)]
+    basic_sig = cnt_sim[(False, True)]
+    neither_sig = cnt_sim[(False, False)]
     plt.title(f'{both_sig=}, {proper_sig=},\n'
               f'{basic_sig=}, {neither_sig=}')
+
     plt.ylabel('edge-edge correlation')
     plt.xlabel('edge-edge simulated')
     plt.show()
     quit()
-
 
 
 

@@ -66,7 +66,7 @@ def get_memory_p():
 
 
 @timing
-def get_dfs_conn_trials(fp='obj7_fMRI', single=False, w_activity=False,
+def get_dfs_conn_trials(fp='obj7_fMRI', single=False,
                         squeeze=False):
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -74,21 +74,23 @@ def get_dfs_conn_trials(fp='obj7_fMRI', single=False, w_activity=False,
               'key_vals': (1, 2, 3),
               'get_df_sn': True,
               }
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
+    sn_inc_conn, sn_conn, age2idxs, sn_roi_act, df_sns_l = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
-    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+    sn_inc_activity_std = stdize(sn_roi_act, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
+    # sns = age2idxs[1] + age2idxs[2]
+    sns = [df['sn'].iloc[0] for df in df_sns_l]
+
     if squeeze:
-        sn_roi_act = np.nanmean(sn_inc_activity, axis=1)
-        conn_trials = np.nanmean(conn_trials, axis=1)
-        sns = age2idxs[1] + age2idxs[2]
-        return sn_roi_act, conn_trials, sns
+        sn_roi_act = np.nanmean(sn_roi_act, axis=1)
+        # conn_trials = np.nanmean(conn_trials, axis=1)
+        # return sn_roi_act, conn_trials, sns
 
     if single:
         return conn_trials[[0]], [df_sns_l[0]]
     else:
-        return conn_trials, df_sns_l
+        return sn_roi_act, conn_trials, df_sns_l, sns
 
 def get_df_p_x_p(p0, p1, key, fp='obj7_fMRI'):
     conn_trials, df_sns_l = get_dfs_conn_trials(fp)

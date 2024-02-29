@@ -64,8 +64,15 @@ def do_dd_vv_x_horz(fp='rs'):
     # print(df['bl_resp'])
     # quit()
 
-    formula = ('bl_resp ~ 1 + horz + dd_vv +'
-               '(1 + horz + dd_vv | sn)')
+    formula = ('bl_resp ~ 1 + dd + vv + dv_ant + dv_pos + da + dp + va + vp +'
+               '(1 + dd | sn)')
+
+    # plt.hist(df['bl_resp'])
+    # plt.show()
+    #
+    # df = df.groupby(['sn', 'bl_resp'])[['dd_vv', 'horz']].mean().reset_index()
+
+
     # print(df['inc'])
     # formula = (' ~ 1 + inc_str  + '
     #            '(1 + inc_str | sn)')
