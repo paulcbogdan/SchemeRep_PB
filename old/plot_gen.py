@@ -40,7 +40,6 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
         plt.figure(figsize=(10, 10))
     else:
         plt.sca(ax)
-    plt.title(title)
     if xlabel is None:
         plt.xlabel('Conceptual retrieval IRAF (object)')
         plt.xlabel('Activity object presentation')
@@ -64,8 +63,10 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
 
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo',
                interpolation='none')
-    plt.yticks(ticks, tick_labels, fontsize=10)
-    plt.xticks(ticks, tick_labels, fontsize=10, rotation=90)
+    fontsize = 20 if len(tick_labels) < 20 else 10
+    plt.title(title, fontsize=fontsize)
+    plt.yticks(ticks, tick_labels, fontsize=fontsize)
+    plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
     for low in tick_lows:
         low -= 0.5
         plt.plot([-0.5, M_connect.shape[0]], [low, low], 'k', linewidth=0.5)
@@ -73,7 +74,9 @@ def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
     plt.xlim([-0.5, M_connect.shape[0]-0.5])
     plt.ylim([-0.5, M_connect.shape[0]-0.5])
     cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,)
-    cbar.set_label(cbar_label, y=1.05, labelpad=-40, rotation=0)
+    cbar.set_label(cbar_label, y=1.05, labelpad=-55, rotation=0,
+                   fontsize=fontsize)
+    cbar.ax.tick_params(labelsize=fontsize)
 
     if tick_low is not None or tick_high is not None:
         ticks = list(cbar.get_ticks())[1:-1]

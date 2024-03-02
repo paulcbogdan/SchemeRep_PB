@@ -123,7 +123,7 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
                 ps_hemi[f'R{key}'].append(i)
     ps_hemi.update(ps)
 
-    conn_trials, df_sns_l = get_dfs_conn_trials(fp)
+    _, conn_trials, df_sns_l, _ = get_dfs_conn_trials(fp)
 
     new_cols = []
 

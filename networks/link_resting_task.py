@@ -54,7 +54,7 @@ def act2conn(sn_roi_act):
     print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
     return sn_roi_conn
 
-def link_activity(do_generic=True, do_conn=True, verbose=1):
+def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
@@ -83,9 +83,16 @@ def link_activity(do_generic=True, do_conn=True, verbose=1):
     if do_conn:
         sn_roi_act = act2conn(sn_roi_act)
         sn_roi_rs = act2conn(sn_roi_rs)
+    print(sn_roi_act.shape)
+    rand_edges = np.random.choice( sn_roi_act.shape[-2], 1000, replace=False)
+    sn_roi_act = sn_roi_act[:, :, rand_edges, :]
+    sn_roi_rs = sn_roi_rs[:, rand_edges, :]
+
+    # quit()
 
     corrs = []
-    sn_roi_act = shuffle_rows(sn_roi_act)
+    if shuffle:
+        sn_roi_act = shuffle_rows(sn_roi_act)
     # print(sn_roi_act)
     # print(sn_roi_act.shape)
     # quit()
@@ -158,7 +165,7 @@ if __name__ == '__main__':
 
     M_corrs = []
     for _ in range(100):
-        corrs_ss = link_activity(do_generic=False)
+        corrs_ss = link_activity(do_generic=False, shuffle=True)
     corrs_gen = link_activity(do_generic=True)
     # corrs_ss[corrs_ss > 1.0] = np.nan
     print(len(corrs_gen))

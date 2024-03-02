@@ -1,5 +1,6 @@
 from analyze_rs import load_act_conn, prep_conn_ps
 from atlas_utils import get_atlas
+from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from collections import defaultdict
 
@@ -196,16 +197,34 @@ def analyze_networks(fp='rs'):
 
     df['dd_vv'] = df['dd'] + df['vv']
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    networks = networks[:-4]
+    conn = df[networks].corr()
+    print(conn)
+    conn = np.array(conn)
+    conn[np.diag_indices_from(conn)] = np.nan
+    ticks = list(np.arange(len(networks)))
+    tick_labels = networks
+    tick_lows = np.arange(len(networks))
+    title = 'Resting-state avg. network correlations'
+
+    plot_connectivity(conn,
+                      # ticks,
+                      # tick_labels,
+                      # tick_lows,
+                      ticks, tick_labels, tick_lows,
+                      no_avg=True,
+                      title=title,
+                      cbar_label='Pearson\'s r',
+                      vmin=-0.5, vmax=0.5)
+
 
     # networks += ['da_dp', 'va_vp', 'dd_vv', 'dv_dv']
-
-    print(df[networks].corr())
-    print('--------------')
-
+    # print(df[networks].corr())
+    # print('--------------')
     # I need to zscore lest i deal with outliers.
     #   Otherwise, must drop extremes
-    partial_corr_df(df, networks, cov=['FC_all'])
-    print('-'*10)
+    # partial_corr_df(df, networks, cov=['FC_all'])
+    # print('-'*10)
     quit()
 
 

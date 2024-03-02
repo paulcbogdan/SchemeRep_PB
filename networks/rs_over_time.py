@@ -61,15 +61,15 @@ def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
 
     # print(df)
 
-    # 'dp',
-    print(df[['da', 'dp', 'va', 'vp']].corr())
-    print(np.array(df[['da', 'dp', 'va', 'vp']].corr()))
-    #
-    # print(df[['dv_ant', 'vv']].corr())
-    # # print(df[['dv_pos', 'dd']].corr())
-    #
-    quit()
-    #
+    # # 'dp',
+    # print(df[['da', 'dp', 'va', 'vp']].corr())
+    # print(np.array(df[['da', 'dp', 'va', 'vp']].corr()))
+    # #
+    # # print(df[['dv_ant', 'vv']].corr())
+    # # # print(df[['dv_pos', 'dd']].corr())
+    # #
+    # quit()
+    # #
     #
     # df['dd_dv_pos'] = df['dd'] * df['dv_pos']
     # conn_keys += ['dd_dv_pos']
@@ -85,6 +85,7 @@ def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
     # quit()
 
 
+    # sn 1232 is correlated inversely at r = -.98??????
 
     # df = df[df['dd'].abs() < 5]
     # df = df[df['vv'].abs() < 5]
@@ -100,15 +101,17 @@ def do_rs_t(fp='rs', base='dv_ant', exclude='va', seed='va'):
     for sn, df_sn in df.groupby('sn'):
         t = list(range(len(df_sn)))
         df.loc[df_sn.index, 'rs_trial'] = t
-    #     r, p = stats.spearmanr(df_sn['dd_vv'], df_sn['dv_dv'])
+        r, p = stats.spearmanr(df_sn['dd_vv'], df_sn['dv_dv'])
     #     # print(f'{r=:.3f}')
-    #     if r > -.3:
-    #         plt.title(f'{r=:.2f} ({sn})')
-    #         plt.plot(df_sn['dd_vv'])
-    #         plt.plot(df_sn['dv_dv'])
-    #         plt.show()
-    #         quit()
-    # quit()
+        if -.7 < r < -.5:
+            r_, _ = stats.spearmanr(df_sn['dd'], df_sn['vv'])
+            plt.title(f'{r=:.2f} ({sn}) [{r_=:.2f}]')
+
+            plt.plot(df_sn['da'])
+            plt.plot(df_sn['dp'])
+            plt.show()
+            quit()
+    quit()
     #     plt.title(sn)
     #     plt.show()
     # quit()

@@ -12,12 +12,12 @@ import statsmodels.formula.api as smf
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
-def load_FA(fp, anat=False):
+def load_FA(fp, anat=False, roiwise=True):
     if fp == 'rs':
-        df, vndr_cols = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': False,
-                                                              'do_hemi': False,
-                                                              'zscore': True,
-                                    'high_var_confounds': False},
+        df, vndr_cols = pickle_wrap(get_rs_vendor_df,
+                                    kwargs={'roiwise': roiwise,
+                                            'do_hemi': False, 'zscore': True,
+                                            'high_var_confounds': False},
                                     easy_override=False)
         # bad_sns = {'138'}
         # df = df[~df['sn'].isin(bad_sns)]
@@ -25,7 +25,7 @@ def load_FA(fp, anat=False):
         df, vndr_cols = pickle_wrap(get_vendor_df, None,
                                     kwargs={'fp': fp, 'scrub': True,
                                             'anat': anat,
-                                            'roiwise': False,
+                                            'roiwise': roiwise,
                                             'zscore': True},
                                     easy_override=False, cache_dir='cache')
     return df
@@ -230,7 +230,7 @@ def state_test(df):
 
 def do_FA(fp='rs'):
     # df = load_FA(fp)
-    df = get_all_task_vendor(anat=True, zscore=True)
+    df = get_all_task_vendor(anat=True, zscore=True, roiwise=False)
     # df = df[df['task'] != 'RS']
     # df = df[df['task'] == 'RS']
     bad_sns = identify_extremely_low_variance_sn(df)
@@ -252,8 +252,25 @@ def do_FA(fp='rs'):
     df['down'] = df['va'] + df['vp']
     df['ant'] = df['da'] + df['va']
     df['pos'] = df['dp'] + df['vp']
+    # df = df[df['task'] == 'RS']
 
-    formula = fr'da ~ 1 + inc'
+    r, p = stats.pearsonr(df['up'], df['down'])
+    print(f'{r=:.3f}, {p=:.3f}')
+
+    df['dd_vv'] = df['dd'] + df['vv']
+    df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+    df['vendor'] = df['dd_vv'] - df['dv_dv']
+
+    df = df[df['task'] == 'OBJ']
+    # cols = [f'M_{i}' for i in range(246)]
+    # df['M_all'] = df[cols].mean(axis=1)
+
+    # print(df['inc'])
+    add_prev(df, 'inc', 'obj')
+    # print(df['inc_prev'])
+    # quit()
+
+    formula = fr'vendor ~ 1 + inc_prev'
     model = smf.ols(formula=formula, data=df)
     res = model.fit()
     print(res.summary())
