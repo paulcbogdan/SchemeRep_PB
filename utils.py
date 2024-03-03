@@ -34,19 +34,21 @@ def regress_out_multi(X, y):
 def stdize(v, axis=None, nans=False):
     import warnings
     warnings.filterwarnings('ignore', category=RuntimeWarning,
-                            message='Mean of empty slice')
+                            message='invalid value encountered in')
 
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
-    if axis == 3:
-        return (v - m(v, axis=axis)[:, :, :, None]) / \
-            s(v, axis=axis)[:, :, :, None]
-    elif axis == 2:
-        return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
-    elif axis == 1:
-        return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
-    else:
-        return (v - m(v, axis=axis)) / s(v, axis=axis)
+    return (v - m(v, axis=axis)[..., None]) / s(v, axis=axis)[..., None]
+
+    # if axis == 3:
+    #     return (v - m(v, axis=axis)[:, :, :, None]) / \
+    #         s(v, axis=axis)[:, :, :, None]
+    # elif axis == 2:
+    #     return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
+    # elif axis == 1:
+    #     return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
+    # else:
+    #     return (v - m(v, axis=axis)) / s(v, axis=axis)
 
 
 def nan_ar(shape):

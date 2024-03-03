@@ -8,6 +8,7 @@ from nilearn import image
 from scipy import ndimage
 from nilearn import plotting
 import random
+from functools import cache
 
 def get_Schaefer_atlas():
     atlas = {}
@@ -128,6 +129,7 @@ def add_ROI_info(atlas):
     return ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs, ROI_regions
 
 
+@cache
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
     print('Getting atlas')

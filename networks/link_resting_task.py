@@ -59,10 +59,11 @@ def act2conn(sn_roi_act, flatten=True):
         # print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
     return sn_roi_conn
 
-def plot_ranks(idx2rank, atlas, nroi=246, do_conn=True):
+def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True):
     if do_conn:
-        trils = np.tril_indices(nroi, -1)
-        ar2rank = np.full((nroi, nroi), np.nan)
+        print(f'{idx2rank=}')
+        trils = np.tril_indices(n_roi, -1)
+        ar2rank = np.full((n_roi, n_roi), np.nan)
         ar2rank[trils] = idx2rank
         plot_connectivity(ar2rank, atlas=atlas, cbar_label='rank')
         quit()
@@ -86,7 +87,7 @@ def plot_ranks(idx2rank, atlas, nroi=246, do_conn=True):
 
 def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
-                  split=.3):
+                  split=.3, do_plot=False):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
@@ -116,7 +117,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     sns = [sn for sn in sns if sn not in bad_sns]
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
-    nrois = sn_roi_act.shape[-2]
+    n_roi = sn_roi_act.shape[-2]
 
     # print(f'{sn_roi_rs.shape=}')
     # quit()
@@ -130,9 +131,12 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     bad_j = set(bad_j)
 
     if do_conn:
+        sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
         sn_roi_act = act2conn(sn_roi_act)
+        sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
         sn_roi_rs = act2conn(sn_roi_rs)
 
+    # shuffle = False
     corrs = []
     if shuffle:
         sn_roi_act = shuffle_rows(sn_roi_act)
@@ -140,71 +144,58 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     sn_roi_M = np.nanmean(sn_roi_act, axis=-1)
     sn_roi_eff = sn_roi_M[:, 2, :] - sn_roi_M[:, 0, :]
 
-    generic_effs = np.nanmean(sn_roi_eff, axis=0)
-    generic_effs /= np.nanstd(generic_effs, axis=0)
-    n_nans = np.sum(np.isnan(generic_effs))
-    # print(f'{n_nans=}')
-    nan_cutoff = nrois - n_nans
-    gen_rank2idx = generic_effs.argsort()
+    # print(f'{sn_roi_M.shape=}')
+
+    generic_difs = np.nanmean(sn_roi_eff, axis=0)
+    generic_Ns = np.sum(~np.isnan(sn_roi_eff), axis=0)
+    generic_SDs = np.nanstd(sn_roi_eff, axis=0)
+    generic_SEs = generic_SDs / np.sqrt(generic_Ns) # TODO: toggle vs. just dif
+    generic_ts = generic_difs / generic_SEs
+
+    nans = np.argwhere(np.isnan(generic_ts))[:, 0]
+    if not do_conn:
+        assert set(list(nans)) == set(bad_j), f'{nans=} {bad_j=}'
+    n_nans = np.sum(np.isnan(generic_ts))
+
+    n_elements = len(generic_ts)
+    nan_cutoff = n_elements - n_nans
+    gen_rank2idx = generic_ts.argsort()
+
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
-    # print(f'{nan_cutoff=}')
-    # print(gen_idx2rank)
-    # quit()
 
-    # split = 0.25
     low_cutoff = int(len(gen_rank2idx) * split)
     high_cutoff = int(len(gen_rank2idx) * (1 - split))
     high_cutoff -= n_nans
-    # idx_cutoff = int(len(gen_rank2idx) * split)
 
-    # print(f'{len(generic_rank)=}')
-    # quit()
+    gen_idx2rank[(gen_idx2rank > low_cutoff) &
+                 (gen_idx2rank < high_cutoff)] = np.nan
 
-    # middle_rois = (generic_rank < high_cutoff) & (generic_rank > low_cutoff)
-    # generic_rank[middle_rois] = np.nan
+    gen_idx2rank = generic_ts
 
-    # inc_rois = generic_rank > high_cutoff
-    # generic_rank[inc_rois] = np.nan
-    # con_rois = generic_rank < low_cutoff
-    # generic_rank[con_rois] = np.nan
-
-    # # print(f'{mid=}')
-    #
-    # generic_rank[:mid] = 0
-    # generic_rank[-mid:] = 1
-    # print('test')
-    # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
-
-    # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
-    # quit()
-
+    if do_plot:
+        plot_ranks(gen_idx2rank, atlas, n_roi=n_roi, do_conn=do_conn)
 
     if verbose: print('Onto looping')
-    for sn_i in tqdm(range(sn_roi_eff.shape[0]), position=0, leave=True):
+    for sn_i in tqdm(range(sn_roi_eff.shape[0]), position=0, leave=False):
         if do_generic:
             rank2idx = gen_rank2idx
+            n_nans_sn = n_nans
+            nan_idxs = np.argwhere(np.isnan(generic_ts))[:, 0]
         else:
             sn_effs = sn_roi_eff[sn_i, :]
+            n_nans_sn = np.sum(np.isnan(sn_effs))
             rank2idx = sn_effs.argsort()
-        idx2rank = np.argsort(rank2idx)
-
-        # print(f'{ef_rank.shape=}')
-        # quit()
-
-        # inc_rois = np.argwhere(idx2rank < low_cutoff)[:, 0]
-        # print(f'{inc_rois=}')
-        # con_rois = rank2idx > high_cutoff
+            nan_idxs = np.argwhere(np.isnan(sn_effs))[:, 0]
 
         inc_rois = rank2idx[:low_cutoff]
-        # pritn(f'{high_cutoff=}, {n_nans=}')
-        con_rois = rank2idx[high_cutoff:-n_nans]
-        # print(f'{con_rois=}')
-        # quit()
+        con_rois = rank2idx[high_cutoff:-n_nans_sn]
 
-        assert np.all([i not in bad_j for i in inc_rois]), 'Bad in inc_rois'
-        assert np.all([i not in bad_j for i in con_rois]), 'Bad in con_rois'
 
+        assert np.all([(j not in inc_rois) for j in nan_idxs]), \
+            f'Bad in inc_rois: {inc_rois=}'
+        assert np.all([(j not in con_rois) for j in nan_idxs]), \
+            f'Bad in con_rois: {inc_rois=}'
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
@@ -228,18 +219,24 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     if shuffle:
         print(f'Shuffle: {M_corr=:.3f}')
     else:
-        print(f'Genuine ({split}): {M_corr=:.3f}')
+        generic_str = 'Generic' if do_generic else 'Subject-specific'
+        print(f'{generic_str} | Genuine ({split}): {M_corr=:.3f}')
     return corrs
 
-def plot_by_split(do_conn=False):
-    corrs = link_activity(do_generic=True, do_conn=do_conn)
-    corrs = link_activity(do_generic=False, do_conn=do_conn)
+def plot_by_split(do_conn=True):
+    # corrs = link_activity(do_generic=True, do_conn=do_conn)
+    # corrs = link_activity(do_generic=False, do_conn=do_conn)
 
-    quit()
+    # quit()
 
-    for split in [.3]: # [.5, .4, .3, .2, .1]
+    for split in [.5, .4, .3, .2, .1]:
         corrs = link_activity(do_generic=False, do_conn=do_conn,
-                              split=split, combine_regions=False)
+                              split=split, combine_regions=False,
+                              do_plot=False)
+        corrs = link_activity(do_generic=True, do_conn=do_conn,
+                              split=split, combine_regions=False,
+                              do_plot=False)
+        print('-')
 
 if __name__ == '__main__':
     # test = np.array([2, 3, 5, -10, 1, 0])
