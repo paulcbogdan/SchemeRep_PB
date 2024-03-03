@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 from analyze_rs import load_act_conn, load_resting_data
 from atlas_utils import get_atlas
+from old.analyze_ROIs import setup_colors
 from old.plot_gen import plot_connectivity
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -65,6 +66,21 @@ def plot_ranks(idx2rank, atlas, nroi=246, do_conn=True):
         ar2rank[trils] = idx2rank
         plot_connectivity(ar2rank, atlas=atlas, cbar_label='rank')
         quit()
+    else:
+        region2color = setup_colors(atlas)
+        colors = []
+        for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
+            color = region2color[region]
+            colors.append(color)
+        for idx, rank in enumerate(idx2rank):
+            plt.plot([idx, idx], [0, rank],
+                     color=colors[idx], zorder=1)
+
+        plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=90,
+                   fontsize=12)
+        plt.ylabel('Ranking', labelpad=5)
+        plt.show()
+        quit()
 
 
 
@@ -101,10 +117,17 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
     nrois = sn_roi_act.shape[-2]
+
     # print(f'{sn_roi_rs.shape=}')
     # quit()
 
     atlas = get_atlas(combine_regions=combine_regions)
+    bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
+    bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
+             if roi in bad_rois]
+    sn_roi_act[..., bad_j, :] = np.nan
+    sn_roi_rs[..., bad_j, :] = np.nan
+    bad_j = set(bad_j)
 
     if do_conn:
         sn_roi_act = act2conn(sn_roi_act)
@@ -119,12 +142,20 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
     generic_effs = np.nanmean(sn_roi_eff, axis=0)
     generic_effs /= np.nanstd(generic_effs, axis=0)
+    n_nans = np.sum(np.isnan(generic_effs))
+    # print(f'{n_nans=}')
+    nan_cutoff = nrois - n_nans
     gen_rank2idx = generic_effs.argsort()
-    gen_idx2rank = np.argsort(gen_rank2idx)
+    gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
+    gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
+    # print(f'{nan_cutoff=}')
+    # print(gen_idx2rank)
+    # quit()
 
     # split = 0.25
     low_cutoff = int(len(gen_rank2idx) * split)
     high_cutoff = int(len(gen_rank2idx) * (1 - split))
+    high_cutoff -= n_nans
     # idx_cutoff = int(len(gen_rank2idx) * split)
 
     # print(f'{len(generic_rank)=}')
@@ -145,7 +176,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     # print('test')
     # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
 
-    # # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
+    # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
     # quit()
 
 
@@ -166,14 +197,14 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         # con_rois = rank2idx > high_cutoff
 
         inc_rois = rank2idx[:low_cutoff]
-        con_rois = rank2idx[high_cutoff:]
-
-        # inc_rois = rank2idx[:mid]
-        # con_rois = rank2idx[-mid:]
-        # print(sn_roi_rs.shape)
-        # print(f'{inc_rois=}')
-        # # print(f'{len(inc_rois)=}')
+        # pritn(f'{high_cutoff=}, {n_nans=}')
+        con_rois = rank2idx[high_cutoff:-n_nans]
+        # print(f'{con_rois=}')
         # quit()
+
+        assert np.all([i not in bad_j for i in inc_rois]), 'Bad in inc_rois'
+        assert np.all([i not in bad_j for i in con_rois]), 'Bad in con_rois'
+
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
@@ -200,8 +231,10 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         print(f'Genuine ({split}): {M_corr=:.3f}')
     return corrs
 
-def plot_by_split(do_conn=True):
+def plot_by_split(do_conn=False):
     corrs = link_activity(do_generic=True, do_conn=do_conn)
+    corrs = link_activity(do_generic=False, do_conn=do_conn)
+
     quit()
 
     for split in [.3]: # [.5, .4, .3, .2, .1]
