@@ -13,6 +13,7 @@ from nilearn import image
 import inspect
 import functools
 from functools import cache
+from colorama import Fore
 
 def regress_out(x, y):
     x = np.array(x)
@@ -31,6 +32,10 @@ def regress_out_multi(X, y):
     return y
 
 def stdize(v, axis=None, nans=False):
+    import warnings
+    warnings.filterwarnings('ignore', category=RuntimeWarning,
+                            message='Mean of empty slice')
+
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
     if axis == 3:
@@ -360,8 +365,9 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
 
 PICKLE_CACHE = {}
 
-def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=False,
-                verbose=0, cache_dir='cache', dt_max=None):
+def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
+                easy_override=False, verbose=0, cache_dir='cache',
+                dt_max=None, RAM_cache=False):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
@@ -376,7 +382,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
     '''
     if filepath is None:
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
-    if filepath in PICKLE_CACHE:
+    if RAM_cache and filepath in PICKLE_CACHE:
         return PICKLE_CACHE[filepath]
 
     if verbose:
@@ -405,12 +411,13 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
                 if verbose: print(f'\tLoad time: {time()-start:.3f} s')
                 if not verbose: print(f'Pickle loaded: {filepath=} '
                                       f'({time() - start:.3f} s)')
-                PICKLE_CACHE[filepath] = pk
+                if RAM_cache: PICKLE_CACHE[filepath] = pk
                 return pk
-        except UnpicklingError as e:
-            print(f'{e=}')
-            print(f'\t{callback=}')
-            print(f'\t{filepath=}')
+        except (UnpicklingError, MemoryError) as e:
+            print(f'{Fore.RED}{e=}')
+            print(f'\t{Fore.YELLOW}{callback=}')
+            print(f'\t{Fore.YELLOW}{filepath=}{Fore.RESET}')
+
 
     if verbose:
         print('Callback:',
@@ -436,7 +443,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None, easy_override=F
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
     if verbose: print(f'\tDump time: {time()-start:.3f} s')
-    PICKLE_CACHE[filepath] = output
+    if RAM_cache: PICKLE_CACHE[filepath] = output
     return output
 
 def timing(f):

@@ -66,17 +66,19 @@ def get_memory_p():
 
 
 @timing
-def get_dfs_conn_trials(fp='obj7_fMRI', single=False,
-                        squeeze=False):
+def get_dfs_conn_trials(fp='obj7_fMRI', single=False, squeeze=False,
+                        combine_regions=False):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
               'get_df_sn': True,
+              'combine_regions': combine_regions
               }
     sn_inc_conn, sn_conn, age2idxs, sn_roi_act, df_sns_l = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=1, cache_dir='cache')
+                    easy_override=False, verbose=1, cache_dir='cache',
+                    )
     sn_inc_activity_std = stdize(sn_roi_act, axis=3, nans=True)
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]

@@ -82,7 +82,7 @@ def sanity_load(sn):
     return data
 
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
-                      sanity=False):
+                      sanity=False, combine_regions=False):
 
     age2sn = get_sns()
     if YA_only:
@@ -94,10 +94,9 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
     #     sns = sns[10:15]
 
     sn_roi_act = []
-    atlas = get_atlas()
+    atlas = get_atlas(combine_regions=combine_regions)
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
-    print(f'{sns=}')
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
@@ -242,11 +241,13 @@ def do_modularity_hemi(df):
                                         w_zeros=True)
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows, title='', no_avg=True, vmin=0, vmax=1)
 
-def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False):
+def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
+                  RAM_cache=False):
     if f is None:
         f = load_resting_data
     sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override,
-                                  kwargs={'YA_only': YA_only})
+                                  kwargs={'YA_only': YA_only},
+                                  RAM_cache=RAM_cache)
     # sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]

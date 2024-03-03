@@ -24,8 +24,6 @@ def test_reality(fp='HCP_RS', norm_std=True, alpha=.01):
     if fp == 'HCP_RS':
         sn_roi_act, sns = pickle_wrap(load_HCP_act, kwargs={'N': 5,
                                                             'RS': True})
-        # print(f'{sn_roi_act.shape=}')
-        # quit()
     elif fp == 'rs':
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=False,

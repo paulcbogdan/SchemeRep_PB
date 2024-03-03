@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-from analyze_rs import load_act_conn
+from analyze_rs import load_act_conn, load_resting_data
 from atlas_utils import get_atlas
 from old.plot_gen import plot_connectivity
 
@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import random
 from time import time
+from functools import partial
 
 def shuffle_rows(sn_roi_act):
     new_ar = np.full(sn_roi_act.shape, np.nan)
@@ -57,38 +58,41 @@ def act2conn(sn_roi_act, flatten=True):
         # print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
     return sn_roi_conn
 
-def plot_ranks(generic_rank, nroi=246, do_conn=True):
+def plot_ranks(idx2rank, atlas, nroi=246, do_conn=True):
     if do_conn:
         trils = np.tril_indices(nroi, -1)
-        generic_rank_ar = np.full((nroi, nroi), np.nan)
-        generic_rank_ar[trils] = generic_rank
-        atlas = get_atlas()
-        plot_connectivity(generic_rank_ar, atlas=atlas, cbar_label='rank')
+        ar2rank = np.full((nroi, nroi), np.nan)
+        ar2rank[trils] = idx2rank
+        plot_connectivity(ar2rank, atlas=atlas, cbar_label='rank')
         quit()
 
 
 
 def link_activity(do_generic=True, do_conn=True, verbose=0,
-                  shuffle=False, combine_regions=True):
+                  shuffle=False, combine_regions=True,
+                  split=.3):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
     #   person-specific than group-level
 
-
-
     sn_roi_act, _, df_sns_l, sns  = \
-        pickle_wrap(get_dfs_conn_trials, kwargs={'fp': 'obj7_fMRI',
-                                                 'single': False,
-                                                 'squeeze': False},
-                    easy_override=False)
+        pickle_wrap(get_dfs_conn_trials,
+                    kwargs={'fp': 'obj7_fMRI', 'single': False,
+                            'squeeze': False,
+                            'combine_regions': combine_regions},
+                    easy_override=False, RAM_cache=True)
+
     sns = [df['sn'].iloc[0] for df in df_sns_l]
     good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
     sn_roi_act = sn_roi_act[good_i, :, :]
     sns = [sn for sn in sns if sn != '133'] # bad rs
 
-    sn_roi_rs, sns_, _ = load_act_conn(False,
-                                                easy_override=False)
+
+    f = partial(load_resting_data, combine_regions=combine_regions)
+    sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
+                                                easy_override=False,
+                                       RAM_cache=True)
     assert sns == sns_
 
     bad_sns = {'116', '117', '110', '130', '232'}
@@ -96,63 +100,79 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     sns = [sn for sn in sns if sn not in bad_sns]
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
+    nrois = sn_roi_act.shape[-2]
+    # print(f'{sn_roi_rs.shape=}')
+    # quit()
 
-    atlas = get_atlas()
+    atlas = get_atlas(combine_regions=combine_regions)
 
     if do_conn:
         sn_roi_act = act2conn(sn_roi_act)
         sn_roi_rs = act2conn(sn_roi_rs)
-    # rand_edges = np.random.choice( sn_roi_act.shape[-2], 30000, replace=False)
-    # sn_roi_act = sn_roi_act[:, :, rand_edges, :]
-    # sn_roi_rs = sn_roi_rs[:, rand_edges, :]
-
-    # quit()
 
     corrs = []
     if shuffle:
         sn_roi_act = shuffle_rows(sn_roi_act)
-    # print(sn_roi_act)
-    # print(sn_roi_act.shape)
-    # quit()
+
     sn_roi_M = np.nanmean(sn_roi_act, axis=-1)
     sn_roi_eff = sn_roi_M[:, 2, :] - sn_roi_M[:, 0, :]
-    # print(sn_roi_eff)
-    # quit()
-
-
 
     generic_effs = np.nanmean(sn_roi_eff, axis=0)
     generic_effs /= np.nanstd(generic_effs, axis=0)
-    generic_rank = generic_effs.argsort()
-    # plt.hist(generic_effs)
-    # plt.show()
+    gen_rank2idx = generic_effs.argsort()
+    gen_idx2rank = np.argsort(gen_rank2idx)
+
+    # split = 0.25
+    low_cutoff = int(len(gen_rank2idx) * split)
+    high_cutoff = int(len(gen_rank2idx) * (1 - split))
+    # idx_cutoff = int(len(gen_rank2idx) * split)
+
+    # print(f'{len(generic_rank)=}')
     # quit()
-    # print(f'{generic_eff=}')
+
+    # middle_rois = (generic_rank < high_cutoff) & (generic_rank > low_cutoff)
+    # generic_rank[middle_rois] = np.nan
+
+    # inc_rois = generic_rank > high_cutoff
+    # generic_rank[inc_rois] = np.nan
+    # con_rois = generic_rank < low_cutoff
+    # generic_rank[con_rois] = np.nan
+
+    # # print(f'{mid=}')
+    #
+    # generic_rank[:mid] = 0
+    # generic_rank[-mid:] = 1
+    # print('test')
+    # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
+
+    # # plot_ranks(gen_idx2rank, atlas, nroi=nrois, do_conn=do_conn)
     # quit()
+
+
     if verbose: print('Onto looping')
     for sn_i in tqdm(range(sn_roi_eff.shape[0]), position=0, leave=True):
         if do_generic:
-            ef_rank = generic_rank
+            rank2idx = gen_rank2idx
         else:
             sn_effs = sn_roi_eff[sn_i, :]
-            ef_rank = sn_effs.argsort()
-            # plt.hist(sn_effs)
-            # plt.show()
-        # random.shuffle(ef_rank)
-        plot_ranks(ef_rank, do_conn=do_conn)
-        quit()
-        mid = ef_rank.size // 2
-        inc_rois = ef_rank[mid:]
-        con_rois = ef_rank[:mid]
-        # m = np.corrcoef(sn_roi_rs[sn_i, :, :])
-        # print(f'{m.shape=}')
+            rank2idx = sn_effs.argsort()
+        idx2rank = np.argsort(rank2idx)
+
+        # print(f'{ef_rank.shape=}')
         # quit()
-        # m[np.diag_indices_from(m)] = np.nan
-        # M = np.nanmean(m)
-        # plt.title(f'{M=:.3f}: {sns[sn_i]}, {sn_i}')
-        # plt.imshow(np.corrcoef(sn_roi_rs[sn_i, :, :]))
-        # plt.colorbar()
-        # plt.show()
+
+        # inc_rois = np.argwhere(idx2rank < low_cutoff)[:, 0]
+        # print(f'{inc_rois=}')
+        # con_rois = rank2idx > high_cutoff
+
+        inc_rois = rank2idx[:low_cutoff]
+        con_rois = rank2idx[high_cutoff:]
+
+        # inc_rois = rank2idx[:mid]
+        # con_rois = rank2idx[-mid:]
+        # print(sn_roi_rs.shape)
+        # print(f'{inc_rois=}')
+        # # print(f'{len(inc_rois)=}')
         # quit()
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
@@ -177,11 +197,25 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     if shuffle:
         print(f'Shuffle: {M_corr=:.3f}')
     else:
-        print(f'{M_corr=:.3f}')
+        print(f'Genuine ({split}): {M_corr=:.3f}')
     return corrs
 
+def plot_by_split(do_conn=True):
+    corrs = link_activity(do_generic=True, do_conn=do_conn)
+    quit()
+
+    for split in [.3]: # [.5, .4, .3, .2, .1]
+        corrs = link_activity(do_generic=False, do_conn=do_conn,
+                              split=split, combine_regions=False)
 
 if __name__ == '__main__':
+    # test = np.array([2, 3, 5, -10, 1, 0])
+    # print(np.argsort(np.argsort(test)))
+    # quit()
+
+
+    plot_by_split()
+    quit()
     # a = {1:1, 2:1}
     # b = {1:1, 2:1}
     # print(a == b)

@@ -130,13 +130,14 @@ def add_ROI_info(atlas):
 
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
+    print('Getting atlas')
     if shenyang:
         fp_atlas = r'E:\PycharmProjects_E\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
-        print('Shenyang atlas')
+        # print('Shenyang atlas')
     else:
         img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
-        print('Defunct atlas')
+        # print('Defunct atlas')
 
     # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
     fp_labels = 'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
