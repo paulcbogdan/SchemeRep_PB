@@ -126,14 +126,8 @@ def plot_M():
                'con3_fMRI': 'conc. retrieval',
                'vis3_fMRI': 'vis. retrieval'}
     M_graph = np.nanmean(sn_inc_conn, axis=(0, 1))
-    plot_connectivity(M_graph,
-                      atlas['ticks'],
-                      atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
-                      title=f'{fp2name[kwargs["fp"]]} | mean connectivity (YA + OA)',
-                      # vmin=-4, vmax=4,
-                      cbar_label='t-value')
+    plot_connectivity(M_graph, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
+                      title=f'{fp2name[kwargs["fp"]]} | mean connectivity (YA + OA)', no_avg=True, cbar_label='t-value')
 
 def ANOVA_edges():
     fp = 'obj4_fMRI'
@@ -179,15 +173,9 @@ def ANOVA_edges():
     fp2name = {'obj4_fMRI': 'obj. encoding',
                'con3_fMRI': 'conc. retrieval',
                'vis3_fMRI': 'vis. retrieval'}
-    plot_connectivity(z,
-                      atlas['ticks'],
-                      atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
+    plot_connectivity(z, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
                       title=f'scene betas | paired t-test, effect of '
-                            f'{kwargs["key"]} (YA + OA)',
-                      vmin=0, vmax=4,
-                      cbar_label='F-value')
+                            f'{kwargs["key"]} (YA + OA)', no_avg=True, cbar_label='F-value', vmin=0, vmax=4)
 
 
 def run_ttests(min_cluster_size=50, alpha_thresh=.05):
@@ -248,15 +236,9 @@ def run_ttests(min_cluster_size=50, alpha_thresh=.05):
                'vis3_fMRI': 'vis. retrieval',
                'obj7_fMRI': 'obj. encoding',
                'scn7_fMRI': 'scene encoding'}
-    plot_connectivity(z1_graph,
-                      atlas['ticks'],
-                      atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
+    plot_connectivity(z1_graph, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
                       title=f'{fp2name[kwargs["fp"]]} | paired t-test, effect of '
-                            f'{kwargs["key"]} (YA + OA)',
-                      vmin=-4, vmax=4,
-                      cbar_label='t-value')
+                            f'{kwargs["key"]} (YA + OA)', no_avg=True, cbar_label='t-value', vmin=-4, vmax=4)
     # alpha_thresh = .05
     # num_signif = np.sum(p < alpha_thresh) // 2
     num_correction = .05 / alpha_thresh

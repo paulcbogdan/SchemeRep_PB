@@ -79,9 +79,7 @@ def test_IRAF_x_activity(age=2, early=True, semantic=True, cin=None,
     bottom = replace_w_nan_if_needed(bottom)
     r_Ms, r_SDs, t, _ = bulk_correlate(left, bottom, nans=True)
     title = make_title_str('', key, age, early, semantic, cin)
-    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      title=title, no_avg=True,
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'], title=title, no_avg=True,
                       cbar_label='t-value')
     # vmin=-3
 

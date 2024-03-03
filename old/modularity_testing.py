@@ -167,9 +167,8 @@ def make_basic_corr_comparison(combine_regions=True, bilateral=False):
         # t = corr_c[1]
         # t = np.nanmean(corr_c, axis=0)
         title = f'{name}, inc 1 - inc 2'
-        plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'], title=title, no_avg=True,
-                      cbar_label='t-value')
+        plot_connectivity(t, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'], title=title, no_avg=True,
+                          cbar_label='t-value')
         # quit()
 
 

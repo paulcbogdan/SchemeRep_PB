@@ -227,8 +227,7 @@ def do_modularity_hemi(df):
     tick_labels = cols_analyze
 
     corr[np.diag_indices_from(corr)] = np.nan
-    plot_connectivity(corr, ticks, tick_labels, tick_lows,
-                      no_avg=True, vmin=0, vmax=1.0)
+    plot_connectivity(corr, ticks, tick_labels, tick_lows, no_avg=True, vmin=0, vmax=1.0)
 
     thr = np.nanquantile(corr, .8)
     corr[corr < thr] = 0
@@ -241,8 +240,7 @@ def do_modularity_hemi(df):
     for p in partitions:
         corr_vp = get_partition_matrix(np.ones(corr.shape), p,
                                         w_zeros=True)
-        plot_connectivity(corr_vp, ticks, tick_labels, tick_lows,
-                          no_avg=True, title='', vmin=0, vmax=1)
+        plot_connectivity(corr_vp, ticks, tick_labels, tick_lows, title='', no_avg=True, vmin=0, vmax=1)
 
 def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False):
     if f is None:

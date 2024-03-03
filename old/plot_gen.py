@@ -10,12 +10,16 @@ from nilearn import plotting
 from atlas_utils import get_combined_BNA, get_atlas
 
 
-def plot_connectivity(conn, ticks, tick_labels, tick_lows, title='', fp=None,
-                      ax=None, t=False, no_avg=False, cbar_label='',
-                      vmin=None, vmax=None, xlabel=None, ylabel=None,
-                      tile=.001, tick_low=None, tick_high=None):
+def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
+                      atlas=None, title='', fp=None, ax=None,
+                      t=False, no_avg=True, cbar_label='', vmin=None, vmax=None,
+                      xlabel=None, ylabel=None, tile=.001,
+                      tick_low=None, tick_high=None):
 
-    # conn[np.triu_indices_from(conn, k=0)] = np.nan
+    if atlas is not None:
+        ticks = atlas['ticks']
+        tick_labels = atlas['tick_labels']
+        tick_lows = atlas['tick_lows']
 
     font = {'size': 14}
     matplotlib.rc('font', **font)

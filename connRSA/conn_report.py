@@ -179,17 +179,8 @@ def visualize_region_matrix(results, plot_lmer=False):
     title_str = f'n = {N}, {analysis_str}, \n' \
                 f'{conn_str}, {second_order_str}, {trial_similarity_str}'
 
-    plot_connectivity(t_all,
-                      # ticks,
-                      # tick_labels,
-                      # tick_lows,
-                      results['ticks'],
-                      results['tick_labels'],
-                      results['tick_lows'],
-                      no_avg=True,
-                      title=f't-test: {title_str}',
-                      cbar_label='t-value',
-                      vmin=-4, vmax=4)
+    plot_connectivity(t_all, results['ticks'], results['tick_labels'], results['tick_lows'],
+                      title=f't-test: {title_str}', no_avg=True, cbar_label='t-value', vmin=-4, vmax=4)
 
     if N == 24 or N >= 30:
         results['scores_by_ROI'] = np.array(results['scores_by_ROI'])
@@ -202,17 +193,9 @@ def visualize_region_matrix(results, plot_lmer=False):
             N_scores_fp = np.sum(~np.isnan(scores_fp), axis=0)
             SE_scores_fp = SD_scores_fp / np.sqrt(N_scores_fp)
             t_scores_fp = M_scores_fp / SE_scores_fp
-            plot_connectivity(t_scores_fp,
-                              # ticks,
-                              # tick_labels,
-                              # tick_lows,
-                              results['ticks'],
-                              results['tick_labels'],
-                              results['tick_lows'],
-                              no_avg=True,
-                              title=f't-test (fp={fp}): {title_str}',
-                              cbar_label='t-value',
-                              vmin=-4, vmax=4)
+            plot_connectivity(t_scores_fp, results['ticks'], results['tick_labels'], results['tick_lows'],
+                              title=f't-test (fp={fp}): {title_str}', no_avg=True, cbar_label='t-value', vmin=-4,
+                              vmax=4)
         # quit()
 
     if not plot_lmer:
@@ -224,17 +207,8 @@ def visualize_region_matrix(results, plot_lmer=False):
 
     lmer_ar = pickle_wrap(lambda: get_lmer_matrix(results), lmer_fp)
 
-    plot_connectivity(lmer_ar,
-                      # ticks,
-                      # tick_labels,
-                      # tick_lows,
-                      results['ticks'],
-                      results['tick_labels'],
-                      results['tick_lows'],
-                      no_avg=True,
-                      title=f'lmer: {title_str}',
-                      cbar_label='t-value',
-                      vmin=-4, vmax=4)
+    plot_connectivity(lmer_ar, results['ticks'], results['tick_labels'], results['tick_lows'],
+                      title=f'lmer: {title_str}', no_avg=True, cbar_label='t-value', vmin=-4, vmax=4)
 
 def visualize_ROIs(results, do_lmer=False):
     from connsearch.report import plot_ROI_scores

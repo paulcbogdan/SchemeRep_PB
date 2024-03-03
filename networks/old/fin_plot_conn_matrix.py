@@ -65,24 +65,16 @@ def plot_conn_matrix(combine_regions=True):
                    'tile': .001,
                    'tick_low': '(Con)',
                    'tick_high': '(Inc)'}
-    plot_connectivity(z_OA,
-                      title=f'{fp2name[kwargs["fp"]]}\n'
-                            f'Congruency effect (OA)',
-                      **plot_kwargs)
-    plot_connectivity(z_YA,
-                      title=f'{fp2name[kwargs["fp"]]}\n'
-                            f'Congruency effect (YA)',
-                      **plot_kwargs)
-    plot_connectivity(z_both,
-                     title=f'{fp2name[kwargs["fp"]]}\n'
-                           f'Congruency effect (YA + OA)',
-                     **plot_kwargs)
+    plot_connectivity(z_OA, title=f'{fp2name[kwargs["fp"]]}\n'
+                                  f'Congruency effect (OA)', **plot_kwargs)
+    plot_connectivity(z_YA, title=f'{fp2name[kwargs["fp"]]}\n'
+                                  f'Congruency effect (YA)', **plot_kwargs)
+    plot_connectivity(z_both, title=f'{fp2name[kwargs["fp"]]}\n'
+                                    f'Congruency effect (YA + OA)', **plot_kwargs)
     plot_kwargs['tick_low'] = f'\n(Inc higher in OA)'
     plot_kwargs['tick_high'] = f'\n(Con higher in OA)'
-    plot_connectivity(z_intr,
-                     title=f'{fp2name[kwargs["fp"]]}\n'
-                           f'Congruency x Age interaction',
-                     **plot_kwargs)
+    plot_connectivity(z_intr, title=f'{fp2name[kwargs["fp"]]}\n'
+                                    f'Congruency x Age interaction', **plot_kwargs)
 
 if __name__ == '__main__':
     plot_conn_matrix()

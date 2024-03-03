@@ -107,12 +107,9 @@ def do_multi_sess_conn(semantic=True):
             t_edge_RSM = M_edge_RSM / SE_edge_RSM
             t_edge_RSM[abs(t_edge_RSM) < 2] = np.nan
             n = len(all_edge_RSMs)
-            plot_connectivity(t_edge_RSM,
-                              atlas['ticks'], atlas['tick_labels'],
-                              atlas['tick_lows'], no_avg=True,
-                              vmin=-4, vmax=4,
-                              xlabel='', ylabel='',
-                              title=f'Subject: {sn}, deconvolved trial TRs ({n=})')
+            plot_connectivity(t_edge_RSM, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
+                              title=f'Subject: {sn}, deconvolved trial TRs ({n=})', no_avg=True, vmin=-4, vmax=4,
+                              xlabel='', ylabel='')
         except Exception as e:
             print(f'Error ({sn}): {e}')
 

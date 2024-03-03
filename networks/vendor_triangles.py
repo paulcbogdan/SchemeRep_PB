@@ -291,11 +291,9 @@ def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
                                    w_zeros=True)
 
     # corr = np.array(corr)
-    plot_connectivity(corr_v0, ticks, tick_labels, tick_lows,
-                      no_avg=True, title=fp, vmin=-0.3, vmax=0.3)
+    plot_connectivity(corr_v0, ticks, tick_labels, tick_lows, title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
 
-    plot_connectivity(corr_v1, ticks, tick_labels, tick_lows,
-                      no_avg=True, title=fp, vmin=-0.3, vmax=0.3)
+    plot_connectivity(corr_v1, ticks, tick_labels, tick_lows, title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
 
 
 def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):

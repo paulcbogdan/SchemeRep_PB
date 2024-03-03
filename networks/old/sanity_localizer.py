@@ -48,14 +48,8 @@ def do_between_fp(alpha_thresh=.0001):
 
     quit()
 
-    plot_connectivity(z_graph,
-                      atlas['ticks'],
-                      atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
-                      title=f'conceptual vs. visual | mean connectivity (YA + OA)',
-                      # vmin=-4, vmax=4,
-                      cbar_label='t-value')
+    plot_connectivity(z_graph, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
+                      title=f'conceptual vs. visual | mean connectivity (YA + OA)', no_avg=True, cbar_label='t-value')
 
     num_signif = np.sum(p_graph < alpha_thresh) // 2
     num_correction = .05 / alpha_thresh

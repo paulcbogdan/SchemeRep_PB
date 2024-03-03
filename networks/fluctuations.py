@@ -207,14 +207,7 @@ def analyze_networks(fp='rs'):
     tick_lows = np.arange(len(networks))
     title = 'Resting-state avg. network correlations'
 
-    plot_connectivity(conn,
-                      # ticks,
-                      # tick_labels,
-                      # tick_lows,
-                      ticks, tick_labels, tick_lows,
-                      no_avg=True,
-                      title=title,
-                      cbar_label='Pearson\'s r',
+    plot_connectivity(conn, ticks, tick_labels, tick_lows, title=title, no_avg=True, cbar_label='Pearson\'s r',
                       vmin=-0.5, vmax=0.5)
 
 

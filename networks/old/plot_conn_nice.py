@@ -258,14 +258,8 @@ def plot_M_mat(fp='obj7_fMRI', combine_regions=False):
                 'scn7_fMRI': 'Scene betas',
                 'con7_fMRI': 'Conceptual retrieval betas',
                 'vis7_fMRI': 'Visual retrieval betas'}
-    plot_connectivity(corr,
-                      atlas['ticks'],
-                      atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      no_avg=True,
-                      title=f'{fp2title[fp]} connectivity',
-                      cbar_label='r',
-                      vmin=-.3, vmax=1.0)
+    plot_connectivity(corr, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
+                      title=f'{fp2title[fp]} connectivity', no_avg=True, cbar_label='r', vmin=-.3, vmax=1.0)
     quit()
 
 

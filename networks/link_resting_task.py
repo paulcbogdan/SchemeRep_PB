@@ -3,6 +3,8 @@ import os
 from tqdm import tqdm
 
 from analyze_rs import load_act_conn
+from atlas_utils import get_atlas
+from old.plot_gen import plot_connectivity
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
@@ -41,24 +43,39 @@ def shuffle_rows(sn_roi_act):
         #     cnt = 0
     return new_ar
 
-def act2conn(sn_roi_act):
-    print(f'ac2conn: {sn_roi_act.shape}')
+def act2conn(sn_roi_act, flatten=True):
+    # print(f'ac2conn: {sn_roi_act.shape}')
     t_st = time()
     sn_roi_act0 = sn_roi_act[..., :, None, :]
     sn_roi_act1 = sn_roi_act[..., None, :, :]
     # print('a')
     sn_roi_conn = sn_roi_act0 * sn_roi_act1
-    # print('b')
-    trils = np.tril_indices(sn_roi_act.shape[-2], -1)
-    sn_roi_conn = sn_roi_conn[..., trils[0], trils[1], :]
-    print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
+    if flatten:
+        # print('b')
+        trils = np.tril_indices(sn_roi_act.shape[-2], -1)
+        sn_roi_conn = sn_roi_conn[..., trils[0], trils[1], :]
+        # print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
     return sn_roi_conn
 
-def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
+def plot_ranks(generic_rank, nroi=246, do_conn=True):
+    if do_conn:
+        trils = np.tril_indices(nroi, -1)
+        generic_rank_ar = np.full((nroi, nroi), np.nan)
+        generic_rank_ar[trils] = generic_rank
+        atlas = get_atlas()
+        plot_connectivity(generic_rank_ar, atlas=atlas, cbar_label='rank')
+        quit()
+
+
+
+def link_activity(do_generic=True, do_conn=True, verbose=0,
+                  shuffle=False, combine_regions=True):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
     #   person-specific than group-level
+
+
 
     sn_roi_act, _, df_sns_l, sns  = \
         pickle_wrap(get_dfs_conn_trials, kwargs={'fp': 'obj7_fMRI',
@@ -80,13 +97,14 @@ def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
 
+    atlas = get_atlas()
+
     if do_conn:
         sn_roi_act = act2conn(sn_roi_act)
         sn_roi_rs = act2conn(sn_roi_rs)
-    print(sn_roi_act.shape)
-    rand_edges = np.random.choice( sn_roi_act.shape[-2], 1000, replace=False)
-    sn_roi_act = sn_roi_act[:, :, rand_edges, :]
-    sn_roi_rs = sn_roi_rs[:, rand_edges, :]
+    # rand_edges = np.random.choice( sn_roi_act.shape[-2], 30000, replace=False)
+    # sn_roi_act = sn_roi_act[:, :, rand_edges, :]
+    # sn_roi_rs = sn_roi_rs[:, rand_edges, :]
 
     # quit()
 
@@ -101,6 +119,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
     # print(sn_roi_eff)
     # quit()
 
+
+
     generic_effs = np.nanmean(sn_roi_eff, axis=0)
     generic_effs /= np.nanstd(generic_effs, axis=0)
     generic_rank = generic_effs.argsort()
@@ -110,7 +130,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
     # print(f'{generic_eff=}')
     # quit()
     if verbose: print('Onto looping')
-    for sn_i in tqdm(range(sn_roi_eff.shape[0])):
+    for sn_i in tqdm(range(sn_roi_eff.shape[0]), position=0, leave=True):
         if do_generic:
             ef_rank = generic_rank
         else:
@@ -119,11 +139,15 @@ def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
             # plt.hist(sn_effs)
             # plt.show()
         # random.shuffle(ef_rank)
+        plot_ranks(ef_rank, do_conn=do_conn)
+        quit()
         mid = ef_rank.size // 2
         inc_rois = ef_rank[mid:]
         con_rois = ef_rank[:mid]
-        m = np.corrcoef(sn_roi_rs[sn_i, :, :])
-        m[np.diag_indices_from(m)] = np.nan
+        # m = np.corrcoef(sn_roi_rs[sn_i, :, :])
+        # print(f'{m.shape=}')
+        # quit()
+        # m[np.diag_indices_from(m)] = np.nan
         # M = np.nanmean(m)
         # plt.title(f'{M=:.3f}: {sns[sn_i]}, {sn_i}')
         # plt.imshow(np.corrcoef(sn_roi_rs[sn_i, :, :]))
@@ -150,7 +174,10 @@ def link_activity(do_generic=True, do_conn=True, verbose=1, shuffle=False):
         # rs_con = stdize(rs_con, nans=True)
     corrs = np.array(corrs)
     M_corr = np.mean(corrs)
-    print(f'{M_corr=:.3f}')
+    if shuffle:
+        print(f'Shuffle: {M_corr=:.3f}')
+    else:
+        print(f'{M_corr=:.3f}')
     return corrs
 
 
@@ -167,6 +194,7 @@ if __name__ == '__main__':
     for _ in range(100):
         corrs_ss = link_activity(do_generic=False, shuffle=True)
     corrs_gen = link_activity(do_generic=True)
+    quit()
     # corrs_ss[corrs_ss > 1.0] = np.nan
     print(len(corrs_gen))
 
