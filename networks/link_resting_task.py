@@ -275,7 +275,7 @@ def permutation_test(split=.5, do_conn=False, n_sim=100, combine_regions=False,
     M_corrs = -np.array(M_corrs)
     print_list_stats(M_corrs)
 
-def plot_by_split(do_conn=True, do_generic=True, combine_regions=True):
+def plot_by_split(do_conn=True, do_generic=False, combine_regions=True):
     for split in [.25]: # .5, .4,
         # M_corrs = link_activity(do_generic=False, do_conn=do_conn,
         #                       split=split, combine_regions=False,
