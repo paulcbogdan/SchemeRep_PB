@@ -5,6 +5,7 @@ from tqdm import tqdm
 from analyze_rs import load_act_conn, load_resting_data
 from atlas_utils import get_atlas
 from old.analyze_ROIs import setup_colors
+from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -17,6 +18,7 @@ import scipy.stats as stats
 import random
 from time import time
 from functools import partial
+from pathlib import Path
 
 
 def shuffle_rows(sn_roi_act):
@@ -25,6 +27,7 @@ def shuffle_rows(sn_roi_act):
     num_ea = sn_roi_act.shape[-1] // 3
 
     for j in range(sn_roi_act_sq.shape[0]):
+        # for k in range(sn_roi_act_sq.shape[1]):
 
         cnt_l = [0, 1, 2] * num_ea
         random.shuffle(cnt_l)
@@ -40,10 +43,11 @@ def shuffle_rows(sn_roi_act):
         #         new_ar[:, cnt, roi_j, i] = sn_roi_act_sq[:, roi_j, i]
 
             cnt = cnt_l[i]
+            # print(f'{j} | {i} : {cnt}')
             # print(f'{sn_roi_act_sq.shape=}')
             # print(f'{new_ar.shape=}')
             new_ar[j, cnt, :, i] = sn_roi_act_sq[j, :, i]
-            # cnt += 1
+                # cnt += 1
             # print(f'{cnt=}')
             # if cnt % 3 == 0:
             #     cnt = 0
@@ -63,13 +67,36 @@ def act2conn(sn_roi_act, flatten=True):
         # print(f'{sn_roi_conn.shape} | time needed: {time() - t_st:.2f} s')
     return sn_roi_conn
 
-def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True):
+def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
+    from nichord import convert_matrix, get_idx_to_label
+    from nichord.combine import plot_and_combine
     if do_conn:
         print(f'{idx2rank=}')
         trils = np.tril_indices(n_roi, -1)
         ar2rank = np.full((n_roi, n_roi), np.nan)
         ar2rank[trils] = idx2rank
         plot_connectivity(ar2rank, atlas=atlas, cbar_label='rank')
+        return
+        dir_out = fr'result_pics/nichord_rank'
+        Path(dir_out).mkdir(parents=True, exist_ok=True)
+        edges, weights = convert_matrix(ar2rank)
+
+        edges_neg = [edge for edge, weight in zip(edges, weights) if weight < 0]
+        weights_neg = [weight for weight in weights if weight < 0]
+
+        edges_pos = [edge for edge, weight in zip(edges, weights) if weight > 0]
+        weights_pos = [weight for weight in weights if weight > 0]
+
+        coords = atlas['coords']
+        idx_to_label = pickle_wrap(get_idx_to_label,
+                                   kwargs={'coords': coords})
+
+        fn_out = f'pos_{split}.png'
+        plot_and_combine(dir_out, fn_out, idx_to_label, edges_pos,
+                         edge_weights=weights_pos, coords=coords)
+        fn_out = f'neg_{split}.png'
+        plot_and_combine(dir_out, fn_out, idx_to_label, edges_neg,
+                         edge_weights=weights_neg, coords=coords)
         quit()
     else:
         region2color = setup_colors(atlas)
@@ -85,34 +112,53 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True):
                    fontsize=12)
         plt.ylabel('Ranking', labelpad=5)
         plt.show()
-        quit()
 
-def load_task_rs_data(combine_regions, only_cortical=False):
-    sn_roi_act, _, df_sns_l, sns  = \
-        pickle_wrap(get_dfs_conn_trials,
-                    kwargs={'fp': 'obj7_fMRI', 'single': False,
-                            'squeeze': False,
-                            'combine_regions': combine_regions},
-                    easy_override=False, RAM_cache=True)
+def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
+                      do_hit_hit=True):
+    # sn_roi_act, _, df_sns_l, sns  = \
+        # pickle_wrap(get_dfs_conn_trials,
+        #             kwargs={'fp': fp, 'single': False,
+        #                     'squeeze': False,
+        #                     'combine_regions': combine_regions},
+        #             easy_override=False, RAM_cache=True)
+        #
+    kwargs = {'fp': fp,
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True,
+              'combine_regions': combine_regions
+              }
+    if do_hit_hit:
+        kwargs['key'] = 'hit_hit'
+        kwargs['key_vals'] = (False, 0.5, True)
+
+    _, _, _, sn_roi_act, df_sns_l = \
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache',
+                    )
 
     sns = [df['sn'].iloc[0] for df in df_sns_l]
     good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
     sn_roi_act = sn_roi_act[good_i, :, :]
     sns = [sn for sn in sns if sn != '133'] # bad rs
 
-    f = partial(load_resting_data, combine_regions=combine_regions)
+    f = partial(load_resting_data, combine_regions=combine_regions,
+                sns_key=fp)
     sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
                                                 easy_override=False,
                                        RAM_cache=True)
-    assert sns == sns_
+    assert sns == sns_, print(f'{sns=}\n{sns_=}')
 
     bad_sns = {'116', '117', '110', '130', '232'}
-    bad_sns = {'116'}
+    # bad_sns = {'116'}
     bad_i = [i for i, sn in enumerate(sns) if sn in bad_sns]
     sns = [sn for sn in sns if sn not in bad_sns]
     sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
     n_roi = sn_roi_act.shape[-2]
+
+
 
     # print(f'{sn_roi_rs.shape=}')
     # quit()
@@ -127,14 +173,17 @@ def load_task_rs_data(combine_regions, only_cortical=False):
 
 def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
-                  split=.3, do_plot=False):
+                  split=.3, do_plot=False, fp_task='obj7_fMRI',
+                  do_hit_hit=False):
     # Identify a person-specific list of ROIs
     # Identify a group-level list of ROIs
     # See if the fluctuation in resting-state is stronger when modeled
     #   person-specific than group-level
 
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
-        load_task_rs_data(combine_regions, only_cortical=True)
+        load_task_rs_data(combine_regions, only_cortical=True,
+                          fp=fp_task, do_hit_hit=do_hit_hit)
+    # sn_roi_rs = np.nanmean(sn_roi_act, axis=1)
 
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
@@ -185,7 +234,31 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         # print(f'{num_nans=}')
         # quit()
         # gen_idx2rank = generic_ts
-        plot_ranks(temp, atlas, n_roi=n_roi, do_conn=do_conn)
+        plot_ranks(temp, atlas, n_roi=n_roi, do_conn=do_conn, split=split)
+
+        idx_to_cnt_con = np.zeros(len(temp))
+        idx_to_cnt_inc = np.zeros(len(temp))
+        for sn_i in range(sn_roi_difs.shape[0]): # , position=0, leave=False)
+
+            sn_effs = sn_roi_difs[sn_i, :]
+            n_nans_sn = np.sum(np.isnan(sn_effs))
+            rank2idx = sn_effs.argsort()
+
+            inc_rois = rank2idx[:low_cutoff]
+            con_rois = rank2idx[high_cutoff:-n_nans_sn]
+            for x in inc_rois:
+                idx_to_cnt_inc[x] += 1
+            for x in con_rois:
+                idx_to_cnt_con[x] += 1
+
+        idx_to_cnt_con[idx_to_cnt_con == 0] = np.nan
+        idx_to_cnt_inc[idx_to_cnt_inc == 0] = np.nan
+        plot_ranks(idx_to_cnt_con,
+                   atlas, n_roi=n_roi, do_conn=do_conn, split=split)
+        plot_ranks(idx_to_cnt_inc,
+                   atlas, n_roi=n_roi, do_conn=do_conn, split=split)
+        # quit()
+
 
     # sanity_l = [0, 1, 3, 5, 7, 11, 13, 14, 15, 17, 18, 19, 21, 23, 25, 27, 29, 33, 35, 36, 37, 39, 43, 46, 51, 52, 53, 55, 65, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 82, 83, 85, 87, 89, 92, 93, 94, 95, 102, 103, 108, 111, 112, 113, 116, 118, 120, 121, 123, 125, 127, 135, 143, 147, 149, 150, 151, 153, 154, 155, 156, 157, 159, 162, 163, 164, 166, 167, 169, 170, 171, 172, 173, 175, 178, 179, 180, 181, 188, 190, 191, 192, 193, 194, 195, 196, 197, 201, 202, 203, 204, 206, 207]
 
@@ -211,6 +284,12 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         assert np.all([(j not in con_rois) for j in nan_idxs]), \
             f'Bad in con_rois: {inc_rois=}'
 
+        # print(sn_roi_rs[sn_i, :, :].shape)
+        # print(np.nanmean(sn_roi_rs[sn_i, :, :], axis=1))
+        # quit()
+
+        # inc_rois = inc_rois[:10]
+        # con_rois = con_rois[:10]
 
         # if sn_i == 0:
         #     n_sanity = len(sanity_l)
@@ -225,13 +304,24 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         # quit()
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
+        # rs_inc = sn_roi_rs[sn_i, :, :]
+
+        # vmax = np.nanquantile(rs_inc, .99)
+        # vmin = np.nanquantile(rs_inc, .01)
+        # plt.imshow(rs_inc, cmap='turbo', vmin=vmin, vmax=vmax,
+        #            aspect='auto')
+        # plt.colorbar()
+        # plt.show()
+        # quit()
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
+
         rs_con = sn_roi_rs[sn_i, con_rois, :]
         rs_con = np.nanmean(rs_con, axis=0)
 
         n_con_nans = np.sum(np.isnan(rs_con))
         n_inc_nans = np.sum(np.isnan(rs_inc))
         if n_con_nans or n_inc_nans:
+            continue
             assert n_con_nans == n_inc_nans == 206, \
                 f'{n_con_nans=} {n_inc_nans=}'
             print(f'skip: {sns[sn_i]}')
@@ -254,44 +344,48 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         print(f'{generic_str} ({split}): {M_corr=:.3f}')
     return M_corr
 
-def permutation_test_(split=.5, do_conn=False, n_sim=100,
-                      combine_regions=False, do_generic=False):
+def permutation_test_(n_sim=100, **kwargs):
     M_corrs = []
     for _ in range(n_sim):
-        M_corr = link_activity(do_generic=do_generic, do_conn=do_conn,
-                               split=split, combine_regions=combine_regions,
-                               do_plot=False, shuffle=True)
+        M_corr = link_activity(**kwargs, do_plot=False, shuffle=True)
         M_corrs.append(M_corr)
     return M_corrs
 
 
-def permutation_test(split=.5, do_conn=False, n_sim=100, combine_regions=False,
-                     do_generic=False):
+def permutation_test(**kwargs):
     from connsearch import print_list_stats
-    kwargs = {'split': split, 'do_conn': do_conn, 'n_sim': n_sim,
-              'combine_regions': combine_regions, 'do_generic': do_generic}
+    # kwargs = {'split': split, 'do_conn': do_conn, 'n_sim': n_sim,
+    #           'combine_regions': combine_regions, 'do_generic': do_generic}
     M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
                           easy_override=False, RAM_cache=True)
     M_corrs = -np.array(M_corrs)
     print_list_stats(M_corrs)
 
-def plot_by_split(do_conn=True, do_generic=False, combine_regions=True):
-    for split in [.25]: # .5, .4,
-        # M_corrs = link_activity(do_generic=False, do_conn=do_conn,
-        #                       split=split, combine_regions=False,
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
+                  do_hit_hit=True, fp_task='obj7_fMRI'):
+    for split in [.3]: # ..5, .4, .3, .25, .2, .1, .05
+        kwargs = {'split': split,
+                  'do_conn': do_conn,
+                  'combine_regions': combine_regions,
+                  'do_generic': do_generic,
+                  'do_hit_hit': do_hit_hit,
+                  'fp_task': fp_task,
+                  }
+
+        M_corr = link_activity(**kwargs,
+                               do_plot=False, shuffle=False,
+                               )
         #                       do_plot=False, shuffle=False)
-        M_corrs = link_activity(do_generic=do_generic, do_conn=do_conn,
-                              split=split, combine_regions=combine_regions,
-                              do_plot=False)
-        permutation_test(split=split, do_conn=do_conn, n_sim=100,
-                         do_generic=do_generic,
-                         combine_regions=combine_regions)
+        # M_corrs = link_activity(do_generic=not do_generic, do_conn=do_conn,
+        #                         split=split, combine_regions=combine_regions,
+        #                         do_plot=False, shuffle=False)
+        # continue
+        permutation_test(n_sim=100, **kwargs)
 
 if __name__ == '__main__':
     # test = np.array([2, 3, 5, -10, 1, 0])
     # print(np.argsort(np.argsort(test)))
     # quit()
-
 
     plot_by_split()
     quit()
@@ -303,35 +397,16 @@ if __name__ == '__main__':
     # SANITY TEST WHICH RANDOMIZES BY CONDITION,
     #   EVEN THOUGH WE PERSONALLY DO NOT SEE AN A PRIORI REASON
 
-    M_corrs = []
-    for _ in range(100):
-        corrs_ss = link_activity(do_generic=False, shuffle=True)
-    corrs_gen = link_activity(do_generic=True)
-    quit()
-    # corrs_ss[corrs_ss > 1.0] = np.nan
-    print(len(corrs_gen))
+    # Because I am regressing out global signal, that will encourage the
+    #   resting state to be inversely correlated between two sets of ROIs
 
-    # -0.313 gives p = .04 per my 100 sims
-    dif = corrs_gen - corrs_ss
+    # ROIs will cluster together even when shuffling because they are correlated
+    #   it makes sense that those which don't cluster will be inversely correlated
+    #   in resting state. This explains why the mean M_corr is < 0.0
 
+    # Incongruent is very similar to neutral, both give M_corr of .67 when
+    #   contrasted to congruent. However, Neu-Inc gives .63
+    # Why tf did this change at like 3:15 pm ???? 3/4/2024
+    # Really the Inc-Con and Neu-Con triangles are nearly identical
 
-    # corrs_ss[dif > 1.0] = np.nan
-    # corrs_gen[dif > 1.0] = np.nan
-    # print(f'{dif=}')
-    #
-    # for x, y in zip(corrs_gen, corrs_ss):
-    #     print(f'{x=:.3f} {y=:.3f}')
-
-    # corrs_gen = corrs_gen[corrs_ss < 1.0]
-    # corrs_ss = corrs_ss[corrs_ss < 1.0]
-    # print(len(corrs_gen))
-
-    t, p = stats.ttest_rel(corrs_gen, corrs_ss, nan_policy='omit')
-    print(f'Generic vs. subject-specific: {t=:.3f} {p=:.3f}')
-    dif = corrs_gen - corrs_ss
-    np.set_printoptions(precision=2, suppress=True)
-    print(f'{dif=}')
-
-    plt.hist(dif, bins=10)
-    plt.show()
-
+   

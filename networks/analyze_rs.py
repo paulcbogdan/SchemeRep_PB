@@ -82,9 +82,9 @@ def sanity_load(sn):
     return data
 
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
-                      sanity=False, combine_regions=False):
+                      sanity=False, combine_regions=False, sns_key='loose'):
 
-    age2sn = get_sns()
+    age2sn = get_sns(sns_key)
     if YA_only:
         sns = age2sn[1]
     else:
