@@ -236,9 +236,9 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                 f'{n_con_nans=} {n_inc_nans=}'
             print(f'skip: {sns[sn_i]}')
 
-        plt.scatter(rs_inc, rs_con)
-        plt.show()
-        quit()
+        # plt.scatter(rs_inc, rs_con)
+        # plt.show()
+        # quit()
 
         corr, _ = stats.pearsonr(rs_inc, rs_con)
         corrs.append(corr)
@@ -275,16 +275,17 @@ def permutation_test(split=.5, do_conn=False, n_sim=100, combine_regions=False,
     M_corrs = -np.array(M_corrs)
     print_list_stats(M_corrs)
 
-def plot_by_split(do_conn=False):
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=True):
     for split in [.25]: # .5, .4,
         # M_corrs = link_activity(do_generic=False, do_conn=do_conn,
         #                       split=split, combine_regions=False,
         #                       do_plot=False, shuffle=False)
-        M_corrs = link_activity(do_generic=True, do_conn=do_conn,
-                              split=split, combine_regions=False,
-                              do_plot=True)
+        M_corrs = link_activity(do_generic=do_generic, do_conn=do_conn,
+                              split=split, combine_regions=combine_regions,
+                              do_plot=False)
         permutation_test(split=split, do_conn=do_conn, n_sim=100,
-                         do_generic=True)
+                         do_generic=do_generic,
+                         combine_regions=combine_regions)
 
 if __name__ == '__main__':
     # test = np.array([2, 3, 5, -10, 1, 0])
