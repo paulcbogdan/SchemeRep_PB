@@ -295,8 +295,9 @@ def simple_effect(df, ROI_cols, key, fp):
 def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True, use_neu=True, fwe=False):
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 2, 3),
-              'only_sh_sns': True, 'combine_regions': False}
-    df, ROI_cols = pickle_wrap(prep_activation_for_univariate, None, kwargs=kwargs, easy_override=False,
+              'only_sh_sns': False, 'combine_regions': False}
+    df, ROI_cols = pickle_wrap(prep_activation_for_univariate, None,
+                               kwargs=kwargs, easy_override=False,
                                cache_dir='cache')
     df.reset_index(inplace=True)
     df['obj'] = df['obj'].astype(str)
@@ -312,7 +313,30 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True, use_neu=True, fwe=False):
         df = df[df['inc'] != 2]
 
 
+    # inc_mapper = {1: 'inc', 2: 'neu', 3: 'con'}
+    # df['inc'] = df['inc'].map(inc_mapper)
     df_grp = df.groupby(['sn', 'inc'])[ROI_cols].mean()
+    # print(df_grp)
+    # quit()
+    # df_grp_ = df.groupby(['inc', 'sn'])[ROI_cols].mean()
+
+    # print(df_grp.xs('inc', level='inc'))
+    # print(type(df_grp))
+    # print(df_grp.index[0])
+    # print(df_grp_.loc[slice(None, '102')])
+    # quit()
+
+    # for ROI in ROI_cols:
+    #     inc_vals = df_grp.xs(1, level='inc')[ROI]
+    #     n = len(inc_vals)
+    #     print(f'{n=}')
+    #     con_vals = df_grp.xs(3, level='inc')[ROI]
+    #     dif = con_vals - inc_vals
+    #     M = dif.mean()
+    #     t, p = stats.ttest_1samp(dif, 0)
+    #     print(f'{ROI} | {t=:.2f}, {p=:.5f}, {M=:.3f}')
+    # quit()
+
     df_grp = df_grp.reset_index()
     df_grp['inc_str'] = df_grp['inc'].apply(lambda x: 'inc' if x == 1 else
                                                  'neu' if x == 2 else 'con')
@@ -344,7 +368,6 @@ def plot_congruency_lmer(fp='obj7_fMRI', do_lm=True, use_neu=True, fwe=False):
                 if p > .005 and p_neu < .005:
                     print(f'Neu ROI: {ROI=} | {neu_ef=:.3f} '
                           f'({p_neu=:.4f}), {inc_ef=:.3f}')
-
         else:
             from pymer4.models import Lmer
             formula = f'{ROI} ~ inc + (1 + inc | sn) + (1 | obj)'

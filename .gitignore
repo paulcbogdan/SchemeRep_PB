@@ -1,6 +1,5 @@
 ~*
 result_pics/.DS_Store
-*.png
 *.pkl
 *.nii
 *.docx
@@ -11,6 +10,7 @@ result_pics/.DS_Store
 *.zip
 *.nii.gz
 *.lnk
+*.mat
 /behavFiles/*
 /cache/*
 /old/super_old/*
@@ -18,4 +18,6 @@ result_pics/.DS_Store
 /fMRI_in/*
 /.idea/*
 /SchemRep_tasks/*
-
+/old/mass_ttest/*
+/old/mass_M/*
+/result_pics/vendor_OLD/*
