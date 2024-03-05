@@ -15,7 +15,7 @@ def get_stats_graphs(graph0, graph1, weights=None):
     dif_graph = graph0 - graph1
     return get_1sample_graph(dif_graph, weights=weights)
 
-def get_1sample_graph(dif_graph, weights=None):
+def get_1sample_graph(dif_graph, weights=None, both_sides_p=True):
     M_graph = np.nanmean(dif_graph, axis=0)
     SD_graph = np.nanstd(dif_graph, axis=0)
     N_graph = np.nansum(~np.isnan(dif_graph), axis=0)
@@ -25,7 +25,8 @@ def get_1sample_graph(dif_graph, weights=None):
     # p_graph[p_graph > .25] = np.nan
     # p_graph *= 2
     z_graph = stats.norm.ppf(p_graph)
-    p_graph = np.min([p_graph, 1 - p_graph], axis=0)
+    if both_sides_p:
+        p_graph = np.min([p_graph, 1 - p_graph], axis=0)
     return M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph
 
 def get_cross_interaction_graph(graph0a, graph0b, graph1a, graph1b):

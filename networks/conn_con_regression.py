@@ -68,7 +68,8 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     #           }
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache')
 
 
     # print(np.sum(~np.isnan(sn_inc_activity)))

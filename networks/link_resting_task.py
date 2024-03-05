@@ -19,38 +19,20 @@ import random
 from time import time
 from functools import partial
 from pathlib import Path
+from pprint import pprint
+from colorama import Fore
 
 
 def shuffle_rows(sn_roi_act):
     new_ar = np.full(sn_roi_act.shape, np.nan)
     sn_roi_act_sq = np.nanmean(sn_roi_act, axis=1)
     num_ea = sn_roi_act.shape[-1] // 3
-
     for j in range(sn_roi_act_sq.shape[0]):
-        # for k in range(sn_roi_act_sq.shape[1]):
-
         cnt_l = [0, 1, 2] * num_ea
         random.shuffle(cnt_l)
-        # cnt_ar = []
-        # for roi_j in range(sn_roi_act.shape[-2]):
-        #     cnt_l_ = [0, 1, 2] * num_ea
-        #     random.shuffle(cnt_l_)
-        #     cnt_ar.append(cnt_l_)
-
         for i in range(sn_roi_act_sq.shape[-1]):
-            # for roi_j in range(sn_roi_act.shape[-2]):
-        #         cnt = cnt_ar[roi_j][i]
-        #         new_ar[:, cnt, roi_j, i] = sn_roi_act_sq[:, roi_j, i]
-
             cnt = cnt_l[i]
-            # print(f'{j} | {i} : {cnt}')
-            # print(f'{sn_roi_act_sq.shape=}')
-            # print(f'{new_ar.shape=}')
             new_ar[j, cnt, :, i] = sn_roi_act_sq[j, :, i]
-                # cnt += 1
-            # print(f'{cnt=}')
-            # if cnt % 3 == 0:
-            #     cnt = 0
     return new_ar
 
 def act2conn(sn_roi_act, flatten=True):
@@ -135,8 +117,8 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
 
     _, _, _, sn_roi_act, df_sns_l = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=1, cache_dir='cache',
-                    )
+                    easy_override=False, verbose=0, cache_dir='cache',
+                    RAM_cache=True)
 
     sns = [df['sn'].iloc[0] for df in df_sns_l]
     good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
@@ -148,7 +130,15 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
     sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
                                                 easy_override=False,
                                        RAM_cache=True)
+    assert sn_roi_act.shape[0] == sn_roi_rs.shape[0], ('Unequal # subjects '
+                                                       f'{sn_roi_act.shape=},'
+                                                       f'{sn_roi_rs.shape=} '
+                                                       f'| {sns=}\n{sns_=}')
+    assert sn_roi_act.shape[-2] == sn_roi_rs.shape[-2], (f'Unequal # ROIs: '
+                                                         f'{sn_roi_act.shape=},'
+                                                         f' {sn_roi_rs.shape=}')
     assert sns == sns_, print(f'{sns=}\n{sns_=}')
+    # quit()
 
     bad_sns = {'116', '117', '110', '130', '232'}
     # bad_sns = {'116'}
@@ -158,10 +148,6 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
     sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
     n_roi = sn_roi_act.shape[-2]
 
-
-
-    # print(f'{sn_roi_rs.shape=}')
-    # quit()
     atlas = get_atlas(combine_regions=combine_regions)
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
@@ -174,16 +160,10 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
 def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
                   split=.3, do_plot=False, fp_task='obj7_fMRI',
-                  do_hit_hit=False):
-    # Identify a person-specific list of ROIs
-    # Identify a group-level list of ROIs
-    # See if the fluctuation in resting-state is stronger when modeled
-    #   person-specific than group-level
-
+                  do_hit_hit=False, shuffle_ss=False):
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
         load_task_rs_data(combine_regions, only_cortical=True,
                           fp=fp_task, do_hit_hit=do_hit_hit)
-    # sn_roi_rs = np.nanmean(sn_roi_act, axis=1)
 
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
@@ -211,13 +191,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
 
-
     low_cutoff = int(nan_cutoff * split)
     high_cutoff = int(nan_cutoff * (1 - split))
-    # print(f'{low_cutoff=}')
-    # print(f'{high_cutoff=}')
-    # high_cutoff -= n_nans
-
 
     if do_plot:
         gen_idx2rank[(gen_idx2rank > low_cutoff) &
@@ -226,14 +201,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         print(f'{low_cutoff=}')
         print(f'{high_cutoff=}')
         temp[np.isnan(gen_idx2rank)] = np.nan
-        # test = (gen_idx2rank > low_cutoff) & (gen_idx2rank < high_cutoff)
-        # print(list(gen_idx2rank))
-        # print(f'{test=}')
-        # print(temp)
-        num_nans = np.sum(np.isnan(temp))
-        # print(f'{num_nans=}')
-        # quit()
-        # gen_idx2rank = generic_ts
+
         plot_ranks(temp, atlas, n_roi=n_roi, do_conn=do_conn, split=split)
 
         idx_to_cnt_con = np.zeros(len(temp))
@@ -265,6 +233,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
     corrs = []
     if verbose: print('Onto looping')
+    i2con_rois = []
+    i2inc_rois = []
     for sn_i in range(sn_roi_difs.shape[0]): # , position=0, leave=False)
         if do_generic:
             rank2idx = gen_rank2idx
@@ -283,6 +253,11 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
             f'Bad in inc_rois: {inc_rois=}'
         assert np.all([(j not in con_rois) for j in nan_idxs]), \
             f'Bad in con_rois: {inc_rois=}'
+
+        i2con_rois.append(con_rois)
+        i2inc_rois.append(inc_rois)
+
+    for sn_i in range(sn_roi_difs.shape[0]):  # , position=0, leave=False)
 
         # print(sn_roi_rs[sn_i, :, :].shape)
         # print(np.nanmean(sn_roi_rs[sn_i, :, :], axis=1))
@@ -341,7 +316,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     if shuffle:
         print(f'{generic_str} ({split}) | Shuffle: {M_corr=:.3f}')
     else:
-        print(f'{generic_str} ({split}): {M_corr=:.3f}')
+        print(f'{generic_str} ({split}): '
+              f'{Fore.LIGHTYELLOW_EX}{M_corr=:.3f}{Fore.RESET}')
     return M_corr
 
 def permutation_test_(n_sim=100, **kwargs):
@@ -357,20 +333,30 @@ def permutation_test(**kwargs):
     # kwargs = {'split': split, 'do_conn': do_conn, 'n_sim': n_sim,
     #           'combine_regions': combine_regions, 'do_generic': do_generic}
     M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
-                          easy_override=False, RAM_cache=True)
+                          easy_override=False, RAM_cache=True,
+                          verbose=-1)
     M_corrs = -np.array(M_corrs)
+    print('--*--')
+    # pprint(kwargs)
+    # print('--*--')
     print_list_stats(M_corrs)
+    print('--*--')
 
-def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
-                  do_hit_hit=True, fp_task='obj7_fMRI'):
-    for split in [.3]: # ..5, .4, .3, .25, .2, .1, .05
-        kwargs = {'split': split,
-                  'do_conn': do_conn,
-                  'combine_regions': combine_regions,
-                  'do_generic': do_generic,
-                  'do_hit_hit': do_hit_hit,
-                  'fp_task': fp_task,
-                  }
+
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
+                  do_hit_hit=False, fp_task='obj7_fMRI'):
+    kwargs = {
+              'do_conn': do_conn,
+              'combine_regions': combine_regions,
+              'do_generic': do_generic,
+              'do_hit_hit': do_hit_hit,
+              'fp_task': fp_task,
+              }
+    for split in [.5, .4, .3, .25, .2, .1, .05]: # .
+        kwargs['split'] = split
+        print('--*--')
+        pprint(kwargs)
+        print('--*--')
 
         M_corr = link_activity(**kwargs,
                                do_plot=False, shuffle=False,
@@ -380,7 +366,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
         #                         split=split, combine_regions=combine_regions,
         #                         do_plot=False, shuffle=False)
         # continue
-        permutation_test(n_sim=100, **kwargs)
+        # permutation_test(n_sim=100, **kwargs)
 
 if __name__ == '__main__':
     # test = np.array([2, 3, 5, -10, 1, 0])
@@ -394,19 +380,4 @@ if __name__ == '__main__':
     # print(a == b)
     # quit()
 
-    # SANITY TEST WHICH RANDOMIZES BY CONDITION,
-    #   EVEN THOUGH WE PERSONALLY DO NOT SEE AN A PRIORI REASON
 
-    # Because I am regressing out global signal, that will encourage the
-    #   resting state to be inversely correlated between two sets of ROIs
-
-    # ROIs will cluster together even when shuffling because they are correlated
-    #   it makes sense that those which don't cluster will be inversely correlated
-    #   in resting state. This explains why the mean M_corr is < 0.0
-
-    # Incongruent is very similar to neutral, both give M_corr of .67 when
-    #   contrasted to congruent. However, Neu-Inc gives .63
-    # Why tf did this change at like 3:15 pm ???? 3/4/2024
-    # Really the Inc-Con and Neu-Con triangles are nearly identical
-
-   

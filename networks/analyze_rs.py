@@ -125,6 +125,7 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
             ar.append(ts)
         ar = np.array(ar)
         print(f'{sn} | {ar.shape=}')
+        # quit()
         sn_roi_act.append(ar)
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
@@ -252,6 +253,7 @@ def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
     sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
+    assert len(sn_roi_act.shape) == 3, f'More than 3 dims: {sn_roi_act.shape=}'
     if norm_std: sn_roi_act = normalize_std_over_time(sn_roi_act)
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]

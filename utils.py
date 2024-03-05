@@ -339,7 +339,7 @@ def f2str(callback, kwargs=None):
     return kwargs_str
 
 def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
-    if verbose: print(f'Making default filepath: {kwargs=}')
+    if verbose > 0: print(f'Making default filepath: {kwargs=}')
     if args is not None:
         args_str = '_'.join(args)
     else:
@@ -354,7 +354,7 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     filepath = f'{func_dir}/{args_str}_{kwargs_str}.pkl'
     # Path(cache_dir).mkdir(parents=True, exist_ok=True)
     # filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
-    if verbose: print(f'Default pickle_wrap filepath: {filepath}')
+    if verbose > 0: print(f'Default pickle_wrap filepath: {filepath}')
 
 
 
@@ -387,7 +387,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
     if RAM_cache and filepath in PICKLE_CACHE:
         return PICKLE_CACHE[filepath]
 
-    if verbose:
+    if verbose > 0:
         print(f'pickle_wrap: {filepath=}')
         print('\tFunction:', getVariableName(callback,
                                              globalVariables=globals().copy()))
@@ -410,9 +410,10 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
             start = time()
             with open(filepath, "rb") as file:
                 pk = pickle.load(file)
-                if verbose: print(f'\tLoad time: {time()-start:.3f} s')
-                if not verbose: print(f'Pickle loaded: {filepath=} '
-                                      f'({time() - start:.3f} s)')
+                if verbose > 0: print(f'\tLoad time: {time()-start:.3f} s')
+                if verbose == 0: print(f'Pickle loaded '
+                                       f'({time() - start:.3f} s): '
+                                       f'{filepath=}')
                 if RAM_cache: PICKLE_CACHE[filepath] = pk
                 return pk
         except (UnpicklingError, MemoryError) as e:
@@ -421,7 +422,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
             print(f'\t{Fore.YELLOW}{filepath=}{Fore.RESET}')
 
 
-    if verbose:
+    if verbose > 0:
         print('Callback:',
               getVariableName(callback, globalVariables=globals().copy()))
     start = time()
@@ -431,20 +432,20 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
         output = callback(**kwargs)
     else:
         output = callback()
-    if verbose:
+    if verbose > 0:
         print(f'\tFunction time: {time()-start:.3f} s')
         # print('\tDumping to file name:', filepath)
     start = time()
     try:
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
-        if not verbose: print(f'Pickle wrapped: {filepath=} '
-                              f'({time()-start:.3f} s)')
+        if verbose == 0: print(f'Pickle wrapped ({time()-start:.3f} s): '
+                              f'{filepath=}')
     except FileNotFoundError:
         Path(filepath).parent.mkdir(parents=True, exist_ok=True)
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
-    if verbose: print(f'\tDump time: {time()-start:.3f} s')
+    if verbose > 0: print(f'\tDump time: {time()-start:.3f} s')
     if RAM_cache: PICKLE_CACHE[filepath] = output
     return output
 

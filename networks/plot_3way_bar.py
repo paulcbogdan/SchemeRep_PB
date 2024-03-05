@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+from pandas.errors import SettingWithCopyWarning
 
 from atlas_utils import get_atlas
 from old.modularity import get_partition_matrix, get_partition_cross
@@ -19,10 +20,13 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 import statsmodels.formula.api as smf
+from connsearch import print_list_stats
+
+from warnings import filterwarnings
+filterwarnings('ignore', category=SettingWithCopyWarning,)
 
 
-def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False,
-                        weighted=False):
+def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -81,8 +85,6 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False,
     data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos,
             dv_cross, vd_cross]
     for key, flat in zip(keys, data):
-        # print(f'{flat.shape=}')
-        # quit()
         incs += ['Inc'] * n_sn + ['Neu'] * n_sn + ['Con'] * n_sn
         ages += (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*3
         wbs += [key] * (3 * n_sn)
@@ -91,21 +93,27 @@ def conn_partition_3bar(fp='obj7_fMRI', thr=2.0, anat=False,
 
     print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
 
-
     d = {'vals': vals, 'inc': incs, 'within_between': wbs,
          'age': ages, 'sn': subj_nums}
 
     df_agg = pd.DataFrame(d)
-    plot_con_vs_inc(df_agg)
+    # p = plot_con_vs_inc(df_agg)
 
-    # bad_sns = df_agg.loc[df_agg['vals'] < -.2, 'subj_num']
-    # df_agg = df_agg[~df_agg['subj_num'].isin(bad_sns)]
 
-    # df_agg.dropna(inplace=True)
-    # plot_sns_bars(df_agg)
-    # plot_four(df_agg)
+    ps = []
+    for i in range(1000):
+        for sn, df_sn in df_agg.groupby('sn'):
+            df_agg.loc[df_agg['sn'] == sn, 'inc'] = (
+                df_sn['inc'].sample(frac=1).values)
 
-def plot_con_vs_inc(df_agg):
+        p = plot_con_vs_inc(df_agg, skip_plot=True)
+        ps.append(1 - p)
+        print(f'{p=:.3f}')
+        if len(ps) % 10 == 0 and len(ps) > 1:
+            # print(f'{i=}')
+            print_list_stats(ps)
+
+def plot_con_vs_inc(df_agg, skip_plot=False):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -116,8 +124,10 @@ def plot_con_vs_inc(df_agg):
     }
 
     cond_sets = [('Within', 'Between'),
-                 ('dd', 'dv_pos'),
-                 ('vv', 'dv_ant'),]
+                 ]
+    # ('dd', 'dv_pos'),
+    #                  ('vv', 'dv_ant'),
+
     # cond_sets = [('Within', 'Between')]
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
@@ -143,7 +153,10 @@ def plot_con_vs_inc(df_agg):
         res = model.fit()
         key = cond_set[0]
         p_reg = res.pvalues.iloc[-1]#f'inc_num:within_between[T.{key}]']
-
+        if p_reg < 0.05:
+            print(res.summary())
+        if skip_plot:
+            continue
 
         # g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
         #       hue=plot_params['hue'], alpha=.4,
@@ -152,6 +165,8 @@ def plot_con_vs_inc(df_agg):
         #       linewidth=0.7)
 
         if cond_set == ('Within', 'Between'):
+            # print(df_set[['inc', 'vals']])
+            # quit()
             df_pivot = df_set.pivot_table(index=['sn'],
                                           columns=['inc', 'within_between'],
                                           values='vals', aggfunc='mean')
@@ -159,6 +174,8 @@ def plot_con_vs_inc(df_agg):
                                      df_pivot[('Inc', 'Between')]
             df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
                                     df_pivot[('Inc', 'Within')]
+            # print(df_pivot[['between_ef', 'within_ef']])
+            # quit()
             t_itr, p_itr = stats.ttest_rel(df_pivot['between_ef'],
                                            df_pivot['within_ef'])
             supt = (f'Two-level [Inc/Con] x Direction: p = {p_itr:.3f}\n'
@@ -195,6 +212,7 @@ def plot_con_vs_inc(df_agg):
         plt.tight_layout()
         plt.show()
         # quit()
+    return p_reg
 
 def plot_sns_bars(df_agg):
     plot_params = {
@@ -469,7 +487,7 @@ def activity_partition_4bar(fp='obj7_fMRI', anat=False, ):
 
 
 if __name__ == '__main__':
-    # conn_partition_3bar()
-    activity_partition_4bar()
+    conn_partition_3bar()
+    # activity_partition_4bar()
 
 
