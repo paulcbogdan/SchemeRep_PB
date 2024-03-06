@@ -416,7 +416,7 @@ def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
                                        f'{filepath=}')
                 if RAM_cache: PICKLE_CACHE[filepath] = pk
                 return pk
-        except (UnpicklingError, MemoryError) as e:
+        except (UnpicklingError, MemoryError, EOFError) as e:
             print(f'{Fore.RED}{e=}')
             print(f'\t{Fore.YELLOW}{callback=}')
             print(f'\t{Fore.YELLOW}{filepath=}{Fore.RESET}')

@@ -19,6 +19,8 @@ from fluctuations import get_df_networks, partial_corr_df
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
                clean_confounds=False, RS=True):
+    print(f'get_sn_HCP: {sn=}')
+
     if LSS:
         return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
 
@@ -58,7 +60,7 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
         # print(f'num nans: {pd.isna(df_compcor).sum()=}')
 
         img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
-                              standardize=True, t_r=.72, mask_img=fp_mask)
+                              standardize=False, t_r=.72, mask_img=fp_mask)
         # quit()
 
     img.to_filename(fp_clean)
@@ -99,7 +101,7 @@ def apply_HCP_mask(data, sn, lr):
 
 
 def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
-                 LSA=False, clean_confounds=True):
+                 LSA=False, clean_confounds=True, YA_only=None):
     sns = os.listdir(HCP_ROOT)
     if RS:
         sns_ = []
@@ -114,20 +116,14 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
     # sns = sns[:5]
     sn_roi_act = []
     atlas = get_atlas(HCP=True)
-    # print(f'{atlas["maps"].shape=}')
-    # print(atlas['maps'].affine)
-    # quit()
+
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
-    for sn in tqdm(sns, desc='Loading fMRI'):
+    for sn in tqdm(sns, desc='Loading HCP fMRI'):
         if lr_only:
-            # if WM:
-            # data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
-            #                   LSA=LSA, clean_confounds=clean_confounds,
-            #                   RS=RS)
-            # else:
+
             try:
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                   LSA=LSA, clean_confounds=clean_confounds,
@@ -138,19 +134,6 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                   LSA=LSA, clean_confounds=clean_confounds,)
 
-            # if do_chop:
-            #     data = chop_data(data)
-            # if mask and not LSS:
-            #     apply_HCP_mask(data, sn, 'LR')
-            # print(data)
-            # quit()
-            # plt.imshow(data[40, :, :, 0])
-            # plt.show()
-            # quit()
-            # data = pickle_wrap(get_sn_HCP, kwargs={'sn': sn,
-            #                                        'lr': 'LR'},
-            #                    easy_override=False)
-            # print(f'{sn=}, {data.shape=}')
         else:
             raise NotImplementedError
 
@@ -170,9 +153,10 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-def get_HCP_df(N=25):
-    f = partial(load_HCP_act, N=N, do_chop=False, clean_confounds=True,
-                LSS=True, mask=False, LSA=False)
+def get_HCP_df(N=5):
+    f = partial(load_HCP_act, N=N,
+                RS=True, clean_confounds=True, LSS=False, LSA=False)
+
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = get_df_networks(f=f, zscore=True)
 
@@ -185,7 +169,8 @@ def get_HCP_df(N=25):
     # print(df[networks].corr())
     # quit()
 
-    partial_corr_df(df, networks, cov=['FC_all', ]) # 'ad_no', 'pd_no',
+    partial_corr_df(df, networks,
+                    cov=['FC_all', 'ad_else', 'pd_else', 'av_else', 'pv_else']) # 'ad_no', 'pd_no',
                                       # 'av_no', 'pv_no'
     print('-'*10)
     partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])

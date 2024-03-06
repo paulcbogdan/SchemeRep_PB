@@ -69,7 +69,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
 
     if f is not None:
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=True)
+                                                     easy_override=False)
     elif fp == 'sanity':
         f  = partial(load_resting_data, YA_only=False, sanity=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,

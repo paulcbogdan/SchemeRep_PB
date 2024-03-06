@@ -171,7 +171,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
         sn_roi_rs = act2conn(sn_roi_rs)
 
-    if shuffle:
+    if shuffle and not shuffle_ss:
         sn_roi_act = shuffle_rows(sn_roi_act)
 
     sn_inc_roi_Ms = np.nanmean(sn_roi_act, axis=-1)
@@ -256,38 +256,29 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
         i2con_rois.append(con_rois)
         i2inc_rois.append(inc_rois)
+        # print(f'{sn_i} | {list(inc_rois)[:5]=}')
 
-    for sn_i in range(sn_roi_difs.shape[0]):  # , position=0, leave=False)
 
-        # print(sn_roi_rs[sn_i, :, :].shape)
-        # print(np.nanmean(sn_roi_rs[sn_i, :, :], axis=1))
+    i2con_rois = np.array(i2con_rois)
+    i2inc_rois = np.array(i2inc_rois)
+
+    if shuffle_ss:
+        permuter = np.random.permutation(i2con_rois.shape[0])
+        i2con_rois = i2con_rois[permuter]
+        i2inc_rois = i2inc_rois[permuter]
+        # for i in range(i2con_rois.shape[0]):
+        #     print(f'{i}: {list(i2con_rois[i])[:5]}')
+        # np.random.shuffle(i2con_rois)
+        # # for i in range(i2con_rois.shape[0]):
+        # #     print(f'-{i}: {list(i2con_rois[i])[:5]}')
+        # # quit()
+        # np.random.shuffle(i2inc_rois)
+
+    for sn_i in range(sn_roi_difs.shape[0]):
+        inc_rois, con_rois = i2inc_rois[sn_i], i2con_rois[sn_i]
+        # print(f'{sn_i} | {list(inc_rois)[:5]=}')
         # quit()
-
-        # inc_rois = inc_rois[:10]
-        # con_rois = con_rois[:10]
-
-        # if sn_i == 0:
-        #     n_sanity = len(sanity_l)
-        #     n_overlap = len(set(inc_rois) & set(sanity_l))
-        #     p_overlap = n_overlap / n_sanity
-        #     n_overlap_con = len(set(con_rois) & set(sanity_l))
-        #     p_overlap_con = n_overlap_con / n_sanity
-            # print(f'{len(sanity_l)=}')
-            # print(f'{len(inc_rois)=} | {len(con_rois)=}')
-            # print(f'{p_overlap:.1%} | {p_overlap_con:.1%}')
-        # print(f'{sorted(inc_rois)=}')
-        # quit()
-
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
-        # rs_inc = sn_roi_rs[sn_i, :, :]
-
-        # vmax = np.nanquantile(rs_inc, .99)
-        # vmin = np.nanquantile(rs_inc, .01)
-        # plt.imshow(rs_inc, cmap='turbo', vmin=vmin, vmax=vmax,
-        #            aspect='auto')
-        # plt.colorbar()
-        # plt.show()
-        # quit()
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
 
         rs_con = sn_roi_rs[sn_i, con_rois, :]
@@ -296,24 +287,19 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         n_con_nans = np.sum(np.isnan(rs_con))
         n_inc_nans = np.sum(np.isnan(rs_inc))
         if n_con_nans or n_inc_nans:
-            continue
             assert n_con_nans == n_inc_nans == 206, \
                 f'{n_con_nans=} {n_inc_nans=}'
             print(f'skip: {sns[sn_i]}')
 
-        # plt.scatter(rs_inc, rs_con)
-        # plt.show()
-        # quit()
-
         corr, _ = stats.pearsonr(rs_inc, rs_con)
         corrs.append(corr)
 
-        # print(np.sum(np.isnan(rs_con)))
-        # rs_con = stdize(rs_con, nans=True)
     corrs = np.array(corrs)
     M_corr = np.mean(corrs)
     generic_str = 'Generic' if do_generic else 'Subject-specific'
-    if shuffle:
+    if shuffle_ss:
+        print(f'{generic_str} ({split}) | Shuffle SS: {M_corr=:.3f}')
+    elif shuffle:
         print(f'{generic_str} ({split}) | Shuffle: {M_corr=:.3f}')
     else:
         print(f'{generic_str} ({split}): '
@@ -330,11 +316,8 @@ def permutation_test_(n_sim=100, **kwargs):
 
 def permutation_test(**kwargs):
     from connsearch import print_list_stats
-    # kwargs = {'split': split, 'do_conn': do_conn, 'n_sim': n_sim,
-    #           'combine_regions': combine_regions, 'do_generic': do_generic}
     M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
-                          easy_override=False, RAM_cache=True,
-                          verbose=-1)
+                          RAM_cache=False, verbose=-1)
     M_corrs = -np.array(M_corrs)
     print('--*--')
     # pprint(kwargs)
@@ -342,8 +325,15 @@ def permutation_test(**kwargs):
     print_list_stats(M_corrs)
     print('--*--')
 
+    if not kwargs['do_generic']:
+        kwargs['shuffle_ss'] = True
+        M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
+                              RAM_cache=False, verbose=-1)
+        print_list_stats(M_corrs)
+        print('--*--')
 
-def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
+
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI'):
     kwargs = {
               'do_conn': do_conn,
@@ -352,7 +342,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
               'do_hit_hit': do_hit_hit,
               'fp_task': fp_task,
               }
-    for split in [.5, .4, .3, .25, .2, .1, .05]: # .
+    for split in [.5, .4, .3, .25, .2, .1, .05]: # . [0.3]:#
         kwargs['split'] = split
         print('--*--')
         pprint(kwargs)
@@ -366,7 +356,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
         #                         split=split, combine_regions=combine_regions,
         #                         do_plot=False, shuffle=False)
         # continue
-        # permutation_test(n_sim=100, **kwargs)
+        permutation_test(n_sim=100, **kwargs)
 
 if __name__ == '__main__':
     # test = np.array([2, 3, 5, -10, 1, 0])

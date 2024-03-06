@@ -309,6 +309,7 @@ def get_trial_info_(sn, ret=True):
 
     df_sn_as_l = []
     inc_run_cnt = defaultdict(lambda: 0)
+    # print(f'{sn=}')
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/ENC/S{sn}_run{run}.mat'
         mat_enc = io.loadmat(fp_bhv)
