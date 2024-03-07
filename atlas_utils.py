@@ -129,10 +129,10 @@ def add_ROI_info(atlas):
     return ROIs, ROI_nums, ticks, tick_labels, tick_lows, n_ROIs, ROI_regions
 
 
-@cache
+# @cache
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
-    print('Getting atlas')
+    # print('Getting atlas')
     if shenyang:
         fp_atlas = r'E:\PycharmProjects_E\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
@@ -200,9 +200,13 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
     # quit()
     return atlas
 
-def get_combined_BNA(combine_bilateral=False, new_space=True):
+def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False):
     atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
-                                new_space=new_space)
+                                new_space=new_space, HCP=HCP)
+    # print(f'{combine_bilateral=}')
+    # quit()
+    # print('lee:', len(atlas['ROIs']))
+    # quit()
     region_to_new_number = {}
     cnt = 1
     atlas_data = atlas['maps'].get_fdata()
@@ -211,6 +215,7 @@ def get_combined_BNA(combine_bilateral=False, new_space=True):
     for region, ROI_num, coord in zip(atlas['ROI_regions_laterality'],
                                       atlas['ROI_nums'],
                                       atlas['coords']):
+        # print(f'{region=}')
         if region not in region_to_new_number:
             region_to_new_number[region] = cnt
             cnt += 1
@@ -225,7 +230,10 @@ def get_combined_BNA(combine_bilateral=False, new_space=True):
         coords.append(l)
         region_coords[label] = l
     atlas['coords'] = coords
+    # print(f'{len(coords)=}')
     add_ROI_info(atlas)
+    # print(len(atlas['ROIs']))
+    # quit()
     return atlas
 
 def split_BNA(new_space=True, split_code='xyz'):
@@ -337,7 +345,9 @@ def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
         atlas = split_BNA(new_space=new_space, split_code=split_code)
     elif combine_regions:
         atlas = get_combined_BNA(combine_bilateral=combine_bilateral,
-                                 new_space=new_space)
+                                 new_space=new_space, HCP=HCP)
+        # print('test:', len(atlas['ROIs']))
+        # quit()
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space,

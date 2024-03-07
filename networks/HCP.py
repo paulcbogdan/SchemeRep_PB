@@ -2,7 +2,7 @@ import os
 import time
 
 from LSS import get_LSS_img, load_motion
-from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT
+from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 from functools import partial
@@ -15,17 +15,20 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from fluctuations import get_df_networks, partial_corr_df
-
+import matplotlib.pyplot as plt
+import scipy.stats as stats
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
-               clean_confounds=False, RS=True):
+               clean_confounds=False, RS=True, compcor=True):
     print(f'get_sn_HCP: {sn=}')
 
     if LSS:
         return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
 
     RS_str = f'_RS' if RS else ''
-    fp_clean = fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}{RS_str}.nii' # .nii are smaller than .pkl
+    cc_str = '_noCC' if not compcor else ''
+    fp_clean = (fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}'
+                fr'{RS_str}{cc_str}.nii') # .nii are smaller than .pkl
     if os.path.isfile(fp_clean) and not easy_override:
         img = image.load_img(fp_clean)
         data = img.get_fdata()
@@ -55,8 +58,10 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
         df_confounds = load_motion(sn, 'lr', rs=RS)  # TODO: compcor not used previously
         df_confounds = df_confounds.reset_index(drop=True)
         # print(f'num nans: {pd.isna(df_confounds).sum()=}')
-        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-        df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        if compcor:
+            df_compcor = pd.DataFrame(high_variance_confounds(img,
+                                                              percentile=2))
+            df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
         # print(f'num nans: {pd.isna(df_compcor).sum()=}')
 
         img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
@@ -101,7 +106,8 @@ def apply_HCP_mask(data, sn, lr):
 
 
 def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
-                 LSA=False, clean_confounds=True, YA_only=None):
+                 LSA=False, clean_confounds=True, YA_only=None,
+                 compcor=True, combine_regions=False):
     sns = os.listdir(HCP_ROOT)
     if RS:
         sns_ = []
@@ -115,24 +121,25 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
     # sns = sns[::-1]
     # sns = sns[:5]
     sn_roi_act = []
-    atlas = get_atlas(HCP=True)
-
+    # combine_regions = False
+    # print(f'toast: {combine_regions=}') # combine_regions=combine_regions,
+    atlas = get_atlas(combine_regions=combine_regions, HCP=True)
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
     for sn in tqdm(sns, desc='Loading HCP fMRI'):
         if lr_only:
-
             try:
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                   LSA=LSA, clean_confounds=clean_confounds,
-                                  RS=RS)
+                                  RS=RS, compcor=compcor)
             except ValueError as e:
                 print(f'{sn=}, {e=}')
                 time.sleep(5)
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
-                                  LSA=LSA, clean_confounds=clean_confounds,)
+                                  LSA=LSA, clean_confounds=clean_confounds,
+                                  compcor=compcor)
 
         else:
             raise NotImplementedError
@@ -147,18 +154,20 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
             ts = np.nanmean(region_vecs, axis=0)
             ar.append(ts)
         ar = np.array(ar)
-        # quit()
-        # print(f'{sn} | {ar.shape=}')
+        print(f'{sn} | {ar.shape=}')
         sn_roi_act.append(ar)
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-def get_HCP_df(N=5):
+def get_HCP_df(N=20):
     f = partial(load_HCP_act, N=N,
-                RS=True, clean_confounds=True, LSS=False, LSA=False)
+                RS=True, clean_confounds=True, LSS=False, LSA=False,
+                compcor=True)
 
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
-    df, networks = get_df_networks(f=f, zscore=True)
+    df, networks = pickle_wrap(get_df_networks,
+                               kwargs={'f': f, 'zscore': False},
+                               easy_override=False)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
@@ -169,11 +178,51 @@ def get_HCP_df(N=5):
     # print(df[networks].corr())
     # quit()
 
+    # networks = ['dv_ant', 'dv_pos']
+
+    #
+
+    # partial_corr_df(df, networks,
+    #                 cov=['FC_all', 'ad_else', 'pd_else', 'av_else', 'pv_else'])
+
+    print('------')
+    # 'dv_ant_else', 'dv_pos_else'
+    # partial_corr_df(df, networks,
+    #                 cov=['FC_all', 'dd_no', 'vv_no', 'dv_ant_no', 'dv_pos_no'])
+    networks = ['pd_else', 'ad_else', 'av_else', 'pv_else']
+    networks = ['dd', 'vv', 'dv_ant', 'dv_pos', 'dpva', 'vpda']
+    # networks = ['dp', 'da', 'vp', 'va']
+    # print(df[networks].std())
+    pre_n = len(df)
+    # for col in networks:
+    #     df[f'{col}_z'] = stats.zscore(df[col], nan_policy='omit')
+    #     df = df[df[f'{col}_z'].abs() < 5]
+    #     n_dif = pre_n - len(df)
+    #     pre_n = len(df)
+    #     print(f'{len(df)=}, dropped: {n_dif}')
+    # print(df[networks].mean())
+    #
+    # plt.scatter(df['dd'], df['vpda'])
+    # plt.show()
+
+    # 'FC_all',
+    # 'pd_else', 'pv_else', 'ad_else', 'av_else', 'FC_all'
+
     partial_corr_df(df, networks,
-                    cov=['FC_all', 'ad_else', 'pd_else', 'av_else', 'pv_else']) # 'ad_no', 'pd_no',
-                                      # 'av_no', 'pv_no'
-    print('-'*10)
-    partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant', 'dv_pos'])
+                    cov=[
+                         ])
+
+    # networks = ['dd', 'vv', 'dv_ant', 'dv_pos']
+    # partial_corr_df(df, networks,
+                    # cov=['FC_all', 'dv_ant', 'dv_pos'])
+                         # 'dd_else', 'vv_else', ])
+
+    # partial_corr_df(df, networks,
+    #                 cov=['FC_all', 'pd_no', 'ad_no', 'av_no', 'pv_no'])
+    # 'ad_no', 'pd_no', 'av_no', 'pv_no'
+    # print('-'*10)
+    # partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv', 'dv_ant',
+    #                                    'dv_pos'])
 
 
 

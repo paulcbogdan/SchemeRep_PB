@@ -2,6 +2,7 @@ import os
 
 from tqdm import tqdm
 
+from HCP import load_HCP_act
 from analyze_rs import load_act_conn, load_resting_data
 from atlas_utils import get_atlas
 from old.analyze_ROIs import setup_colors
@@ -96,7 +97,7 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
         plt.show()
 
 def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
-                      do_hit_hit=True):
+                      do_hit_hit=True, HCP=False):
     # sn_roi_act, _, df_sns_l, sns  = \
         # pickle_wrap(get_dfs_conn_trials,
         #             kwargs={'fp': fp, 'single': False,
@@ -127,43 +128,59 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
 
     f = partial(load_resting_data, combine_regions=combine_regions,
                 sns_key=fp)
-    sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
-                                                easy_override=False,
-                                       RAM_cache=True)
-    assert sn_roi_act.shape[0] == sn_roi_rs.shape[0], ('Unequal # subjects '
-                                                       f'{sn_roi_act.shape=},'
-                                                       f'{sn_roi_rs.shape=} '
-                                                       f'| {sns=}\n{sns_=}')
-    assert sn_roi_act.shape[-2] == sn_roi_rs.shape[-2], (f'Unequal # ROIs: '
-                                                         f'{sn_roi_act.shape=},'
-                                                         f' {sn_roi_rs.shape=}')
-    assert sns == sns_, print(f'{sns=}\n{sns_=}')
-    # quit()
 
-    bad_sns = {'116', '117', '110', '130', '232'}
-    # bad_sns = {'116'}
-    bad_i = [i for i, sn in enumerate(sns) if sn in bad_sns]
-    sns = [sn for sn in sns if sn not in bad_sns]
-    sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
-    sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
     n_roi = sn_roi_act.shape[-2]
-
     atlas = get_atlas(combine_regions=combine_regions)
+    if HCP:
+        hcp_kwargs = {'N': 30, 'combine_regions': combine_regions}
+        sn_roi_rs, sns_ = pickle_wrap(load_HCP_act, kwargs=hcp_kwargs,
+                                      easy_override=False, verbose=0,
+                                      RAM_cache=True)
+        # sn_roi_act = sn_roi_act[:hcp_kwargs['N']]
+        sns = sns_
+    else:
+            # return sn_roi_act, sn_roi_rs, atlas, n_roi, snsr
+
+        sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
+                                                    easy_override=False,
+                                           RAM_cache=True)
+        assert sn_roi_act.shape[0] == sn_roi_rs.shape[0], ('Unequal # subjects '
+                                                           f'{sn_roi_act.shape=},'
+                                                           f'{sn_roi_rs.shape=} '
+                                                           f'| {sns=}\n{sns_=}')
+        assert sn_roi_act.shape[-2] == sn_roi_rs.shape[-2], (f'Unequal # ROIs: '
+                                                             f'{sn_roi_act.shape=},'
+                                                             f' {sn_roi_rs.shape=}')
+        assert sns == sns_, print(f'{sns=}\n{sns_=}')
+        # quit()
+
+        bad_sns = {'116', '117', '110', '130', '232'}
+        # bad_sns = {'116'}
+        bad_i = [i for i, sn in enumerate(sns) if sn in bad_sns]
+        sns = [sn for sn in sns if sn not in bad_sns]
+        sn_roi_act = np.delete(sn_roi_act, bad_i, axis=0)
+        sn_roi_rs = np.delete(sn_roi_rs, bad_i, axis=0)
+
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
         bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
                  if roi in bad_rois]
         sn_roi_act[..., bad_j, :] = np.nan
         sn_roi_rs[..., bad_j, :] = np.nan
+    # print(f'{sn_roi_act.shape=}')
+    # print(f'{sn_roi_rs.shape=}')
+    # quit()
+
     return sn_roi_act, sn_roi_rs, atlas, n_roi, sns
 
 def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
                   split=.3, do_plot=False, fp_task='obj7_fMRI',
-                  do_hit_hit=False, shuffle_ss=False):
+                  do_hit_hit=False, shuffle_ss=False, HCP=False):
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
         load_task_rs_data(combine_regions, only_cortical=True,
-                          fp=fp_task, do_hit_hit=do_hit_hit)
+                          fp=fp_task, do_hit_hit=do_hit_hit,
+                          HCP=HCP)
 
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
@@ -189,17 +206,19 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     gen_rank2idx = generic_ts.argsort()
 
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
+
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
 
     low_cutoff = int(nan_cutoff * split)
     high_cutoff = int(nan_cutoff * (1 - split))
+    # print(f'{low_cutoff=}')
+    # print(f'{high_cutoff=}')
 
     if do_plot:
         gen_idx2rank[(gen_idx2rank > low_cutoff) &
                      (gen_idx2rank < high_cutoff)] = np.nan
         temp = generic_ts
-        print(f'{low_cutoff=}')
-        print(f'{high_cutoff=}')
+
         temp[np.isnan(gen_idx2rank)] = np.nan
 
         plot_ranks(temp, atlas, n_roi=n_roi, do_conn=do_conn, split=split)
@@ -225,10 +244,6 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                    atlas, n_roi=n_roi, do_conn=do_conn, split=split)
         plot_ranks(idx_to_cnt_inc,
                    atlas, n_roi=n_roi, do_conn=do_conn, split=split)
-        # quit()
-
-
-    # sanity_l = [0, 1, 3, 5, 7, 11, 13, 14, 15, 17, 18, 19, 21, 23, 25, 27, 29, 33, 35, 36, 37, 39, 43, 46, 51, 52, 53, 55, 65, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 82, 83, 85, 87, 89, 92, 93, 94, 95, 102, 103, 108, 111, 112, 113, 116, 118, 120, 121, 123, 125, 127, 135, 143, 147, 149, 150, 151, 153, 154, 155, 156, 157, 159, 162, 163, 164, 166, 167, 169, 170, 171, 172, 173, 175, 178, 179, 180, 181, 188, 190, 191, 192, 193, 194, 195, 196, 197, 201, 202, 203, 204, 206, 207]
 
 
     corrs = []
@@ -274,24 +289,40 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         # # quit()
         # np.random.shuffle(i2inc_rois)
 
-    for sn_i in range(sn_roi_difs.shape[0]):
+    for sn_i in range(sn_roi_rs.shape[0]):
         inc_rois, con_rois = i2inc_rois[sn_i], i2con_rois[sn_i]
         # print(f'{sn_i} | {list(inc_rois)[:5]=}')
         # quit()
+        # print(sn_roi_rs[sn_i, ])
+        # quit()
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
         rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
+        # print(rs_inc)
+        # quit()
 
         rs_con = sn_roi_rs[sn_i, con_rois, :]
         rs_con = np.nanmean(rs_con, axis=0)
+        # print(f'{con_rois=}')
+        # print(f'{rs_con=}')
+        # print(f'{con_rois=}')
+        # quit()
 
         n_con_nans = np.sum(np.isnan(rs_con))
         n_inc_nans = np.sum(np.isnan(rs_inc))
-        if n_con_nans or n_inc_nans:
+        if (n_con_nans or n_inc_nans) and not HCP:
             assert n_con_nans == n_inc_nans == 206, \
                 f'{n_con_nans=} {n_inc_nans=}'
             print(f'skip: {sns[sn_i]}')
+        #
+        # print(f'{rs_inc=}')
+        # print(f'{np.nanmax(rs_inc)=}')
+        # print(f'{np.nanmin(rs_inc)=}')
+        # print(f'{np.nanmax(rs_con)=}')
+        # print(f'{np.nanmin(rs_con)=}')
+
 
         corr, _ = stats.pearsonr(rs_inc, rs_con)
+        corr = np.arctanh(corr)
         corrs.append(corr)
 
     corrs = np.array(corrs)
@@ -317,7 +348,8 @@ def permutation_test_(n_sim=100, **kwargs):
 def permutation_test(**kwargs):
     from connsearch import print_list_stats
     M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
-                          RAM_cache=False, verbose=-1)
+                          RAM_cache=False, verbose=-1,
+                          easy_override=True)
     M_corrs = -np.array(M_corrs)
     print('--*--')
     # pprint(kwargs)
@@ -334,15 +366,16 @@ def permutation_test(**kwargs):
 
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
-                  do_hit_hit=False, fp_task='obj7_fMRI'):
+                  do_hit_hit=False, fp_task='obj7_fMRI', HCP=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
               'do_generic': do_generic,
               'do_hit_hit': do_hit_hit,
               'fp_task': fp_task,
+              'HCP': HCP,
               }
-    for split in [.5, .4, .3, .25, .2, .1, .05]: # . [0.3]:#
+    for split in [.3,]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
         kwargs['split'] = split
         print('--*--')
         pprint(kwargs)
@@ -351,6 +384,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
         M_corr = link_activity(**kwargs,
                                do_plot=False, shuffle=False,
                                )
+        # quit()
         #                       do_plot=False, shuffle=False)
         # M_corrs = link_activity(do_generic=not do_generic, do_conn=do_conn,
         #                         split=split, combine_regions=combine_regions,
@@ -359,15 +393,8 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
         permutation_test(n_sim=100, **kwargs)
 
 if __name__ == '__main__':
-    # test = np.array([2, 3, 5, -10, 1, 0])
-    # print(np.argsort(np.argsort(test)))
-    # quit()
-
     plot_by_split()
     quit()
-    # a = {1:1, 2:1}
-    # b = {1:1, 2:1}
-    # print(a == b)
-    # quit()
+
 
 

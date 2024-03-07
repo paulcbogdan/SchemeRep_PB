@@ -80,10 +80,12 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           thr=.95, flip=True, anat=False,
                           weighted=False, scrub=False,
                           plot=False, easy_override=False,
-                          combine_regions=False):
+                          combine_regions=False,
+                          anat_version=1):
     if anat:
         return get_anat_vendor_partitions(plot=plot,
-                                          combine_regions=combine_regions)
+                                          combine_regions=combine_regions,
+                                          version=anat_version)
     if sn_inc_conn is None or age2idxs is None:
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
@@ -165,7 +167,8 @@ def anterior_posterior_split(p_dorsal, coords):
 
 
 
-def get_anat_vendor_partitions(plot=False, v1=True, combine_regions=False):
+def get_anat_vendor_partitions(plot=False, version=1, combine_regions=False,
+                               ):
     def labels2idxs(target):
         return [i for i, label in enumerate(labels) if
                 any([l in label for l in target])]
@@ -193,7 +196,12 @@ def get_anat_vendor_partitions(plot=False, v1=True, combine_regions=False):
                 else:
                     labels[i] = f'{key}_p'
 
-    if v1:
+    if version == 2:
+        p_d_ant_labels = ['MFG',]
+        p_d_pos_labels = ['IPL', ]
+        p_v_ant_labels = ['ATL', ]
+        p_v_pos_labels = ['LOC', ]
+    elif version == 1:
         p_d_ant_labels = ['IFG', 'SFG', 'MFG',] #  'OrG'
         p_d_pos_labels = ['IPL', 'SPL', 'Pcun', ] # 'PCC'
         p_v_ant_labels = ['ATL', 'PhG_a',

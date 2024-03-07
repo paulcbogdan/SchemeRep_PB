@@ -20,7 +20,7 @@ from vendor_partitioning import get_vendor_partitions
 import logging
 
 
-def get_sn_rs(sn, clean=False):
+def get_sn_rs(sn, clean=False, compcor=True):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
     if clean:
@@ -32,8 +32,12 @@ def get_sn_rs(sn, clean=False):
         df_confounds = pd.read_csv(fp_in, delimiter='\t')
         df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
         img = image.index_img(img, slice(4, None))
-        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-        df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        if compcor:
+            print('Doing compcor')
+            df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+            df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        else:
+            print('Zero compcor')
         # print('oooo')
         if int(sn) in [221, 222]:
             fp_mask = None
@@ -82,7 +86,8 @@ def sanity_load(sn):
     return data
 
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
-                      sanity=False, combine_regions=False, sns_key='loose'):
+                      sanity=False, combine_regions=False, sns_key='loose',
+                      compcor=True):
 
     age2sn = get_sns(sns_key)
     if YA_only:
@@ -112,8 +117,9 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
-            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True},
-                               easy_override=False)
+            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True,
+                                                  'compcor': compcor},
+                               easy_override=True)
 
         ar = []
 
@@ -269,7 +275,19 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                     set(p_d_ant + p_d_pos + p_v_ant + p_v_pos))
 
     dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
+    dv_ant_else = list(set(range(246)) - set(p_d_ant + p_v_ant))
     vv_else = list(set(range(246)) - set(p_v_ant + p_v_pos))
+    dv_pos_else = list(set(range(246)) - set(p_d_pos + p_v_pos))
+
+    p_ant = list(set(p_d_ant + p_v_ant))
+    p_pos = list(set(p_d_pos + p_v_pos))
+
+    pd_no = list(set(range(246)) - set(p_d_pos + p_d_ant + p_v_pos))
+    ad_no = list(set(range(246)) - set(p_d_ant + p_d_pos + p_v_ant))
+    pv_no = list(set(range(246)) - set(p_v_pos + p_v_ant + p_d_pos))
+    av_no = list(set(range(246)) - set(p_v_ant + p_v_pos + p_d_ant))
+
+
 
     conn_keys = ['dd', 'vv',
                  'dv_ant', 'dv_pos',
@@ -277,18 +295,30 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                  'pd_else', 'ad_else',
                  'pv_else', 'av_else',
                  'dd_else', 'vv_else',
+                 'dv_ant_else', 'dv_pos_else',
                  'pd_no', 'ad_no',
                  'pv_no', 'av_no',
-                 'dd_no', 'vv_no']
+                 'dd_no', 'vv_no',
+                 'dv_ant_no', 'dv_pos_no',
+                 'pd_no2', 'ad_no2',
+                 'pv_no2', 'av_no2',
+                 'no_no'
+                 ]
     conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant),
                (p_d_ant, p_v_ant), (p_d_pos, p_v_pos),
                (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
                (p_d_pos, pd_else), (p_d_ant, ad_else),
                (p_v_pos, pv_else), (p_v_ant, av_else),
                (p_dorsal, dd_else), (p_ventral, vv_else),
+               (p_ant, dv_ant_else), (p_pos, dv_pos_else),
                (p_d_pos, no_match), (p_d_ant, no_match),
                (p_v_pos, no_match), (p_v_ant, no_match),
-               (p_dorsal, no_match), (p_ventral, no_match)]
+               (p_dorsal, no_match), (p_ventral, no_match),
+               (p_ant, no_match), (p_pos, no_match),
+               (p_d_pos, pd_no), (p_v_pos, pv_no),
+               (p_d_ant, ad_no), (p_v_ant, av_no),
+               (no_match, no_match)
+               ]
     return conn_keys, conn_ps
 
 def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,

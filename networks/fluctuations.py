@@ -65,7 +65,8 @@ def compare_sanity_vs_pb_lss(norm_std=False):
 
 
 
-def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
+def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
+                    tight_anat=True):
 
     if f is not None:
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
@@ -92,6 +93,11 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=True,
                                                      )
+    elif fp == 'rs_nocc':
+        f = partial(load_resting_data, compcor=False)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True,
+                                                     f=f, YA_only=True)
     else:
         sn_roi_act, conn_trials, sns = \
             pickle_wrap(get_dfs_conn_trials, kwargs={'fp': fp, 'single': False,
@@ -110,7 +116,12 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None):
     networks = list(key2conn)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
+        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
+                              anat_version=1)
+    print(f'{len(p_d_pos)=}')
+    print(f'{len(p_d_ant)=}')
+    print(f'{len(p_v_pos)=}')
+    print(f'{len(p_v_ant)=}')
     # key2pair = {'dd': (p_d_pos, p_d_ant), 'vv': (p_v_pos, p_v_ant),
     #             'dv_ant': (p_d_ant, p_v_ant), 'dv_pos': (p_d_pos, p_v_pos),}
 
@@ -152,7 +163,9 @@ def partial_corr_df(df, cols, cov):
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
-            if (col_i.split('_')[0] in col_j or
+            if col_i == 'dv_ant' and col_j == 'dv_pos':
+                pass
+            elif (col_i.split('_')[0] in col_j or
                     col_j.split('_')[0] in col_i):
                 continue
             if i < j:
@@ -161,7 +174,7 @@ def partial_corr_df(df, cols, cov):
                     out = (pg.partial_corr(data=df, x=col_i, y=col_j,
                                            covar=cov).
                            round(3))
-                except AssertionError:
+                except AssertionError as e:
                     ar[i, j] = np.nan
 
                 ar[i, j] = out['r'].values[0]
@@ -170,7 +183,7 @@ def partial_corr_df(df, cols, cov):
     print(df_result)
 
 
-def analyze_networks(fp='rs'):
+def analyze_networks(fp='rs_nocc'):
     df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
                                                         'norm_std': False,
                                                         'zscore': True},
@@ -199,7 +212,7 @@ def analyze_networks(fp='rs'):
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
     networks = networks[:-4]
     conn = df[networks].corr()
-    print(conn)
+    # print(conn)
     conn = np.array(conn)
     conn[np.diag_indices_from(conn)] = np.nan
     ticks = list(np.arange(len(networks)))
@@ -207,22 +220,29 @@ def analyze_networks(fp='rs'):
     tick_lows = np.arange(len(networks))
     title = 'Resting-state avg. network correlations'
 
-    plot_connectivity(conn, ticks, tick_labels, tick_lows, title=title, no_avg=True, cbar_label='Pearson\'s r',
-                      vmin=-0.5, vmax=0.5)
+    # plot_connectivity(conn, ticks, tick_labels, tick_lows, title=title, no_avg=True, cbar_label='Pearson\'s r',
+    #                   vmin=-0.5, vmax=0.5)
 
 
-    # networks += ['da_dp', 'va_vp', 'dd_vv', 'dv_dv']
+    networks = ['dd', 'vv', 'dv_ant', 'dv_pos',
+                'dd_vv', 'dv_dv']
     # print(df[networks].corr())
     # print('--------------')
     # I need to zscore lest i deal with outliers.
     #   Otherwise, must drop extremes
     # partial_corr_df(df, networks, cov=['FC_all'])
     # print('-'*10)
+    # quit()
+
+    networks += ['FC_all']
+    print(df[networks].corr())
+
+
+
+    partial_corr_df(df, networks, cov=['FC_all', ])
     quit()
 
-
-    partial_corr_df(df, networks, cov=['FC_all', 'dd', 'vv',
-                                       'dv_ant', 'dv_pos'])
+    # 'dd', 'vv', 'dv_ant', 'dv_pos'
 
     from pymer4.models import Lmer
     df['dd_vv'] = df['dd'] + df['vv']
