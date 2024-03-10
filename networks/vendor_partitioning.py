@@ -327,7 +327,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    THRESHOLD = .95
+    THRESHOLD = .99
     get_vendor_partitions(age='healthy', flip=True, plot=True,
                           scrub=True, easy_override=True, thr=THRESHOLD,
                           combine_regions=False)

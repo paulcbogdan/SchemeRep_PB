@@ -150,7 +150,8 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
     return df_sns, new_cols
 
 def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
-    df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp, 'scrub': scrub, 'anat': anat},
+    df, cols = pickle_wrap(get_hemi_vendor_df, None,
+                           kwargs={'fp': fp, 'scrub': scrub, 'anat': anat},
                            easy_override=True, cache_dir='cache')
     cross_cols = ['Ldp_Rdp', 'Lda_Rda', 'Lvp_Rvp', 'Lva_Rva',]
     rename = {'Ldp_Rdp': 'DP_hemi',

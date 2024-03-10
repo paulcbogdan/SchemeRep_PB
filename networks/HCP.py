@@ -209,8 +209,8 @@ def get_HCP_df(N=20):
     # 'pd_else', 'pv_else', 'ad_else', 'av_else', 'FC_all'
 
     partial_corr_df(df, networks,
-                    cov=[
-                         ])
+                    cov=['FC_all',
+                         'pd_no', 'ad_no', 'av_no', 'pv_no'])
 
     # networks = ['dd', 'vv', 'dv_ant', 'dv_pos']
     # partial_corr_df(df, networks,

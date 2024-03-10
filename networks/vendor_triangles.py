@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from scipy import stats as stats
 
 from emotemporal_bar import get_stars
+from fluctuations import get_df_networks
 # from atlas_utils import get_atlas
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
@@ -207,10 +208,21 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
     return beta_main, p_main, beta_itr, p_itr
 
 
-def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False):
+def plot_massive_hemi_corr_matrix(fp='obj7_fMRI', anat=True, scrub=False,
+                                  HCP=True):
+    # if HCP:
+    #     # f = partial(load_HCP_act, N=N,
+    #     #             RS=True, clean_confounds=True, LSS=False, LSA=False,
+    #     #             compcor=True)
+    #     #
+    #     # df, networks = pickle_wrap(get_df_networks,
+    #     #                            kwargs={'f': f, 'zscore': False},
+    #     #                            easy_override=False)
+    # else:
     df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp,
                                                              'anat': anat,
-                                                             'scrub': scrub}, easy_override=False, cache_dir='cache')
+                                                             'scrub': scrub},
+                           easy_override=False, cache_dir='cache')
 
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
@@ -347,9 +359,9 @@ if __name__ == '__main__':
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
-    plot_2x2_triangle()
+    # plot_2x2_triangle()
     # lmer_triangle()
-    # plot_massive_hemi_corr_matrix()
+    plot_massive_hemi_corr_matrix()
     # quit()
     # lmer_triangle()
     # plot_meta_corr_matrix()
