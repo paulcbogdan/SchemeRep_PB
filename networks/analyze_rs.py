@@ -21,9 +21,28 @@ import logging
 
 
 def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
-              trad=False):
+              trad=False, near_OG=False, true_OG=False):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
+    if true_OG:
+        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
+        fp_mask = fr'{dir_mask}\{fn_mask}'
+
+        fp_in = fr'E:\PycharmProjects_E\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
+        df_confounds = pd.read_csv(fp_in, delimiter='\t')
+        df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
+        img = image.index_img(img, slice(4, None))
+        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+        df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        # print('oooo')
+        if int(sn) in [221, 222]:
+            fp_mask = None
+        img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+                              standardize=False, t_r=2, mask_img=fp_mask)
+        return img.get_fdata()
+
+    if near_OG: trad = True
     if clean:
         dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
         fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
@@ -66,9 +85,12 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
                           'trans_z_derivative1', 'rot_x', 'rot_x_derivative1',
                           'rot_y', 'rot_y_derivative1', 'rot_z',
                           'rot_z_derivative1', ]
-            keep_cols += ['cosine00', 'cosine01', 'cosine02']
-            keep_cols += motion_outliers
+            # keep_cols += ['cosine00', 'cosine01', 'cosine02']
+            # keep_cols += motion_outliers
             df_confounds = df_confounds[keep_cols]
+            df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2,
+                                                              mask_img=fp_mask))
+            df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
         elif medium:
             cols = df_confounds.columns
             keep_cols  = ['trans_x', 'trans_x_derivative1', 'trans_y',
@@ -76,10 +98,12 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
                           'trans_z_derivative1', 'rot_x', 'rot_x_derivative1',
                           'rot_y', 'rot_y_derivative1', 'rot_z',
                           'rot_z_derivative1', ]
+            keep_cols += [col for col in cols if 't_comp_cor' in col]
             keep_cols += [col for col in cols if 'w_comp_cor' in col]
             keep_cols += [col for col in cols if 'c_comp_cor' in col]
-            keep_cols += [col for col in cols if 'motion_outlier' in col]
-            keep_cols += ['cosine00', 'cosine01', 'cosine02']
+            # keep_cols += [col for col in cols if 'edge_comp' in col]
+            # keep_cols += [col for col in cols if 'motion_outlier' in col]
+            # keep_cols += ['cosine00', 'cosine01', 'cosine02']
 
             # keep_cols = df_confounds.columns
             # keep_cols = [col for col in keep_cols if 'global_' not in col]
@@ -89,27 +113,36 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
             df_confounds = df_confounds[keep_cols]
         elif trad:
             cols = df_confounds.columns
-            motion_outliers = [col for col in cols if 'motion_outlier' in col]
+            # motion_outliers = [col for col in cols if 'motion_outlier' in col]
+            motion_outliers = []
             keep_cols = ['global_signal', 'global_signal_derivative1',
-                         'global_signal_derivative1_power2',
-                         'global_signal_power2', 'csf', 'csf_derivative1',
-                         'csf_power2', 'csf_derivative1_power2', 'white_matter',
+                         #'global_signal_derivative1_power2',
+                         # 'global_signal_power2',
+                         'csf', 'csf_derivative1',
+                         # 'csf_power2', 'csf_derivative1_power2',
+                         'white_matter',
                          'white_matter_derivative1',
-                         'white_matter_derivative1_power2',
-                         'white_matter_power2']
+                         # 'white_matter_derivative1_power2',
+                         # 'white_matter_power2'
+                         ]
             keep_cols += ['trans_x', 'trans_x_derivative1', 'trans_y',
                           'trans_y_derivative1', 'trans_z',
                           'trans_z_derivative1', 'rot_x', 'rot_x_derivative1',
                           'rot_y', 'rot_y_derivative1', 'rot_z',
                           'rot_z_derivative1', ]
-            keep_cols += ['cosine00', 'cosine01', 'cosine02']
+            # keep_cols += ['cosine00', 'cosine01', 'cosine02']
             keep_cols += motion_outliers
             df_confounds = df_confounds[keep_cols]
 
+        if near_OG:
+            df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2,
+                                                              mask_img=fp_mask))
+            df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+
         if int(sn) in [221, 222]:
             fp_mask = None
-        img = image.clean_img(img, confounds=df_confounds, #high_pass=1/128,
-                              standardize=False, #t_r=2,
+        img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+                              standardize=False, t_r=2,
                               mask_img=fp_mask)
         # print('ook')
         # quit()
@@ -156,7 +189,7 @@ def sanity_load(sn):
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                       sanity=False, combine_regions=False, sns_key='loose',
                       compcor=True, clean=True, light=False, medium=False,
-                      trad=False):
+                      trad=False, near_OG=False, true_OG=False):
 
     age2sn = get_sns(sns_key)
     if YA_only:
@@ -187,8 +220,10 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                                                   'compcor': compcor,
                                                   'light': light,
                                                   'medium': medium,
-                                                  'trad': trad},
-                               easy_override=True)
+                                                  'trad': trad,
+                                                  'near_OG': near_OG,
+                                                  'true_OG': true_OG},
+                               easy_override=False)
 
         ar = []
 

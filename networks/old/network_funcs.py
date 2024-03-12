@@ -22,7 +22,9 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
                      do_sort=False, fp_all=False, voxelwise=False,
                      regionwise=False, combine_regions=False, get_df_sn=False,
-                     loose_sns=False, combine_bilateral=False):
+                     loose_sns=False, combine_bilateral=False,
+                     strict_sns=False
+                     ):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -34,7 +36,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     # age2sn = get_sns('all' if fp_all else fp,
     #                  sh=False)
 
-    age2sn = get_sns(fp, sh=False)
+    age2sn = get_sns('all' if strict_sns else fp, sh=False)
     print(f'{age2sn=}')
     sn_inc_conn = []
     sn_inc_activity = []

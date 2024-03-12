@@ -12,7 +12,8 @@ import pandas as pd
 def get_bad_sns_fp(fp):
     if 'obj_' in fp: f'Stop using an old fp: {fp=}'
     if fp == 'all':
-        raise ValueError('Stop using all for get sns!')
+        bad_sns = {'116', '125', '215', '133', '213', '231'}
+        # raise ValueError('Stop using all for get sns!')
     # if fp == 'all':
     #     bad_sns = {'116', '125', '135', '212'}
     elif 'obj' in fp or 'scn' in fp:
