@@ -36,13 +36,16 @@ def shuffle_rows(sn_roi_act):
             new_ar[j, cnt, :, i] = sn_roi_act_sq[j, :, i]
     return new_ar
 
-def act2conn(sn_roi_act, flatten=True):
+def act2conn(sn_roi_act, flatten=True, conn_euc=False):
     # print(f'ac2conn: {sn_roi_act.shape}')
     t_st = time()
     sn_roi_act0 = sn_roi_act[..., :, None, :]
     sn_roi_act1 = sn_roi_act[..., None, :, :]
     # print('a')
-    sn_roi_conn = sn_roi_act0 * sn_roi_act1
+    if conn_euc:
+        sn_roi_conn = np.abs(sn_roi_act0 - sn_roi_act1)
+    else:
+        sn_roi_conn = sn_roi_act0 * sn_roi_act1
     if flatten:
         # print('b')
         trils = np.tril_indices(sn_roi_act.shape[-2], -1)
@@ -97,7 +100,8 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
         plt.show()
 
 def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
-                      do_hit_hit=True, HCP=False, light=False, medium=False):
+                      do_hit_hit=True, HCP=False, light=False, medium=False,
+                      trad=False):
     # sn_roi_act, _, df_sns_l, sns  = \
         # pickle_wrap(get_dfs_conn_trials,
         #             kwargs={'fp': fp, 'single': False,
@@ -142,7 +146,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
         #                 sns_key=fp, light=True)
         # else:
         f = partial(load_resting_data, combine_regions=combine_regions,
-                    sns_key=fp, light=light, medium=medium)
+                    sns_key=fp, light=light, medium=medium, trad=trad)
         sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
                                                     easy_override=False,
                                            RAM_cache=True)
@@ -179,17 +183,18 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
                   split=.3, do_plot=False, fp_task='obj7_fMRI',
                   do_hit_hit=False, shuffle_ss=False, HCP=False,
-                  light=False, medium=False):
+                  light=False, medium=False, conn_euc=True, trad=True):
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
         load_task_rs_data(combine_regions, only_cortical=True,
                           fp=fp_task, do_hit_hit=do_hit_hit,
-                          HCP=HCP, light=light, medium=medium)
+                          HCP=HCP, light=light, medium=medium,
+                          trad=trad)
 
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
-        sn_roi_act = act2conn(sn_roi_act)
+        sn_roi_act = act2conn(sn_roi_act, conn_euc=conn_euc)
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
-        sn_roi_rs = act2conn(sn_roi_rs)
+        sn_roi_rs = act2conn(sn_roi_rs, conn_euc=conn_euc)
 
     if shuffle and not shuffle_ss:
         sn_roi_act = shuffle_rows(sn_roi_act)
@@ -350,27 +355,29 @@ def permutation_test_(n_sim=100, **kwargs):
 
 def permutation_test(**kwargs):
     from connsearch import print_list_stats
-    M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
-                          RAM_cache=False, verbose=-1,
-                          easy_override=True)
-    M_corrs = -np.array(M_corrs)
-    print('--*--')
-    # pprint(kwargs)
-    # print('--*--')
-    print_list_stats(M_corrs)
-    print('--*--')
+    if kwargs['do_generic']:
+        M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
+                              RAM_cache=False, verbose=-1,
+                              easy_override=False)
+        M_corrs = np.array(M_corrs)
+        print('--*--')
+        # pprint(kwargs)
+        # print('--*--')
+        print_list_stats(M_corrs)
+        print('--*--')
 
     if not kwargs['do_generic']:
         kwargs['shuffle_ss'] = True
         M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
-                              RAM_cache=False, verbose=-1)
+                              RAM_cache=False, verbose=-1,
+                              easy_override=False)
         print_list_stats(M_corrs)
         print('--*--')
 
 
-def plot_by_split(do_conn=True, do_generic=False, combine_regions=True,
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
-                  light=False, medium=True):
+                  light=False, medium=False, conn_euc=False, trad=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -379,9 +386,12 @@ def plot_by_split(do_conn=True, do_generic=False, combine_regions=True,
               'fp_task': fp_task,
               'HCP': HCP,
               'light': light,
-              'medium': medium
+              'medium': medium,
+              'conn_euc': conn_euc,
+              'trad': trad
               }
-    for split in [.5, .4, .3, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
+    assert do_conn or not combine_regions
+    for split in [.3, .5, .4, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
         kwargs['split'] = split
         print('--*--')
         pprint(kwargs)
@@ -398,7 +408,4 @@ def plot_by_split(do_conn=True, do_generic=False, combine_regions=True,
 
 if __name__ == '__main__':
     plot_by_split()
-    quit()
-
-
 

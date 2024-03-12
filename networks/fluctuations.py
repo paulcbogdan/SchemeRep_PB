@@ -1,7 +1,7 @@
 from analyze_rs import load_act_conn, prep_conn_ps
 from atlas_utils import get_atlas
 from old.plot_gen import plot_connectivity
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 from collections import defaultdict
 
 from vendor_lmers import get_module_trialwise_z, get_dfs_conn_trials, get_module_cross_trialwise_z
@@ -111,7 +111,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     elif fp == 'rs_medium':
         f = partial(load_resting_data, medium=True, clean=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
+                                                     easy_override=False,
                                                      f=f, YA_only=False)
     elif fp == 'rs_trad':
         f = partial(load_resting_data, clean=True, trad=True)
@@ -124,9 +124,11 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                                                      'w_activity': True,
                                                      'squeeze': True})
     print('Onto get_df_networks...')
-    # sn_roi_act = sn_roi_act[:, :, :30]
-    # print(sn_roi_act.shape)
-    # quit()
+    sn_roi_act = stdize(sn_roi_act, axis=2)
+    sn_roi_act = stdize(sn_roi_act, axis=1)
+    conn_trials = sn_roi_act[..., None, :] * \
+                  sn_roi_act[..., None, :, :]
+
     network2p = pickle_wrap(get_network_partitions)
 
     key2conn = {}
@@ -203,26 +205,12 @@ def partial_corr_df(df, cols, cov):
     print(df_result)
 
 
-def analyze_networks(fp='rs_trad'):
-    df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
-                                                        'norm_std': False,
-                                                        'zscore': True},
-                               easy_override=False)
-
-    # conn_keys = ['dd', 'vv',
-    #              'dv_ant', 'dv_pos',
-    #              'dpva', 'vpda',
-    #              ]
-
-    # for key in conn_keys:
-    #     M = df[key].mean()
-    #     print(f'{key}: {M=:.4f}')
-    # quit()
-
-    pd.set_option('display.precision', 3)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', 1000)
-    pd.set_option('display.max_rows', 1000)
+def analyze_networks(fp='rs_medium'):
+    df, networks = pickle_wrap(get_df_networks,
+                               kwargs={'fp': fp,
+                                       'norm_std': False,
+                                       'zscore': True},
+                               easy_override=True)
 
 
     df['da_dp'] = df['da'] + df['dp']
@@ -246,20 +234,14 @@ def analyze_networks(fp='rs_trad'):
 
     networks = ['dd', 'vv', 'dv_ant', 'dv_pos',
                 'dd_vv', 'dv_dv']
-    # print(df[networks].corr())
-    # print('--------------')
-    # I need to zscore lest i deal with outliers.
-    #   Otherwise, must drop extremes
-    # partial_corr_df(df, networks, cov=['FC_all'])
-    # print('-'*10)
-    # quit()
 
-    networks += ['FC_all']
+    networks += ['no_no']
     print(df[networks].corr())
 
 
     # 'no_no', 'pd_no', 'ad_no', 'av_no', 'pv_no'
-    partial_corr_df(df, networks, cov=['no_no'])
+    partial_corr_df(df, networks, cov=[#'FC_all',
+                                       'pd_no', 'ad_no', 'av_no', 'pv_no'])
     quit()
 
     # 'dd', 'vv', 'dv_ant', 'dv_pos'
@@ -272,6 +254,11 @@ def analyze_networks(fp='rs_trad'):
     print(model.summary())
 
 if __name__ == '__main__':
+    pd.set_option('display.precision', 3)
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', 1000)
+    pd.set_option('display.max_rows', 1000)
+
     analyze_networks()
     # get_dfs_conn_trials(fp='obj7_fMRI', single=False)
     # analyze_networks()

@@ -167,7 +167,7 @@ def get_HCP_df(N=20):
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'f': f, 'zscore': False},
-                               easy_override=False)
+                               easy_override=True)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
