@@ -1,5 +1,8 @@
 
 import os
+
+from old.plot_gen import plot_connectivity
+
 os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 from pathlib import Path
@@ -12,28 +15,60 @@ from atlas_utils import get_atlas
 from ttest_mat import get_stats_graphs
 from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 import matplotlib.pyplot as plt
+
+def do_regression():
+    pass
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                            flip=True, weighted=True, plot=False,
-                           combine_regions=False):
+                           combine_regions=False, regress=True):
 
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
-    if weighted:
+    if regress:
+        sn_inc_conn = (sn_inc_conn -
+                        np.nanmean(sn_inc_conn, axis=1)[:, None, :, :])
+        n_sn = sn_inc_conn.shape[0]
+        sn_conn = sn_inc_conn.reshape(-1, 246, 246)
+        trils = np.tril_indices(246, k=-1)
+        sn_flat = sn_conn[:, trils[0], trils[1]]
+        # print(f'{sn_flat.shape=}')
+        sn_flat = stdize(sn_flat, axis=0)
+        regressors = np.array([[-1, 0, 1] * n_sn]).T
+
+        XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
+        XTX_invX = np.dot(XTX_inv, regressors.T)
+        betas = np.dot(XTX_invX, sn_flat)
+
+        Y_pred = np.dot(regressors, betas)
+        residual = sn_flat - Y_pred
+        sigma_s = np.sum(residual ** 2, axis=0) / (n_sn*2 - 2)
+        ss_x = np.sum(regressors ** 2, axis=0)
+        var_beta = sigma_s / ss_x
+
+        z = betas / np.sqrt(var_beta)
+
+        z_both = np.full((246, 246), np.nan)
+        z_both[trils] = z
+        z_both[trils[1], trils[0]] = z
+        z_both = z_both if flip else -z_both
+
+    elif weighted:
         M_YA, _, _, _, _, p_YA, z_YA = \
             get_stats_graphs(sn_inc_conn[age2idxs[1], 0, :, :],
-                             sn_inc_conn[age2idxs[1], 1, :, :])
+                             sn_inc_conn[age2idxs[1], -1, :, :])
         M_OA, _, _, _, _, p_OA, z_OA = \
             get_stats_graphs(sn_inc_conn[age2idxs[2], 0, :, :],
-                             sn_inc_conn[age2idxs[2], 1, :, :])
+                             sn_inc_conn[age2idxs[2], -1, :, :])
         z_both = (z_YA + z_OA) / 2
-        z_both = (M_YA + M_OA) / 2
+        # z_both = (M_YA + M_OA) / 2
+        z_both = -z_both if flip else z_both
     else:
         M_both, _, _, _, _, p_both, z_both = \
             get_stats_graphs(sn_inc_conn[age2idxs[age], 0, :, :],
-                             sn_inc_conn[age2idxs[age], 1, :, :])
-    z_both = -z_both if flip else z_both
+                             sn_inc_conn[age2idxs[age], -1, :, :])
+        z_both = -z_both if flip else z_both
 
     atlas = get_atlas(combine_regions=combine_regions)
     labels = atlas['labels']
@@ -53,13 +88,15 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''
     comb_str = '_comb' if combine_regions else ''
+    regr_str = '_regr' if regress else ''
     dir_out = f'result_pics/ttest_modules/' \
               f'flip{flip}_thr{thr}_{age2str[age]}{comb_str}{weighted_str}' \
-              f'_n{num_non_nans}'
+              f'{regr_str}_n{num_non_nans}'
+    regression_str = ' [regression]' if regress else ''
     if flip:
-        title_extra = f' (Congruent > incongruent)'
+        title_extra = f' (Congruent > incongruent){regression_str}'
     else:
-        title_extra = f' (Incongruent > Congruent)'
+        title_extra = f' (Incongruent > Congruent){regression_str}'
     partitions, matrix_mask = \
         get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
                             threshold=thr,
@@ -81,7 +118,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           weighted=False, scrub=False,
                           plot=False, easy_override=False,
                           combine_regions=False,
-                          anat_version=1):
+                          anat_version=1,
+                          regress=False):
     if anat:
         return get_anat_vendor_partitions(plot=plot,
                                           combine_regions=combine_regions,
@@ -90,15 +128,18 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
                   'atlas_name': 'BNA',
-                  'key_vals': (1, 3),
+                  'key_vals': (1, 2, 3) if regress else (1, 3),
                   'combine_regions': combine_regions
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                        easy_override=False, verbose=1, cache_dir='cache')
 
     comb_str = f'_comb' if combine_regions else ''
+    regr_str = f'_regr' if regress else ''
+    assert not (weighted and regress)
     fp = (f'cache/{age}_ttest_modules_thr{thr}_flip{flip}{comb_str}_'
-          f'{weighted}_n65.pkl')
+          f'{weighted}{regr_str}_n65.pkl')
 
     partitions, matrix_mask = \
         pickle_wrap(lambda:
@@ -106,7 +147,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                                            age2idxs=age2idxs, age=age, thr=thr,
                                            flip=flip, weighted=weighted,
                                            plot=plot,
-                                           combine_regions=combine_regions), fp,
+                                           combine_regions=combine_regions,
+                                           regress=regress), fp,
                     easy_override=easy_override)
     atlas = get_atlas(combine_regions=combine_regions)
     coords = atlas['coords']
@@ -327,14 +369,15 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    THRESHOLD = .99
-    get_vendor_partitions(age='healthy', flip=True, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD,
-                          combine_regions=False)
-    # THRESHOLD = .8
-    get_vendor_partitions(age='healthy', flip=False, plot=True,
-                          scrub=True, easy_override=True, thr=THRESHOLD,
-                          combine_regions=False)
+    # THRESHOLD = 0.99
+    for THRESHOLD in [0.9, 0.95, 0.975, 1.65, 2.0, 2.32]:
+        get_vendor_partitions(age='healthy', flip=True, plot=True,
+                              scrub=True, easy_override=True, thr=THRESHOLD,
+                              combine_regions=False, regress=True)
+        # THRESHOLD = .8
+        get_vendor_partitions(age='healthy', flip=False, plot=True,
+                              scrub=True, easy_override=True, thr=THRESHOLD,
+                              combine_regions=False, regress=True)
 
     # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)

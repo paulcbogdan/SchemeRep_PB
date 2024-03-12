@@ -20,7 +20,8 @@ from vendor_partitioning import get_vendor_partitions
 import logging
 
 
-def get_sn_rs(sn, clean=False, compcor=True):
+def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
+              trad=False):
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
     if clean:
@@ -32,17 +33,65 @@ def get_sn_rs(sn, clean=False, compcor=True):
         df_confounds = pd.read_csv(fp_in, delimiter='\t')
         df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
         img = image.index_img(img, slice(4, None))
-        if compcor:
-            print('Doing compcor')
-            df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-            df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
-        else:
-            print('Zero compcor')
+
+        if light:
+            tcc = [f't_comp_cor_0{i}' for i in range(5)]
+            ccc = [f'c_comp_cor_0{i}' for i in range(5)]
+            wcc = [f'w_comp_cor_0{i}' for i in range(5)]
+            acc = [f'a_comp_cor_0{i}' for i in range(5)]
+            ecc = [f'edge_comp_0{i}' for i in range(5)]
+            ccs = set(tcc + ccc + wcc + acc + ecc)
+            f = lambda x: True if '_comp_' not in x else x in ccs
+            # print(df_confounds.columns)
+            keep_cols = [col for col in df_confounds.columns if f(col)]
+            # keep_cols = [col for col in keep_cols if 'cosine' not in col]
+            keep_cols = [col for col in keep_cols if 'global_' not in col]
+            keep_cols = [col for col in keep_cols if 'white_' not in col]
+            keep_cols = [col for col in keep_cols if 'csf_' not in col]
+
+            df_confounds = df_confounds[keep_cols]
+            # print(list(df_confounds.columns))
+        elif medium:
+            keep_cols = df_confounds.columns
+            keep_cols = [col for col in keep_cols if 'global_' not in col]
+            keep_cols = [col for col in keep_cols if 'white_' not in col]
+            keep_cols = [col for col in keep_cols if 'csf_' not in col]
+
+            df_confounds = df_confounds[keep_cols]
+            # print(list(df_confounds.columns))
+            # quit()
+        elif trad:
+            cols = df_confounds.columns
+            motion_outliers = [col for col in cols if 'motion_outlier' in col]
+            keep_cols = ['global_signal', 'global_signal_derivative1',
+                         'global_signal_derivative1_power2',
+                         'global_signal_power2', 'csf', 'csf_derivative1',
+                         'csf_power2', 'csf_derivative1_power2', 'white_matter',
+                         'white_matter_derivative1',
+                         'white_matter_derivative1_power2',
+                         'white_matter_power2']
+            keep_cols += ['trans_x', 'trans_x_derivative1', 'trans_y',
+                          'trans_y_derivative1', 'trans_z',
+                          'trans_z_derivative1', 'rot_x', 'rot_x_derivative1',
+                          'rot_y', 'rot_y_derivative1', 'rot_z',
+                          'rot_z_derivative1', ]
+            keep_cols += motion_outliers
+            df_confounds = df_confounds[keep_cols]
+
+        # if compcor:
+        #     print('Doing compcor')
+        #     # df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+        #
+        #
+        #     df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
+        # else:
+        #     print('Zero compcor')
         # print('oooo')
         if int(sn) in [221, 222]:
             fp_mask = None
-        img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
-                              standardize=False, t_r=2, mask_img=fp_mask)
+        img = image.clean_img(img, confounds=df_confounds, #high_pass=1/128,
+                              standardize=False, #t_r=2,
+                              mask_img=fp_mask)
         # print('ook')
         # quit()
     data = img.get_fdata()
@@ -87,7 +136,8 @@ def sanity_load(sn):
 
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                       sanity=False, combine_regions=False, sns_key='loose',
-                      compcor=True):
+                      compcor=True, clean=True, light=False, medium=False,
+                      trad=False):
 
     age2sn = get_sns(sns_key)
     if YA_only:
@@ -117,9 +167,13 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
-            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': True,
-                                                  'compcor': compcor},
-                               easy_override=True)
+            # print(f'{clean=}, {compcor=}, {light=}')
+            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': clean,
+                                                  'compcor': compcor,
+                                                  'light': light,
+                                                  'medium': medium,
+                                                  'trad': trad},
+                               easy_override=False)
 
         ar = []
 

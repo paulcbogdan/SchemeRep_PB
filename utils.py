@@ -38,17 +38,17 @@ def stdize(v, axis=None, nans=False):
 
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
-    return (v - m(v, axis=axis)[..., None]) / s(v, axis=axis)[..., None]
-
-    # if axis == 3:
-    #     return (v - m(v, axis=axis)[:, :, :, None]) / \
-    #         s(v, axis=axis)[:, :, :, None]
-    # elif axis == 2:
-    #     return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
-    # elif axis == 1:
-    #     return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
-    # else:
-    #     return (v - m(v, axis=axis)) / s(v, axis=axis)
+    if axis == -1:
+        return (v - m(v, axis=axis)[..., None]) / s(v, axis=axis)[..., None]
+    elif axis == 3:
+        return (v - m(v, axis=axis)[:, :, :, None]) / \
+            s(v, axis=axis)[:, :, :, None]
+    elif axis == 2:
+        return (v - m(v, axis=axis)[:, :, None]) / s(v, axis=axis)[:, :, None]
+    elif axis == 1:
+        return (v - m(v, axis=axis)[:, None]) / s(v, axis=axis)[:, None]
+    else:
+        return (v - m(v, axis=axis)) / s(v, axis=axis)
 
 
 def nan_ar(shape):

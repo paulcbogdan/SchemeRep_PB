@@ -97,7 +97,7 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
         plt.show()
 
 def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
-                      do_hit_hit=True, HCP=False):
+                      do_hit_hit=True, HCP=False, light=False, medium=False):
     # sn_roi_act, _, df_sns_l, sns  = \
         # pickle_wrap(get_dfs_conn_trials,
         #             kwargs={'fp': fp, 'single': False,
@@ -126,8 +126,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
     sn_roi_act = sn_roi_act[good_i, :, :]
     sns = [sn for sn in sns if sn != '133'] # bad rs
 
-    f = partial(load_resting_data, combine_regions=combine_regions,
-                sns_key=fp)
+
 
     n_roi = sn_roi_act.shape[-2]
     atlas = get_atlas(combine_regions=combine_regions)
@@ -136,11 +135,14 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
         sn_roi_rs, sns_ = pickle_wrap(load_HCP_act, kwargs=hcp_kwargs,
                                       easy_override=False, verbose=0,
                                       RAM_cache=True)
-        # sn_roi_act = sn_roi_act[:hcp_kwargs['N']]
         sns = sns_
     else:
-            # return sn_roi_act, sn_roi_rs, atlas, n_roi, snsr
-
+        # if light:
+        #     f = partial(load_resting_data, combine_regions=combine_regions,
+        #                 sns_key=fp, light=True)
+        # else:
+        f = partial(load_resting_data, combine_regions=combine_regions,
+                    sns_key=fp, light=light, medium=medium)
         sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
                                                     easy_override=False,
                                            RAM_cache=True)
@@ -176,11 +178,12 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
 def link_activity(do_generic=True, do_conn=True, verbose=0,
                   shuffle=False, combine_regions=True,
                   split=.3, do_plot=False, fp_task='obj7_fMRI',
-                  do_hit_hit=False, shuffle_ss=False, HCP=False):
+                  do_hit_hit=False, shuffle_ss=False, HCP=False,
+                  light=False, medium=False):
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
         load_task_rs_data(combine_regions, only_cortical=True,
                           fp=fp_task, do_hit_hit=do_hit_hit,
-                          HCP=HCP)
+                          HCP=HCP, light=light, medium=medium)
 
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
@@ -365,8 +368,9 @@ def permutation_test(**kwargs):
         print('--*--')
 
 
-def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
-                  do_hit_hit=False, fp_task='obj7_fMRI', HCP=True):
+def plot_by_split(do_conn=True, do_generic=False, combine_regions=True,
+                  do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
+                  light=False, medium=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -374,16 +378,16 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
               'do_hit_hit': do_hit_hit,
               'fp_task': fp_task,
               'HCP': HCP,
+              'light': light,
+              'medium': medium
               }
-    for split in [.3,]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
+    for split in [.5, .4, .3, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
         kwargs['split'] = split
         print('--*--')
         pprint(kwargs)
         print('--*--')
 
-        M_corr = link_activity(**kwargs,
-                               do_plot=False, shuffle=False,
-                               )
+        M_corr = link_activity(**kwargs, do_plot=False, shuffle=False)
         # quit()
         #                       do_plot=False, shuffle=False)
         # M_corrs = link_activity(do_generic=not do_generic, do_conn=do_conn,

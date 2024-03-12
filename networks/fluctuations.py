@@ -93,8 +93,28 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=True,
                                                      )
+    elif fp == 'rs_noclean':
+        f = partial(load_resting_data, compcor=False, clean=False)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True,
+                                                     f=f, YA_only=False)
     elif fp == 'rs_nocc':
         f = partial(load_resting_data, compcor=False)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True,
+                                                     f=f, YA_only=False)
+    elif fp == 'rs_light':
+        f = partial(load_resting_data, compcor=True, light=True, clean=True)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True,
+                                                     f=f, YA_only=True)
+    elif fp == 'rs_medium':
+        f = partial(load_resting_data, medium=True, clean=True)
+        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
+                                                     easy_override=True,
+                                                     f=f, YA_only=False)
+    elif fp == 'rs_trad':
+        f = partial(load_resting_data, clean=True, trad=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=True,
                                                      f=f, YA_only=True)
@@ -183,7 +203,7 @@ def partial_corr_df(df, cols, cov):
     print(df_result)
 
 
-def analyze_networks(fp='rs_nocc'):
+def analyze_networks(fp='rs_trad'):
     df, networks = pickle_wrap(get_df_networks, kwargs={'fp': fp,
                                                         'norm_std': False,
                                                         'zscore': True},
@@ -238,8 +258,8 @@ def analyze_networks(fp='rs_nocc'):
     print(df[networks].corr())
 
 
-
-    partial_corr_df(df, networks, cov=['FC_all', ])
+    # 'no_no', 'pd_no', 'ad_no', 'av_no', 'pv_no'
+    partial_corr_df(df, networks, cov=['no_no'])
     quit()
 
     # 'dd', 'vv', 'dv_ant', 'dv_pos'
