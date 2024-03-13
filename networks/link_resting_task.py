@@ -36,6 +36,55 @@ def shuffle_rows(sn_roi_act):
             new_ar[j, cnt, :, i] = sn_roi_act_sq[j, :, i]
     return new_ar
 
+def shuffle_rows_only_13(sn_roi_act):
+    sn_roi_act[:, 1] = np.nan
+    new_ar = np.full(sn_roi_act.shape, np.nan)
+    # print(sn_roi_act.shape)
+    # quit()
+    for j in range(sn_roi_act.shape[0]):
+        for k in [0, 2]:
+            non_k = 0 if k == 2 else 2
+            n_non_nan = np.sum(~np.isnan(sn_roi_act[j, k, 0, :]))
+            # print(f'{n_non_nan=}')
+            # continue
+            flipper = [False, True] * (n_non_nan // 2)
+            flipper += list(random.choices([False, True], k=1))
+            random.shuffle(flipper)
+            cnt = 0
+            for trial in range(sn_roi_act.shape[-1]):
+                if np.isnan(sn_roi_act[j, k, 0, trial]):
+                    continue
+                # print(f'{cnt=}')
+                # print(f'{len(flipper)=}')
+                if flipper[cnt]:
+                    new_ar[j, k, :, trial] = sn_roi_act[j, k, :, trial]
+                else:
+                    new_ar[j, non_k, :, trial] = sn_roi_act[j, k, :, trial]
+                cnt += 1
+
+    return new_ar
+
+
+def shuffle_rows_only_13_(sn_roi_act):
+    sn_roi_act[:, 1] = np.nan
+    new_ar = np.full(sn_roi_act.shape, np.nan)
+    sn_roi_act_sq = np.nanmean(sn_roi_act, axis=1)
+    # print(sn_roi_act_sq.shape)
+    # quit()
+    for j in range(sn_roi_act_sq.shape[0]):
+        non_nan_i = np.argwhere(~np.isnan(sn_roi_act_sq[j, 0]))[:, 0]
+        random.shuffle(non_nan_i)
+        i0 = non_nan_i[::2]
+        i1 = non_nan_i[1::2]
+        # print(sn_roi_act_sq.shape)
+        # print(sn_roi_act_sq[j, :, i0])
+        new_ar[j, 0, :, i0] = sn_roi_act_sq[j, :, i0]
+        new_ar[j, 2, :, i1] = sn_roi_act_sq[j, :, i1]
+        # print(new_ar[j, 0, 0, :])
+        # print(new_ar[j, 2, 0, i1])
+        # quit()
+    return new_ar
+
 def act2conn(sn_roi_act, flatten=True, conn_euc=False):
     # print(f'ac2conn: {sn_roi_act.shape}')
     t_st = time()
@@ -103,7 +152,7 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
 def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
                       do_hit_hit=True, HCP=False, light=False, medium=False,
                       trad=False, other_task=False, near_OG=False,
-                      true_OG=False):
+                      true_OG=False, strict_sns=None):
     # sn_roi_act, _, df_sns_l, sns  = \
         # pickle_wrap(get_dfs_conn_trials,
         #             kwargs={'fp': fp, 'single': False,
@@ -111,13 +160,15 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
         #                     'combine_regions': combine_regions},
         #             easy_override=False, RAM_cache=True)
         #
+    if strict_sns is None:
+        strict_sns = True if other_task else False
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
               'get_df_sn': True,
               'combine_regions': combine_regions,
-              'strict_sns': True if other_task else False
+              'strict_sns': strict_sns
               }
     if do_hit_hit:
         kwargs['key'] = 'hit_hit'
@@ -167,7 +218,8 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
         #                 sns_key=fp, light=True)
         # else:
             f = partial(load_resting_data, combine_regions=combine_regions,
-                        sns_key=fp, light=light, medium=medium, trad=trad,
+                        sns_key='all' if strict_sns else fp,
+                        light=light, medium=medium, trad=trad,
                         near_OG=near_OG, true_OG=true_OG)
             sn_roi_rs, sns_, _ = load_act_conn(False, f=f,
                                                         easy_override=False,
@@ -195,6 +247,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
                  if roi in bad_rois]
         sn_roi_act[..., bad_j, :] = np.nan
         sn_roi_rs[..., bad_j, :] = np.nan
+        print('Pruned subcortical')
 
     return sn_roi_act, sn_roi_rs, atlas, n_roi, sns
 
@@ -231,13 +284,37 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                   do_hit_hit=False, shuffle_ss=False, HCP=False,
                   light=False, medium=False, conn_euc=True, trad=True,
                   other_task=False, regr=False, near_OG=False,
-                  M_after=False, true_OG=False):
+                  M_after=False, true_OG=False, only_cortical=True,
+                  alt_shuffle=False, task_and_rs=False):
+    if alt_shuffle:
+        fp_task = 'bl7_fMRI'
+    weighted = False
+    if task_and_rs:
+        strict_sns = True
+        other_task = False
+    else:
+        strict_sns = False
+
     sn_roi_act, sn_roi_rs, atlas, n_roi, sns = \
-        load_task_rs_data(combine_regions, only_cortical=True,
+        load_task_rs_data(combine_regions, only_cortical=only_cortical,
                           fp=fp_task, do_hit_hit=do_hit_hit,
                           HCP=HCP, light=light, medium=medium,
                           trad=trad, other_task=other_task,
+                          strict_sns=strict_sns,
                           near_OG=near_OG, true_OG=true_OG)
+    # print(f'{sn_roi_rs.shape=}')
+    if task_and_rs:
+        _, sn_roi_rs_, _, _, _ = \
+            load_task_rs_data(combine_regions, only_cortical=only_cortical,
+                              fp=fp_task, do_hit_hit=do_hit_hit,
+                              HCP=HCP, light=light, medium=medium,
+                              trad=trad, other_task=True,
+                              strict_sns=strict_sns,
+                              near_OG=near_OG, true_OG=true_OG)
+        # print(f'{sn_roi_rs_.shape=}')
+        sn_roi_rs = np.concatenate([sn_roi_rs, sn_roi_rs_], axis=-1)
+    # print(f'{sn_roi_rs.shape=}')
+    # quit()
     n_sn = len(sns)
     # print(f'TOAST {sn_roi_rs.shape=}')
 
@@ -247,20 +324,38 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
         sn_roi_rs = act2conn(sn_roi_rs, conn_euc=conn_euc)
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
-
+    # print(f'{alt_shuffle=}')
+    # quit()
     if shuffle and not shuffle_ss:
+        # if alt_shuffle:
+        #     sn_roi_act = shuffle_rows_only_13(sn_roi_act)
+        # else:
         sn_roi_act = shuffle_rows(sn_roi_act)
 
 
     sn_inc_roi_Ms = np.nanmean(sn_roi_act, axis=-1)
-    generic_ts, generic_difs = get_effs(sn_inc_roi_Ms, regr=regr)
+    generic_ts, sn_roi_difs = get_effs(sn_inc_roi_Ms, regr=regr)
+    from pingouin import bayesfactor_ttest
+    from time import time
+
+    if weighted:
+        idx2bf = np.array([bayesfactor_ttest(t, n_sn) for t in generic_ts])
+    # rank2bf = np.sort(idx2bf)
+    # print(rank2bf)
+    # quit()
+    # print(len(generic_bfs))
+    # print(f'{generic_bfs=}')
+    # print(f'{time() - st=}')
+    # quit()
 
     n_nans = np.sum(np.isnan(generic_ts))
     n_elements = len(generic_ts)
     nan_cutoff = n_elements - n_nans
     gen_rank2idx = generic_ts.argsort()
+    if weighted: rank2bf = idx2bf[gen_rank2idx]
 
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
+
 
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
 
@@ -268,6 +363,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     high_cutoff = int(nan_cutoff * (1 - split))
     # print(f'{low_cutoff=}')
     # print(f'{high_cutoff=}')
+    # quit()
 
     if do_plot:
         gen_idx2rank[(gen_idx2rank > low_cutoff) &
@@ -280,8 +376,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
         idx_to_cnt_con = np.zeros(len(temp))
         idx_to_cnt_inc = np.zeros(len(temp))
-        for sn_i in range(sn_roi_difs.shape[0]): # , position=0, leave=False)
-
+        for sn_i in range(n_sn): # , position=0, leave=False)
             sn_effs = sn_roi_difs[sn_i, :]
             n_nans_sn = np.sum(np.isnan(sn_effs))
             rank2idx = sn_effs.argsort()
@@ -317,7 +412,15 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
             nan_idxs = np.argwhere(np.isnan(sn_effs))[:, 0]
 
         inc_rois = rank2idx[:low_cutoff]
-        con_rois = rank2idx[high_cutoff:-n_nans_sn]
+
+        # print(rank2bf[:low_cutoff])
+
+        con_rois = rank2idx[high_cutoff:-n_nans_sn or None] # avoids -0
+        if weighted:
+            rs_inc_weights = rank2bf[:low_cutoff]
+            rs_con_weights = rank2bf[high_cutoff:-n_nans_sn or None]
+        # print(rank2bf[high_cutoff:-n_nans_sn or None])
+        # quit()
 
         assert np.all([(j not in inc_rois) for j in nan_idxs]), \
             f'Bad in inc_rois: {inc_rois=}'
@@ -337,6 +440,84 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         i2con_rois = i2con_rois[permuter]
         i2inc_rois = i2inc_rois[permuter]
 
+    inc_rois_real = [974, 891, 964, 1008, 567, 601, 78, 105, 723, 109, 892, 107, 889, 897, 393, 111, 79, 709, 761, 301,
+                      939, 308, 746, 887, 66, 933, 305, 808, 388, 576, 1018, 40, 387, 760, 765, 602, 568, 392, 1009, 82,
+                      532, 986, 300, 1032, 747, 848, 759, 137, 685, 745, 95, 726, 425, 724, 389, 970, 578, 303, 988,
+                      898, 220, 143, 727, 556, 710, 83, 629, 718, 45, 722, 56, 112, 403, 86, 476, 1020, 976, 766, 816,
+                      982, 913, 46, 966, 113, 38, 762, 716, 1026, 70, 99, 574, 304, 181, 940, 483, 80, 90, 81, 416, 905,
+                      91, 758, 145, 335, 972, 687, 142, 484, 475, 59, 764, 934, 856, 74, 962, 619, 914, 276, 391, 302,
+                      623, 110, 213, 135, 754, 55, 653, 117, 708, 84, 907, 49, 402, 528, 221, 748, 412, 524, 97, 651,
+                      599, 965, 201, 683, 96, 119, 643, 67, 309, 824, 717, 139, 26, 888, 148, 13, 575, 446, 93, 613, 60,
+                      893, 542, 290, 836, 174, 728, 1030, 200, 546, 1031, 351, 75, 413, 525, 277, 585, 721, 205, 405,
+                      24, 41, 929, 361, 612, 144, 671, 676, 689, 20, 544, 936, 210, 573, 784, 133, 149, 424, 882, 54,
+                      386, 641, 838, 677, 806, 597, 134, 769, 540, 586, 415, 707, 291, 1027, 141, 12, 211, 640, 16, 533,
+                      292, 456, 419, 451, 414, 515, 344, 807, 538, 370, 798, 909, 603, 352, 43, 513, 316, 1033, 212,
+                      254, 559, 935, 106, 44, 1010, 620, 417, 743, 172, 22, 85, 810, 796, 87, 890, 720, 642, 610, 280,
+                      930, 168, 673, 788, 390, 72, 543, 800, 535, 756, 307, 842, 1021, 903, 481, 992, 372, 288, 684,
+                      336, 369, 474, 647, 281, 840, 496, 594, 646, 846, 100, 418, 530, 652, 990, 645, 42, 770, 1016,
+                      318, 607, 755, 431, 453, 147, 615, 485, 987, 608, 162, 138, 545]
+    # inc_rois_real = [974, 891, 964, 1008, 567, 601, 78, 105, 723, 109, 892, 107, 889, 897, 393, 111, 79, 709, 761, 301,
+    #                   939, 308, 746, 887, 66, 933, 305, 808, 388, 576, 1018, 40, 387, 760, 765, 602, 568, 392, 1009, 82,
+    #                   532, 986, 300, 1032, 747, 848, 759, 137, 685, 745, 95, 726, 425, 724, 389, 970, 578, 303, 988,
+    #                   898, 220, 143, 727, 556, 710, 83, 629, 718, 45, 722, 56, 112, 403, 86, 476, 1020, 976, 766, 816,
+    #                   982, 913, 46, 966, 113, 38, 762, 716, 1026, 70, 99, 574, 304, 181, 940, 483, 80, 90, 81, 416, 905,
+    #                   91, 758, 145, 335, 972, 687, 142, 484, 475, 59, 764, 934, 856, 74, 962, 619, 914, 276, 391, 302,
+    #                   623, 110, 213, 135, 754, 55, 653, 117, 708, 84, 907, 49, 402, 528, 221, 748, 412, 524, 97, 651,
+    #                   599, 965, 201, 683, 96, 119, 643, 67, 309, 824, 717, 139, 26, 888, 148, 13, 575, 446, 93, 613, 60,
+    #                   893, 542, 290, 836, 174, 728, 1030, 200, 546, 1031, 351, 75, 413, 525, 277, 585, 721, 205, 405,
+    #                   24, 41, 929, 361, 612, 144, 671, 676, 689, 20, 544, 936, 210, 573, 784, 133, 149, 424, 882, 54,
+    #                   386, 641, 838, 677, 806, 597, 134, 769, 540, 586, 415, 707, 291, 1027, 141, 12, 211, 640, 16, 533,
+    #                   292, 456, 419, 451, 414, 515, 344, 807, 538, 370, 798, 909, 603, 352, 43, 513, 316, 1033, 212,
+    #                   254, 559, 935, 106, 44, 1010, 620, 417, 743, 172, 22, 85, 810, 796, 87, 890, 720, 642, 610, 280,
+    #                   930, 168, 673, 788, 390, 72, 543, 800, 535, 756, 307, 842, 1021, 903, 481, 992, 372, 288, 684,
+    #                   336, 369, 474, 647, 281, 840, 496, 594, 646, 846, 100, 418, 530, 652, 990, 645, 42, 770, 1016,
+    #                   318, 607, 755, 431, 453, 147, 615, 485, 987, 608, 162, 138, 545, 445, 487, 505, 132, 182, 579,
+    #                   404, 283, 828, 839, 534, 590, 131, 850, 289, 108, 589, 941, 103, 486, 681, 114, 715, 98, 164, 921,
+    #                   670, 455, 126, 504, 606, 71, 881, 1000, 565, 306, 444, 50, 931, 679, 948, 423, 968, 609, 136, 527,
+    #                   346, 977, 925, 954, 497, 36, 355, 611, 672, 508, 282, 566, 398, 879, 880, 946, 634, 699, 64, 998,
+    #                   458, 454, 285, 94, 400, 130, 151, 334, 757, 650, 488, 558, 298, 906, 163, 924, 686, 35, 173, 557,
+    #                   923, 910, 975, 450, 247, 420, 407, 549, 501, 92, 852, 312, 482, 863, 841, 253, 901, 580, 146, 521,
+    #                   782, 812, 194, 339, 473, 847, 284, 1028, 529, 865, 353, 262, 539, 644, 448, 408, 581, 421, 983,
+    #                   820, 330, 801, 1001, 682, 18, 129, 548, 509, 869, 214, 447, 826, 263, 449, 1014, 261, 471, 736,
+    #                   541, 605, 675, 287, 627, 744, 902, 600, 780, 216, 377, 636, 688, 617, 167, 776, 631, 942, 799,
+    #                   313, 190, 1012, 248, 753, 512, 491, 738, 362, 478, 872, 725, 371, 466, 57, 217, 37, 192, 536, 719,
+    #                   264, 34, 472, 854, 553, 279, 47, 33, 844, 53, 219, 32, 319, 635, 178, 950, 637, 311, 457, 396,
+    #                   674, 583, 932, 894]
+
+    inc_rois_real = set(inc_rois_real)
+    con_rois_real = [225, 945, 461, 328, 1029, 229, 373, 519, 588, 360, 443, 154, 310, 587, 952, 775, 124, 255, 156, 333, 996, 984, 121, 571, 706, 814, 215, 429, 662, 638, 739, 118, 237, 693, 862, 700, 232, 240, 502, 786, 395, 441, 963, 29, 803, 442, 275, 694, 877, 938, 773, 233, 520, 28, 274, 832, 618, 422, 944, 115, 332, 953, 712, 257, 327, 433, 11, 204, 51, 230, 750, 704, 256, 259, 733, 837, 171, 779, 994, 470, 830, 690, 161, 957, 231, 851, 624, 385, 900, 493, 495, 614, 834, 490, 278, 325, 273, 324, 242, 52, 654, 188, 464, 555, 855, 375, 0, 596, 666, 246, 179, 1013, 835, 656, 1005, 272, 89, 258, 6, 25, 915, 813, 730, 236, 771, 805, 196, 668, 88, 997, 734, 440, 183, 228, 195, 947, 886, 927, 1024, 729, 234, 499, 857, 208, 185, 919, 633, 955, 384, 102, 329, 23, 657, 740, 951, 238, 165, 518, 155, 664, 169, 711, 632, 895, 778, 157, 980, 410, 363, 797, 9, 767, 10, 342, 981, 809, 293, 224, 961, 249, 31, 206, 160, 849, 222, 827, 908, 918, 197, 245, 772, 626, 815, 170, 267, 349, 294, 177, 338, 7, 260, 896, 701, 296, 969, 494, 331, 368, 364, 186, 958, 209, 271, 251, 297, 299, 658, 184, 1025, 125, 917, 1007, 341, 152, 819, 244, 845, 268, 226, 625, 866, 376, 176, 665, 469, 622, 166, 591, 17, 101, 202, 381, 122, 323, 366, 928, 153, 207, 794, 768, 227, 337, 985, 995, 783, 4, 781, 867, 379, 971, 1, 1002, 873, 792, 878, 868, 916, 825, 252, 661, 8, 787, 1015, 382, 833, 223, 439, 468, 159, 266, 463, 785, 697, 380, 438, 189, 123, 250, 959, 859, 295, 795, 823, 3, 875, 203, 378, 467, 562, 1003, 561, 660, 874, 876, 821, 175, 696, 920, 187, 793, 437]
+    # con_rois_real = [452, 1017, 822, 911, 560, 1006, 411, 621, 459, 802, 1011, 523, 127, 39, 5, 630, 861, 695, 399,
+    #                   552, 286, 649, 77, 973, 698, 741, 432, 522, 345, 663, 667, 235, 409, 320, 860, 63, 604, 514, 517,
+    #                   477, 356, 680, 492, 354, 27, 577, 871, 537, 551, 15, 322, 270, 500, 199, 511, 198, 120, 14, 365,
+    #                   989, 598, 19, 436, 993, 678, 76, 507, 506, 350, 714, 582, 763, 912, 128, 554, 616, 406, 937, 1022,
+    #                   547, 428, 570, 593, 732, 584, 68, 691, 731, 648, 315, 503, 628, 73, 180, 804, 943, 516, 817, 592,
+    #                   811, 639, 321, 340, 191, 564, 692, 65, 243, 1019, 21, 462, 239, 572, 359, 358, 426, 69, 1004, 343,
+    #                   870, 61, 489, 465, 2, 427, 655, 116, 401, 367, 702, 705, 885, 140, 158, 853, 790, 749, 430, 843,
+    #                   397, 434, 550, 858, 829, 58, 922, 752, 777, 569, 960, 347, 899, 864, 703, 460, 926, 713, 241, 883,
+    #                   1034, 563, 774, 150, 48, 269, 595, 818, 531, 265, 669, 978, 735, 659, 193, 326, 991, 1023, 742,
+    #                   967, 526, 218, 479, 949, 317, 884, 510, 30, 737, 104, 751, 394, 789, 791, 480, 62, 357, 374, 348,
+    #                   904, 383, 498, 979, 314, 999, 956, 831, 435, 225, 945, 461, 328, 1029, 229, 373, 519, 588, 360,
+    #                   443, 154, 310, 587, 952, 775, 124, 255, 156, 333, 996, 984, 121, 571, 706, 814, 215, 429, 662,
+    #                   638, 739, 118, 237, 693, 862, 700, 232, 240, 502, 786, 395, 441, 963, 29, 803, 442, 275, 694, 877,
+    #                   938, 773, 233, 520, 28, 274, 832, 618, 422, 944, 115, 332, 953, 712, 257, 327, 433, 11, 204, 51,
+    #                   230, 750, 704, 256, 259, 733, 837, 171, 779, 994, 470, 830, 690, 161, 957, 231, 851, 624, 385,
+    #                   900, 493, 495, 614, 834, 490, 278, 325, 273, 324, 242, 52, 654, 188, 464, 555, 855, 375, 0, 596,
+    #                   666, 246, 179, 1013, 835, 656, 1005, 272, 89, 258, 6, 25, 915, 813, 730, 236, 771, 805, 196, 668,
+    #                   88, 997, 734, 440, 183, 228, 195, 947, 886, 927, 1024, 729, 234, 499, 857, 208, 185, 919, 633,
+    #                   955, 384, 102, 329, 23, 657, 740, 951, 238, 165, 518, 155, 664, 169, 711, 632, 895, 778, 157, 980,
+    #                   410, 363, 797, 9, 767, 10, 342, 981, 809, 293, 224, 961, 249, 31, 206, 160, 849, 222, 827, 908,
+    #                   918, 197, 245, 772, 626, 815, 170, 267, 349, 294, 177, 338, 7, 260, 896, 701, 296, 969, 494, 331,
+    #                   368, 364, 186, 958, 209, 271, 251, 297, 299, 658, 184, 1025, 125, 917, 1007, 341, 152, 819, 244,
+    #                   845, 268, 226, 625, 866, 376, 176, 665, 469, 622, 166, 591, 17, 101, 202, 381, 122, 323, 366, 928,
+    #                   153, 207, 794, 768, 227, 337, 985, 995, 783, 4, 781, 867, 379, 971, 1, 1002, 873, 792, 878, 868,
+    #                   916, 825, 252, 661, 8, 787, 1015, 382, 833, 223, 439, 468, 159, 266, 463, 785, 697, 380, 438, 189,
+    #                   123, 250, 959, 859, 295, 795, 823, 3, 875, 203, 378, 467, 562, 1003, 561, 660, 874, 876, 821, 175,
+    #                   696, 920, 187, 793, 437]
+
+    con_rois_real = set(con_rois_real)
+
+
+
     for sn_i in range(sn_roi_rs.shape[0]):
         if sns[sn_i] == '138': continue
         if sns[sn_i] == '131': continue
@@ -344,16 +525,43 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
 
         inc_rois, con_rois = i2inc_rois[sn_i], i2con_rois[sn_i]
+        # print(f'{list(inc_rois)=}')
+        # print(f'{list(con_rois)=}')
+        # quit()
+        inc_overlap = inc_rois_real.intersection(inc_rois)
+        p_inc_overlap = len(inc_overlap) / len(inc_rois)
+        con_overlap = con_rois_real.intersection(con_rois)
+        p_con_overlap = len(con_overlap) / len(con_rois)
+        # print(f'{len(con_rois_real)=}|{len(con_rois)=}')
+        p_inc_reverse_overlap = (len(con_rois_real.intersection(inc_rois)) /
+                                 len(inc_rois))
+        p_con_reverse_overlap = (len(inc_rois_real.intersection(con_rois)) /
+                                    len(con_rois))
+        # if sn_i == 0:
+        #     print(f'{p_inc_overlap=:.3f} | {p_con_overlap=:.3f}')
+            # print(f'\t{p_inc_reverse_overlap=:.3f} | {p_con_reverse_overlap=:.3f}')
+
+        # print(f'{list(inc_rois)=}')
+        # print(f'{list(con_rois)=}')
+        # quit()
         # print(f'{sn_roi_rs.shape=}')
         # quit()
         # print(f'{sn_i.shape=}')
         # print(f'{inc_rois.shape=}')
+        # print(f'{inc_rois=}')
+        # print(f'{con_rois=}')
+        # quit()
 
         rs_inc = sn_roi_rs[sn_i, inc_rois, :]
         rs_con = sn_roi_rs[sn_i, con_rois, :]
+        # rs_inc_weights = rank2bf[inc_rois]
+        # rs_con_weights = rank2bf[con_rois]
+        # print(f'{rs_con_weights=}')
+        # quit()
 
         n_con_nans = np.sum(np.isnan(rs_con))
         n_inc_nans = np.sum(np.isnan(rs_inc))
+        # print(f'{n_con_nans=} | {n_inc_nans=}')
         if (n_con_nans or n_inc_nans) and not HCP:
             print(f'skip: {sns[sn_i]}')
             assert (n_con_nans == n_inc_nans) and (n_inc_nans in [206, 37]), \
@@ -370,8 +578,14 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
             corr = np.arctanh(corr)
             corr = np.nanmean(corr, axis=(0, 1))
         else:
-            rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
-            rs_con = np.nanmean(rs_con, axis=0)
+            if weighted:
+                rs_inc = np.nansum(rs_inc * rs_inc_weights[:, None], axis=0)
+                rs_inc /=  np.nansum(rs_inc_weights)
+                rs_con = np.nansum(rs_con * rs_con_weights[:, None], axis=0)
+            else:
+                rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
+                rs_con = np.nanmean(rs_con, axis=0)
+
             corr, _ = stats.pearsonr(rs_inc, rs_con)
             corr = np.arctanh(corr)
         corrs.append(corr)
@@ -380,9 +594,9 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     M_corr = np.mean(corrs)
     generic_str = 'Generic' if do_generic else 'Subject-specific'
     if shuffle_ss:
-        print(f'{generic_str} ({split}) | Shuffle SS: {M_corr=:.3f}')
+        print(f'{generic_str} ({split}) | Shuffle SS: {M_corr=:.4f}')
     elif shuffle:
-        print(f'{generic_str} ({split}) | Shuffle: {M_corr=:.3f}')
+        print(f'{generic_str} ({split}) | Shuffle: {M_corr=:.4f}')
     else:
         print(f'{generic_str} ({split}): '
               f'{Fore.LIGHTYELLOW_EX}{M_corr=:.3f}{Fore.RESET}')
@@ -401,7 +615,8 @@ def permutation_test(**kwargs):
     if kwargs['do_generic']:
         M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
                               RAM_cache=False, verbose=-1,
-                              easy_override=False)
+                              easy_override=
+                              True if kwargs['alt_shuffle'] else False)
         if not kwargs['conn_euc']: M_corrs = -np.array(M_corrs)
         print('--*--')
         # pprint(kwargs)
@@ -418,12 +633,15 @@ def permutation_test(**kwargs):
         print('--*--')
 
 
-def plot_by_split(do_conn=False, do_generic=True, combine_regions=False,
+
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
                   light=False, medium=False,
-                  near_OG=False, trad=False, true_OG=True,
+                  near_OG=False, trad=True, true_OG=False,
                   other_task=False, regr=False,
-                  conn_euc=False, M_after=False,):
+                  conn_euc=False, M_after=False,
+                  only_cortical=True, alt_shuffle=False,
+                  task_and_rs=False):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -439,8 +657,13 @@ def plot_by_split(do_conn=False, do_generic=True, combine_regions=False,
               'regr': regr,
               'near_OG': near_OG,
               'M_after': M_after,
-              'true_OG': true_OG
+              'true_OG': true_OG,
+              'only_cortical': only_cortical,
+              'alt_shuffle': alt_shuffle,
+              'task_and_rs': task_and_rs
+              # 'weighted': weighted
               }
+    assert not (do_conn and not combine_regions and M_after)
     assert do_conn or not combine_regions
     for split in [.3, .5, .4, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
         kwargs['split'] = split
