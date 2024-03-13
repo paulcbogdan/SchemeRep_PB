@@ -138,7 +138,8 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
     n_roi = sn_roi_act.shape[-2]
     atlas = get_atlas(combine_regions=combine_regions)
     if HCP:
-        hcp_kwargs = {'N': 30, 'combine_regions': combine_regions}
+        hcp_kwargs = {'N': 30, 'combine_regions': combine_regions,
+                      'GSR': True}
         sn_roi_rs, sns_ = pickle_wrap(load_HCP_act, kwargs=hcp_kwargs,
                                       easy_override=False, verbose=0,
                                       RAM_cache=True)
@@ -338,6 +339,10 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
     for sn_i in range(sn_roi_rs.shape[0]):
         if sns[sn_i] == '138': continue
+        if sns[sn_i] == '131': continue
+        if sns[sn_i] == '135': continue
+
+
         inc_rois, con_rois = i2inc_rois[sn_i], i2con_rois[sn_i]
         # print(f'{sn_roi_rs.shape=}')
         # quit()
@@ -350,7 +355,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         n_con_nans = np.sum(np.isnan(rs_con))
         n_inc_nans = np.sum(np.isnan(rs_inc))
         if (n_con_nans or n_inc_nans) and not HCP:
-            # print(f'skip: {sns[sn_i]}')
+            print(f'skip: {sns[sn_i]}')
             assert (n_con_nans == n_inc_nans) and (n_inc_nans in [206, 37]), \
                 f'{n_con_nans=} {n_inc_nans=}'
             continue
@@ -415,10 +420,10 @@ def permutation_test(**kwargs):
 
 def plot_by_split(do_conn=False, do_generic=True, combine_regions=False,
                   do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
-                  light=False, medium=False, near_OG=True, trad=True,
-                  true_OG=False,
-                  other_task=False, regr=True,
-                  conn_euc=False, M_after=True,):
+                  light=False, medium=False,
+                  near_OG=False, trad=False, true_OG=True,
+                  other_task=False, regr=False,
+                  conn_euc=False, M_after=False,):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,

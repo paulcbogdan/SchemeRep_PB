@@ -124,10 +124,10 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                                                      'w_activity': True,
                                                      'squeeze': True})
     print('Onto get_df_networks...')
-    sn_roi_act = stdize(sn_roi_act, axis=2)
-    sn_roi_act = stdize(sn_roi_act, axis=1)
-    conn_trials = sn_roi_act[..., None, :] * \
-                  sn_roi_act[..., None, :, :]
+    # sn_roi_act = stdize(sn_roi_act, axis=2)
+    # sn_roi_act = stdize(sn_roi_act, axis=1)
+    # conn_trials = sn_roi_act[..., None, :] * \
+    #               sn_roi_act[..., None, :, :]
 
     network2p = pickle_wrap(get_network_partitions)
 

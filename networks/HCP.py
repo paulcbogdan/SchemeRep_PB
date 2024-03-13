@@ -2,7 +2,7 @@ import os
 import time
 
 from LSS import get_LSS_img, load_motion
-from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap
+from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap, stdize
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 from functools import partial
@@ -107,7 +107,8 @@ def apply_HCP_mask(data, sn, lr):
 
 def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                  LSA=False, clean_confounds=True, YA_only=None,
-                 compcor=True, combine_regions=False):
+                 compcor=True, combine_regions=False,
+                 GSR=True):
     sns = os.listdir(HCP_ROOT)
     if RS:
         sns_ = []
@@ -140,7 +141,6 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                 data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                   LSA=LSA, clean_confounds=clean_confounds,
                                   compcor=compcor)
-
         else:
             raise NotImplementedError
 
@@ -157,6 +157,13 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
         print(f'{sn} | {ar.shape=}')
         sn_roi_act.append(ar)
     sn_roi_act = np.array(sn_roi_act)
+
+    if GSR:
+        sn_roi_act = stdize(sn_roi_act, axis=2)
+        sn_roi_act = stdize(sn_roi_act, axis=1)
+    # conn_trials = sn_roi_act[..., None, :] * \
+    #               sn_roi_act[..., None, :, :]
+
     return sn_roi_act, sns
 
 def get_HCP_df(N=20):
