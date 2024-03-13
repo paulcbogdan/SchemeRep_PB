@@ -659,7 +659,7 @@ def permutation_test(**kwargs):
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
                   light=False, medium=True,
-                  near_OG=False, trad=True, true_OG=False,
+                  near_OG=False, trad=False, true_OG=False,
                   other_task=False, regr=True,
                   conn_euc=False, M_after=False,
                   only_cortical=True, alt_shuffle=False,
