@@ -34,10 +34,11 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False):
               'key_vals': (1, 2, 3),
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
-                              flip=True, thr=.9, scrub=False)
+                              flip=True, thr=.9, scrub=False, anat_version=2)
     n_rois = sn_inc_activity.shape[2]
 
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
@@ -97,8 +98,8 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False):
          'age': ages, 'sn': subj_nums}
 
     df_agg = pd.DataFrame(d)
-    # p = plot_con_vs_inc(df_agg)
-
+    p = plot_con_vs_inc(df_agg)
+    quit()
 
     ps = []
     for i in range(1000):
