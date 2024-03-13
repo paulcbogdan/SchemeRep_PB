@@ -116,7 +116,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     elif fp == 'rs_trad':
         f = partial(load_resting_data, clean=True, trad=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
+                                                     easy_override=False,
                                                      f=f, YA_only=True)
     else:
         sn_roi_act, conn_trials, sns = \
@@ -139,7 +139,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_version=1)
+                              anat_version=2)
     print(f'{len(p_d_pos)=}')
     print(f'{len(p_d_ant)=}')
     print(f'{len(p_v_pos)=}')

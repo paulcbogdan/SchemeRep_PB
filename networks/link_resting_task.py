@@ -285,7 +285,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                   light=False, medium=False, conn_euc=True, trad=True,
                   other_task=False, regr=False, near_OG=False,
                   M_after=False, true_OG=False, only_cortical=True,
-                  alt_shuffle=False, task_and_rs=False):
+                  alt_shuffle=False, task_and_rs=False,
+                  alt_calc=False):
     if alt_shuffle:
         fp_task = 'bl7_fMRI'
     weighted = False
@@ -568,7 +569,26 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                 f'{n_con_nans=} {n_inc_nans=}'
             continue
 
-        if M_after:
+
+        if alt_calc and M_after:
+            pass
+        elif alt_calc:
+            # spl = len(rs_inc) // 2
+            rs_inc0 = np.nanmean(rs_inc[::2], axis=0)  # TODO: toggle to nan and exclude?
+            rs_inc1 = np.nanmean(rs_inc[1::2], axis=0)
+            sim00, _ = stats.spearmanr(rs_inc0, rs_inc1)
+
+            rs_con0 = np.nanmean(rs_con[::2], axis=0)
+            rs_con1 = np.nanmean(rs_con[1::2], axis=0)
+            sim11, _ = stats.spearmanr(rs_con0, rs_con1)
+
+            dif01, _ = stats.spearmanr(rs_inc0, rs_con1)
+            dif10, _ = stats.spearmanr(rs_inc1, rs_con0)
+            corr = (sim00 + sim11 - dif01 - dif10) / 4
+            # print(f'{sim00=:.3f} | {sim11=:.3f} | {dif01=:.3f} | '
+            #       f'{dif10=:.3f} | {corr=:.3f}')
+
+        elif M_after:
             # print(f'{np.nanmean(rs_inc, axis=-1)}')
             # quit()
             # print(f'{rs_con.shape=}')
@@ -586,11 +606,13 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                 rs_inc = np.nanmean(rs_inc, axis=0) # TODO: toggle to nan and exclude?
                 rs_con = np.nanmean(rs_con, axis=0)
 
-            corr, _ = stats.pearsonr(rs_inc, rs_con)
+            corr, _ = stats.spearmanr(rs_inc, rs_con) # TODO: toggle?
             corr = np.arctanh(corr)
         corrs.append(corr)
 
     corrs = np.array(corrs)
+    # print(f'{list(corrs)=}')
+    # quit()
     M_corr = np.mean(corrs)
     generic_str = 'Generic' if do_generic else 'Subject-specific'
     if shuffle_ss:
@@ -602,7 +624,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
               f'{Fore.LIGHTYELLOW_EX}{M_corr=:.3f}{Fore.RESET}')
     return M_corr
 
-def permutation_test_(n_sim=100, **kwargs):
+def permutation_test_(n_sim=1000, **kwargs):
     M_corrs = []
     for _ in range(n_sim):
         M_corr = link_activity(**kwargs, do_plot=False, shuffle=True)
@@ -636,12 +658,12 @@ def permutation_test(**kwargs):
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
-                  light=False, medium=False,
+                  light=False, medium=True,
                   near_OG=False, trad=True, true_OG=False,
-                  other_task=False, regr=False,
+                  other_task=False, regr=True,
                   conn_euc=False, M_after=False,
                   only_cortical=True, alt_shuffle=False,
-                  task_and_rs=False):
+                  task_and_rs=False, alt_calc=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -660,7 +682,8 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
               'true_OG': true_OG,
               'only_cortical': only_cortical,
               'alt_shuffle': alt_shuffle,
-              'task_and_rs': task_and_rs
+              'task_and_rs': task_and_rs,
+                'alt_calc': alt_calc,
               # 'weighted': weighted
               }
     assert not (do_conn and not combine_regions and M_after)

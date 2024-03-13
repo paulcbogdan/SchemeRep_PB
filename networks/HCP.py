@@ -20,7 +20,7 @@ import scipy.stats as stats
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
                clean_confounds=False, RS=True, compcor=True):
-    print(f'get_sn_HCP: {sn=}')
+    # print(f'get_sn_HCP: {sn=}')
 
     if LSS:
         return get_LSS_img(sn, lr, easy_override=easy_override, lsa=LSA)
@@ -60,7 +60,8 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
         # print(f'num nans: {pd.isna(df_confounds).sum()=}')
         if compcor:
             df_compcor = pd.DataFrame(high_variance_confounds(img,
-                                                              percentile=2))
+                                                              percentile=2,
+                                                              mask_img=fp_mask))
             df_confounds = pd.concat([df_confounds, df_compcor], axis=1)
         # print(f'num nans: {pd.isna(df_compcor).sum()=}')
 
@@ -168,13 +169,13 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
 
 def get_HCP_df(N=20):
     f = partial(load_HCP_act, N=N,
-                RS=True, clean_confounds=True, LSS=False, LSA=False,
+                RS=True, clean_confounds=False, LSS=False, LSA=False,
                 compcor=True)
 
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'f': f, 'zscore': False},
-                               easy_override=True)
+                               easy_override=False)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)
