@@ -14,7 +14,7 @@ from atlas_utils import get_atlas
 from fMRI_proc import get_ROI_vecs
 from organize_bhv import get_trial_info
 from utils import timing, stdize, pickle_wrap
-from vendor_lmers import get_dfs_conn_trials
+from load_more import get_dfs_conn_trials
 # import networkx as nx
 import matplotlib.pyplot as plt
 import scipy.stats as stats

@@ -367,9 +367,9 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
 
 PICKLE_CACHE = {}
 
-def pickle_wrap(callback, filepath=None, args=None, kwargs=None,
-                easy_override=False, verbose=0, cache_dir='cache',
-                dt_max=None, RAM_cache=False):
+def pickle_wrap(callback: object, filepath: object = None, args: object = None, kwargs: object = None,
+                easy_override: object = False, verbose: object = 0, cache_dir: object = 'cache',
+                dt_max: object = None, RAM_cache: object = False) -> object:
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved

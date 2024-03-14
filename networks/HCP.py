@@ -120,6 +120,7 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
         sns = sns_
 
     sns = sns[:N]
+
     # sns = sns[::-1]
     # sns = sns[:5]
     sn_roi_act = []
@@ -137,11 +138,18 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                                   LSA=LSA, clean_confounds=clean_confounds,
                                   RS=RS, compcor=compcor)
             except ValueError as e:
-                print(f'{sn=}, {e=}')
-                time.sleep(5)
-                data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
-                                  LSA=LSA, clean_confounds=clean_confounds,
-                                  compcor=compcor)
+                continue
+            except Exception as e:
+                print(f'ERROR: {sn=}, {e=}')
+                # continue
+                time.sleep(15)
+                try:
+                    data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
+                                      LSA=LSA, clean_confounds=clean_confounds,
+                                      compcor=compcor)
+                except:
+                    print(f'SKYUIIIIIP: {sn=}, {e=}')
+                    continue
         else:
             raise NotImplementedError
 
@@ -167,15 +175,15 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
 
     return sn_roi_act, sns
 
-def get_HCP_df(N=20):
+def get_HCP_df(N=200):
     f = partial(load_HCP_act, N=N,
-                RS=True, clean_confounds=False, LSS=False, LSA=False,
-                compcor=True)
+                RS=False, clean_confounds=False, LSS=False, LSA=False,
+                compcor=True, GSR=True)
 
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'f': f, 'zscore': False},
-                               easy_override=False)
+                               easy_override=True)
 
     pd.set_option('display.precision', 3)
     pd.set_option('display.max_columns', None)

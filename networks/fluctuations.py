@@ -1,10 +1,11 @@
-from analyze_rs import load_act_conn, prep_conn_ps
+from analyze_rs import prep_conn_ps
 from atlas_utils import get_atlas
+from load_more import load_a, get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap, stdize
 from collections import defaultdict
 
-from vendor_lmers import get_module_trialwise_z, get_dfs_conn_trials, get_module_cross_trialwise_z
+from vendor_lmers import get_module_trialwise_z
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -12,7 +13,6 @@ import pingouin as pg
 
 import matplotlib.pyplot as plt
 from vendor_partitioning import get_vendor_partitions
-from analyze_rs import load_resting_data
 from functools import partial
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -62,67 +62,25 @@ def compare_sanity_vs_pb_lss(norm_std=False):
     sn_roi_act_s, sns_s, conn_trials_s = load_act_conn(norm_std, f=f,
                                                  easy_override=False)
 
+def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
+    atlas = get_atlas()
+    ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos,}
+    ps_hemi = defaultdict(list)
+    for key, p in ps.items():
+        for i in p:
+            coord = atlas['coords'][i]
+            if coord[0] < 0:
+                ps_hemi[f'L{key}'].append(i)
+            else:
+                ps_hemi[f'R{key}'].append(i)
+    # ps_hemi.update(ps)
+    return ps_hemi
 
 
 
 def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
-                    tight_anat=True):
-
-    if f is not None:
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=False)
-    elif fp == 'sanity':
-        f  = partial(load_resting_data, YA_only=False, sanity=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=True)
-    elif fp == 'raw_enc':
-        f = partial(load_resting_data, raw_enc=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=False)
-    elif fp == 'pb_lsa':
-        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=True)
-    elif fp == 'pb_lss':
-        f = partial(load_resting_data, raw_enc=False, lss_enc=True, lsa=False,
-                    YA_only=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
-                                                     easy_override=True)
-    elif fp == 'rs':
-        print('load act conn')
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
-                                                     )
-    elif fp == 'rs_noclean':
-        f = partial(load_resting_data, compcor=False, clean=False)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
-                                                     f=f, YA_only=False)
-    elif fp == 'rs_nocc':
-        f = partial(load_resting_data, compcor=False)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
-                                                     f=f, YA_only=False)
-    elif fp == 'rs_light':
-        f = partial(load_resting_data, compcor=True, light=True, clean=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=True,
-                                                     f=f, YA_only=True)
-    elif fp == 'rs_medium':
-        f = partial(load_resting_data, medium=True, clean=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=False,
-                                                     f=f, YA_only=False)
-    elif fp == 'rs_trad':
-        f = partial(load_resting_data, clean=True, trad=True)
-        sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
-                                                     easy_override=False,
-                                                     f=f, YA_only=True)
-    else:
-        sn_roi_act, conn_trials, sns = \
-            pickle_wrap(get_dfs_conn_trials, kwargs={'fp': fp, 'single': False,
-                                                     'w_activity': True,
-                                                     'squeeze': True})
+                    tight_anat=True, anat_version=2, add_hemi=False):
+    sn_roi_act, sns, conn_trials = load_a(fp=fp, norm_std=norm_std, f=f)
     print('Onto get_df_networks...')
     # sn_roi_act = stdize(sn_roi_act, axis=2)
     # sn_roi_act = stdize(sn_roi_act, axis=1)
@@ -135,15 +93,34 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     for network, p in network2p.items():
         key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
 
+
+
     networks = list(key2conn)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_version=1)
+                              anat_version=anat_version)
+
     print(f'{len(p_d_pos)=}')
     print(f'{len(p_d_ant)=}')
     print(f'{len(p_v_pos)=}')
     print(f'{len(p_v_ant)=}')
+
+    if add_hemi:
+        ps_hemi = get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
+        keys_both = []
+        for key, p0 in ps_hemi.items():
+            for key1, p1 in ps_hemi.items():
+                key_both = f'{key}_{key1}'
+                key2conn[key_both] = (
+                    get_module_cross_trialwise_z(conn_trials[:, None],
+                                                 ps_hemi[key], ps_hemi[key1]))
+                keys_both.append(key_both)
+                # key2conn[key] = get_module_trialwise_z(conn_trials[:, None], p)
+            # print(f'{key}', len(key2conn[key]))
+        networks += keys_both
+        # quit()
+
     # key2pair = {'dd': (p_d_pos, p_d_ant), 'vv': (p_v_pos, p_v_ant),
     #             'dv_ant': (p_d_ant, p_v_ant), 'dv_pos': (p_d_pos, p_v_pos),}
 
@@ -185,11 +162,11 @@ def partial_corr_df(df, cols, cov):
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
-            if col_i == 'dv_ant' and col_j == 'dv_pos':
-                pass
-            elif (col_i.split('_')[0] in col_j or
-                    col_j.split('_')[0] in col_i):
-                continue
+            # if col_i == 'dv_ant' and col_j == 'dv_pos':
+            #     pass
+            # elif (col_i.split('_')[0] in col_j or
+            #         col_j.split('_')[0] in col_i):
+            #     continue
             if i < j:
                 # print(df[[col_i, col_j]])
                 try:
@@ -201,9 +178,10 @@ def partial_corr_df(df, cols, cov):
 
                 ar[i, j] = out['r'].values[0]
                 ar[j, i] = ar[i, j]
+
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
     print(df_result)
-
+    return ar
 
 def analyze_networks(fp='rs_medium'):
     df, networks = pickle_wrap(get_df_networks,

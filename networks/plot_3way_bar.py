@@ -12,7 +12,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
-from vendor_lmers import get_module_cross_trialwise_z
+from load_more import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 from statannotations.Annotator import Annotator
 

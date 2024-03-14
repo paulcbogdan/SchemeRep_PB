@@ -1,7 +1,7 @@
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 import numpy as np
-from analyze_rs import sanity_load, get_LSS_SchemeRep
+from load_more import get_LSS_SchemeRep, sanity_load
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import pandas as pd

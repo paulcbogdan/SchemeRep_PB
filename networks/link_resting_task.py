@@ -3,7 +3,6 @@ import os
 from tqdm import tqdm
 
 from HCP import load_HCP_act
-from analyze_rs import load_act_conn, load_resting_data
 from atlas_utils import get_atlas
 from old.analyze_ROIs import setup_colors
 from old.network_funcs import load_FC_for_Lifu
@@ -12,7 +11,7 @@ from old.plot_gen import plot_connectivity
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 from utils import pickle_wrap, stdize
-from vendor_lmers import get_dfs_conn_trials
+from load_more import get_dfs_conn_trials, load_resting_data, load_act_conn
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -189,11 +188,21 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
     n_roi = sn_roi_act.shape[-2]
     atlas = get_atlas(combine_regions=combine_regions)
     if HCP:
-        hcp_kwargs = {'N': 30, 'combine_regions': combine_regions,
-                      'GSR': True}
-        sn_roi_rs, sns_ = pickle_wrap(load_HCP_act, kwargs=hcp_kwargs,
-                                      easy_override=False, verbose=0,
+        # hcp_kwargs = {'N': 50, 'combine_regions': combine_regions,
+        #               'GSR': False}
+        f = partial(load_HCP_act, N=300,
+                    RS=False, clean_confounds=True, LSS=False, LSA=False,
+                    compcor=True, GSR=False,
+                    combine_regions=combine_regions)
+
+        sn_roi_rs, sns_ = pickle_wrap(f,#load_HCP_acTrue, verbose=0,
+                                      easy_override=True,
                                       RAM_cache=True)
+        print(f'{sn_roi_rs.shape=}')
+        if False:
+            sn_roi_act = stdize(sn_roi_act, axis=2)
+            sn_roi_act = stdize(sn_roi_act, axis=1)
+
         sns = sns_
     else:
         if other_task:
@@ -584,7 +593,14 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
             dif01, _ = stats.spearmanr(rs_inc0, rs_con1)
             dif10, _ = stats.spearmanr(rs_inc1, rs_con0)
-            corr = (sim00 + sim11 - dif01 - dif10) / 4
+            dif00, _ = stats.spearmanr(rs_inc0, rs_con0)
+            dif11, _ = stats.spearmanr(rs_inc1, rs_con1)
+
+            sim00, sim11, dif01, dif10, dif11, dif00 = (
+                np.arctanh([sim00, sim11, dif01, dif10, dif11, dif00]))
+            corr = (sim00 + sim11) / 2
+            corr -= (dif01 + dif10 + dif11 + dif00) / 4
+            # corr = (sim00 + sim11 + dif01 + dif10) / 4
             # print(f'{sim00=:.3f} | {sim11=:.3f} | {dif01=:.3f} | '
             #       f'{dif10=:.3f} | {corr=:.3f}')
 
@@ -637,8 +653,8 @@ def permutation_test(**kwargs):
     if kwargs['do_generic']:
         M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
                               RAM_cache=False, verbose=-1,
-                              easy_override=
-                              True if kwargs['alt_shuffle'] else False)
+                              easy_override=True)
+                              # True if kwargs['alt_shuffle'] else False)
         if not kwargs['conn_euc']: M_corrs = -np.array(M_corrs)
         print('--*--')
         # pprint(kwargs)
@@ -657,13 +673,14 @@ def permutation_test(**kwargs):
 
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
-                  do_hit_hit=False, fp_task='obj7_fMRI', HCP=False,
+                  do_hit_hit=False, fp_task='obj7_fMRI',
+                  HCP=True,
                   light=False, medium=True,
                   near_OG=False, trad=False, true_OG=False,
-                  other_task=False, regr=True,
-                  conn_euc=False, M_after=False,
+                  other_task=False, regr=False,
+                  conn_euc=False, M_after=True,
                   only_cortical=True, alt_shuffle=False,
-                  task_and_rs=False, alt_calc=True):
+                  task_and_rs=False, alt_calc=False):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
