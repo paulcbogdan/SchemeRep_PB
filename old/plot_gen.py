@@ -61,8 +61,10 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                        'Tha']
     elif M_connect.shape[0] == 54:
         ticks = 0.5 + np.arange(27) * 2
-        tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG', 'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
-                       'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
+        tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
+                       'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
+                       'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'PCC', 'ACC', 'EVC',
+                       'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
                        'Tha']
 
     plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo',

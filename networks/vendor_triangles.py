@@ -209,7 +209,7 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
     return beta_main, p_main, beta_itr, p_itr
 
 
-def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
+def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
                                   HCP=True, anat_version=2):
     # if HCP:
     #     # f = partial(load_HCP_act, N=N,
@@ -265,7 +265,7 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     cols_order_R = [col.replace('L', 'R') for col in cols_order_L]
 
     cols_order += cols_order_dd + cols_order_vv + cols_order_p + cols_order_a
-    # cols_order += cols_order_L + cols_order_R
+    cols_order += cols_order_L + cols_order_R
 
     # cols_order = ['da_dp', 'va_vp', 'dp_vp', 'da_va',
     #               'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]

@@ -196,12 +196,14 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
                     combine_regions=combine_regions)
 
         sn_roi_rs, sns_ = pickle_wrap(f,#load_HCP_acTrue, verbose=0,
-                                      easy_override=True,
+                                      easy_override=False,
                                       RAM_cache=True)
         print(f'{sn_roi_rs.shape=}')
+
         if False:
-            sn_roi_act = stdize(sn_roi_act, axis=2)
-            sn_roi_act = stdize(sn_roi_act, axis=1)
+            sn_roi_rs = stdize(sn_roi_rs, axis=2, nans=True)
+            sn_roi_rs = stdize(sn_roi_rs, axis=1, nans=True)
+
 
         sns = sns_
     else:
@@ -538,10 +540,10 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         # print(f'{list(inc_rois)=}')
         # print(f'{list(con_rois)=}')
         # quit()
-        inc_overlap = inc_rois_real.intersection(inc_rois)
-        p_inc_overlap = len(inc_overlap) / len(inc_rois)
-        con_overlap = con_rois_real.intersection(con_rois)
-        p_con_overlap = len(con_overlap) / len(con_rois)
+        # inc_overlap = inc_rois_real.intersection(inc_rois)
+        # p_inc_overlap = len(inc_overlap) / len(inc_rois)
+        # con_overlap = con_rois_real.intersection(con_rois)
+        # p_con_overlap = len(con_overlap) / len(con_rois)
         # print(f'{len(con_rois_real)=}|{len(con_rois)=}')
         p_inc_reverse_overlap = (len(con_rois_real.intersection(inc_rois)) /
                                  len(inc_rois))
@@ -653,9 +655,11 @@ def permutation_test(**kwargs):
     if kwargs['do_generic']:
         M_corrs = pickle_wrap(permutation_test_, kwargs=kwargs,
                               RAM_cache=False, verbose=-1,
-                              easy_override=True)
+                              easy_override=False)
                               # True if kwargs['alt_shuffle'] else False)
-        if not kwargs['conn_euc']: M_corrs = -np.array(M_corrs)
+        M_corrs = -np.array(M_corrs)
+        if kwargs['conn_euc']: M_corrs *= -1
+        if kwargs['alt_calc']: M_corrs *= -1
         print('--*--')
         # pprint(kwargs)
         # print('--*--')
@@ -674,13 +678,13 @@ def permutation_test(**kwargs):
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   do_hit_hit=False, fp_task='obj7_fMRI',
-                  HCP=True,
+                  HCP=False,
                   light=False, medium=True,
                   near_OG=False, trad=False, true_OG=False,
                   other_task=False, regr=False,
-                  conn_euc=False, M_after=True,
+                  conn_euc=False, M_after=False,
                   only_cortical=True, alt_shuffle=False,
-                  task_and_rs=False, alt_calc=False):
+                  task_and_rs=False, alt_calc=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -704,8 +708,8 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
               # 'weighted': weighted
               }
     assert not (do_conn and not combine_regions and M_after)
-    assert do_conn or not combine_regions
-    for split in [.3, .5, .4, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
+    assert not (do_conn and not combine_regions)
+    for split in [.5, .4, .3, .2, .1, .05]: # . [0.3]:# .5, .4,   .2, .1, .05 .3,
         kwargs['split'] = split
         print('--*--')
         pprint(kwargs)
@@ -718,7 +722,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
         #                         split=split, combine_regions=combine_regions,
         #                         do_plot=False, shuffle=False)
         # continue
-        permutation_test(n_sim=100, **kwargs)
+        permutation_test(n_sim=1000, **kwargs)
 
 if __name__ == '__main__':
     plot_by_split()

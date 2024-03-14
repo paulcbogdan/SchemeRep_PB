@@ -136,7 +136,7 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     df_full = pd.DataFrame(vals_full, columns=cols_full)
     df_full['sn'] = sns
     df_full['inc'] = incs
-    # conn_clf(df_full, combine_regions=combine_regions, nrois=nrois)
+    conn_clf(df_full, combine_regions=combine_regions, nrois=nrois)
     # quit()
 
     t_mat = np.full((nrois, nrois), np.nan)
@@ -201,28 +201,96 @@ def perm_conn_clf():
     pass
 
 def do_ROI_clf(df, grps, cols, kernel='rbf'):
-    from sklearn.svm import SVC
-    y_trues = []
-    y_preds = []
-    acc = []
+    from scipy.stats import f
+    from hotelling.stats import hotelling_t2
 
-    for grp in grps:
-        clf = SVC(kernel=kernel)
+    if kernel == 'hotel':
 
-        idx_match = df['sn'] == grp
-        X_test = df.loc[idx_match, cols]
-        y_test = df.loc[idx_match, 'inc']
-        y_trues.extend(y_test)
+        # print(df.columns)
+        # print(f'{cols=}')
+        df_ = df#.dropna(subset=cols, axis=0)
+        # print(f'{df_.shape=}')
+        # quit()
+        # cols = cols[:2]
+        X0 = np.array(df_[df_['inc'] == 0][cols])
+        nan_cols = np.isnan(X0).sum(axis=0)
+        # print(nan_cols)
+        # quit()
+        # print(nan_cols.shape)
+        # quit()
+        X1 = np.array(df_[df_['inc'] == 1][cols])
+        nan_cols1 = np.isnan(X1).sum(axis=0)
+        nan_cols = nan_cols + nan_cols1
+        X0 = X0[:, nan_cols == 0]
+        X1 = X1[:, nan_cols == 0]
+        # print(X0)
+        # print(X1)
+        # quit()
+        # print(f'{X0.shape=}')
+        # print(f'{X1.shape=}')
+        # quit()
 
-        idx_train = ~idx_match
-        X_train = df.loc[idx_train, cols]
-        y_train = df.loc[idx_train, 'inc']
-        clf.fit(X_train, y_train)
-        y_pred = clf.predict(X_test)
-        y_preds.extend(y_pred)
-        acc.append(np.mean(y_pred == y_test))
+        X0 = X0 - X1
+        # X0 = X0[:, ::2]
+        # print(X0.shape)
+        # quit()
+        # X0 = np.abs(X0)
+        # X0 = X0[:5, :3]
+        # print(X0)
+        # X0 = X0[4:10]
+        # print(f'{X0=}')
+        # quit()
 
-    return y_trues, y_preds, acc
+        stat, F, p_value, _ = hotelling_t2(X0)
+        # print(hotelling_t2(X0))
+        # quit()
+        # print(f'{p=:.4f}')
+        return None, None, p_value
+
+        # quit()
+
+        # X = X0
+        # Y = X1
+        #
+        # nx, p = X.shape
+        # ny, _ = Y.shape
+        # delta = np.mean(X, axis=0) - np.mean(Y, axis=0)
+        # Sx = np.cov(X, rowvar=False)
+        # Sy = np.cov(Y, rowvar=False)
+        # S_pooled = ((nx - 1) * Sx + (ny - 1) * Sy) / (nx + ny - 2)
+        # t_squared = (nx * ny) / (nx + ny) * np.matmul(np.matmul(delta.transpose(), np.linalg.inv(S_pooled)), delta)
+        # statistic = t_squared * (nx + ny - p - 1) / (p * (nx + ny - 2))
+        # dfof = nx + ny - p - 1
+        # dfof -= nx
+        # F = f(p, dfof)
+        # p_value = 1 - F.cdf(statistic)
+        # print(f'{p_value=}')
+        #
+        # return None, None, p_value
+
+    else:
+        from sklearn.svm import SVC
+        y_trues = []
+        y_preds = []
+        acc = []
+
+        for grp in grps:
+            clf = SVC(kernel=kernel)
+
+            idx_match = df['sn'] == grp
+            X_test = df.loc[idx_match, cols]
+            y_test = df.loc[idx_match, 'inc']
+            y_trues.extend(y_test)
+
+            idx_train = ~idx_match
+            X_train = df.loc[idx_train, cols]
+            y_train = df.loc[idx_train, 'inc']
+            clf.fit(X_train, y_train)
+            y_pred = clf.predict(X_test)
+            y_preds.extend(y_pred)
+            acc.append(np.mean(y_pred == y_test))
+
+        return y_trues, y_preds, acc
 
 def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
              thresh=2.32):
@@ -237,12 +305,18 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
     df['inc'] = (df['inc'] - 1) / 2
     ps = []
     for roi_i in range(nrois):
-        cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
+        # cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
+        cols = [f'r{j}_{roi_i}' for j in range(nrois) if j != roi_i]
+
         # cv = LeaveOneGroupOut()
         grps = df['sn'].unique()
-        for grp in grps:
-            df.loc[df['sn'] == grp, cols] = (
-                stats.zscore(df.loc[df['sn'] == grp, cols], axis=0))
+        if kernel in ['rbf', 'linear']:
+            for grp in grps:
+                # df.loc[df['sn'] == grp, cols] = (
+                #     stats.zscore(df.loc[df['sn'] == grp, cols], axis=0))
+
+                df.loc[df['sn'] == grp, cols] -= (
+                    np.nanmean(df.loc[df['sn'] == grp, cols], axis=0))
 
         nan_cols = df[cols].isna().sum()
         cols = [col for i, col in enumerate(cols) if not nan_cols[i]]
@@ -253,6 +327,12 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
         except ValueError as e:
             print(f'{e=}')
             ps.append(np.nan)
+            continue
+
+        if kernel == 'hotel':
+            p = acc
+            print(f'{labels[roi_i]}: {p=:.4f}')
+            ps.append(p)
             continue
 
         r, p = stats.pearsonr(y_trues, y_preds)
@@ -269,9 +349,11 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
         print(f'{labels[roi_i]}: {M_acc=:.2%}, {p_binom=:.4f} '
               f'({z=:.2f}, {corr=:.1f}) '
               f'| {r=:.3f}, {p=:.4f}')
-        ps.append(p_binom)
+        # ps.append(p_binom)
+        ps.append(p) # TODO: toggle p_binom probably is better
     zs = -stats.norm.ppf(ps)
     zs[zs < 0] = np.nan
+    print(f'{zs=}')
     atlas = get_atlas(combine_regions=combine_regions)
 
     title_str = f'Shows effect'
@@ -282,7 +364,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
 
 
 
-def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True):
+def plot_reg_zs(combine_regions=True, combine_bl=False, lm=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
             pickle_wrap(get_con_reg_zs, None,

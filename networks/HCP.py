@@ -30,6 +30,8 @@ def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
     fp_clean = (fr'{HCP_CACHE}\{sn}_{lr}_{LSA}_{clean_confounds}'
                 fr'{RS_str}{cc_str}.nii') # .nii are smaller than .pkl
     if os.path.isfile(fp_clean) and not easy_override:
+        print(f'exists: {fp_clean=}')
+        # return None
         img = image.load_img(fp_clean)
         data = img.get_fdata()
         return data
@@ -120,8 +122,9 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
         sns = sns_
 
     sns = sns[:N]
-
-    # sns = sns[::-1]
+    sns = sns[::-1]
+    print(f'{sns=}')
+    print(len(sns))
     # sns = sns[:5]
     sn_roi_act = []
     # combine_regions = False
@@ -138,11 +141,13 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                                   LSA=LSA, clean_confounds=clean_confounds,
                                   RS=RS, compcor=compcor)
             except ValueError as e:
+                print(f'AKKH??: {e}')
+                time.sleep(5)
                 continue
             except Exception as e:
                 print(f'ERROR: {sn=}, {e=}')
                 # continue
-                time.sleep(15)
+                time.sleep(5)
                 try:
                     data = get_sn_HCP(sn, 'LR', easy_override=False, LSS=LSS,
                                       LSA=LSA, clean_confounds=clean_confounds,
@@ -152,7 +157,7 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
                     continue
         else:
             raise NotImplementedError
-
+        # continue
         ar = []
         for j, (ROI, ROI_num, region) in enumerate(
                 zip(ROIs, ROI_nums, ROI_regions)):

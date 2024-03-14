@@ -188,7 +188,7 @@ def analyze_networks(fp='rs_medium'):
                                kwargs={'fp': fp,
                                        'norm_std': False,
                                        'zscore': True},
-                               easy_override=True)
+                               easy_override=False)
 
 
     df['da_dp'] = df['da'] + df['dp']
