@@ -20,8 +20,9 @@ if __name__ == '__main__':
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'RVIS__full__regBPfalse',
-        'RCON__full__regBPfalse',
+        # 'RCON__full__regBPfalse',
         # 'BL__full__regBPfalse'
+        r'NoGSR/ENC__full__regBPfalse__scene_obj_LSS1'
     ]
 
     details = [
@@ -35,18 +36,20 @@ if __name__ == '__main__':
         # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
         # ('b_trial.nii', 'ENC_GM20_LLS1_bpF_full', 'LSS1'),
         # ('b_Object.nii', 'VIS_rerun7', 'VIS'),
-        ('b_Object.nii', 'CON_rerun7', 'CONC')
+        # ('b_Object.nii', 'CON_rerun7', 'CONC')
         # ('b_Object.nii', 'BL_rerun7', 'BL'),
+        # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
+        ('b_trial.nii', 'Enc_NoGSR_8', 'LSS3')
     ]
 
 
     for scan, detail in zip(scans, details):
-        enc_dir = fr'Z:\SchemRep.01\Scripts\SingleTrialModel_SH\model_output\{scan}'
+        enc_dir = fr'Z:\Cabeza\SchemRep.01\Scripts\SingleTrialModel_SH\model_output\{scan}'
         enc_dir = Path(enc_dir)
         g = enc_dir.glob('*')
         g = [sn.name for sn in g]# if sn.name[:1] == '2']
         g = [sn for sn in g if sn[:1] != '3']
-        g = ['138', '213', '212', '231']
+        # g = ['138', '213', '212', '231']
         # print(g)
         # quit()
         # g = [sn for sn in g if sn[:1] != '1']
@@ -56,6 +59,8 @@ if __name__ == '__main__':
         # print(list(g))
         # quit()
         g = g[::-1]
+        # print(g)
+        # quit()
 
         # g = [sn for sn in g if sn[:3] == '129' or sn[:3] == '128' or sn[:3] == '127' or sn[:3] == '126']
         for sn in tqdm(g, desc=f'Looping sn: {scan}'):
@@ -64,7 +69,7 @@ if __name__ == '__main__':
             trials = [trial for trial in trials if trial.is_dir()]
             for trial in tqdm(trials, desc=f'Looping subj: {sn}'):
                 fp_obj = trial.joinpath(detail[0])
-                if detail[-1] in ['LSS1', 'LSS2']:
+                if detail[-1] in ['LSS1', 'LSS2', 'LSS3']:
                     if '_scene' in fp_obj.parents[0].name:
                         detail = (detail[0], detail[1], 'SCN')
                     elif '_object' in fp_obj.parents[0].name:
@@ -75,7 +80,10 @@ if __name__ == '__main__':
                 fn_obj_out = trial.name + '.nii'
                 dir_enc_out = Path(dir_out).joinpath(sn).joinpath(detail[1])
                 fp_obj_out = dir_enc_out.joinpath(detail[2]).joinpath(fn_obj_out)
-                if fp_obj_out.exists() and os.path.getsize(str(fp_obj_out)) > 4e6:
+                # print(f'{fp_obj_out=}')
+                # quit()
+                if (fp_obj_out.exists() and
+                        os.path.getsize(str(fp_obj_out)) > 4e6):
                     continue
                 fp_obj_out.parent.mkdir(exist_ok=True, parents=True)
                 shutil.copyfile(fp_obj, fp_obj_out)

@@ -292,7 +292,7 @@ def do_ROI_clf(df, grps, cols, kernel='rbf'):
 
         return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
+def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
              thresh=2.32):
     sns = get_sns()
     sns = sns[1] + sns[2]

@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 from HCP import load_HCP_act
 from atlas_utils import get_atlas
+from get_HCP_act import load_HCP
 from old.analyze_ROIs import setup_colors
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
@@ -151,7 +152,7 @@ def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
 def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
                       do_hit_hit=True, HCP=False, light=False, medium=False,
                       trad=False, other_task=False, near_OG=False,
-                      true_OG=False, strict_sns=None):
+                      true_OG=False, strict_sns=None, GSR=False):
     # sn_roi_act, _, df_sns_l, sns  = \
         # pickle_wrap(get_dfs_conn_trials,
         #             kwargs={'fp': fp, 'single': False,
@@ -159,29 +160,37 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
         #                     'combine_regions': combine_regions},
         #             easy_override=False, RAM_cache=True)
         #
-    if strict_sns is None:
-        strict_sns = True if other_task else False
-    kwargs = {'fp': fp,
-              'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 2, 3),
-              'get_df_sn': True,
-              'combine_regions': combine_regions,
-              'strict_sns': strict_sns
-              }
-    if do_hit_hit:
-        kwargs['key'] = 'hit_hit'
-        kwargs['key_vals'] = (False, 0.5, True)
+    hcp_names = {'EMOTION'}
+    if fp in hcp_names:
+        kwargs = {'task': fp,
+                  'lr_only': False,
+                  'combine_regions': combine_regions}
+        sn_roi_act = pickle_wrap(load_HCP, kwargs=kwargs)
+        sns = list(range(sn_roi_act.shape[0]))
+    else:
+        if strict_sns is None:
+            strict_sns = True if other_task else False
+        kwargs = {'fp': fp,
+                  'key': 'inc',
+                  'atlas_name': 'BNA',
+                  'key_vals': (1, 2, 3),
+                  'get_df_sn': True,
+                  'combine_regions': combine_regions,
+                  'strict_sns': strict_sns
+                  }
+        if do_hit_hit:
+            kwargs['key'] = 'hit_hit'
+            kwargs['key_vals'] = (False, 0.5, True)
 
-    _, _, _, sn_roi_act, df_sns_l = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=0, cache_dir='cache',
-                    RAM_cache=True)
+        _, _, _, sn_roi_act, df_sns_l = \
+            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                        easy_override=False, verbose=0, cache_dir='cache',
+                        RAM_cache=True)
 
-    sns = [df['sn'].iloc[0] for df in df_sns_l]
-    good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
-    sn_roi_act = sn_roi_act[good_i, :, :]
-    sns = [sn for sn in sns if sn != '133'] # bad rs
+        sns = [df['sn'].iloc[0] for df in df_sns_l]
+        good_i = [i for i, sn in enumerate(sns) if sn != '133'] # bad rs
+        sn_roi_act = sn_roi_act[good_i, :, :]
+        sns = [sn for sn in sns if sn != '133'] # bad rs
 
 
 
@@ -200,7 +209,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
                                       RAM_cache=True)
         print(f'{sn_roi_rs.shape=}')
 
-        if False:
+        if GSR:
             sn_roi_rs = stdize(sn_roi_rs, axis=2, nans=True)
             sn_roi_rs = stdize(sn_roi_rs, axis=1, nans=True)
 
@@ -297,10 +306,9 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                   other_task=False, regr=False, near_OG=False,
                   M_after=False, true_OG=False, only_cortical=True,
                   alt_shuffle=False, task_and_rs=False,
-                  alt_calc=False):
+                  alt_calc=False, GSR=False):
     if alt_shuffle:
         fp_task = 'bl7_fMRI'
-    weighted = False
     if task_and_rs:
         strict_sns = True
         other_task = False
@@ -313,7 +321,8 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                           HCP=HCP, light=light, medium=medium,
                           trad=trad, other_task=other_task,
                           strict_sns=strict_sns,
-                          near_OG=near_OG, true_OG=true_OG)
+                          near_OG=near_OG, true_OG=true_OG,
+                          GSR=GSR)
     # print(f'{sn_roi_rs.shape=}')
     if task_and_rs:
         _, sn_roi_rs_, _, _, _ = \
@@ -330,52 +339,33 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     n_sn = len(sns)
     # print(f'TOAST {sn_roi_rs.shape=}')
 
+
+    if shuffle and not shuffle_ss:
+        # NOTE: On 3/15/2024, I moved this from after do_conn to before
+        sn_roi_act = shuffle_rows(sn_roi_act)
+
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
         sn_roi_act = act2conn(sn_roi_act, conn_euc=conn_euc)
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
         sn_roi_rs = act2conn(sn_roi_rs, conn_euc=conn_euc)
         sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
-    # print(f'{alt_shuffle=}')
-    # quit()
-    if shuffle and not shuffle_ss:
-        # if alt_shuffle:
-        #     sn_roi_act = shuffle_rows_only_13(sn_roi_act)
-        # else:
-        sn_roi_act = shuffle_rows(sn_roi_act)
-
 
     sn_inc_roi_Ms = np.nanmean(sn_roi_act, axis=-1)
     generic_ts, sn_roi_difs = get_effs(sn_inc_roi_Ms, regr=regr)
-    from pingouin import bayesfactor_ttest
-    from time import time
-
-    if weighted:
-        idx2bf = np.array([bayesfactor_ttest(t, n_sn) for t in generic_ts])
-    # rank2bf = np.sort(idx2bf)
-    # print(rank2bf)
-    # quit()
-    # print(len(generic_bfs))
-    # print(f'{generic_bfs=}')
-    # print(f'{time() - st=}')
-    # quit()
 
     n_nans = np.sum(np.isnan(generic_ts))
     n_elements = len(generic_ts)
     nan_cutoff = n_elements - n_nans
     gen_rank2idx = generic_ts.argsort()
-    if weighted: rank2bf = idx2bf[gen_rank2idx]
 
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
-
 
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
 
     low_cutoff = int(nan_cutoff * split)
     high_cutoff = int(nan_cutoff * (1 - split))
-    # print(f'{low_cutoff=}')
-    # print(f'{high_cutoff=}')
-    # quit()
+
 
     if do_plot:
         gen_idx2rank[(gen_idx2rank > low_cutoff) &
@@ -424,15 +414,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
             nan_idxs = np.argwhere(np.isnan(sn_effs))[:, 0]
 
         inc_rois = rank2idx[:low_cutoff]
-
-        # print(rank2bf[:low_cutoff])
-
         con_rois = rank2idx[high_cutoff:-n_nans_sn or None] # avoids -0
-        if weighted:
-            rs_inc_weights = rank2bf[:low_cutoff]
-            rs_con_weights = rank2bf[high_cutoff:-n_nans_sn or None]
-        # print(rank2bf[high_cutoff:-n_nans_sn or None])
-        # quit()
 
         assert np.all([(j not in inc_rois) for j in nan_idxs]), \
             f'Bad in inc_rois: {inc_rois=}'
@@ -441,8 +423,6 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
         i2con_rois.append(con_rois)
         i2inc_rois.append(inc_rois)
-        # print(f'{sn_i} | {list(inc_rois)[:5]=}')
-
 
     i2con_rois = np.array(i2con_rois)
     i2inc_rois = np.array(i2inc_rois)
@@ -677,14 +657,17 @@ def permutation_test(**kwargs):
 
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
-                  do_hit_hit=False, fp_task='obj7_fMRI',
-                  HCP=False,
+                  do_hit_hit=False,
+                  fp_task='EMOTION',
+                  # fp_task='obj7_fMRI',
+                  HCP=True,
                   light=False, medium=True,
                   near_OG=False, trad=False, true_OG=False,
                   other_task=False, regr=False,
                   conn_euc=False, M_after=False,
                   only_cortical=True, alt_shuffle=False,
-                  task_and_rs=False, alt_calc=True):
+                  task_and_rs=False, alt_calc=True,
+                  GSR=True):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -704,7 +687,8 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
               'only_cortical': only_cortical,
               'alt_shuffle': alt_shuffle,
               'task_and_rs': task_and_rs,
-                'alt_calc': alt_calc,
+              'alt_calc': alt_calc,
+              'GSR': GSR,
               # 'weighted': weighted
               }
     assert not (do_conn and not combine_regions and M_after)

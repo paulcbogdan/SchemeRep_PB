@@ -430,7 +430,7 @@ def apply_regress_out_multi(atlas, org_by_region, n_trials, stim_keys,
 
 
 def run_multi_settings():
-    combine_regions = True
+    combine_regions = False
     bilateral = False # combines bilateral ROIs/regions
     org_by_region = False
     PCA_obj = True
@@ -440,7 +440,7 @@ def run_multi_settings():
     for age in [2, 1]:
         for inc in [None]:
             for DNN_layer, semantic in [
-                (2, False),
+                #(2, False),
                 # (-1, False),
                 # (4, False),
                 # (6, False),
@@ -449,10 +449,10 @@ def run_multi_settings():
             ]:  # (True, False),
                 for fp_fMRI_col in [
                     'scn7_fMRI',
-                    'obj7_fMRI',
-                    'bl7_fMRI',
-                    'con7_fMRI',
-                    'vis7_fMRI',
+                    # 'obj7_fMRI',
+                    # 'bl7_fMRI',
+                    # 'con7_fMRI',
+                    # 'vis7_fMRI',
                 ]:
 
                     RSA_fn = utils.get_RSA_fn(inc, age, semantic, DNN_layer,

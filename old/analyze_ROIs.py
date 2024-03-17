@@ -153,6 +153,17 @@ def prune_bad_sns(d, drop_ret=False):
 
     return d
 
+def make_csv(d, age):
+    # print(list(d))
+    # print(d['z']['scn'])
+    df_as_d = {'sn': d['sns']}
+    df_as_d.update(d['z']['scn'])
+    # df_as_d['sn'] = d['sns']
+    df = pd.DataFrame(df_as_d)
+
+    age_str = '_YA' if age == 1 else '_OA'
+    df.to_csv(f'scene_RSA_shenyang{age_str}.csv', index=False)
+
 def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,
@@ -172,6 +183,8 @@ def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
 
     with open(fp, 'rb') as file:
         d = pickle.load(file)
+    make_csv(d, age=age)
+    # quit()
     atlas = get_atlas(combine_regions=combine_regions or org_by_region,
                       combine_bilateral=bilateral or org_by_region)
     region2color = setup_colors(atlas)
@@ -246,14 +259,14 @@ def ROI_YA_vs_OA(semantic=True, inc=None,
 if __name__ == '__main__':
 
     # Test connectivity within region between ROIs as nodes
-    SEMANTIC = False
+    SEMANTIC = True
     DNN_LAYER = 2
     FP_FMRI_COL = 'scn7_fMRI'
     KEY = 'scn'
+    # analyze_ROIs(age=1, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
+    #              DNN_layer=DNN_LAYER, combine_regions=False)
     analyze_ROIs(age=1, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
-                 DNN_layer=DNN_LAYER)
-    analyze_ROIs(age=2, semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
-                 DNN_layer=DNN_LAYER)
+                 DNN_layer=DNN_LAYER, combine_regions=False)
     quit()
     ROI_YA_vs_OA(semantic=SEMANTIC, fp_fMRI_col=FP_FMRI_COL, key=KEY,
                  DNN_layer=DNN_LAYER)
