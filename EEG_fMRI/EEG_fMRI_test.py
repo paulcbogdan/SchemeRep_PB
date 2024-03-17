@@ -12,6 +12,7 @@ import scipy.stats as stats
 import pandas as pd
 import warnings
 from collections import defaultdict
+from time import time
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat
@@ -116,7 +117,11 @@ def get_event2true(fp_EEG, num_TRs):
             boundary_events.add(i + 1)
     return event2true, boundary_events
 
-def get_EEG_score_sn(sn, num_TRs, sess='01'):
+def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None):
+    if picks is None:
+        picks = ['Fz', 'Cz', 'Pz',
+                 'F1', 'C1', 'P1',
+                 'F2', 'C2', 'P2']
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
     dir_eeg = fr'{root_sn}\eeg'
     # fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_eeg.set'
@@ -145,24 +150,41 @@ def get_EEG_score_sn(sn, num_TRs, sess='01'):
 
     # print(raw.ch_names)
     # quit()
-    picks = ['Fz', 'Cz', 'Pz',
-             'F1', 'C1', 'P1',
-             'F2', 'C2', 'P2']
+
     picks = [pick for pick in picks if pick in raw.ch_names]
     # picks = ['Fz', 'Pz'] # 'Cz',
     # picks = raw.ch_names[:5]
+    # print(raw.ch_names)
+    # quit()
     # picks = 'all'
     # print(raw)
     data_eeg = raw.get_data(picks=picks)
-    freqs = np.arange(1, 101, 1)
-    tfr = mne.time_frequency.tfr_array_morlet(data_eeg[None, :, :],
-                                              sfreq=250, freqs=freqs,
+    freqs = np.arange(1, 51, 1)
+    # print(data_eeg.shape)
+    # quit()
+    ds1 = 2
+    # ds2 = 10
+    # t = time()
+    tfr = mne.time_frequency.tfr_array_morlet(data_eeg[None, :, ::ds1],
+                                              sfreq=250 // ds1, freqs=freqs,
+                                              # decim=ds2,
                                               output='power')
+    # print(f'{time() - t=:.5f}')
     # print('made TFR')
+
     tfr = tfr[0, ...]
     tfr = np.log(tfr)
-    tfr = tfr.mean(axis=0) # avg Fz, Cz, Pz
+    tfr -= tfr.mean(axis=-1, keepdims=True)
 
+    # print(tfr)
+    # quit()
+    tfr = tfr.mean(axis=0) # avg Fz, Cz, Pz
+    # print(tfr.shape)
+    # plt.imshow(tfr[:, int(10*250/ds1):-int(5*250/ds1)], aspect='auto')
+    # plt.show()
+    # print(tfr)
+    # print(tfr.shape)
+    # quit()
     # if 'task-rest' in sess:
     #     num_TRs = 288
     # elif 'task-inscapes' in sess:
@@ -178,7 +200,7 @@ def get_EEG_score_sn(sn, num_TRs, sess='01'):
         if true_idx in boundary_events:
             continue
         t_st = event[0]
-        t_end = t_st + int(2.1*250)
+        t_end = t_st + int(2.1*(250 // ds1))
         tfr_event = tfr[..., t_st:t_end].mean(axis=-1)
         eeg_scores[true_idx] = tfr_event
 
@@ -221,21 +243,32 @@ def test_EEG_fMRI_sn(sn='06', sess='01'):
 
     if fMRI_fluc is None:
         return None
-    print(f'{fMRI_fluc.shape=}')
+    # print(f'{fMRI_fluc.shape=}')
+    # quit()
     num_TRs = fMRI_fluc.shape[-1]
+    picks = ['Fz', 'Cz', 'Pz',
+             'F1', 'C1', 'P1',
+             'F2', 'C2', 'P2']
+    picks = ['F1', 'Fz', 'F2',
+             'FC1', 'FCz', 'FC2',]
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs={'sn': sn,
                                                      'sess': sess,
-                                                     'num_TRs': num_TRs},
-                           easy_override=False, verbose=-1)
+                                                     'num_TRs': num_TRs,
+                                                     'picks': picks},
+                           easy_override=True, verbose=-1)
 
     if EEG_fluc is None:
         return None
-
+    EEG_fluc = EEG_fluc[5:-5] # clip bad TFR from end
+    fMRI_fluc = fMRI_fluc[5:-5] # clip bad TFR from end
+    # plt.plot(fMRI_fluc)
+    # plt.show()
+    # quit()
     ranges = {'delta': (1, 4),
               'theta': (4, 8),
               'alpha': (8, 13),
               'beta': (13, 30),
-              'gamma': (30, 100)}
+              'gamma': (30, 50)}
     name2fluc = {}
     name2r = {}
     for name, rng in ranges.items():
@@ -257,9 +290,10 @@ if __name__ == '__main__':
     SESS_MONKEY = ['01_task-monkey1', '02_task-monkey2']
     # SNS = ['06']
     # SNS = ['18']
+    SESSES += SESS_INK
+    # SESSES += SESS_MONKEY
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
-
                ()} #
     NAME2L = defaultdict(list)
     for SN in SNS:
