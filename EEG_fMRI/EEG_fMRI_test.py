@@ -27,9 +27,9 @@ ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
 
 def get_fMRI_score_sn(sn, sess='01', combine_regions=True):
     # root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-01'
-    root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess}'
+    root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
 
-    dir_func = fr'{root_sn}\func\sub-{sn}_ses-{sess}_task-rest_bold\func_preproc'
+    dir_func = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_preproc'
     fp_fMRI = fr'{dir_func}\func_pp_filter_sm0.mni152.3mm.nii.gz'
     if os.path.isfile(fp_fMRI):
         img = image.load_img(fp_fMRI)
@@ -64,9 +64,13 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True):
     fluc = MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC
     return fluc
 
-def get_event2true(dir_eeg, sn, fp_EEG):
-    events = pd.read_csv(fr'{dir_eeg}\sub-{sn}_ses-01_task-rest_events.tsv',
-                         sep='\t')
+def get_event2true(fp_EEG, num_TRs):
+    # events = pd.read_csv(fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_events.tsv',
+    #                      sep='\t')
+    # if 'task-rest' in sess:
+    #     num_TRs = 288
+    # elif 'task-inscapes' in sess:
+    #     num_TRs = 293
 
     mat = loadmat(fp_EEG)
     # urevent = mat['urevent'][0]
@@ -75,14 +79,20 @@ def get_event2true(dir_eeg, sn, fp_EEG):
     for event in mat['urevent'][0]:
         if len(event[4][0]):
             urevent_num = event[4][0][0]
-            name = event[5][0]
+            # print(event)
+            # print(len(event))
+            # print(event)
+            assert len(event) in [7, 8], f'{len(event)=}'
+            # if len(event) == 8:
+            #     name = event[6][0]
+            # else:
+            # print(event)
+            name = event[-2][0]
+            # print(name, ':', len(event))
             if name == 'R128':
                 urevent2TR[urevent_num] = R128_cnt
                 R128_cnt += 1
-
-    assert len(urevent2TR) == 288, f'{len(urevent2TR)=}'
-    # print(len(urevent2TR))
-    # quit()
+    assert len(urevent2TR) == num_TRs, f'{len(urevent2TR)=} | {num_TRs=}'
 
     mat = loadmat(fp_EEG)
     # event = mat['event'][0]
@@ -91,7 +101,8 @@ def get_event2true(dir_eeg, sn, fp_EEG):
     boundary_events = set()
     R128_pos_cnt = 0
     for event in mat['event'][0]:
-        if len(event[4][-1]) and event[5][0] == 'R128':
+        # print(f'{event[-3]} | {event=}')
+        if len(event[4][-1]) and event[-3][0] == 'R128':
             urevent_num = event[4][-1][0]
             event2true[R128_pos_cnt] = urevent2TR[urevent_num]
             good_events.add(event2true[R128_pos_cnt])
@@ -99,86 +110,29 @@ def get_event2true(dir_eeg, sn, fp_EEG):
             R128_pos_cnt += 1
 
 
-    for i in range(288):
+    for i in range(num_TRs):
         if i + 1 not in good_events:
             boundary_events.add(i)
             boundary_events.add(i + 1)
     return event2true, boundary_events
 
-
-    # print(cnt2event)
-    # print(boundary_events)
-    # quit()
-    #
-    # events = events.iloc[1:]
-    # num2s = 0
-    # t_prev = 0
-    # start = False
-    # cnt = 0
-    # # S 1 = starting stimulus
-    # t_st = 0
-    # cnt_event = 0
-    # event2true = {}
-    # boundary_events = set()
-    # duration_so_far = 0
-    # last_cnt = 0
-    # for idx, event in events.iterrows():
-    #     duration_so_far += event['duration']
-    #
-    #     if not start and (250 * (duration_so_far + event['onset']) >
-    #                       frame_S1 - 100):
-    #         start = True
-    #         print(f'{event=}')
-    #
-    #     if event['type'] == 'Response':
-    #         num2s += 1
-    #         t_prev = event['onset']
-    #         event2true[cnt_event] = cnt
-    #         cnt_event += 1
-    #
-    #         cnt += 1
-    #         last_cnt = cnt
-    #
-    #     t_st += event['duration']
-    #
-    #     if start and (event['value'] == 'boundary'):# and event['sample'] > 10:
-    #         boundary_events.add(cnt_event)
-    #         boundary_events.add(cnt_event + 1)
-    #         # print(event)
-    #         t_effect = event['onset'] - t_prev + event['duration']
-    #         for i in range(int(t_effect / 2.1)):
-    #             cnt += 1
-    # assert last_cnt == 288, f'{last_cnt=}'
-    #
-    # return event2true, boundary_events
-
-def get_EEG_score_sn(sn, sess='01'):
-    # root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-01'
-    root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-01'
-
+def get_EEG_score_sn(sn, num_TRs, sess='01'):
+    root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
     dir_eeg = fr'{root_sn}\eeg'
-    fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-01_task-rest_eeg.set'
+    # fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_eeg.set'
 
+    fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_eeg.set'
 
-    # print(list(mat))
-    # print(mat['urevent'])
-    # quit()
-    # print(mat['event'])
-    # for event in mat['urevent'][0]:
-    #     # print(event[-1])
-    #     # print(len(event[-1][0]))
-    #     print(event)
-        # if len(event[-1][0]) == 0:
-        #     break
-        # quit()
-    # print(f'{fp_EEG=}')
-    # quit()
 
     if not os.path.isfile(fp_EEG):
         print(f'No file: {fp_EEG=}')
         return None
     raw = read_raw_eeglab(fp_EEG, preload=True, )
-    event2true, boundary_events = get_event2true(dir_eeg, sn, fp_EEG)
+    try:
+        event2true, boundary_events = get_event2true(fp_EEG, num_TRs)
+    except AssertionError as e:
+        print(f'{sn} | {e=}')
+        return None
     if event2true is None:
         return None
 
@@ -209,7 +163,12 @@ def get_EEG_score_sn(sn, sess='01'):
     tfr = np.log(tfr)
     tfr = tfr.mean(axis=0) # avg Fz, Cz, Pz
 
-    eeg_scores = np.full((288, len(freqs)), np.nan)
+    # if 'task-rest' in sess:
+    #     num_TRs = 288
+    # elif 'task-inscapes' in sess:
+    #     num_TRs = 293
+
+    eeg_scores = np.full((num_TRs, len(freqs)), np.nan)
     for idx, event in enumerate(events):
         try:
             true_idx = event2true[idx]
@@ -259,11 +218,15 @@ def test_EEG_fMRI_sn(sn='06', sess='01'):
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn, kwargs={'sn': sn,
                                                        'sess': sess},
                             easy_override=False, verbose=-1)
+
     if fMRI_fluc is None:
         return None
+    print(f'{fMRI_fluc.shape=}')
+    num_TRs = fMRI_fluc.shape[-1]
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs={'sn': sn,
-                                                     'sess': sess},
-                           easy_override=True, verbose=-1)
+                                                     'sess': sess,
+                                                     'num_TRs': num_TRs},
+                           easy_override=False, verbose=-1)
 
     if EEG_fluc is None:
         return None
@@ -289,24 +252,36 @@ if __name__ == '__main__':
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
-    SNS = ['02']
+    SESSES = ['01_task-rest', '02_task-rest']
+    SESS_INK = ['01_task-inscapes', '02_task-inscapes']
+    SESS_MONKEY = ['01_task-monkey1', '02_task-monkey2']
+    # SNS = ['06']
+    # SNS = ['18']
+    BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
+               ('16', '02_task-rest'), ('18', '01_task-rest'),
+
+               ()} #
     NAME2L = defaultdict(list)
     for SN in SNS:
-        print(f'- ({SN}) -')
-        name2r = test_EEG_fMRI_sn(SN)
-        if name2r is None:
-            continue
-        print()
-        for key, r in name2r.items():
-            NAME2L[key].append(r)
-            l = NAME2L[key]
-            N = len(l)
-            if N > 5:
-                M = np.mean(l)
-                SE = np.std(l) / np.sqrt(N)
-                t = M / SE
-                p = stats.t.sf(np.abs(t), len(l) - 1)
-                print(f'{key} ({N=}): {M=:.3f} ({t=:.3f})')
+        # if SN in BAD_SNS:
+        #     continue
+        for SESS in SESSES:
+            if (SN, SESS) in BAD_SNS: continue
+            print(f'- ({SN}; {SESS}) -')
+            name2r = test_EEG_fMRI_sn(SN, SESS)
+            if name2r is None:
+                continue
+            print()
+            for key, r in name2r.items():
+                NAME2L[key].append(r)
+                l = NAME2L[key]
+                N = len(l)
+                if N > 5:
+                    M = np.mean(l)
+                    SE = np.std(l) / np.sqrt(N)
+                    t = M / SE
+                    p = stats.t.sf(np.abs(t), len(l) - 1)
+                    print(f'{key} ({N=}): {M=:.3f} ({t=:.3f})')
 
     # for key, l in NAME2L.items():
     #     M = np.mean(l)
