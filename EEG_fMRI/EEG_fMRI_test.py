@@ -38,8 +38,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True):
         return None
     # img = pickle_wrap(image.load_img, kwargs={'img': fp_fMRI}) # 0.476 Hz
     data_fMRI = img.get_fdata()
-    # print(data_fMRI.shape)
-    # quit()
+
     atlas = get_atlas(natview=True, combine_regions=combine_regions)
 
     key2idxs = {'ATL': [], 'MFG': [], 'IPL': [], 'LOC': []}
@@ -70,75 +69,88 @@ def get_event2true(dir_eeg, sn, fp_EEG):
                          sep='\t')
 
     mat = loadmat(fp_EEG)
-    urevent = mat['urevent'][0]
-    assert len(urevent[0]) == 7
-    for event in urevent:
-        if event[-2][0] == 'S  1':
-            # t_st = event[0][0][0]
-            frame_S1 = event[0][0][0]
-            break
-            # print(f'{t_st=}')
-            # break
-    else:
-        raise ValueError
-    # print(urevent)
+    # urevent = mat['urevent'][0]
+    R128_cnt = 0
+    urevent2TR = {}
+    for event in mat['urevent'][0]:
+        if len(event[4][0]):
+            urevent_num = event[4][0][0]
+            name = event[5][0]
+            if name == 'R128':
+                urevent2TR[urevent_num] = R128_cnt
+                R128_cnt += 1
+
+    assert len(urevent2TR) == 288, f'{len(urevent2TR)=}'
+    # print(len(urevent2TR))
     # quit()
 
-    # max_onset = events['onset'].max()
-    # total_duration = events.loc[events['value'] == 'boundary']['duration'].sum()
-    # if not ('S  1' in events['value'].values):
-    #     print('No S  1: BAD!')
-    #     return None, None
-
-    # print(f'{max_onset=:.3f}, {total_duration=:.3f}')
-    # quit()
-
-    events = events.iloc[1:]
-    num2s = 0
-    t_prev = 0
-    start = False
-    cnt = 0
-    # S 1 = starting stimulus
-    t_st = 0
-    cnt_event = 0
+    mat = loadmat(fp_EEG)
+    # event = mat['event'][0]
     event2true = {}
+    good_events = set()
     boundary_events = set()
-    duration_so_far = 0
-    last_cnt = 0
-    for idx, event in events.iterrows():
-        duration_so_far += event['duration']
+    R128_pos_cnt = 0
+    for event in mat['event'][0]:
+        if len(event[4][-1]) and event[5][0] == 'R128':
+            urevent_num = event[4][-1][0]
+            event2true[R128_pos_cnt] = urevent2TR[urevent_num]
+            good_events.add(event2true[R128_pos_cnt])
 
-        if not start and (250 * (duration_so_far + event['onset']) >
-                          frame_S1 - 100):
-            start = True
-            # print(event['value'])
-            # print(f'{event=}')
-        # print(f'{duration_so_far=}')
-        # if event['value'] == 'S  1':
-        #     start = True
+            R128_pos_cnt += 1
 
-        if event['type'] == 'Response':
-            num2s += 1
-            t_prev = event['onset']
-            event2true[cnt_event] = cnt
-            cnt_event += 1
 
-            cnt += 1
-            last_cnt = cnt
-
-        t_st += event['duration']
-
-        if start and (event['value'] == 'boundary'):# and event['sample'] > 10:
-            boundary_events.add(cnt_event)
-            boundary_events.add(cnt_event + 1)
-            # print(event)
-            t_effect = event['onset'] - t_prev + event['duration']
-            for i in range(int(t_effect / 2.1)):
-                cnt += 1
-    assert last_cnt == 288
-    # print(f'{last_cnt=}')
-    # quit()
+    for i in range(288):
+        if i + 1 not in good_events:
+            boundary_events.add(i)
+            boundary_events.add(i + 1)
     return event2true, boundary_events
+
+
+    # print(cnt2event)
+    # print(boundary_events)
+    # quit()
+    #
+    # events = events.iloc[1:]
+    # num2s = 0
+    # t_prev = 0
+    # start = False
+    # cnt = 0
+    # # S 1 = starting stimulus
+    # t_st = 0
+    # cnt_event = 0
+    # event2true = {}
+    # boundary_events = set()
+    # duration_so_far = 0
+    # last_cnt = 0
+    # for idx, event in events.iterrows():
+    #     duration_so_far += event['duration']
+    #
+    #     if not start and (250 * (duration_so_far + event['onset']) >
+    #                       frame_S1 - 100):
+    #         start = True
+    #         print(f'{event=}')
+    #
+    #     if event['type'] == 'Response':
+    #         num2s += 1
+    #         t_prev = event['onset']
+    #         event2true[cnt_event] = cnt
+    #         cnt_event += 1
+    #
+    #         cnt += 1
+    #         last_cnt = cnt
+    #
+    #     t_st += event['duration']
+    #
+    #     if start and (event['value'] == 'boundary'):# and event['sample'] > 10:
+    #         boundary_events.add(cnt_event)
+    #         boundary_events.add(cnt_event + 1)
+    #         # print(event)
+    #         t_effect = event['onset'] - t_prev + event['duration']
+    #         for i in range(int(t_effect / 2.1)):
+    #             cnt += 1
+    # assert last_cnt == 288, f'{last_cnt=}'
+    #
+    # return event2true, boundary_events
 
 def get_EEG_score_sn(sn, sess='01'):
     # root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-01'
@@ -277,7 +289,7 @@ if __name__ == '__main__':
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
-    SNS = ['01']
+    SNS = ['02']
     NAME2L = defaultdict(list)
     for SN in SNS:
         print(f'- ({SN}) -')
