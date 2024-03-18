@@ -317,7 +317,7 @@ def print_events(raw):
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn, kwargs={'sn': sn,
                                                        'sess': sess},
-                            easy_override=True, verbose=-1)
+                            easy_override=False, verbose=-1)
 
     if fMRI_fluc is None:
         return None
@@ -339,7 +339,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
              'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
              'P1', 'Pz', 'P2', 'P3', 'P4',
              ]
-    picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
+    # picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
     # picks = ['POz', 'P1', 'Pz', 'P2', 'P3', 'P4',]
     # picks = ['C1', 'Cz', 'C2', 'C3', 'C4']
 
@@ -348,7 +348,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
                                                      'num_TRs': num_TRs,
                                                      'picks': picks,
                                                      'avg_before': avg_before},
-                           easy_override=True, verbose=-1)
+                           easy_override=False, verbose=-1)
 
     if EEG_fluc is None:
         return None
