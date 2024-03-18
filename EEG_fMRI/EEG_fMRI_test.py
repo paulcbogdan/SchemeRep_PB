@@ -392,6 +392,7 @@ if __name__ == '__main__':
                ('16', '02_task-rest'), ('18', '01_task-rest'),
                ()} #
     NAME2L = defaultdict(list)
+    NAME2SN2L = defaultdict(lambda: defaultdict(list))
     for SN in SNS:
         for SESS in SESSES:
             if SN in ['01', '02', '03', '09'] and '02' in SESS: continue
@@ -402,8 +403,18 @@ if __name__ == '__main__':
                 continue
             print()
             for key, r in name2r.items():
-                NAME2L[key].append(r)
-                l = NAME2L[key]
+                # NAME2L[key].append(r)
+                NAME2SN2L[SN][key].append(r)
+
+            NAME2L = defaultdict(list)
+            for SN, d in NAME2SN2L.items():
+                for key, l in d.items():
+                    NAME2L[key].append(np.mean(l))
+                    # print(f'{len(NAME2L[key])=}')
+                # NAME2L[]
+
+            for key, l in NAME2L.items():
+            # l = NAME2L[key]
                 N = len(l)
                 if N > 5:
                     M = np.mean(l)
