@@ -26,7 +26,8 @@ from warnings import filterwarnings
 filterwarnings('ignore', category=SettingWithCopyWarning,)
 
 
-def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False):
+def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
+                        anat_ver=3):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -38,7 +39,7 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False):
                     easy_override=False, verbose=1, cache_dir='cache')
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
-                              flip=True, thr=.9, scrub=False, anat_version=2)
+                              flip=True, thr=.9, scrub=False, anat_ver=anat_ver)
     n_rois = sn_inc_activity.shape[2]
 
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)

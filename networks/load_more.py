@@ -136,7 +136,7 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub,
-                              anat_version=anat_version)
+                              anat_ver=anat_version)
 
     atlas = get_atlas()
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos,}

@@ -200,7 +200,7 @@ def get_paired_ttest_zs(fp='obj7_fMRI', combine_regions=False,
 def perm_conn_clf():
     pass
 
-def do_ROI_clf(df, grps, cols, kernel='rbf'):
+def do_ROI_clf(df, grps, cols, kernel='linear'):
     from scipy.stats import f
     from hotelling.stats import hotelling_t2
 

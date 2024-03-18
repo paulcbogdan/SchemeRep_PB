@@ -20,6 +20,7 @@ from time import time, sleep
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat
+from datetime import datetime
 
 # warnings.filterwarnings('ignore', #category=RuntimeWarning,
 #                         )
@@ -38,34 +39,14 @@ def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     if os.path.isfile(fp_fMRI):
         img = image.load_img(fp_fMRI)
     else:
-        print(f'No file: {fp_fMRI=}')
+        print(fr'Seemingly no file: {fp_fMRI=}')
         sleep(1)
-        return None, None
-    # print(fp_fMRI)
-    # dir_mask = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_seg'
-    # fp_mask = fr'{dir_mask}\global_mask.nii.gz'
-    # img_mask = image.load_img(fp_mask)
-
-    # print(img_mask.shape)
-    # print(img_mask)
-    # quit()
-    #
-    # affine = [[-3., 0., 0., 90.],
-    #           [0., 3., 0., -126.],
-    #           [0., 0., 3., -72.],
-    #           [0., 0., 0., 1.]]
-    # affine = np.array(affine)
-    #
-    # img_mask = image.resample_img(img_mask, target_affine=affine,
-    #                               target_shape=(61, 73, 61),
-    #                               interpolation='nearest')
-    # print(img_mask.shape)
-    # img_mask.to_filename('test.nii.gz')
-    #
-    # # print(f'{img_mask.shape=}')
-    # quit()
-    # atlas = get_atlas(natview=True, combine_regions=combine_regions)
-    # quit()
+        if os.path.isfile(fp_fMRI):
+            print('\tFile found after 1 s pause')
+            img = image.load_img(fp_fMRI)
+        else:
+            print('\tConfirmed no file')
+            return None, None
 
     if clean:
         df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2,))
@@ -91,12 +72,14 @@ def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     ar_fMRI = stdize(ar_fMRI, axis=-1)
     return ar_fMRI, key2idxs
 
-def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True):
+def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
+                      many_ROI=True):
+
     ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
                           kwargs={'sn': sn, 'sess': sess,
                                   'combine_regions': combine_regions,
                                   'clean': clean},
-                          easy_override=False, verbose=0)
+                          easy_override=False, verbose=0,)
     if ar_fMRI is None:
         return None
     # print(ar_fMRI.shape)
@@ -109,9 +92,11 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True):
     for i, region in enumerate(atlas['ROI_regions']):
         ROI2idx[region].append(i)
 
-    key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['SFG'] + ROI2idx['IFG']
-    key2idxs['IPL'] = ROI2idx['IPL'] + ROI2idx['SPL']
-    key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['EVC']
+    if many_ROI:
+        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] # ROI2idx['SFG'] +
+        key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
+        key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
+
     # print(ar_fMRI[key2idxs['MFG']].shape)
     # quit()
     # print(ar_fMRI[key2idxs['MFG']])
@@ -184,8 +169,37 @@ def get_event2true(fp_EEG, num_TRs):
             boundary_events.add(i + 1)
     return event2true, boundary_events
 
+def load_EEG(sn, sess, num_TRs, dir_eeg):
+    fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_eeg.set'
+
+    if not os.path.isfile(fp_EEG):
+        print(fr'Seemingly no file: {fp_EEG=}')
+        sleep(1)
+        if os.path.isfile(fp_EEG):
+            print('\tFile found after 1 s pause')
+        else:
+            print('\tConfirmed no file')
+            return None, None, None
+    try:
+        raw = read_raw_eeglab(fp_EEG, preload=True, )
+    except OSError as e:
+        warnings.warn(rf'OSError: {sn} ({sess}) {e=} | {fp_EEG=}')
+        return None, None, None
+    try:
+        event2true, boundary_events = get_event2true(fp_EEG, num_TRs)
+    except AssertionError as e:
+        print(f'{sn} | {e=}')
+        return None, None, None
+    if event2true is None:
+        return None, None, None
+
+    return raw, event2true, boundary_events
+
+
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
-                     avg_before=True, high_gamma=False):
+                     avg_before=True, high_gamma=False,
+                     super_slow=False, avg_ref=True):
+    assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
                  'F1', 'C1', 'P1',
@@ -194,23 +208,15 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     dir_eeg = fr'{root_sn}\eeg'
     # fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_eeg.set'
 
-    fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_eeg.set'
 
+    kw = {'sn': sn, 'sess': sess, 'num_TRs': num_TRs, 'dir_eeg': dir_eeg}
+    raw, event2true, boundary_events = pickle_wrap(load_EEG, kwargs=kw)
 
-    if not os.path.isfile(fp_EEG):
-        print(f'No file: {fp_EEG=}')
-        return None
-    raw = read_raw_eeglab(fp_EEG, preload=True, )
-    try:
-        event2true, boundary_events = get_event2true(fp_EEG, num_TRs)
-    except AssertionError as e:
-        print(f'{sn} | {e=}')
-        return None
-    if event2true is None:
+    if raw is None:
         return None
 
-    raw = raw.set_eeg_reference('average')
-    # quit()
+    if avg_ref:
+        raw = raw.set_eeg_reference('average')
 
     events = mne.events_from_annotations(raw, verbose=False)
     events = events[0]
@@ -230,7 +236,13 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     # picks = 'all'
     # print(raw)
     data_eeg = raw.get_data(picks=picks)
-    freqs = np.arange(1, 101 if high_gamma else 51, 1)
+    if high_gamma:
+        freqs = np.arange(1, 101)
+    elif super_slow:
+        freqs = np.linspace(0.1, 1.0, 10)
+    else:
+        freqs = np.arange(1, 51)
+    # freqs = np.arange(1, 101 if high_gamma else 51, 1)
     # print(data_eeg.shape)
     # quit()
     ds1 = 1
@@ -314,13 +326,30 @@ def print_events(raw):
     #  that it's not 2.1 s apart like the event code = 2 events are.
     #  The code = 6 events are 2 s apart and there are 300 of them.
 
-def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
+def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
+                     high_gamma=False, many_ROI=True,
+                     super_slow=False, avg_ref=True):
+    # changed to remove SFGG
+    # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
+
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn, kwargs={'sn': sn,
-                                                       'sess': sess},
-                            easy_override=False, verbose=-1)
+                                                       'sess': sess,
+                                                       'many_ROI': many_ROI},
+                            easy_override=True, verbose=-1,
+                            )
+
 
     if fMRI_fluc is None:
+        print(f'None fMRI fluc ({sn}; {sess}) !')
+        # fMRI_fluc = pickle_wrap(get_fMRI_score_sn, kwargs={'sn': sn,
+        #                                                    'sess': sess,
+        #                                                    'many_ROI': many_ROI},
+        #                         easy_override=True, verbose=-1)
+        # print(f'{fMRI_fluc.shape=}')
+        # quit()
         return None
+    # print(f'{sn} ({sess}): {fMRI_fluc.shape=}')
+
     # print(f'{fMRI_fluc.shape=}')
     # quit()
     num_TRs = fMRI_fluc.shape[-1]
@@ -347,7 +376,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
                                                      'sess': sess,
                                                      'num_TRs': num_TRs,
                                                      'picks': picks,
-                                                     'avg_before': avg_before},
+                                                     'avg_before': avg_before,
+                                                     'high_gamma': high_gamma,
+                                                     'super_slow': super_slow,
+                                                     'avg_ref': avg_ref},
                            easy_override=False, verbose=-1)
 
     if EEG_fluc is None:
@@ -361,16 +393,23 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
               'theta': (4, 8),
               'alpha': (8, 13),
               'beta': (13, 30),
-              'gamma': (30, 50)}
+              'gamma': (30, 50),
+              }
+    if high_gamma:
+        ranges['high_gamma'] = (50, 100)
+
+    # ranges = {f'r{i}': (i, i+1) for i in range(EEG_fluc.shape[-1])}
+
     name2fluc = {}
     name2r = {}
     for name, rng in ranges.items():
         idxs = np.arange(*rng)
-        fluc = EEG_fluc[:, idxs].mean(axis=1)
-        name2fluc[name] = fluc
-        df = pd.DataFrame({'fMRI_fluc': fMRI_fluc, 'fluc': fluc})
+        range_fluc = EEG_fluc[:, idxs].mean(axis=1)
+        name2fluc[name] = range_fluc
+        df = pd.DataFrame({'fMRI_fluc': fMRI_fluc, 'EEG_fluc': range_fluc})
         df.dropna(inplace=True)
-        r, p = stats.spearmanr(df['fluc'], df['fMRI_fluc'])
+        r, p = stats.spearmanr(df['EEG_fluc'], df['fMRI_fluc'])
+        r = np.arctanh(r)
         # r, p = stats.pearsonr(fluc, fMRI_fluc, nan_policy='omit')
         print(f'{name}: {r=:.3f}, {p=:.3f}')
         name2r[name] = r
@@ -382,12 +421,23 @@ if __name__ == '__main__':
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
     SESSES = ['01_task-rest', '02_task-rest']
-    SESS_INK = ['01_task-inscapes', '02_task-inscapes']
-    SESS_MONKEY = ['01_task-monkey1', '02_task-monkey2']
+    SESS_INK = ['01_task-inscapes', '02_task-inscapes'] # shape things
+
+    SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
+                  '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
+                  '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
+                  # '01_task-peer', # used for E-T calibration
+                  '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
+                  ]
+
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    SESSES += SESS_MONKEY
+    # SESSES = SESS_OTHER
+    # SESSES += SESS_OTHER
+    # SESSES += SESS_MONKEY
+    # SESSES = ['01_task-dme_run-01']
+
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
                ()} #
@@ -421,7 +471,10 @@ if __name__ == '__main__':
                     SE = np.std(l) / np.sqrt(N)
                     t = M / SE
                     p = stats.t.sf(np.abs(t), len(l) - 1)
-                    print(f'{key} ({N=}): {M=:.3f} ({t=:.3f})')
+                    M_low = M - 1.96 * SE
+                    M_high = M + 1.96 * SE
+                    print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
+                          f'({t=:.3f}), {p=:.1e}')
 
     # for key, l in NAME2L.items():
     #     M = np.mean(l)

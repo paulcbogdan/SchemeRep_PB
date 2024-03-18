@@ -180,10 +180,10 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
 
     return sn_roi_act, sns
 
-def get_HCP_df(N=200):
+def get_HCP_df(N=50):
     f = partial(load_HCP_act, N=N,
-                RS=False, clean_confounds=False, LSS=False, LSA=False,
-                compcor=True, GSR=True)
+                RS=True, clean_confounds=False, LSS=False, LSA=False,
+                compcor=True, GSR=False)
 
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = pickle_wrap(get_df_networks,
