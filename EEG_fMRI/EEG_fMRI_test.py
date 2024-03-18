@@ -1,9 +1,13 @@
 import os.path
 
 from nilearn import image
+from nilearn.image import high_variance_confounds
+
 from atlas_utils import get_atlas
 from get_HCP_act import img_data2ar
 from mne.io import read_raw_eeglab
+
+from old.plot_gen import plot_connectivity
 from utils import pickle_wrap, stdize
 import mne
 import numpy as np
@@ -12,7 +16,7 @@ import scipy.stats as stats
 import pandas as pd
 import warnings
 from collections import defaultdict
-from time import time
+from time import time, sleep
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat
@@ -26,7 +30,7 @@ from scipy.io import loadmat
 ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
 # ROOT_EEG_FMRI = fr'C:\Users\Paul\Downloads'
 
-def get_fMRI_ar(sn, sess, combine_regions):
+def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
 
     dir_func = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_preproc'
@@ -35,8 +39,44 @@ def get_fMRI_ar(sn, sess, combine_regions):
         img = image.load_img(fp_fMRI)
     else:
         print(f'No file: {fp_fMRI=}')
+        sleep(1)
         return None, None
-    # img = pickle_wrap(image.load_img, kwargs={'img': fp_fMRI}) # 0.476 Hz
+    # print(fp_fMRI)
+    # dir_mask = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_seg'
+    # fp_mask = fr'{dir_mask}\global_mask.nii.gz'
+    # img_mask = image.load_img(fp_mask)
+
+    # print(img_mask.shape)
+    # print(img_mask)
+    # quit()
+    #
+    # affine = [[-3., 0., 0., 90.],
+    #           [0., 3., 0., -126.],
+    #           [0., 0., 3., -72.],
+    #           [0., 0., 0., 1.]]
+    # affine = np.array(affine)
+    #
+    # img_mask = image.resample_img(img_mask, target_affine=affine,
+    #                               target_shape=(61, 73, 61),
+    #                               interpolation='nearest')
+    # print(img_mask.shape)
+    # img_mask.to_filename('test.nii.gz')
+    #
+    # # print(f'{img_mask.shape=}')
+    # quit()
+    # atlas = get_atlas(natview=True, combine_regions=combine_regions)
+    # quit()
+
+    if clean:
+        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2,))
+        dir_nuisance = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_nuisance'
+        fp_motion = fr'{dir_nuisance}\mc_1-6.txt'
+        df_motion = pd.read_csv(fp_motion, sep=' ', header=None,
+                                names=[f'motion_{i}' for i in range(6)])
+        df_confounds = pd.concat([df_compcor, df_motion], axis=1)
+        img = image.clean_img(img, confounds=df_confounds, high_pass=1 / 128,
+                              standardize=False, t_r=2.1)
+
     data_fMRI = img.get_fdata()
 
     atlas = get_atlas(natview=True, combine_regions=combine_regions)
@@ -51,13 +91,31 @@ def get_fMRI_ar(sn, sess, combine_regions):
     ar_fMRI = stdize(ar_fMRI, axis=-1)
     return ar_fMRI, key2idxs
 
-def get_fMRI_score_sn(sn, sess='01', combine_regions=True):
+def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True):
     ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
                           kwargs={'sn': sn, 'sess': sess,
-                                  'combine_regions': combine_regions},
-                          easy_override=True, verbose=-1)
+                                  'combine_regions': combine_regions,
+                                  'clean': clean},
+                          easy_override=False, verbose=0)
     if ar_fMRI is None:
         return None
+    # print(ar_fMRI.shape)
+    # conn = np.corrcoef(ar_fMRI)
+    # plot_connectivity(conn, atlas=get_atlas(combine_regions=combine_regions))
+
+    atlas = get_atlas(natview=True, combine_regions=combine_regions)
+
+    ROI2idx = {ROI: [] for ROI in atlas['ROI_regions']}
+    for i, region in enumerate(atlas['ROI_regions']):
+        ROI2idx[region].append(i)
+
+    key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['SFG'] + ROI2idx['IFG']
+    key2idxs['IPL'] = ROI2idx['IPL'] + ROI2idx['SPL']
+    key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['EVC']
+    # print(ar_fMRI[key2idxs['MFG']].shape)
+    # quit()
+    # print(ar_fMRI[key2idxs['MFG']])
+    # return ar_fMRI[key2idxs['LOC']].mean(axis=0)
 
     conn_fMRI = ar_fMRI[None, :, :] * ar_fMRI[:, None, :]
     # pairs = [('ATL', 'MFG'), ('ATL', 'IPL'), ('ATL', 'LOC'), ]
@@ -69,7 +127,9 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True):
                                key2idxs['IPL'])].mean(axis=(0, 1))
     IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
                                key2idxs['LOC'])].mean(axis=(0, 1))
-    fluc = MFG_IPL + ATL_LOC# - ATL_MFG - IPL_LOC
+    fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC)
+    # fluc = IPL_LOC - ATL_LOC
+    # fluc = IPL_LOC
     return fluc
 
 def get_event2true(fp_EEG, num_TRs):
@@ -125,7 +185,7 @@ def get_event2true(fp_EEG, num_TRs):
     return event2true, boundary_events
 
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
-                     avg_before=True):
+                     avg_before=True, high_gamma=False):
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
                  'F1', 'C1', 'P1',
@@ -149,9 +209,12 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     if event2true is None:
         return None
 
+    raw = raw.set_eeg_reference('average')
+    # quit()
+
     events = mne.events_from_annotations(raw, verbose=False)
     events = events[0]
-    data = raw.get_data()
+    # data = raw.get_data()
     # print(f'{data.shape=}')
 
     events = events[events[:, 2] == 2]
@@ -167,7 +230,7 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     # picks = 'all'
     # print(raw)
     data_eeg = raw.get_data(picks=picks)
-    freqs = np.arange(1, 51, 1)
+    freqs = np.arange(1, 101 if high_gamma else 51, 1)
     # print(data_eeg.shape)
     # quit()
     ds1 = 1
@@ -254,7 +317,7 @@ def print_events(raw):
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn, kwargs={'sn': sn,
                                                        'sess': sess},
-                            easy_override=False, verbose=-1)
+                            easy_override=True, verbose=-1)
 
     if fMRI_fluc is None:
         return None
@@ -276,13 +339,16 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
              'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
              'P1', 'Pz', 'P2', 'P3', 'P4',
              ]
+    picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
+    # picks = ['POz', 'P1', 'Pz', 'P2', 'P3', 'P4',]
+    # picks = ['C1', 'Cz', 'C2', 'C3', 'C4']
 
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs={'sn': sn,
                                                      'sess': sess,
                                                      'num_TRs': num_TRs,
                                                      'picks': picks,
                                                      'avg_before': avg_before},
-                           easy_override=False, verbose=-1)
+                           easy_override=True, verbose=-1)
 
     if EEG_fluc is None:
         return None
@@ -304,7 +370,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False):
         name2fluc[name] = fluc
         df = pd.DataFrame({'fMRI_fluc': fMRI_fluc, 'fluc': fluc})
         df.dropna(inplace=True)
-        r, p = stats.pearsonr(df['fluc'], df['fMRI_fluc'])
+        r, p = stats.spearmanr(df['fluc'], df['fMRI_fluc'])
         # r, p = stats.pearsonr(fluc, fMRI_fluc, nan_policy='omit')
         print(f'{name}: {r=:.3f}, {p=:.3f}')
         name2r[name] = r
@@ -327,9 +393,8 @@ if __name__ == '__main__':
                ()} #
     NAME2L = defaultdict(list)
     for SN in SNS:
-        # if SN in BAD_SNS:
-        #     continue
         for SESS in SESSES:
+            if SN in ['01', '02', '03', '09'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue
             print(f'- ({SN}; {SESS}) -')
             name2r = test_EEG_fMRI_sn(SN, SESS)

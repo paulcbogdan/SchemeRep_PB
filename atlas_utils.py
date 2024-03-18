@@ -198,6 +198,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
         atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
                                            target_shape=(61, 73, 61),
                                            interpolation='nearest')
+        # atlas['maps'].to_filename(r'E:\PycharmProjects_E\SchemeRep\test_atlas_natview.nii')
     else:
         atlas['maps'] = image.resample_to_img(atlas['maps'], img,
                                               interpolation='nearest')
