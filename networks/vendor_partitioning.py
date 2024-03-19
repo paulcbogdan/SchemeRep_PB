@@ -240,7 +240,7 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
 
     if anat_ver == 3: # Consistent with rbf classifiers (PoG, STG, pSTS discared)
         p_d_ant_labels = ['MFG', 'IFG']
-        p_d_pos_labels = ['IPL', ] # 'SPL'
+        p_d_pos_labels = ['IPL', ] # 'SPL' (SPL not supported by the con_reg)
         p_v_ant_labels = ['ATL', ]
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     elif anat_ver == 2:

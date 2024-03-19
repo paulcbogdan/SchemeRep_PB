@@ -16,7 +16,7 @@ if __name__ == '__main__':
         # 'ENC__full__regBPtrue__scene_obj_separate',
         # 'ENC__full__regBPtrue__scene_obj_combined',
         # 'ENC__full__regBPtrue__scene_obj_LSS1',
-        # 'ENC__full__regBPtrue__scene_obj_LSS2',
+        # ''ENC__full__regBPtrue__scene_obj_LSS2',
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'RVIS__full__regBPfalse',

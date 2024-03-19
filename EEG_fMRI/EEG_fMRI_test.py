@@ -113,6 +113,8 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
     IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
                                key2idxs['LOC'])].mean(axis=(0, 1))
     fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC)
+    # fluc = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC)
+
     # fluc = IPL_LOC - ATL_LOC
     # fluc = IPL_LOC
     return fluc
@@ -328,7 +330,7 @@ def print_events(raw):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
-                     super_slow=False, avg_ref=True):
+                     super_slow=False, avg_ref=False):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
 
@@ -370,7 +372,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
              ]
     # picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
     # picks = ['POz', 'P1', 'Pz', 'P2', 'P3', 'P4',]
-    # picks = ['C1', 'Cz', 'C2', 'C3', 'C4']
+    picks = ['C1', 'Cz', 'C2', 'C3', 'C4']
 
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs={'sn': sn,
                                                      'sess': sess,
