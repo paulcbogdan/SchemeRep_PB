@@ -204,10 +204,10 @@
 204 OcG_R_4_3
 205 OcG_L_4_4
 206 OcG_R_4_4
-207 sOcG_L_2_1
-208 sOcG_R_2_1
-209 sOcG_L_2_2
-210 sOcG_R_2_2
+207 OcG_L_2_1
+208 OcG_R_2_1
+209 OcG_L_2_2
+210 OcG_R_2_2
 211 Amyg_L_2_1
 212 Amyg_R_2_1
 213 Amyg_L_2_2

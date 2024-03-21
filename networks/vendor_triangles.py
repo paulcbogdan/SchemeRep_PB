@@ -71,12 +71,12 @@ def plot_2x2_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False,
 
 
 
-def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False, anat=True):
+def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=False, scrub=False, anat=True):
     df, vndr_cols = pickle_wrap(get_vendor_df, None, kwargs={'fp': fp,
                                                              'scrub': scrub,
                                                              'anat': anat,
                                                              'hemis': hemi},
-                                easy_override=True, cache_dir='cache')
+                                easy_override=False, cache_dir='cache')
 
     # sides = ['dd', 'vv', 'dv_ant', 'dv_pos']
     sides = ['dd', 'vv', 'dv_pos', 'dv_ant']
@@ -109,42 +109,62 @@ def lmer_triangle(fp='obj7_fMRI', plot=True, hemi=True, scrub=False, anat=True):
                        'DP_hemi': 'DorPos Hemi',
                        'DA_hemi': 'DorAnt Hemi',
                        'VP_hemi': 'VenPos Hemi',
-                       'VA_hemi': 'VenAnt Hemi'}
+                       'VA_hemi': 'VenAnt Hemi'
+                       }
+        df = df[['dd', 'vv', 'dv_ant', 'dv_pos']].dropna()
         df_names = df.rename(columns=sides_names)
-        df_names = df_names[map(sides_names.get, sides +
-                                ['age_str', 'inc_str'])]
+        # df_names = df_names[map(sides_names.get, sides +
+        #                         ['age_str', 'inc_str'])]
+
         sns.set(font_scale=1.15)
         g = sns.pairplot(df_names,
-                         hue='Age',
+                         #hue='Age',
                          kind="reg",
                          # palette = 'orange',
                          # palette={'YA': 'dodgerblue', 'OA': 'red'},
-                         palette={'YA': 'green', 'OA': 'magenta'},
+                         # palette={'YA': 'green', 'OA': 'magenta'},
+                         palette='orange',
                          plot_kws={'scatter_kws': {'alpha': .05,
                                                    }}, # 'color': 'orange'
                                    # 'line_kws': {'color': 'orange'}},
-                         diag_kws={'common_norm': False})
-        df_ya = df[df['age_str'] == 'YA'].dropna(subset=sides)
-        df_oa = df[df['age_str'] == 'OA'].dropna(subset=sides)
+                         diag_kind='kde'
+                         # diag_kws={'common_norm': False}
+                         )
+        # df_ya = df[df['age_str'] == 'YA'].dropna(subset=sides)
+        # df_oa = df[df['age_str'] == 'OA'].dropna(subset=sides)
         for i, s0 in enumerate(sides):
             for j, s1 in enumerate(sides):
                 if i == j:
                     continue
                 g.axes[i][j].set_xlim(-11, 11)
+                g.axes[i][j].set_xticks([-10, -5, 0, 5, 10])
                 g.axes[i][j].set_ylim(-11, 11)
-                r_ya, p_ya = stats.pearsonr(df_ya[s0], df_ya[s1])
-                r_oa, p_oa = stats.pearsonr(df_oa[s0], df_oa[s1])
-                if abs(r_oa - r_ya) < .1:
-                    for k in range(6):
-                        g.axes[i][j].get_children()[k].set_color("black")
+
+                if i == 1 and j == 0:
+                    g.axes[i][j].get_children()[0].set_color('dodgerblue')
+                    g.axes[i][j].get_lines()[0].set_color("dodgerblue")
+                elif i == 3 and j == 2:
+                    g.axes[i][j].get_children()[0].set_color('red')
+                    g.axes[i][j].get_lines()[0].set_color("red")
+                else:
+                    g.axes[i][j].get_children()[0].set_color('purple')
+                    g.axes[i][j].get_lines()[0].set_color("purple")
+                # g.axes[i][j].get_lines()[1].set_color("orange")
+
+                # r_ya, p_ya = stats.pearsonr(df_ya[s0], df_ya[s1])
+                # r_oa, p_oa = stats.pearsonr(df_oa[s0], df_oa[s1])
+                # if abs(r_oa - r_ya) < .1:
+                #     for k in range(6):
+                #         g.axes[i][j].get_children()[k].set_color("black")
                     # g.axes[i][j].get_lines()[0].set_color("black")
                     # g.axes[i][j].get_lines()[1].set_color("black")
                     # g.axes[i][j].get_children()[0].set_color('black')
                     # g.axes[i][j].get_children()[3].set_color('black')
-        for lh in g._legend.legendHandles:
-            lh.set_alpha(1)
-            lh._sizes = [50]
+        # for lh in g._legend.legendHandles:
+        #     lh.set_alpha(1)
+        #     lh._sizes = [50]
         plt.show()
+        quit()
 
     ar_main = []
     ar_itr = []
@@ -397,13 +417,18 @@ def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
     print(f'{fp=}')
 
 if __name__ == '__main__':
+    # penguins = sns.load_dataset("penguins")
+    # sns.pairplot(penguins)
+    # plt.show()
+    # quit()
+
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
     # plot_2x2_triangle()
     # lmer_triangle()
-    plot_massive_hemi_corr_matrix()
+    # plot_massive_hemi_corr_matrix()
     # quit()
-    # lmer_triangle()
+    lmer_triangle()
     # plot_meta_corr_matrix()

@@ -72,16 +72,14 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
 
     atlas = get_atlas(combine_regions=combine_regions)
     labels = atlas['labels']
-    bad_labels = {'Str', 'Tha'}
+    bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp',} #
+    # bad_labels = set()
     for i, label in enumerate(labels):
         for bad_label in bad_labels:
             if bad_label in label:
                 z_both[i, :] = np.nan
                 z_both[:, i] = np.nan
                 break
-    # plt.imshow(z_both)
-    # plt.show()
-    # quit()
 
     num_non_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
 
@@ -101,7 +99,9 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
         get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
                             threshold=thr,
                             fn_str='', overlapping=False,
-                            dir_out_full=dir_out, title_extra=title_extra,)
+                            dir_out_full=dir_out,
+                            title_extra=title_extra,
+                            )
 
 
     for i, p in enumerate(partitions):
@@ -127,7 +127,8 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
     if sn_inc_conn is None or age2idxs is None:
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
-                  'atlas_name': 'BNA',
+                  'split': False,
+                  # 'atlas_name': 'BNA',
                   'key_vals': (1, 2, 3) if regress else (1, 3),
                   'combine_regions': combine_regions
                   }
@@ -244,10 +245,10 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
         p_v_ant_labels = ['ATL', ]
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     elif anat_ver == 2:
-        p_d_ant_labels = ['MFG', ]
-        p_d_pos_labels = ['IPL', ]
-        p_v_ant_labels = ['ATL', ]
-        p_v_pos_labels = ['LOC', 'sOcG', ]
+        p_d_ant_labels = ['MFG']
+        p_d_pos_labels = ['IPL']
+        p_v_ant_labels = ['ATL']
+        p_v_pos_labels = ['LOC', 'sOcG', 'OcG']
     elif anat_ver == 1:
         p_d_ant_labels = ['IFG', 'SFG', 'MFG',] #  'OrG'
         p_d_pos_labels = ['IPL', 'SPL', 'Pcun', ] # 'PCC'
@@ -263,6 +264,10 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
     p_d_ant = labels2idxs(p_d_ant_labels)
     p_d_pos = labels2idxs(p_d_pos_labels)
     p_v_ant = labels2idxs(p_v_ant_labels)
+    # print(labels)
+    # print(f'{p_v_ant_labels=}')
+    # print(f'{p_v_ant=}')
+    # quit()
     p_v_pos = labels2idxs(p_v_pos_labels)
 
     p_dorsal = p_d_ant + p_d_pos
@@ -374,15 +379,21 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    # THRESHOLD = 0.99
-    for THRESHOLD in [0.9, 0.95, 0.975, 1.65, 2.0, 2.32]:
+    # THRESHOLD = 0.99 #  0.95, 0.975, 1.65, 2.0, 2.32
+
+    get_vendor_partitions(age='healthy', flip=True, plot=True,
+                          scrub=True, easy_override=True, anat=True,
+                          anat_ver=2)
+    quit()
+    REGRESS = True
+    for THRESHOLD in [.9]:
         get_vendor_partitions(age='healthy', flip=True, plot=True,
                               scrub=True, easy_override=True, thr=THRESHOLD,
-                              combine_regions=False, regress=True)
+                              combine_regions=False, regress=REGRESS)
         # THRESHOLD = .8
         get_vendor_partitions(age='healthy', flip=False, plot=True,
                               scrub=True, easy_override=True, thr=THRESHOLD,
-                              combine_regions=False, regress=True)
+                              combine_regions=False, regress=REGRESS)
 
     # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
     #                       scrub=True, easy_override=False, thr=THRESHOLD)

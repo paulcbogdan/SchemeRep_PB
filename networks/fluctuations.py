@@ -79,7 +79,8 @@ def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
 
 
 def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
-                    tight_anat=True, anat_ver=3, add_hemi=False):
+                    tight_anat=True, anat_ver=3, add_hemi=False,
+                    combine_regions=False):
     sn_roi_act, sns, conn_trials = load_a(fp=fp, norm_std=norm_std, f=f)
     print('Onto get_df_networks...')
     # sn_roi_act = stdize(sn_roi_act, axis=2)
@@ -99,7 +100,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=anat_ver)
+                              anat_ver=anat_ver,
+                              combine_regions=combine_regions)
 
     print(f'{len(p_d_pos)=}')
     print(f'{len(p_d_ant)=}')
@@ -183,13 +185,14 @@ def partial_corr_df(df, cols, cov):
     print(df_result)
     return ar
 
-def analyze_networks(fp='rs_medium', anat_ver=2):
+def analyze_networks(fp='rs_medium', anat_ver=2, combine_regions=False):
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'fp': fp,
                                        'norm_std': False,
                                        'zscore': True,
-                                       'anat_ver': anat_ver},
-                               easy_override=True)
+                                       'anat_ver': anat_ver,
+                                       'combine_regions': combine_regions},
+                               easy_override=False)
 
 
     df['da_dp'] = df['da'] + df['dp']

@@ -80,7 +80,8 @@ def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
 @timing
 @cache
 def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
-                  hemis=True, roiwise=False, zscore=True):
+                  hemis=True, roiwise=False, zscore=True,
+                  anat_ver=2):
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -96,7 +97,8 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=False,
-                              flip=True, thr=.9, scrub=scrub)
+                              flip=True, thr=.9, scrub=scrub,
+                              anat_ver=anat_ver)
 
     assert set(p_d_pos).intersection(p_d_ant) == set()
     assert set(p_d_pos).intersection(p_v_ant) == set()

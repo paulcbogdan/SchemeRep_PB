@@ -31,10 +31,16 @@ def regress_out_multi(X, y):
         y = regress_out(x, y)
     return y
 
-def stdize(v, axis=None, nans=False):
+def stdize(v, axis=None, nans=False, rankdata=False):
+
     import warnings
     warnings.filterwarnings('ignore', category=RuntimeWarning,
                             message='invalid value encountered in')
+    if rankdata:
+        if nans:
+            v = stats.rankdata(v, axis=axis, nan_policy='omit')
+        else:
+            v = stats.rankdata(v, axis=axis)
 
     m = np.nanmean if nans else np.mean
     s = np.nanstd if nans else np.std
@@ -505,3 +511,9 @@ HCP_ROOT = r'F:\HCP_Preprocessing\HCP\HCP_WM_data'
 HCP_CACHE = r'F:\HCP_Preprocessing\HCP\HCP_cache'
 # HCP_CACHE = r'E:\PycharmProjects_E\SchemeRep\cache\HCP_nii'
 HCP_RS_ROOT = r'E:\HCP_RS'
+
+if __name__ == '__main__':
+    test = [-300, 1, 3, 4, 5]
+    test = stdize(test, rankdata=True)
+    print(test)
+

@@ -9,6 +9,7 @@ from old.modularity import get_partition_matrix, get_partition_cross
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap, stdize
 import seaborn as sns
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 
@@ -27,7 +28,7 @@ filterwarnings('ignore', category=SettingWithCopyWarning,)
 
 
 def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
-                        anat_ver=3):
+                        anat_ver=2):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -131,16 +132,44 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
     #                  ('vv', 'dv_ant'),
 
     # cond_sets = [('Within', 'Between')]
+    plt.rcParams.update({'font.size': 14,})
+
+    # sns.set_theme(rc={'figure.figsize': (11.7, 8.27)})
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
+        for wb in ['Within', 'Between']:
+            for sn in df_set['sn'].unique():
+                # match = (df_set['sn'] == sn) # (df_set['within_between'] == wb) &
+                # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
+                match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
+                df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+                # df_set.loc[match, 'vals'] /= df_set.loc[match, 'vals'].std()
+                # print(sn)
+                # quit()
+            # print(df_set.loc[df_set['within_between'] == wb, 'vals'])
+            # df_set.loc[df_set['within_between'] == wb, 'vals'] -= \
+            #     df_set.loc[df_set['within_between'] == wb, 'vals'].mean()
+            # print(df_set.loc[df_set['within_between'] == wb, 'vals'])
+            # quit()
+
+        df_set['PE'] = df_set['inc'].map({'Inc': 'High PE', 'Neu': 'Med. PE',
+                                          'Con': 'Low PE'})
         g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
-                        kind='bar', #ci='sd',
-                        errwidth=1.5, edgecolor='k',
-                        capsize=0.1, height=4, alpha=0.5, linewidth=.7,
-                        palette=sns.color_palette())
+                        kind='bar', ci=None,
+                        # errorbar=None,
+                        # errwidth=1.5,
+                        edgecolor='k',
+                        # capsize=0.1, height=4,
+                        alpha=0.5, linewidth=.7,
+                        # palette=sns.color_palette()
+                        palette=['dodgerblue', 'red'],
+                        height=5, aspect=0.8
+                        )
+        # plt.show()
+        # quit()
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['wb_num'] = df_set['within_between'].map(
@@ -160,11 +189,13 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
         if skip_plot:
             continue
 
-        # g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
-        #       hue=plot_params['hue'], alpha=.4,
-        #       data=df_set[['inc', 'vals', 'within_between']],
-        #       palette=sns.color_palette(), dodge=True, edgecolor='k',
-        #       linewidth=0.7)
+        # sns.color_palette()
+        g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
+              hue=plot_params['hue'], alpha=.4,
+              data=df_set[['inc', 'vals', 'within_between']],
+              palette=['dodgerblue', 'red'], dodge=True, edgecolor='k',
+              linewidth=0.7)
+        # plt.legend([], [], frameon=False)
 
         if cond_set == ('Within', 'Between'):
             # print(df_set[['inc', 'vals']])
@@ -184,11 +215,12 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
                     f'Three-level [Inc/Neu/Con] x Direction: p = {p_reg:.3f} ')
             plt.suptitle(supt)
 
-            sns.move_legend(
-                g, "lower center",
-                bbox_to_anchor=(0.9, 0.63), ncol=1,
-                title=None, frameon=False,
-            )
+            # sns.move_legend(
+            #     g, "lower center",
+            #     bbox_to_anchor=(0.9, 0.63), ncol=1,
+            #     title=None, frameon=False,
+            # )
+        g._legend.remove()
 
         #     pairs = [
         #         [('Inc', 'Between'), ('Con', 'Between')],
@@ -208,7 +240,10 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
         # # annot.apply_test().annotate()
         # annot.apply_and_annotate()
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
-        # plt.xlim(-.5, 1.5)
+        plt.xlim(-.5, 2.5)
+        plt.ylim(-.145, .145)
+        g.set_xticklabels(['High PE', 'Med. PE', 'Low PE'])
+        plt.gca().spines['bottom'].set_visible(False)
         plt.xlabel('')
         plt.ylabel('Mean connectivity')
         plt.tight_layout()
@@ -372,11 +407,6 @@ def plot_four(df_agg):
         t, p = stats.ttest_ind(dif_YA, dif_OA)
         title_itr = f'Age x Congruency: {t=:.2f}, {p=:.3f}'
 
-        # sns.move_legend(
-        #     g, "lower center",
-        #     bbox_to_anchor=(0.9, 0.5), ncol=1,
-        #     title=None, frameon=False,
-        # )
 
         pairs = [
             ['Inc', 'Con']

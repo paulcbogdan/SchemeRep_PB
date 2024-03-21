@@ -31,7 +31,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=combine_bilateral,
                           split=split, split_code='xyz',
-                          new_space='3' in fp or '4' in fp or '7' in fp)
+                          )
 
     # age2sn = get_sns('all' if fp_all else fp,
     #                  sh=False)
@@ -79,7 +79,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                                      combine_regions=combine_regions)
             except TypeError as e:
                 print(f'Error missing files ({sn}):', e)
-                quit()
+                continue
                 # ROI2vecs0
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:

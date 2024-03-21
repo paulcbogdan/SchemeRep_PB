@@ -97,9 +97,29 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         print('Zero edge weights!')
         return
 
+    chord_kw = {'alphas': .5}
+    glass_kw = {}
+
     network_colors = {'Uncertain': 'black', 'Visual': 'purple',
                       'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
                       'Limbic': 'burlywood', 'FPCN': 'orange', 'DMN': 'red'}
+
+    if 'ttest_modules' in dir_out:
+        network_colors = {'Uncertain': 'k', 'Visual': 'k',
+                          'SM': 'k', 'DAN': 'k', 'VAN': 'k',
+                          'Limbic': 'k', 'FPCN': 'k', 'DMN': 'k'}
+        chord_kw['vmin'] = -4
+        chord_kw['vmax'] = 4
+        glass_kw['vmin'] = -4
+        glass_kw['vmax'] = 4
+        glass_kw['linewidths'] = 3.
+        if 'flipTrue' in dir_out:
+            chord_kw['vmax'] = 2
+            glass_kw['vmax'] = 2
+            edge_weights = -edge_weights
+        else:
+            chord_kw['vmin'] = -2
+            glass_kw['vmin'] = -2
 
     network_order = ['FPCN', 'DMN', 'DAN', 'Visual', 'SM', 'Limbic',
                      'Uncertain', 'VAN']
@@ -108,7 +128,9 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
     plot_and_combine(dir_out, fn, idx_to_label, edges,
                      edge_weights=edge_weights, coords=coords,
                      network_order=network_order, network_colors=network_colors,
-                     title=title, chord_kwargs={'alphas': .5})
+                     title=title, chord_kwargs=chord_kw,
+                     glass_kwargs=glass_kw,
+                     only1glass=False)
     # print(f'{dir_out=}')
     # print(f'{fn=}')
     # quit()

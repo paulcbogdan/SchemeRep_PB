@@ -290,7 +290,10 @@ def get_trial_info(sn, easy_override=False, ret=True):
     fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
 
     dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
-    df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp, easy_override=easy_override, verbose=False, dt_max=dt_max)
+
+    df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp,
+                        easy_override=easy_override, verbose=False,
+                        dt_max=dt_max)
     return df_sn
 
 def get_trial_info_(sn, ret=True):
@@ -306,6 +309,7 @@ def get_trial_info_(sn, ret=True):
     LSS1_root5 = fr'fMRI_in/{sn}/ENC_LSS1/OBJ'
     LSS2_root6 = fr'fMRI_in/{sn}/ENC_LSS2/OBJ'
     new_GM_root = fr'fMRI_in/{sn}/ENC_GM20_LLS1_bpF_full/OBJ'
+    no_GRS_enc_root = fr'fMRI_in/{sn}/Enc_NoGSR_8/OBJ'
 
     df_sn_as_l = []
     inc_run_cnt = defaultdict(lambda: 0)
@@ -411,11 +415,32 @@ def get_trial_info_(sn, ret=True):
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
 
+            glob_obj8 = fr'{no_GRS_enc_root}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
+            glob_obj8 = glob(glob_obj8)
+            glob_scn8 = fr'{no_GRS_enc_root}/ENC_sub{sn}_run{run}_trial{trial}_*_scene.nii'
+            glob_scn8 = glob(glob_scn8)
+            try:
+                fp_obj8 = glob_obj8[0]
+                fp_scn8 = glob_scn8[0]
+            except IndexError:
+                if sn in ['116', '125', '138', '213', '230', '234']:
+                    fp_obj8 = None
+                    fp_scn8 = None
+                elif sn == '224' and run == 3:
+                    fp_obj8 = None
+                    fp_scn8 = None
+                elif sn == '234' and run == 1:
+                    fp_obj8 = None
+                    fp_scn8 = None
+                else:
+                    raise IndexError(f'fp8 IndexError: {sn}, {run}, {trial}')
+
             glob_cmb3 = fr'{cmb_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_cmb3 = glob(glob_cmb3)
             try:
                 fp_cmb3 = glob_cmb3[0]
             except IndexError:
+
                 if sn == '224' and run == 3:
                     fp_cmb3 = None
                 elif sn == '234' and run == 1:
@@ -484,12 +509,13 @@ def get_trial_info_(sn, ret=True):
                  'obj5_fMRI': fp_obj5,
                  'obj6_fMRI': fp_obj6,
                  'obj7_fMRI': fp_obj7,
+                 'obj8_fMRI': fp_obj8,
 
                  'scn_fMRI': fp_scn,
                  'scn3_fMRI': fp_scn3,
                  'scn4_fMRI': fp_scn4,
                  'scn7_fMRI': fp_scn7,
-
+                 'scn8_fMRI': fp_scn8,
 
                  'cmb3_fMRI': fp_cmb3,
                  'obj': obj,
@@ -891,7 +917,7 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    df_sn = get_trial_info_('116')
+    df_sn = get_trial_info_('102')
     # print(df_sn['inc_hit_hit'])
-    print(df_sn['con7_fMRI'])
-
+    print(df_sn['obj8_fMRI'])
+    print(df_sn['scn8_fMRI'])

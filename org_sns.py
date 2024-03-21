@@ -78,7 +78,11 @@ def test_fp(fp='obj3_fMRI', ages=(1, 2)):
     for age in ages:
         for sn in tqdm(age2sn[age], desc=f'Testing org_bhv for {fp}, {age=}'):
             print(f'Running ({fp}): {sn=}')
-            df_sn = get_trial_info(sn, easy_override=True)
+            try:
+                df_sn = get_trial_info(sn, easy_override=True)
+            except Exception as e:
+                print(f'ERROR ({sn}): {e}')
+                continue
             num_nans = df_sn[fp].isna().sum()
             has_con_hits = df_sn['con_hit'].notna().sum() > 0
             has_vis_hits = df_sn['vis_hit'].notna().sum() > 0
@@ -121,7 +125,7 @@ if __name__ == '__main__':
     # quit()
 
     # test_fp('bl7_fMRI')
-    test_fp('obj7_fMRI')
+    test_fp('obj8_fMRI')
     # test_fp('vis7_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)
