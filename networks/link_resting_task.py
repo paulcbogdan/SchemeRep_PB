@@ -561,8 +561,10 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
 def permutation_test_(n_sim=1000, **kwargs):
     M_corrs = []
+    kwargs['shuffle'] = True
+    kwargs['do_plot'] = False
     for _ in range(n_sim):
-        M_corr = link_activity(**kwargs, do_plot=False, shuffle=True)
+        M_corr = link_activity(**kwargs)
         M_corrs.append(M_corr)
     return M_corrs
 
@@ -597,9 +599,11 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
                   # fp_task='EMOTION',
                   fp_task='obj7_fMRI',
                   HCP=True,
-                  abs_dist=True, rankdata=False, alt_calc=False,
+                  abs_dist=True,
                   M_after=False, regr=True,
+                  alt_calc=False,
 
+                  rankdata=False,
                   light=False, medium=True,
                   near_OG=False, trad=False, true_OG=False,
                   other_task=False,
@@ -633,20 +637,29 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
               'alt_calc2': alt_calc2,
               'abs_dist': abs_dist,
               'rankdata': rankdata,
+              'do_plot': False,
+              'shuffle': False
               # 'weighted': weighted
               }
     assert not (alt_calc and alt_calc2)
+    assert not (alt_calc and M_after)
     # assert not (do_conn and not combine_regions)
-    for split in [.5]: # . [0.3]:# .5, .4, .5, .4, .3, .2,   .2, .1, .05 .3,
+    for split in [.5, .25, .1, .05,]: # . [0.3]:# .5,
         assert not (do_conn and not combine_regions and M_after and
                     split > 0.1)
 
         kwargs['split'] = split
         print('--*--')
+        print(f'{kwargs=}')
+        print('-')
         pprint(kwargs)
         print('--*--')
 
-        M_corr = link_activity(**kwargs, do_plot=False, shuffle=False)
+        M_corr = pickle_wrap(link_activity, kwargs=kwargs)
+        print(f'Results ({split}): '
+              f'{Fore.LIGHTYELLOW_EX}{M_corr=:.4f}{Fore.RESET}')
+
+        # link_activity(**kwargs, do_plot=False, shuffle=False)
         # quit()
         #                       do_plot=False, shuffle=False)
         # M_corrs = link_activity(do_generic=not do_generic, do_conn=do_conn,

@@ -94,9 +94,9 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         ROI2idx[region].append(i)
 
     if many_ROI:
-        key2idxs['MFG'] = ROI2idx['MFG']# + ROI2idx['IFG'] # ROI2idx['SFG'] +
+        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] # ROI2idx['SFG'] +
         key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
-        key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG']# + ROI2idx['EVC']# +
+        key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
 
     # print(ar_fMRI[key2idxs['MFG']].shape)
     # quit()
@@ -113,12 +113,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         trils = np.tril_indices(246)
         trils = list(zip(*trils))
         print(len(trils))
-        # low_cutoff = 2173
-        # high_cutoff = 19562
-        # print(gen_idx2rank)
-        # np.random.shuffle(gen_idx2rank)
-        # print(gen_idx2rank)
-        # quit()
+
         nan_cutoff = 21736
         low_cutoff = nan_cutoff // 10
         high_cutoff = nan_cutoff - low_cutoff - 1
@@ -163,15 +158,9 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
                   np.nanmean(high0, axis=0))
         dif_11 = (np.nanmean(low1, axis=0) *
                   np.nanmean(high1, axis=0))
-        fluc = same_low + same_high - (dif_01 + dif_10 + dif_00 + dif_11) / 2
-        # low_M = np.nanmean(low_conns, axis=0)
-        # low_M = stdize(low_M, axis=-1, rankdata=False)
-        # high_M = np.nanmean(high_conns, axis=0)
-        # high_M = stdize(high_M, axis=-1, rankdata=False)
-        # fluc = low_M * high_M
-        # fluc = np.abs(low_M - high_M)
-        # print(fluc.shape)
-        # quit()
+        fluc = (same_low + same_high -
+                (dif_01 + dif_10 + dif_00 + dif_11) / 2)
+
     elif abs_analysis:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
                                    key2idxs['MFG'])].mean(axis=(0, 1))
@@ -186,7 +175,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
         IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
         # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
-        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC)
+        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC)
     else:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'], key2idxs['MFG'])]
         ATL_MFG = np.reshape(ATL_MFG, (-1, ATL_MFG.shape[-1]))
@@ -226,7 +215,10 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         RD = ATL_MFG * MFG_IPL
         RV = ATL_MFG * ATL_LOC
         fluc = DD_VV + DV_DV - (LD + LV + RD + RV) / 2
+        # fluc = LD + RV
+
         fluc = fluc[0]
+
 
         # print(DV_AP.shape)
         # plt.hist(DV_AP.flatten(), bins=100)
@@ -452,7 +444,8 @@ def print_events(raw):
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
-                     abs_analysis=True
+                     abs_analysis=True,
+                     all_conn=False
                      ):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
@@ -461,7 +454,8 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                             kwargs={'sn': sn, 'sess': sess,
                                     'many_ROI': many_ROI,
                                     'combine_regions': False,
-                                    'abs_analysis': abs_analysis},
+                                    'abs_analysis': abs_analysis,
+                                    'all_conn': all_conn},
                             easy_override=True, verbose=-1,)
 
     if fMRI_fluc is None:
@@ -496,7 +490,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                                      'high_gamma': high_gamma,
                                                      'super_slow': super_slow,
                                                      'avg_ref': avg_ref},
-                           easy_override=True, verbose=-1)
+                           easy_override=False, verbose=-1)
     # (ch, freq, TR)
 
     if EEG_fluc is None:
@@ -522,6 +516,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         ranges['high_gamma'] = (50, 100)
 
     # ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
+    ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 6)})
 
     name2fluc = {}
     name2r = {}
@@ -612,7 +607,7 @@ if __name__ == '__main__':
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    SESSES = SESS_OTHER
+    # SESSES = SESS_OTHER
     # SESSES += SESS_OTHER
     # SESSES += SESS_MONKEY
     # SESSES = ['01_task-dme_run-01']
