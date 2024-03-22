@@ -146,6 +146,9 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         high0 = high_conns[rnd_high[::2]]
         high1 = high_conns[rnd_high[1::2]]
 
+
+
+
         same_low = (np.nanmean(low0, axis=0) *
                     np.nanmean(low1, axis=0))
         same_high = (np.nanmean(high0, axis=0) *
@@ -158,8 +161,16 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
                   np.nanmean(high0, axis=0))
         dif_11 = (np.nanmean(low1, axis=0) *
                   np.nanmean(high1, axis=0))
+
+
+
         fluc = (same_low + same_high -
                 (dif_01 + dif_10 + dif_00 + dif_11) / 2)
+
+        dif_abs = np.abs(np.nanmean(high_conns, axis=0) -
+                         np.nanmean(low_conns, axis=0))
+
+        fluc = dif_abs
 
     elif abs_analysis:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
@@ -444,8 +455,8 @@ def print_events(raw):
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
-                     abs_analysis=True,
-                     all_conn=False
+                     abs_analysis=False,
+                     all_conn=True
                      ):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
