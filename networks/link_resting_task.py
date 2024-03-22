@@ -307,7 +307,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                   other_task=False, regr=False, near_OG=False,
                   M_after=False, true_OG=False, only_cortical=True,
                   alt_shuffle=False, task_and_rs=False,
-                  alt_calc=False, GSR=False, alt_calc2=False,
+                  alt_calc=True, GSR=False, alt_calc2=False,
                   abs_dist=False, rankdata=False):
     if alt_shuffle:
         fp_task = 'bl7_fMRI'
@@ -594,18 +594,21 @@ def permutation_test(**kwargs):
 
 
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
-                  do_hit_hit=False,
                   # fp_task='EMOTION',
                   fp_task='obj7_fMRI',
                   HCP=True,
+                  abs_dist=True, rankdata=False, alt_calc=False,
+                  M_after=False, regr=True,
+
                   light=False, medium=True,
                   near_OG=False, trad=False, true_OG=False,
-                  other_task=False, regr=True,
-                  conn_euc=False, M_after=False,
+                  other_task=False,
+                  conn_euc=False,
                   only_cortical=True, alt_shuffle=False,
-                  task_and_rs=False, alt_calc=False,
+                  task_and_rs=False,
                   GSR=False, alt_calc2=False,
-                  abs_dist=True, rankdata=False):
+                  do_hit_hit=False,
+                  ):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,

@@ -115,6 +115,10 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         print(len(trils))
         # low_cutoff = 2173
         # high_cutoff = 19562
+        # print(gen_idx2rank)
+        # np.random.shuffle(gen_idx2rank)
+        # print(gen_idx2rank)
+        # quit()
         nan_cutoff = 21736
         low_cutoff = nan_cutoff // 20
         high_cutoff = nan_cutoff - low_cutoff
@@ -146,7 +150,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
                   np.nanmean(high_conns[1::2, :], axis=0))
         dif_10 = (np.nanmean(high_conns[::2, :], axis=0) *
                   np.nanmean(low_conns[1::2, :], axis=0))
-        fluc = same_low + same_high - dif_01 - dif_10
+        fluc = same_low + same_high - dif_01 - dif_10 #
         # low_M = np.nanmean(low_conns, axis=0)
         # low_M = stdize(low_M, axis=-1, rankdata=False)
         # high_M = np.nanmean(high_conns, axis=0)
