@@ -637,7 +637,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
               }
     assert not (alt_calc and alt_calc2)
     # assert not (do_conn and not combine_regions)
-    for split in [.1]: # . [0.3]:# .5, .4, .5, .4, .3, .2,   .2, .1, .05 .3,
+    for split in [.5]: # . [0.3]:# .5, .4, .5, .4, .3, .2,   .2, .1, .05 .3,
         assert not (do_conn and not combine_regions and M_after and
                     split > 0.1)
 

@@ -120,8 +120,8 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         # print(gen_idx2rank)
         # quit()
         nan_cutoff = 21736
-        low_cutoff = nan_cutoff // 20
-        high_cutoff = nan_cutoff - low_cutoff
+        low_cutoff = nan_cutoff // 10
+        high_cutoff = nan_cutoff - low_cutoff - 1
 
         low_conns = []
         for idx in range(nan_cutoff):
@@ -142,15 +142,28 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         high_conns = np.array(high_conns)
         low_conns = stdize(low_conns, axis=-1, rankdata=False)
         high_conns = stdize(high_conns, axis=-1, rankdata=False)
-        same_low = (np.nanmean(low_conns[::2, :], axis=0) *
-                    np.nanmean(low_conns[1::2, :], axis=0))
-        same_high = (np.nanmean(high_conns[::2, :], axis=0) *
-                     np.nanmean(high_conns[1::2, :], axis=0))
-        dif_01 = (np.nanmean(low_conns[::2, :], axis=0) *
-                  np.nanmean(high_conns[1::2, :], axis=0))
-        dif_10 = (np.nanmean(high_conns[::2, :], axis=0) *
-                  np.nanmean(low_conns[1::2, :], axis=0))
-        fluc = same_low + same_high - dif_01 - dif_10 #
+        rnd_low = np.arange(low_conns.shape[0])
+        np.random.shuffle(rnd_low)
+        low0 = low_conns[rnd_low[::2]]
+        low1 = low_conns[rnd_low[1::2]]
+        rnd_high = np.arange(high_conns.shape[0])
+        np.random.shuffle(rnd_high)
+        high0 = high_conns[rnd_high[::2]]
+        high1 = high_conns[rnd_high[1::2]]
+
+        same_low = (np.nanmean(low0, axis=0) *
+                    np.nanmean(low1, axis=0))
+        same_high = (np.nanmean(high0, axis=0) *
+                     np.nanmean(high1, axis=0))
+        dif_01 = (np.nanmean(low0, axis=0) *
+                  np.nanmean(high1, axis=0))
+        dif_00 = (np.nanmean(low0, axis=0) *
+                  np.nanmean(high0, axis=0))
+        dif_10 = (np.nanmean(low1, axis=0) *
+                  np.nanmean(high0, axis=0))
+        dif_11 = (np.nanmean(low1, axis=0) *
+                  np.nanmean(high1, axis=0))
+        fluc = same_low + same_high - (dif_01 + dif_10 + dif_00 + dif_11) / 2
         # low_M = np.nanmean(low_conns, axis=0)
         # low_M = stdize(low_M, axis=-1, rankdata=False)
         # high_M = np.nanmean(high_conns, axis=0)
@@ -172,8 +185,8 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         ATL_LOC = stdize(ATL_LOC, axis=-1, rankdata=False)
         MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
         IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
-        fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
-        # fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC) # MFG_IPL + ATL_LOC)#
+        # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
+        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC)
     else:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'], key2idxs['MFG'])]
         ATL_MFG = np.reshape(ATL_MFG, (-1, ATL_MFG.shape[-1]))
@@ -191,34 +204,41 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         IPL_LOC = np.reshape(IPL_LOC, (-1, IPL_LOC.shape[-1]))
         IPL_LOC = np.nanmean(IPL_LOC, axis=0)[None]
 
-        DV = np.concatenate([IPL_LOC, ATL_MFG], axis=0)
+        # DV = np.concatenate([IPL_LOC, ATL_MFG], axis=0)
         # print(DV.shape)
         # quit()
-        DV = stdize(DV, axis=-1, rankdata=True)
-        AP = np.concatenate([ATL_LOC, MFG_IPL], axis=0)
-        AP = stdize(AP, axis=-1, rankdata=True)
+        # DV = stdize(DV, axis=-1, rankdata=True)
+        # AP = np.concatenate([ATL_LOC, MFG_IPL], axis=0)
+        # AP = stdize(AP, axis=-1, rankdata=True)
         # print(DV.shape)
         # print(AP.shape)
-        DV_AP = DV[None, ...] * AP[:, None, ...]
+        # DV_AP = DV[None, ...] * AP[:, None, ...]
+
+        IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
+        ATL_LOC = stdize(ATL_LOC, axis=-1, rankdata=False)
+        MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
+        ATL_MFG = stdize(ATL_MFG, axis=-1, rankdata=False)
+
+        DD_VV = IPL_LOC * ATL_MFG
+        DV_DV = ATL_LOC * MFG_IPL
+        LD = IPL_LOC * MFG_IPL
+        LV = IPL_LOC * ATL_LOC
+        RD = ATL_MFG * MFG_IPL
+        RV = ATL_MFG * ATL_LOC
+        fluc = DD_VV + DV_DV - (LD + LV + RD + RV) / 2
+        fluc = fluc[0]
+
         # print(DV_AP.shape)
         # plt.hist(DV_AP.flatten(), bins=100)
         # plt.show()
         # quit()
-        fluc = DV_AP.mean(axis=(0, 1))
+        # fluc = DV_AP.mean(axis=(0, 1))
         # print(fluc)
 
         # print(f'{np.mean(fluc)=:.9f}')
 
 
-        test = get_fMRI_score_sn(sn, sess=sess,
-                                 combine_regions=False, clean=True,
-                                 many_ROI=True, abs_analysis=True)
-        if test is None:
-            return fluc
-        # print(f'{test=}')
-        # print(f'{fluc=}')
-        r, p = stats.spearmanr(fluc, test)
-        print(f'corr x abs: {r=:.3f}, {p=:.3f}')
+
 
     return fluc
 
@@ -476,12 +496,12 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                                      'high_gamma': high_gamma,
                                                      'super_slow': super_slow,
                                                      'avg_ref': avg_ref},
-                           easy_override=False, verbose=-1)
+                           easy_override=True, verbose=-1)
     # (ch, freq, TR)
 
     if EEG_fluc is None:
         return None, None
-    num_nans = np.isnan(EEG_fluc[:, 4]).sum()
+    num_nans = np.isnan(EEG_fluc[0, 4]).sum()
     print(f'{num_nans=}')
     # EEG_fluc = np.log(EEG_fluc)
     EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
@@ -592,7 +612,7 @@ if __name__ == '__main__':
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    # SESSES = SESS_OTHER
+    SESSES = SESS_OTHER
     # SESSES += SESS_OTHER
     # SESSES += SESS_MONKEY
     # SESSES = ['01_task-dme_run-01']
