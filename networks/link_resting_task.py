@@ -1,4 +1,5 @@
 import os
+import pickle
 
 from tqdm import tqdm
 
@@ -325,6 +326,7 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
                           near_OG=near_OG, true_OG=true_OG,
                           GSR=GSR)
     # print(f'{sn_roi_rs.shape=}')
+    # print('TEST C')
     if task_and_rs:
         _, sn_roi_rs_, _, _, _ = \
             load_task_rs_data(combine_regions, only_cortical=only_cortical,
@@ -344,13 +346,14 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     if shuffle and not shuffle_ss:
         # NOTE: On 3/15/2024, I moved this from after do_conn to before
         sn_roi_act = shuffle_rows(sn_roi_act)
-
+    # print('TEST A')
+    # print(sn_roi_rs.shape)
+    # quit()
     if do_conn:
         sn_roi_act = stdize(sn_roi_act, nans=True, axis=-1)
         sn_roi_act = act2conn(sn_roi_act, conn_euc=conn_euc)
-        sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
-        sn_roi_rs = act2conn(sn_roi_rs, conn_euc=conn_euc)
 
+    # print('TEST B')
     sn_inc_roi_Ms = np.nanmean(sn_roi_act, axis=-1)
     generic_ts, sn_roi_difs = get_effs(sn_inc_roi_Ms, regr=regr)
 
@@ -360,12 +363,19 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     gen_rank2idx = generic_ts.argsort()
 
     gen_idx2rank = np.argsort(gen_rank2idx).astype(float)
+    # with open(f'cache/gen_idx2rank_test.pkl', 'wb') as f:
+    #     pickle.dump(gen_idx2rank, f)
+    # print(f'{gen_idx2rank=}')
+    # quit()
 
     gen_idx2rank[gen_idx2rank >= nan_cutoff] = np.nan
 
     low_cutoff = int(nan_cutoff * split)
+    # print(f'{low_cutoff=}')
     high_cutoff = int(nan_cutoff * (1 - split))
-
+    # print(f'{high_cutoff=}')
+    # print(f'{nan_cutoff=}')
+    # quit()
 
     if do_plot:
         gen_idx2rank[(gen_idx2rank > low_cutoff) &
@@ -402,12 +412,13 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
     if verbose: print('Onto looping')
     i2con_rois = []
     i2inc_rois = []
+    if do_generic:
+        rank2idx = gen_rank2idx
+        n_nans_sn = n_nans
+        nan_idxs = np.argwhere(np.isnan(generic_ts))[:, 0]
+
     for sn_i in range(n_sn): # , position=0, leave=False)
-        if do_generic:
-            rank2idx = gen_rank2idx
-            n_nans_sn = n_nans
-            nan_idxs = np.argwhere(np.isnan(generic_ts))[:, 0]
-        else:
+        if not do_generic:
             sn_effs = sn_roi_difs[sn_i, :]
             n_nans_sn = np.sum(np.isnan(sn_effs))
             rank2idx = sn_effs.argsort()
@@ -432,6 +443,12 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
         i2con_rois = i2con_rois[permuter]
         i2inc_rois = i2inc_rois[permuter]
 
+    # print(f'{i2con_rois=}')
+    # quit()
+
+    # sn_roi_rs = stdize(sn_roi_rs, nans=True, axis=-1)
+    # sn_roi_rs = act2conn(sn_roi_rs, conn_euc=conn_euc)
+
     for sn_i in range(sn_roi_rs.shape[0]):
         if sns[sn_i] == '138': continue
         if sns[sn_i] == '131': continue
@@ -439,9 +456,35 @@ def link_activity(do_generic=True, do_conn=True, verbose=0,
 
 
         inc_rois, con_rois = i2inc_rois[sn_i], i2con_rois[sn_i]
+        max_inc_rois = np.nanmax(inc_rois)
+        # print(f'{max_inc_rois=}')
+        max_con_rois = np.nanmax(con_rois)
+        # print(f'{max_con_rois=}')
+        # print(f'{sn_roi_rs.shape=}')
+        # quit()
 
-        rs_inc = sn_roi_rs[sn_i, inc_rois, :]
-        rs_con = sn_roi_rs[sn_i, con_rois, :]
+        trils = np.tril_indices(sn_roi_rs[sn_i, :, :].shape[0], -1)
+        trils = list(zip(*trils))
+        rs_inc = []
+        # for i, j in trils:
+        # if i in inc_rois and j in inc_rois:
+        for idx in inc_rois:
+            i, j = trils[idx]
+            rs_inc.append(sn_roi_rs[sn_i, i, :] * sn_roi_rs[sn_i, j, :])
+        rs_inc = np.array(rs_inc)
+        rs_con = []
+        for idx in con_rois:
+            i, j = trils[idx]
+            rs_con.append(sn_roi_rs[sn_i, i, :] * sn_roi_rs[sn_i, j, :])
+        rs_con = np.array(rs_con)
+
+        # print(f'{rs_inc.shape=}')
+        # print(f'{rs_con.shape=}')
+        # print(len(trils))
+        # quit()
+
+        # rs_inc = sn_roi_rs[sn_i, inc_rois, :]
+        # rs_con = sn_roi_rs[sn_i, con_rois, :]
 
 
         n_con_nans = np.sum(np.isnan(rs_con))
@@ -550,7 +593,7 @@ def permutation_test(**kwargs):
 
 
 
-def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
+def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
                   do_hit_hit=False,
                   # fp_task='EMOTION',
                   fp_task='obj7_fMRI',
@@ -562,7 +605,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
                   only_cortical=True, alt_shuffle=False,
                   task_and_rs=False, alt_calc=False,
                   GSR=False, alt_calc2=False,
-                  abs_dist=True, rankdata=True):
+                  abs_dist=True, rankdata=False):
     kwargs = {
               'do_conn': do_conn,
               'combine_regions': combine_regions,
@@ -591,7 +634,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=True,
               }
     assert not (alt_calc and alt_calc2)
     # assert not (do_conn and not combine_regions)
-    for split in [.5]: # . [0.3]:# .5, .4, .5, .4, .3, .2,   .2, .1, .05 .3,
+    for split in [.1]: # . [0.3]:# .5, .4, .5, .4, .3, .2,   .2, .1, .05 .3,
         assert not (do_conn and not combine_regions and M_after and
                     split > 0.1)
 
