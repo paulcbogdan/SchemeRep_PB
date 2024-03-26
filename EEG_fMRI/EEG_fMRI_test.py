@@ -1,8 +1,10 @@
 import os.path
 
 from nilearn import image
+from nilearn.glm.first_level import compute_regressor
 from nilearn.image import high_variance_confounds
 
+from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
 from atlas_utils import get_atlas
 from get_HCP_act import img_data2ar
 from mne.io import read_raw_eeglab
@@ -81,6 +83,20 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
                                   'combine_regions': combine_regions,
                                   'clean': clean},
                           easy_override=False, verbose=0,)
+    # from scipy import signal
+    # hrf = get_hrf()
+    # hrf[0] = .001
+    # for i in range(ar_fMRI.shape[0]):
+    #     print(ar_fMRI[i, :-100].shape)
+    #     plt.plot(ar_fMRI[i, :-100])
+    #     test, _ =  signal.deconvolve(ar_fMRI[i,: ], hrf)
+    #     plt.plot(test[:-200])
+    #     plt.show()
+    #     print(test.shape)
+    #     quit()
+    #     ar_fMRI[i, :] = signal.deconvolve(ar_fMRI[i, :], hrf)
+
+
     if ar_fMRI is None:
         return None
     # print(ar_fMRI.shape)
@@ -186,7 +202,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
         IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
         # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
-        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC)
+        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC) ** 2
     else:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'], key2idxs['MFG'])]
         ATL_MFG = np.reshape(ATL_MFG, (-1, ATL_MFG.shape[-1]))
@@ -452,10 +468,30 @@ def print_events(raw):
     #  that it's not 2.1 s apart like the event code = 2 events are.
     #  The code = 6 events are 2 s apart and there are 300 of them.
 
+def get_hrf():
+    onset, amplitude, duration = 0.0, 1.0, 0.1
+    exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
+    # time_length = 21
+    frame_times = np.arange(10) * 2.1
+    # print(frame_times)
+    # quit()
+    signal, _labels = compute_regressor(
+        exp_condition,
+        'spm',
+        frame_times,
+        con_id="main",
+        oversampling=50,
+        # min
+    )
+    # print(signal.shape)
+    # print(signal)
+    # quit()
+    return signal[:, 0]
+
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
-                     abs_analysis=False,
+                     abs_analysis=True,
                      all_conn=True
                      ):
     # changed to remove SFGG
@@ -467,7 +503,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                     'combine_regions': False,
                                     'abs_analysis': abs_analysis,
                                     'all_conn': all_conn},
-                            easy_override=True, verbose=-1,)
+                            easy_override=False, verbose=-1,)
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -514,20 +550,57 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     # print(f'{EEG_fluc.shape=}')
     # print(f'{fMRI_fluc.shape=}')
 
-    EEG_fluc = EEG_fluc[5:-5] # clip bad TFR from end
-    fMRI_fluc = fMRI_fluc[5:-5] # clip bad TFR from end
+    # EEG_fluc = EEG_fluc[5:-5] # clip bad TFR from end
+    # fMRI_fluc = fMRI_fluc[5:-5] # clip bad TFR from end
+
+    # print(EEG_fluc.shape)
+    # quit()
+
+
+    #
+    import scipy.ndimage as ndimage
+    HRF = get_hrf()
+    # plt.imshow(EEG_fluc.T, aspect='auto', origin='lower')
+    # plt.show()
+    # EEG_fluc = np.sqrt(EEG_fluc)
+    # print(EEG_fluc.shape)
+    # quit()
+
+    for i in range(EEG_fluc.shape[1]):
+        prev_val = EEG_fluc[0, i]
+        for j in range(EEG_fluc.shape[0]):
+            if np.isnan(EEG_fluc[j, i]):
+                EEG_fluc[j, i] = prev_val
+            prev_val = EEG_fluc[j, i]
+
+    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='constant',
+                                  origin=-HRF.shape[0] // 2, axis=0)
+    # print(EEG_fluc.shape)
+    # quit()
+    # EEG_fluc = EEG_fluc ** 2
+    # plt.imshow(EEG_fluc.T, aspect='auto', origin='lower')
+    # plt.show()
+    # print(EEG_fluc.shape)
+    # quit()
+
+    # plt.plot(fMRI_fluc)
+    # plt.show()
+    # quit()
+
+    # EEG_fluc = EEG_fluc[5:-5]
+    # fMRI_fluc = fMRI_fluc[5:-5]
 
     ranges = {'delta': (1, 4),
-              'theta': (4, 8),
-              'alpha': (8, 13),
-              'beta': (13, 30),
+              'theta': (4, 9),
+              'alpha': (9, 14),
+              'beta': (14, 30),
               'gamma': (30, 50),
               }
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
     # ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
-    ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 6)})
+    ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 11)})
 
     name2fluc = {}
     name2r = {}
@@ -613,12 +686,14 @@ if __name__ == '__main__':
                   # '01_task-peer', # used for E-T calibration
                   '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
                   ]
+    # SESS_OTHER = ['01_task-monkey1_run-01', '01_task-monkey1_run-02']
     SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
 
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    # SESSES = SESS_OTHER
+    # SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
+
     # SESSES += SESS_OTHER
     # SESSES += SESS_MONKEY
     # SESSES = ['01_task-dme_run-01']
@@ -631,7 +706,7 @@ if __name__ == '__main__':
     PSDs = []
     dfs_l = []
     for SN in SNS:
-        for SESS in SESSES:
+        for j, SESS in enumerate(SESSES):
             if SN in ['01', '02', '03', '09'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue
             print(f'- ({SN}; {SESS}) -')
@@ -673,8 +748,8 @@ if __name__ == '__main__':
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
                           f'({t=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')
             continue
-            if N == 21:
-                print('done')
+            if N == 21 and j == len(SESSES) - 1:
+                # print('done')
                 if 'r1' in NAME2L:
                     plot_hz_corrs(NAME2L)
                 else:

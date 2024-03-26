@@ -474,7 +474,8 @@ def run_multi_settings():
                                                shuffle=False
                                                )
                     dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
-                    d = pickle_wrap(f, fp_out, easy_override=False, verbose=True, dt_max=dt_max)
+                    d = pickle_wrap(f, fp_out, easy_override=True,
+                                    verbose=True, dt_max=dt_max)
 
 
 if __name__ == '__main__':

@@ -598,8 +598,8 @@ def permutation_test(**kwargs):
 def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
                   # fp_task='EMOTION',
                   fp_task='obj7_fMRI',
-                  HCP=True,
-                  abs_dist=True,
+                  HCP=False,
+                  abs_dist=False,
                   M_after=False, regr=True,
                   alt_calc=False,
 
@@ -644,7 +644,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
     assert not (alt_calc and alt_calc2)
     assert not (alt_calc and M_after)
     # assert not (do_conn and not combine_regions)
-    for split in [.5, .25, .1, .05,]: # . [0.3]:# .5,
+    for split in [.1, .05, .5, .25, ]: # . [0.3]:# .5,
         assert not (do_conn and not combine_regions and M_after and
                     split > 0.1)
 
@@ -666,7 +666,7 @@ def plot_by_split(do_conn=True, do_generic=True, combine_regions=False,
         #                         split=split, combine_regions=combine_regions,
         #                         do_plot=False, shuffle=False)
         # continue
-        permutation_test(n_sim=100, **kwargs)
+        permutation_test(n_sim=1000, **kwargs)
 
 if __name__ == '__main__':
     plot_by_split()

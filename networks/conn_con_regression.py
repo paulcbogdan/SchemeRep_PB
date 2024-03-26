@@ -250,8 +250,8 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 
             return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
-             thresh=2.32, semi_combine=False, groupkfold=True):
+def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
+             thresh=2.32, semi_combine=False, groupkfold=False):
     sns = get_sns()
     sns = sns[1] + sns[2]
     print(f'{sns=}')
@@ -357,15 +357,14 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
     num_rois = len(zs)
     fp_str = '_obj8' if 'obj8' in df['fp'].iloc[0] else ''
     print(f'{fp_str=}')
-    # quit()
     fp_out = f'result_pics/FC/ROIwise_clf_{num_rois}_{kernel}_thr{thresh}.png'
     my_plot_surf(zs, atlas, title_str, fp_out=fp_out,
                  neg='', pos='Effect', thresh=thresh)
 
 
 
-def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True,
-                fp='obj7_fMRI', semi_combine=False, only_cortical=True):
+def plot_reg_zs(combine_regions=True, combine_bl=False, lm=True,
+                fp='obj8_fMRI', semi_combine=False, only_cortical=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
             pickle_wrap(get_con_reg_zs, None,

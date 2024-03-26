@@ -18,6 +18,8 @@ import scipy.stats as stats
 from organize_bhv import get_trial_info
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
@@ -238,8 +240,9 @@ def norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type, objs):
 def get_semantic_vectors(normalize=True):
     # fit using python 3.11
     norm_string = '_norm' if normalize else ''
-    fp_vecs = f'cache/schemerep_sem_vecs{norm_string}.pkl'
-    d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs, easy_override=False)
+    fp_vecs = rf'E:\PycharmProjects_E\SchemeRep\cache/schemerep_sem_vecs{norm_string}.pkl'
+    d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs,
+                         easy_override=False)
     return d_vecs
 
 
@@ -329,7 +332,8 @@ def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False):
     PCA_obj_str = '' if PCA_obj else '_PCAallImg'
     fp_DNN_vecs = fr'cache/DNN_vecs_{dnn_str}{PCA_str}{PCA_obj_str}.pkl'
     return pickle_wrap(lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
-                                             PCA_obj=PCA_obj), fp_DNN_vecs, easy_override=easy_override)
+                                             PCA_obj=PCA_obj), fp_DNN_vecs,
+                       easy_override=easy_override)
 
 
 def get_img_fns(get_dict=False):
@@ -352,53 +356,24 @@ def get_img_fns(get_dict=False):
         return names, fps
 
 if __name__ == '__main__':
-    d_vecs = get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=5,
-                          easy_override=True)
-    for obj, vec in d_vecs.items():
-        print(f'{obj} | {vec.shape=}')
-    # quit()
-    #
-    # d_vecs = get_semantic_vectors(normalize=True)
-    # df = get_trial_info('138')
-    # vecs_all = []
-    # for obj in df['obj']:
-    #     vec = d_vecs[obj]
-    #     vecs_all.append(vec)
-    # # for key, vec in d_vecs.items():
-    # #     vecs_all.append(vec)
-    # vecs_all = np.array(vecs_all)
-    # print(vecs_all.shape)
-    # M_vec = np.mean(vecs_all, axis=0)
-    # print(f'{M_vec.shape=}')
-    # SD_vec = np.std(vecs_all, axis=0)
-    # print(SD_vec)
-    # plt.hist(M_vec)
-    # plt.title('Mean vec')
-    # plt.show()
-    # plt.hist(SD_vec)
-    # plt.title('SD vec')
-    # plt.show()
-    # quit()
+    # d_vecs = get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=5,
+    #                       easy_override=True)
+    df_sn = get_trial_info('138')
+    scn = list(set(df_sn['scene']))
+    obj = list(set(df_sn['obj']))
+    # print(len(scn))
+
+    d_vecs =  get_semantic_vectors(normalize=False)
 
 
-    # all_vecs =  [(35.0456, -85.2672),
-    #       (35.1174, np.nan),
-    #       (np.nan, -83.9422),
-    # #       (36.1667, -86.7833)]
-    # all_vecs = [(35.0456, -85.2672),
-    #       (35.1174, -89.9711),
-    #       (35.9728, -83.9422),
-    #       (36.1667, -86.7833)]
-    #
-    # # all_vecs = [(35.0456, -85.2672),
-    # #       (35.1174, -89.9711),
-    # #       (35.9728, -83.9422),
-    # #       (36.1667, -86.7833),
-    # #      (35.0456, -85.2672),
-    # #      (35.1174, -89.9711),
-    # #      (35.9728, -83.9422),
-    # #      (36.1667, -86.7833)
-    # #      ]
-    # scipy_dist(all_vecs, 'seuclidean')
-    # # d_vecs = get_DNN_vecs()
-    # d_vecs = get_semantic_vectors()
+    df = pd.DataFrame({'name': scn + obj,
+                       'type': ['scene']*len(scn) + ['obj']*len(obj)})
+    vecs = []
+    for name in df['name']:
+        vecs.append(d_vecs[name])
+    # for obj, vec in d_vecs.items():
+    #     print(f'{obj} | {vec.shape=}')
+    n_elements = len(vecs[0])
+    vecs = np.array(vecs)
+    df[['vec'+str(i) for i in range(n_elements)]] = vecs
+    df.to_csv('semantic_vecs_pb_no_norm.csv', index=False)

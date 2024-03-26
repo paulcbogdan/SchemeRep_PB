@@ -248,39 +248,24 @@ NAME_RENAMER = {'inside of a car': 'car',
                'surfing board': 'surfboard', # object
                'tropical volcano': 'volcano',
                'coffee shop': 'cafe',
-               #'religious statue': 'statuette',
-               #'oversize tire': 'tire',
                'restroom stall': 'bathroom',
                'front porch': 'porch',
                'ice stadium': 'hockey rink',
-               #'laundry hamper': 'laundry basket',
                'dumb bell': 'dumbbell',
-               # 'rock-climbing shoe': 'climbing shoe',
                'rock-climbing shoe': 'rockclimbing shoe', # maybe not the best
-               # 'book bag': 'backpack',
                'sea gull': 'seagull', # object
                'hair salon': 'salon',
-               #'movie theater': 'theater',
                'snowy mountains': 'mountain',
-               #'dining chair': 'chair',
-               #'dining table': 'table',
-               #'police baton': 'police baton',
                'grocery store': 'supermarket',
                'apartment complex': 'apartment',
                'concert hall': 'orchestra',
                'display cabinet': 'cabinet',
-               #'potted plant': 'plant',
-               #'construction helmet': 'hard hat',
-               #'game token': 'game token',
                'Eiffel Tower': 'paris landmark',
-               #'binder clip': 'binder clip',
                'office space': 'office',
                'haircomb': 'comb', # object
                'soccerball': 'soccer ball', # object
                'McDonald\'s': 'fast food',
-               #'ATM': 'ATM', # automatic teller machine
                'college quad': 'college campus',
-               #'picnic blanket': 'blanket',
                }
 
 
