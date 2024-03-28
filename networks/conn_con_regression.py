@@ -1,4 +1,7 @@
 import os
+
+from connsearch import print_list_stats
+
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 import pandas as pd
@@ -42,7 +45,8 @@ def combine_bl(sn_inc_conn):
     return sn_inc_conn_new
 
 def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
-                   comb_bl=True, semi_combine=True, only_cortical=False):
+                   comb_bl=True, semi_combine=True, only_cortical=False,
+                   perm=True):
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
@@ -84,7 +88,8 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     for i in range(nrois):
         for j in range(i):
             cols.append(f'r{i}_{j}')
-            z = stats.zscore(sn_inc_conn[:, i, j], nan_policy='omit')
+            # z = stats.zscore(sn_inc_conn[:, i, j], nan_policy='omit')
+            z = sn_inc_conn[:, i, j]
             # z[np.abs(z) > 4] = np.nan
             vals.append(z)
             cols_full.append(f'r{j}_{i}')
@@ -100,8 +105,25 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     df_full['sn'] = sns
     df_full['inc'] = incs
     df_full['fp'] = fp
-    conn_clf(df_full, combine_regions=combine_regions, nrois=nrois,
-             semi_combine=semi_combine)
+    if perm:
+        accs_all_perm = []
+        print('PERMY!!!')
+        for _ in range(1000):
+            df_full_ = df_full.copy()
+            for sn, df_sn in df_full_.groupby('sn'):
+                df_full_.loc[df_sn.index, 'inc'] = (
+                    np.random.permutation(df_sn['inc']))
+            accs = conn_clf(df_full_, combine_regions=combine_regions,
+                            nrois=nrois,
+                            semi_combine=semi_combine,
+                            kernel='linear')
+            max_acc = np.max(accs)
+            print_list_stats(accs)
+            accs_all_perm.append(max_acc)
+            print_list_stats(accs_all_perm)
+    else:
+        conn_clf(df_full, combine_regions=combine_regions, nrois=nrois,
+                        semi_combine=semi_combine)
 
     t_mat = np.full((nrois, nrois), np.nan)
     p_l = []
@@ -204,7 +226,7 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
             X = df[cols]
             ex_grps = df['sn']
             accs = []
-            for seed in range(25):
+            for seed in range(100):
                 df = df.sample(frac=1)
                 Y = df['inc']
                 X = df[cols]
@@ -250,8 +272,8 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 
             return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
-             thresh=2.32, semi_combine=False, groupkfold=False):
+def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
+             thresh=2.32, semi_combine=False, groupkfold=True):
     sns = get_sns()
     sns = sns[1] + sns[2]
     print(f'{sns=}')
@@ -270,6 +292,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
     ps = []
 
     i2cols = []
+    M_accs = []
     if semi_combine:
         labels = regions
         print(f'{labels=}')
@@ -319,6 +342,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
             continue
 
         M_acc = np.mean(acc)
+        M_accs.append(M_acc)
         if groupkfold:
             print(f'{label}: {M_acc=:.2%}')
             ps.append(M_acc)
@@ -347,7 +371,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
         ps.append(p) # TODO: toggle p_binom probably is better
     if semi_combine or groupkfold:
         print(f'{ps=}')
-        quit()
+        return M_accs
     zs = -stats.norm.ppf(ps)
     zs[zs < 0] = np.nan
     print(f'{zs=}')
@@ -363,8 +387,8 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
 
 
 
-def plot_reg_zs(combine_regions=True, combine_bl=False, lm=True,
-                fp='obj8_fMRI', semi_combine=False, only_cortical=True):
+def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True,
+                fp='obj7_fMRI', semi_combine=False, only_cortical=True):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
             pickle_wrap(get_con_reg_zs, None,

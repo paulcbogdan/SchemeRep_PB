@@ -342,7 +342,8 @@ def load_EEG(sn, sess, num_TRs, dir_eeg):
 
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      avg_before=True, high_gamma=False,
-                     super_slow=False, avg_ref=True):
+                     super_slow=False, avg_ref=True,
+                     double_speed=False):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -386,6 +387,8 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
         freqs = np.arange(1, 101)
     elif super_slow:
         freqs = np.linspace(0.1, 1.0, 10)
+    elif double_speed:
+        freqs = np.linspace(0.5, 50, 100)
     else:
         freqs = np.arange(1, 51)
     # freqs = np.arange(1, 101 if high_gamma else 51, 1)
@@ -492,7 +495,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
                      abs_analysis=True,
-                     all_conn=True
+                     all_conn=False
                      ):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
@@ -536,8 +539,9 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                                      'avg_before': avg_before,
                                                      'high_gamma': high_gamma,
                                                      'super_slow': super_slow,
-                                                     'avg_ref': avg_ref},
-                           easy_override=False, verbose=-1)
+                                                     'avg_ref': avg_ref,
+                                                     'double_speed': False},
+                           easy_override=True, verbose=-1)
     # (ch, freq, TR)
 
     if EEG_fluc is None:
@@ -573,7 +577,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                 EEG_fluc[j, i] = prev_val
             prev_val = EEG_fluc[j, i]
 
-    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='constant',
+    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
     # print(EEG_fluc.shape)
     # quit()
@@ -591,16 +595,16 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     # fMRI_fluc = fMRI_fluc[5:-5]
 
     ranges = {'delta': (1, 4),
-              'theta': (4, 9),
-              'alpha': (9, 14),
+              'theta': (4, 8),
+              'alpha': (8, 14),
               'beta': (14, 30),
               'gamma': (30, 50),
               }
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
-    # ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
-    ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 11)})
+    ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
+    # ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 11)})
 
     name2fluc = {}
     name2r = {}
@@ -692,7 +696,7 @@ if __name__ == '__main__':
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    # SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
+    SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
 
     # SESSES += SESS_OTHER
     # SESSES += SESS_MONKEY
@@ -747,7 +751,9 @@ if __name__ == '__main__':
 
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
                           f'({t=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')
-            continue
+            # continue
+            if 'r50' not in NAME2L:
+                continue
             if N == 21 and j == len(SESSES) - 1:
                 # print('done')
                 if 'r1' in NAME2L:

@@ -38,7 +38,7 @@ if __name__ == '__main__':
     N_SPLITS = 2  # Number of splits for cross-validation
     N_REPEATS = 25  # Number of repeats for cross-validation
     COMP_SIZE = None # Component size
-    CACHE_DIR = f'{PICKLE_CACHE}/permutation_saves'
+    CACHE_DIR = f'cache/permutation_saves'
     Path(CACHE_DIR).mkdir(parents=True, exist_ok=True)
     PERMUTATION_SCHEME = 'within_session'  # Specifies how data will be shuffled
     COMPONENT_FUNC = get_none_components  # Use connectivity sets as components

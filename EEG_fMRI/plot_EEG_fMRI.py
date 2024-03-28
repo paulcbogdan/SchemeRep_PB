@@ -48,7 +48,7 @@ def plot_hz_corrs(name2r):
 
     drag = .015
     plt.ylim(0, 0.089 - drag)
-    plt.xlim(0.5, 50.5)
+    plt.xlim(0.0, 50.5)
     plt.yticks([0, 0.02, 0.04, 0.06, 0.08])
     plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
     # plt.gca().set_facecolor('whitesmoke')
