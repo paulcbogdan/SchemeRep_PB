@@ -17,12 +17,12 @@ if __name__ == '__main__':
         # 'ENC__full__regBPtrue__scene_obj_combined',
         # 'ENC__full__regBPtrue__scene_obj_LSS1',
         # ''ENC__full__regBPtrue__scene_obj_LSS2',
-        'ENC__full__regBPfalse__scene_obj_LSS1',
+        # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'ENC__full__regBPfalse__scene_obj_LSS1',
         # 'RVIS__full__regBPfalse',
         # 'RCON__full__regBPfalse',
-        # 'BL__full__regBPfalse'
-        r'NoGSR/ENC__full__regBPfalse__scene_obj_LSS1'
+        'BL__full__regBPfalse'
+        # r'NoGSR/ENC__full__regBPfalse__scene_obj_LSS1'
     ]
 
     details = [
@@ -34,12 +34,12 @@ if __name__ == '__main__':
         # ('b_SceneObject.nii', 'ENC_rerun3', 'CMB')
         # ('b_trial.nii', 'ENC_LSS1', 'LSS1')
         # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
-        ('b_trial.nii', 'ENC_GM20_LLS1_bpF_full', 'LSS1'),
+        # ('b_trial.nii', 'ENC_GM20_LLS1_bpF_full', 'LSS1'),
         # ('b_Object.nii', 'VIS_rerun7', 'VIS'),
-        # ('b_Object.nii', 'CON_rerun7', 'CONC')
-        # ('b_Object.nii', 'BL_rerun7', 'BL'),
+        # ('b_Object.nii', 'CON_rerun7', 'CONC'),
+        ('b_Object.nii', 'BL_rerun7', 'BL'),
         # ('b_trial.nii', 'ENC_LSS2', 'LSS2')
-        ('b_trial.nii', 'Enc_NoGSR_8', 'LSS3')
+        # ('b_trial.nii', 'Enc_NoGSR_8', 'LSS3')
     ]
 
 

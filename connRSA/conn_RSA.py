@@ -61,19 +61,15 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
         vecs_else = np.vstack(vecs_else).T
         sizes.append(vecs_else.shape[1])
         vecs = get_conn_vecs(vecs0, vecs_else, conn=conn)
-        # print(f'{vecs.shape=}')
-        # quit()
+
         if ROI_ctrl:# or (not PFC):
             vecs -= mean_conn_trialwise.T# * 246 - vecs) / 245
-        # print(f'{vecs.shape=}')
-        # quit()
+
         z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
                                                   trial_similarity=trial_similarity,
                                                   second_order=second_order)
-        # print(IRAFs)
-        # quit()
+
         scores.append(z)
-        # print(f'{z=:.3f}')
         scores_trialwise.append(IRAFs)
 
     # quit()
@@ -210,16 +206,6 @@ def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,
         high0 = (run0 + 1) * trials_per_run
         M0 = np.nanmean(vecs[low0:high0, :], axis=0)
         vecs[low0:high0, :] -= M0
-        # SD = np.nanstd(M0)
-        # print(f'{M0=}')
-        # print(f'{SD=}')
-        # M0_sans_trials = (M0 * trials_per_run - vecs[low0:high0, :]) / (trials_per_run - 1)
-        # print(M0_sans_trials.shape)
-        # print(vecs[low0:high0, 0])
-        # print(M0_sans_trials[:, 0])
-        # print(np.mean(vecs[low0:high0, 0]))
-        # quit()
-        # vecs[low0:high0, :] -= M0_sans_trials
 
     vecs0 = vecs[None, :, :]
     vecs1 = vecs[:, None, :]
@@ -307,6 +293,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     sizes = []
     IRAFs_all_ROI = []
     for ROI, vecs in ROI2vecs.items():
+
         vecs_BOLD = ROI2vecs[ROI]
         # TODO: Implement toggle to disable connectivity
         keeps = ~np.isnan(vecs_BOLD).any(axis=0)
@@ -323,7 +310,6 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn)
-
         RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                                 dist=trial_similarity)
         if RDM_method == 'by_run':
@@ -340,7 +326,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
         elif RDM_method == 'within_nan':
-            RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
+            RSM_fMRI = get_trial_x_trial(vecs,
+                                         trial_similarity=trial_similarity)
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
         else:
@@ -461,8 +448,7 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                 if i in between_run_vecs:
                     vecs_i = between_run_vecs[i]
                 else:
-                    # if do_vecs1:
-                    # print(f'dif: {n_sn=}')
+
                     if do_vecs1:
                         n_sn = run2non_nans0[run_i]
                         M_by_edge_i = (run2M[run_i] * n_sn * 2 - vecs_i) / (2 * n_sn - 1)
@@ -482,7 +468,6 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                         M_by_edge_j = (run2M[run_j] * n_sn * 2 - vecs_j) / (2 * n_sn - 1)
                     else:
                         n_sn = run2non_nans[run_j]
-                        # print(f'dif: {n_sn=}')
                         M_by_edge_j = (run2M[run_j] * n_sn - vecs_j) / (n_sn - 1)
                     # M_by_edge_j = (run2M[run_j] * n_sn - vecs_j*0.5) / (n_sn - 0.5)
 
@@ -507,23 +492,15 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
             else:
                 if do_vecs1:
                     n_sn = run2non_nans0[run_i] + run2non_nans1[run_i]
-                    # print(f'do vecs1: {n_sn=}')
-                    # n_sn = n_sn / 2
+
                 else:
                     n_sn = run2non_nans[run_i]
-
-                    # print(f'-- : {n_sn=}')
-                # print(f'same: {n_sn=}')
-                # if do_vecs1:
-                #     n_sn = run2non_nans[run_i]
-                #
-                # print(f'{vecs_j=}')
-                # print(f'{vecs_i=}')
 
                 if simple_mean:
                     M_by_edge_ij = run2M[run_i]
                 else:
-                    M_by_edge_ij = (run2M[run_i] * n_sn - vecs_i - vecs_j) / (n_sn - 2)
+                    M_by_edge_ij = ((run2M[run_i] * n_sn - vecs_i - vecs_j) /
+                                    (n_sn - 2))
                     # M_by_edge_ij = (run2M[run_i] * n_sn - (vecs_i - vecs_j)*0.5) / (n_sn - 1)
 
                 vecs_i -= M_by_edge_ij
@@ -549,8 +526,7 @@ def get_trial_x_trial_RSM(vecs, vecs1=None,
                     RSM[i, j] = np.nan
                     if not do_vecs1:
                         RSM[j, i] = np.nan
-            # print(f'{i} | {j} | {r=}')
-    # quit()
+
     RSM[np.diag_indices_from(RSM)] = np.nan
 
     if trial_similarity == 'mahalanobis' or trial_similarity == 'seuclidean':

@@ -75,6 +75,7 @@ def get_sns(fp_fMRI='loose', sh=False):
 
 def test_fp(fp='obj3_fMRI', ages=(1, 2)):
     age2sn = get_sns('loose')
+    print(f'{age2sn=}')
     for age in ages:
         for sn in tqdm(age2sn[age], desc=f'Testing org_bhv for {fp}, {age=}'):
             print(f'Running ({fp}): {sn=}')
@@ -125,7 +126,7 @@ if __name__ == '__main__':
     # quit()
 
     # test_fp('bl7_fMRI')
-    test_fp('obj8_fMRI')
+    test_fp('obj7_fMRI')
     # test_fp('vis7_fMRI')
 
     # df_sn = get_trial_info('105', easy_override=True)

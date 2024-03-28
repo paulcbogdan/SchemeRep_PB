@@ -269,7 +269,7 @@ NAME_RENAMER = {'inside of a car': 'car',
                }
 
 
-def get_trial_info(sn, easy_override=False, ret=True):
+def get_trial_info(sn, easy_override=False, ret=True, verbose=0):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
     fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
@@ -277,7 +277,7 @@ def get_trial_info(sn, easy_override=False, ret=True):
     dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
 
     df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp,
-                        easy_override=easy_override, verbose=False,
+                        easy_override=easy_override, verbose=verbose,
                         dt_max=dt_max)
     return df_sn
 
@@ -329,6 +329,8 @@ def get_trial_info_(sn, ret=True):
                     fp_obj3 = None
                 elif sn == '234' and run == 1:
                     fp_obj3 = None
+                elif sn == '239':
+                    fp_obj3 = None
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
 
@@ -340,6 +342,8 @@ def get_trial_info_(sn, ret=True):
                 if sn == '224' and run == 3:
                     fp_scn3 = None
                 elif sn == '234' and run == 1:
+                    fp_scn3 = None
+                elif sn == '239':
                     fp_scn3 = None
                 else:
                     raise IndexError(f'{sn}, {run}, {trial}')
@@ -364,7 +368,7 @@ def get_trial_info_(sn, ret=True):
                     fp_obj5 = None
                     fp_obj6 = None
             except IndexError:
-                if sn == '224' and run == 3:
+                if sn == '239' or (sn == '224' and run == 3):
                     fp_scn4 = None
                     fp_obj4 = None
                     fp_obj5 = None
@@ -408,7 +412,9 @@ def get_trial_info_(sn, ret=True):
                 fp_obj8 = glob_obj8[0]
                 fp_scn8 = glob_scn8[0]
             except IndexError:
-                if sn in ['116', '125', '138', '213', '230', '234']:
+                if sn in ['116', '125', '138', '213', '230', '234',
+
+                          '239']:
                     fp_obj8 = None
                     fp_scn8 = None
                 elif sn == '224' and run == 3:
@@ -426,7 +432,7 @@ def get_trial_info_(sn, ret=True):
                 fp_cmb3 = glob_cmb3[0]
             except IndexError:
 
-                if sn == '224' and run == 3:
+                if sn == '239' or (sn == '224' and run == 3):
                     fp_cmb3 = None
                 elif sn == '234' and run == 1:
                     fp_cmb3 = None
@@ -584,8 +590,8 @@ def add_fns(df_sn, sn):
         match_con = df_info['ObjectTypeLabel_RCON'] == 'Old'
         match_vis = df_info['ObjectTypeLabel_RVIS'].isin(['Old', 'Similar'])
         df_info = df_info[match_con | match_vis]
-    # print(len(df_info))
-    # quit()
+
+
     obj_l = df_info['Object'].values
     fns = df_info['ObjectFile'].values
     fns_scn = df_info['SceneFile'].values
@@ -595,14 +601,11 @@ def add_fns(df_sn, sn):
     df_sn['obj_fn'] = df_sn['obj'].map(obj2fns)
     df_sn['scn_fn'] = df_sn['obj'].map(obj2fns_scn)
     df_sn['obj_cat'] = df_sn['obj_fn'].map(STIM_CATEGORY)
-    # print(STIM_CATEGORY)
-    # print(df_sn['obj'].value_counts(dropna=False))
-    # print(df_sn[['obj', 'obj_fn']])
-    # print(obj2fns)
-    # quit()
     df_sn['scn_cat'] = df_sn['scn_fn'].map(SCENE_CATEGORY)
-    df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
-
+    try:
+        df_sn['living'] = df_sn['obj_cat'].apply(lambda x: 'living' in x)
+    except TypeError as e:
+        print(f'Failied to do living/non-living: {sn}: {e=}')
 
 
 def add_onset_time(df_sn, sn):
@@ -841,17 +844,19 @@ def include_BL(df_sn, sn):
             if len(glob_BL):
                 obj2fp[obj] = glob_BL[0]
 
-            glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_BL3 = glob(glob_BL3)
-            assert len(glob_BL3) == 1 or len(glob_BL) == 1, f'Bad bl3 missing'
-            if len(glob_BL3):
-                obj2fp3[obj] = glob_BL3[0]
-            else:
-                obj2fp3[obj] = None
+            # glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
+            # glob_BL3 = glob(glob_BL3)
+            # assert len(glob_BL3) == 1 or len(glob_BL) == 1, \
+            #     f'Bad bl3 missing'
+            # if len(glob_BL3):
+            #     obj2fp3[obj] = glob_BL3[0]
+            # else:
+            obj2fp3[obj] = None
 
             glob_BL7 = fr'{bl_root}/BL_rerun7/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL7 = glob(glob_BL7)
-            assert len(glob_BL7) == 1 or len(glob_BL) == 1, f'Bad bl7 missing'
+            if sn != '239':
+                assert len(glob_BL7) == 1 or len(glob_BL) == 1, f'Bad bl7 missing'
             if len(glob_BL7):
                 obj2fp7[obj] = glob_BL7[0]
             else:
@@ -902,7 +907,7 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    df_sn = get_trial_info_('102')
+    df_sn = get_trial_info_('239')
     # print(df_sn['inc_hit_hit'])
-    print(df_sn['obj8_fMRI'])
-    print(df_sn['scn8_fMRI'])
+    print(df_sn['obj7_fMRI'])
+    print(df_sn['scn7_fMRI'])

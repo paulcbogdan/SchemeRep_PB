@@ -1,3 +1,6 @@
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 from collections import defaultdict
 
 from conn_utils import get_BNA_ROIs
@@ -36,6 +39,9 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     settings = locals().copy()
     dir_results = r'cache/conn_RSA'
 
+    if not RSA:
+        settings['RDM_method'] = None
+        settings['second_order'] = 'spear'
 
     # settings = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
     #             'conn': conn, 'trial_similarity': trial_similarity,  # change trial_similarity=spear
@@ -47,6 +53,11 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     results_conn = pickle_wrap(run_settings, None, kwargs=settings,
                                easy_override=False, verbose=1,
                                cache_dir=dir_results)
+    # print(list(results_conn))
+    # pprint(results_conn)
+
+
+
     # print('-' * 100)
     # report_results(results_conn, do_lmer=True)
     # print('-' * 100)
@@ -56,19 +67,31 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     #             'second_order': 'spear', 'four_tasks': four_tasks,
     #             'combine_regions': False, 'split': False,
     #             'RDM_method': RDM_method, 'age': age}
+
+    if 'complex_mean' in settings['RDM_method']:
+        settings['RDM_method'] = 'clever_std'
+
     settings['conn'] = 'BOLD'
     results_bold_comb = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
+
+
+
     settings['do_networks'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
 
-
+    # for key, x in results_bold_sep.items():
+    #     try:
+    #         print(f'{key} | {x.shape=}')
+    #     except:
+    #         pass
+    # quit()
 
     # report_results(results_bold, do_lmer=True)
-    return results_bold, results_conn
+    return results_conn, results_bold_comb, results_bold_sep
 
 def organize_df(results_conn, results_bold, do_networks, target_ROI):
     scores_conn = results_conn['scores_by_ROI']
@@ -273,7 +296,8 @@ def run_lmer_PFC_RSA():
     four_tasks = '7'
     combine_regions = False
     split = False
-    RDM_method = 'clever_std_complex_mean'
+    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    RDM_method = 'within_nan'
     age = 'healthy'
 
     target_ROI = 'PFC'
@@ -303,8 +327,8 @@ def run_lmer_PFC_ERS():
     do_networks = 6
     target_ROI = 'Frontal_CG'
     trial_similarity = 'spear'
-    RDM_method = 'clever_std'
-    # RDM_method = 'clever_std_complex_mean'
+    # RDM_method = 'clever_std'
+    RDM_method = 'clever_std_complex_mean'
 
     age = 1
 

@@ -219,8 +219,6 @@ def load_ni_w_nan_fps(fps):
     good_idxs = ~nan_idxs
     if nan_idxs.any():
         img = image.load_img(fps[good_idxs]).get_fdata()
-        # print(img.shape)
-        # quit()
         blank = np.full((img.shape[0], img.shape[1], img.shape[2], len(fps)),
                         np.nan)
         blank[:, :, :, good_idxs] = img

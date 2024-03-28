@@ -3,7 +3,7 @@ import os
 from connsearch import print_list_stats
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
-
+import pickle
 import pandas as pd
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
@@ -46,7 +46,7 @@ def combine_bl(sn_inc_conn):
 
 def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
                    comb_bl=True, semi_combine=True, only_cortical=False,
-                   perm=True):
+                   perm=True, by_run=True):
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
@@ -58,6 +58,16 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
+    if by_run:
+        sn_inc_act_ = np.concatenate([sn_inc_activity[..., :38],
+                                      sn_inc_activity[..., 38:76],
+                                      sn_inc_activity[..., 76:]], axis=1)
+        sn_inc_conn_ = sn_inc_act_[..., None, :] * sn_inc_act_[..., None, :, :]
+        sn_inc_conn = np.nanmean(sn_inc_conn_, axis=-1)
+    # print(sn_inc_conn_.shape)
+    # quit()
+    # print(sn_inc_act_.shape)
+    # quit()
 
     if only_cortical:
         atlas = get_atlas(combine_regions=combine_regions)
@@ -68,22 +78,25 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
         sn_inc_conn[..., :, bad_j] = np.nan
         print('Pruned subcortical')
 
-    age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
-    idxs = age2idxs[age]
-    sn_inc_conn = sn_inc_conn[idxs]
-
+    # age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
+    # idxs = age2idxs[age]
+    # sn_inc_conn = sn_inc_conn[idxs]
+    # print(f'{sn_inc_conn.shape=}')
+    # quit()
     n_sn = sn_inc_conn.shape[0]
     sns = [str(i) for i in range(n_sn) for _ in range(sn_inc_conn.shape[1])]
     incs = list(range(1, len(kwargs['key_vals']) + 1)) * n_sn
+    if by_run: incs *= 3
     new_nrows = sn_inc_conn.shape[0]*sn_inc_conn.shape[1]
     nrois = sn_inc_conn.shape[-1]
     sn_inc_conn = np.reshape(sn_inc_conn, (new_nrows, nrois, nrois))
-
+    # print(sn_inc_conn.shape)
+    # quit()
     cols = []
     cols_full = []
     vals = []
     vals_full = []
-    # col2vals = defaultdict(list)
+    # col2vals = defaultdict(list)b
     np.set_printoptions(precision=4)
     for i in range(nrois):
         for j in range(i):
@@ -105,10 +118,13 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     df_full['sn'] = sns
     df_full['inc'] = incs
     df_full['fp'] = fp
+    # print(df_full)
+    # quit()
     if perm:
+        accs_max_perm = []
         accs_all_perm = []
         print('PERMY!!!')
-        for _ in range(1000):
+        for nsim in range(1000):
             df_full_ = df_full.copy()
             for sn, df_sn in df_full_.groupby('sn'):
                 df_full_.loc[df_sn.index, 'inc'] = (
@@ -116,11 +132,17 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
             accs = conn_clf(df_full_, combine_regions=combine_regions,
                             nrois=nrois,
                             semi_combine=semi_combine,
-                            kernel='linear')
+                            )
             max_acc = np.max(accs)
             print_list_stats(accs)
-            accs_all_perm.append(max_acc)
+            accs_all_perm.extend(accs)
+            accs_max_perm.append(max_acc)
+            print_list_stats(accs_max_perm)
+            print(f'{accs_all_perm=}')
             print_list_stats(accs_all_perm)
+
+            with open(f'cache/accs_all_perm_{nsim}.pkl', 'wb') as f:
+                pickle.dump(accs_all_perm, f)
     else:
         conn_clf(df_full, combine_regions=combine_regions, nrois=nrois,
                         semi_combine=semi_combine)
@@ -230,7 +252,11 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
                 df = df.sample(frac=1)
                 Y = df['inc']
                 X = df[cols]
+                # print(f'{len(X)=}')
                 groups = df['sn']
+                # print(groups)
+                # print(X)
+                # quit()
 
                 grps_unq = np.sort(np.unique(groups))
                 grps_unq_ = np.sort(np.unique(groups))
@@ -272,8 +298,9 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 
             return y_trues, y_preds, acc
 
-def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
-             thresh=2.32, semi_combine=False, groupkfold=True):
+def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
+             thresh=2.32, semi_combine=False, groupkfold=True,
+             subj_std=False):
     sns = get_sns()
     sns = sns[1] + sns[2]
     print(f'{sns=}')
@@ -286,9 +313,9 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
     # regions = atlas['ROI_regions_laterality']
     # print(df.columns)
     # quit()
-    df = df[df['inc'] != 2]
-    # df['inc'] -= 2
-    df['inc'] = (df['inc'] - 1) / 2
+    # df = df[df['inc'] != 2]
+    # df['inc'] = (df['inc'] - 1) / 2
+
     ps = []
 
     i2cols = []
@@ -318,23 +345,38 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='rbf',
         # cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
         # cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
     for i, label in enumerate(labels):
+        df_ = df.copy()
         # cv = LeaveOneGroupOut()
         cols = i2cols[i]
-        grps = df['sn'].unique()
+        grps = df_['sn'].unique()
         if kernel in ['rbf', 'linear']:
-            for grp in grps:
-                # df.loc[df['sn'] == grp, cols] = (
-                #     stats.zscore(df.loc[df['sn'] == grp, cols], axis=0))
+            if subj_std:
+                for grp in grps:
+                    # df.loc[df['sn'] == grp, cols] = (
+                    #     stats.zscore(df.loc[df['sn'] == grp, cols], axis=0))
+                    df_.loc[df_['sn'] == grp, cols] -= (
+                        np.nanmean(df_.loc[df_['sn'] == grp, cols], axis=0))
+        df_ = df_[df_['inc'] != 2]
+        df_['inc'] = (df_['inc'] - 1) / 2
 
-                df.loc[df['sn'] == grp, cols] -= (
-                    np.nanmean(df.loc[df['sn'] == grp, cols], axis=0))
+        nan_cols = df_[cols].isna().sum()
+        # import matplotlib.pyplot as plt
+        # plt.hist(nan_cols)
+        # plt.show()
+        # print(f'{nan_cols=}')
+        # quit()
+        # cols = [col for i, col in enumerate(cols) if not nan_cols[i]]
+        cols = [col for i, col in enumerate(cols) if nan_cols[i] < 5]
+        df_.dropna(subset=cols, inplace=True)
+        # print(f'{cols=}')
+        # quit()
+        df_[cols] = stats.zscore(df_[cols], axis=0)
 
-        nan_cols = df[cols].isna().sum()
-        cols = [col for i, col in enumerate(cols) if not nan_cols[i]]
+
         # print(f'Number of NaN cols: {sum(nan_cols > 0)}')
 
         try:
-            y_trues, y_preds, acc = do_ROI_clf(df, grps, cols, kernel=kernel,
+            y_trues, y_preds, acc = do_ROI_clf(df_, grps, cols, kernel=kernel,
                                                groupkfold=groupkfold)
         except ValueError as e:
             print(f'{e=}')
@@ -430,9 +472,11 @@ def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True,
     # atlas['tick_lows'] = atlas['tick_lows'][::2]
     combine_str = '_combined' if combine_regions else ''
     fp_out = fr'result_pics/FC_matrix/congruency_regression{combine_str}.png'
-    plot_connectivity(z_mat, atlas['ticks'], atlas['tick_labels'], atlas['tick_lows'],
+    plot_connectivity(z_mat, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
                       title=f'Connectivity ~ congruency '
-                            f'{cutoff_str}', fp=fp_out, no_avg=True, cbar_label='z-score')
+                            f'{cutoff_str}', fp=fp_out, no_avg=True,
+                      cbar_label='z-score')
 
     # plot_connectivity(t_mat,
     #                   atlas['ticks'],

@@ -1,4 +1,8 @@
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 from tqdm import tqdm
+from pprint import pprint
 
 from atlas_utils import get_atlas
 from conn_RSA import RSA_sn, RSA_edgewise, RSA_ROI_pairwise, RSA_ROI
@@ -103,24 +107,28 @@ def prep_vecs(RSA, semantic):
     return d_vecs
 
 def prep_fps(four_tasks):
-    if four_tasks == '3b_4':
-        fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    elif four_tasks == '3b_3':
-        fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI']
-    elif four_tasks == '3_4':
-        fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    elif four_tasks == '3_3':
-        fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
-    elif four_tasks == '4_3':
-        fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI']
-    elif four_tasks == '4_4':
-        fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    elif four_tasks and isinstance(four_tasks, bool):
-        fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
-    else:
-        raise ValueError
-        # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+    assert four_tasks == '7'
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     return fps
+
+    # if four_tasks == '3b_4':
+    #     fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    # elif four_tasks == '3b_3':
+    #     fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI']
+    # elif four_tasks == '3_4':
+    #     fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    # elif four_tasks == '3_3':
+    #     fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
+    # elif four_tasks == '4_3':
+    #     fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI']
+    # elif four_tasks == '4_4':
+    #     fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI', 'con3_fMRI']
+    # elif four_tasks and isinstance(four_tasks, bool):
+    #     fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
+    # else:
+    #     raise ValueError
+    #     # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
+    # return fps
 
 def prep_results_d(settings, networks, atlas, sns):
     if networks is None:
@@ -177,8 +185,10 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
                  age=1, plotting=None, atlas='BNA'):
+    assert not ((conn == 'BOLD') and ('clever' in RDM_method))
     settings = locals().copy()
-    print(f'Run settings start: {settings=}')
+    print(f'Run settings start:')
+    pprint(settings)
     d_vecs = prep_vecs(RSA, semantic)
     # print(f'{atlas=}')
     # quit()
@@ -192,6 +202,8 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
+    sns = [sn for sn in sns if int(sn) != 239]
+    print(f'{sns=}')
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
     networks = prep_networks(do_networks)
@@ -199,6 +211,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
     trialwise_all = []
     for i, sn in tqdm(enumerate(sns), desc='run_settings, looping subjects'):
+        print(f'{sn=}')
         ers_sn_by_comparison = []
         scores, sizes, scores_trialwise = \
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
@@ -219,7 +232,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
 
 def run_settings_healthy(settings, ISPC=False):
-    dir_results = r'../cache/conn_RSA'
+    dir_results = r'cache/conn_RSA'
     # if settings['semantic'] == -1:
     #     dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
     # else:
@@ -228,19 +241,22 @@ def run_settings_healthy(settings, ISPC=False):
     # if 'cross_' in settings['conn']:
     #     dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
 
-    dt_max = datetime(2023, 12, 13, 20, 0, 0, 0)
+    dt_max = datetime(2023, 12, 13, 20,
+                      0, 0, 0)
 
 
     settings1 = settings.copy()
     del settings1['age']
-    results1 = pickle_wrap(run_settings, None, kwargs=settings1, easy_override=EASY_OVERRIDE, verbose=0,
+    results1 = pickle_wrap(run_settings, None, kwargs=settings1,
+                           easy_override=EASY_OVERRIDE, verbose=0,
                            cache_dir=dir_results, dt_max=dt_max)
     print(f'{Fore.CYAN}Young people:{Fore.RESET}')
     report_results(results1)
 
     settings2 = settings.copy()
     settings2['age'] = 2
-    results2 = pickle_wrap(run_settings, None, kwargs=settings2, easy_override=EASY_OVERRIDE, verbose=0,
+    results2 = pickle_wrap(run_settings, None, kwargs=settings2,
+                           easy_override=EASY_OVERRIDE, verbose=0,
                            cache_dir=dir_results, dt_max=dt_max)
     print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
     report_results(results2)
@@ -294,27 +310,18 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
             settings['conn'] = f'cross_{conn}'
             print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 
-    # if semantic == -1: # added due to discovered issue at one point with semantic
-    #     dt_max = datetime(2023, 11, 24, 11, 0, 0, 0)
-    # else:
-    #     dt_max = datetime(2023, 11, 18, 14, 0, 0, 0)
-    #
-    # if 'cross_' in conn:
-    #     dt_max = datetime(2023, 11, 26, 11, 0, 0, 0)
-    #
-    # if 'plotting' in settings and settings['plotting'] == 'ROIs':
-    #     dt_max = datetime(2023, 11, 29, 17, 0, 0, 0)
     dt_max = datetime(2023, 12, 13, 20, 0, 0, 0)
-    #
+
     # settings = {'RSA': True, 'semantic': True, 'do_networks': -1, 'conn': 'euc', 'trial_similarity': 'spear',
     #             'second_order': 'spear', 'four_tasks': '3_4', 'combine_regions': False, 'split': False,
     #             'RDM_method': 'clever_std', 'age': 1, 'plotting': 'regions'}#, 'atlas': 'BNA'}
-
-    dir_results = r'../cache/conn_RSA'
+    # pprint(f'{settings=}')
+    dir_results = r'cache/conn_RSA'
     if age == 'healthy':
         print('\n')
         print('*' + '-*' * 120)
-        results = pickle_wrap(run_settings_healthy, None, kwargs={'settings': settings}, easy_override=True,
+        results = pickle_wrap(run_settings_healthy, None,
+                              kwargs={'settings': settings}, easy_override=True,
                               cache_dir=dir_results, dt_max=dt_max)
         print(f'{Fore.RED}Combined people:{Fore.RESET}')
     else:
@@ -322,7 +329,8 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
             assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
         else:
             del settings['age']
-        results = pickle_wrap(run_settings, None, kwargs=settings, easy_override=EASY_OVERRIDE, verbose=1,
+        results = pickle_wrap(run_settings, None, kwargs=settings,
+                              easy_override=EASY_OVERRIDE, verbose=1,
                               cache_dir=dir_results, dt_max=dt_max)
         print(f'Finished!')
 
@@ -336,12 +344,12 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
 def run_analysis_toggles():
     RDM_method = 'clever_std_complex_mean'
     # RDM_method = 'clever_std'
-    trial_similarity_toggle = ['spear', 'corr']
-    four_tasks_toggle = ['4_4', '4_3']
-    conn_toggle = ['euc', 'prod']
+    trial_similarity_toggle = ['corr']#, 'corr']
+    four_tasks_toggle = ['7']
+    conn_toggle = ['prod', 'euc']
     split_toggle = [False]
     # atlas = 'schaefer'
-    atlas = 'BNA_sh'
+    atlas = 'BNA'
     # atlas = None
     age = 'healthy'
     # age = 1
@@ -356,11 +364,13 @@ def run_analysis_toggles():
     second_order = 'spear'
     # analyses = [(True, True)]
     # analyses = [(True, False)]
-    analyses = [(False, False), (True, True), (True, False)]
+    # analyses = [(False, False), (True, True), (True, False)]
+    # analyses = [(False, False)]
+    analyses = [(True, True)]
     # analyses = [(True, True)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
-            for do_networks in [14, 15]:
+            for do_networks in [1]:
                 for conn in conn_toggle:
                     for split in split_toggle:
                         for (RSA, semantic) in analyses:
