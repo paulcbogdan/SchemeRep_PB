@@ -77,7 +77,7 @@ def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
 
 def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
-           combine_regions=False):
+           combine_regions=False, stdize_by_run=False):
     BOLD = conn == 'BOLD'
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
@@ -118,8 +118,10 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
             vecs_enc = vecs_enc_BOLD
             vecs_ret = vecs_ret_BOLD
         else:
-            vecs_enc = get_conn_vecs(vecs_enc_BOLD, conn=conn)
-            vecs_ret = get_conn_vecs(vecs_ret_BOLD, conn=conn)
+            vecs_enc = get_conn_vecs(vecs_enc_BOLD, conn=conn,
+                                     stdize_by_run=stdize_by_run)
+            vecs_ret = get_conn_vecs(vecs_ret_BOLD, conn=conn,
+                                     stdize_by_run=stdize_by_run)
 
         ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
                                    trial_similarity=trial_similarity)

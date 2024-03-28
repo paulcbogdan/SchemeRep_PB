@@ -17,7 +17,7 @@ from scipy import stats
 from atlas_utils import get_atlas
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity, my_plot_surf
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 import numpy as np
 import statsmodels.formula.api as smf
 
@@ -62,12 +62,12 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
         sn_inc_act_ = np.concatenate([sn_inc_activity[..., :38],
                                       sn_inc_activity[..., 38:76],
                                       sn_inc_activity[..., 76:]], axis=1)
+        sn_inc_act_ = stdize(sn_inc_act_, axis=-1, nans=True)
+        # print(sn_inc_act_)
+        # print(sn_inc_act_.shape)
+        # quit()
         sn_inc_conn_ = sn_inc_act_[..., None, :] * sn_inc_act_[..., None, :, :]
         sn_inc_conn = np.nanmean(sn_inc_conn_, axis=-1)
-    # print(sn_inc_conn_.shape)
-    # quit()
-    # print(sn_inc_act_.shape)
-    # quit()
 
     if only_cortical:
         atlas = get_atlas(combine_regions=combine_regions)
@@ -255,7 +255,7 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
                 # print(f'{len(X)=}')
                 groups = df['sn']
                 # print(groups)
-                # print(X)
+                # print(X.shape)
                 # quit()
 
                 grps_unq = np.sort(np.unique(groups))
@@ -360,13 +360,15 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
         df_['inc'] = (df_['inc'] - 1) / 2
 
         nan_cols = df_[cols].isna().sum()
+        # print(nan_cols.value_counts())
+        # quit()
         # import matplotlib.pyplot as plt
         # plt.hist(nan_cols)
         # plt.show()
         # print(f'{nan_cols=}')
         # quit()
         # cols = [col for i, col in enumerate(cols) if not nan_cols[i]]
-        cols = [col for i, col in enumerate(cols) if nan_cols[i] < 5]
+        cols = [col for i, col in enumerate(cols) if nan_cols[i] < 10]
         df_.dropna(subset=cols, inplace=True)
         # print(f'{cols=}')
         # quit()

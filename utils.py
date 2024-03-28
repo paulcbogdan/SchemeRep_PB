@@ -31,7 +31,21 @@ def regress_out_multi(X, y):
         y = regress_out(x, y)
     return y
 
-def stdize(v, axis=None, nans=False, rankdata=False):
+def stdize(v, axis=None, nans=False, rankdata=False, stdize_by_run=False):
+    if stdize_by_run:
+        b0 = v.shape[axis] // 3
+        b1 = b0 * 2
+        slices0 = [slice(None)] * (axis - 2) + [slice(0, b0)]
+        slices1 = [slice(None)] * (axis - 1) + [slice(b0, b1)]
+        slices2 = [slice(None)] * (axis - 1) + [slice(b1, None)]
+        v = np.concatenate((stdize(v[*slices0], axis=axis, nans=nans,
+                                   rankdata=rankdata),
+                            stdize(v[*slices1], axis=axis, nans=nans,
+                                   rankdata=rankdata),
+                            stdize(v[*slices2], axis=axis, nans=nans,
+                                   rankdata=rankdata)),
+                           axis=axis)
+        return v
 
     import warnings
     warnings.filterwarnings('ignore', category=RuntimeWarning,
@@ -279,9 +293,6 @@ def prune_to_only_hits(d, key, misses=False):
 
 def tril_flat(ar):
     tril = np.tril_indices(ar.shape[-1], k=-1)
-    # slicer = tuple([slice(None)] * (ar.ndim - 2) + [tril[0], tril[1]])
-    # print(slicer)
-    # ar_flat = ar[slicer]
     ar_flat = ar[..., tril[0], tril[1]]
     return ar_flat
 
@@ -511,7 +522,12 @@ HCP_CACHE = r'F:\HCP_Preprocessing\HCP\HCP_cache'
 HCP_RS_ROOT = r'E:\HCP_RS'
 
 if __name__ == '__main__':
-    test = [-300, 1, 3, 4, 5]
+
+    test = [[-300, 1, 3, 4, 5], [-300, 3, 3, 4, 5]]
+    test = np.array(test)
+
+    # print(test[[slice(None), 3]])
+    # quit()
     test = stdize(test, rankdata=True)
     print(test)
 

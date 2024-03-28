@@ -21,7 +21,8 @@ from functools import partial
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
-           RDM_method='by_run', combine_regions=False, plotting=None):
+           RDM_method='by_run', combine_regions=False, plotting=None,
+           stdize_by_run=False):
     scores_all = []
     sizes_all = []
     trialwise_all = []
@@ -45,6 +46,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                        conn=conn, trial_similarity=trial_similarity,
                        second_order=second_order, RDM_method=RDM_method,
                        combine_regions=combine_regions,
+                  stdize_by_run=stdize_by_run
                        )
             scores_all.append(scores)
             sizes_all.append(sizes)
@@ -75,7 +77,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 scores, sizes, trialwise = \
                     f(sn, atlas, fp0, fp1, networks=networks,
                            conn=conn, trial_similarity=trial_similarity,
-                           combine_regions=combine_regions,)
+                           combine_regions=combine_regions,
+                      stdize_by_run=stdize_by_run)
                 scores_all.append(scores)
                 sizes_all.append(sizes)
                 trialwise_all.append(trialwise)
@@ -184,8 +187,10 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
-                 age=1, plotting=None, atlas='BNA'):
-    assert not ((conn == 'BOLD') and ('clever' in RDM_method))
+                 age=1, plotting=None, atlas='BNA',
+                 stdize_by_run=False):
+    assert not ((conn == 'BOLD') and ('clever' in RDM_method) and
+                (not do_networks))
     settings = locals().copy()
     print(f'Run settings start:')
     pprint(settings)
@@ -217,7 +222,8 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
                    conn=conn, trial_similarity=trial_similarity,
                    second_order=second_order, RDM_method=RDM_method,
-                   combine_regions=combine_regions, plotting=plotting)
+                   combine_regions=combine_regions, plotting=plotting,
+                   stdize_by_run=stdize_by_run)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         trialwise_all.append(scores_trialwise)
@@ -286,7 +292,8 @@ def run_settings_healthy(settings, ISPC=False):
 def run_analysis(RSA=True, semantic=False, do_networks=1,
                  conn='euc', trial_similarity='corr', second_order='spear',
                  four_tasks=False, combine_regions=False, split=True,
-                 RDM_method='clever_std', age=1, plotting=None, atlas='BNA'):
+                 RDM_method='clever_std', age=1, plotting=None, atlas='BNA',
+                 stdize_by_run=False):
     settings = locals().copy()
 
     if plotting is None:
@@ -342,8 +349,9 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
         visualize_region_matrix(results, plot_lmer=True)
 
 def run_analysis_toggles():
-    RDM_method = 'clever_std_complex_mean'
+    # RDM_method = 'clever_std_complex_mean'
     # RDM_method = 'clever_std'
+    RDM_method = 'within_nan'
     trial_similarity_toggle = ['corr']#, 'corr']
     four_tasks_toggle = ['7']
     conn_toggle = ['prod', 'euc']
@@ -366,7 +374,7 @@ def run_analysis_toggles():
     # analyses = [(True, False)]
     # analyses = [(False, False), (True, True), (True, False)]
     # analyses = [(False, False)]
-    analyses = [(True, True)]
+    analyses = [(True, False)]
     # analyses = [(True, True)]
     for trial_similarity in trial_similarity_toggle:
         for four_tasks in four_tasks_toggle:
@@ -385,7 +393,8 @@ def run_analysis_toggles():
                                              combine_regions=combine_regions,
                                              second_order=second_order,
                                              age=age, plotting=plotting,
-                                             atlas=atlas)
+                                             atlas=atlas,
+                                             stdize_by_run=True)
                             except AssertionError as e:
                                 print(f'Assertion no bueno: {e}')
                                 pass

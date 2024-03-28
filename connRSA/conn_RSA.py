@@ -79,14 +79,12 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
 def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                      trial_similarity='corr', second_order='spear',
                      RDM_method='by_run', combine_regions=False):
-    # print(f'{second_order=}')
-    # quit()
+
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
-    key0 = list(ROI2vecs)[2]
 
 
     ROI2vecs, region_order, score_ar, IRAFs_ar = \
@@ -94,25 +92,19 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
-    # ROI_pair2conn_vecs = {}
-    # score_ar = np.full((len(ROI2vecs), len(ROI2vecs)), np.nan)
-    # IRAFs_ar = np.full((len(ROI2vecs), len(ROI2vecs), 114), np.nan)
-    # print(ROI2vecs)
+
     for i, ROI0 in enumerate(region_order):
 
         vecs0 = ROI2vecs[ROI0]
-        # print(f'{np.array(vecs0).shape=}')
 
         for j, ROI1 in enumerate(region_order):
-    # for i, (ROI0, vecs0) in enumerate(ROI2vecs.items()):
-    #     for j, (ROI1, vecs1) in enumerate(ROI2vecs.items()):
+
             if ROI1 > ROI0:
                 continue
             elif ROI0 == ROI1:
                 vecs = get_conn_vecs(vecs0, conn=conn)
             else:
                 vecs1 = ROI2vecs[ROI1]
-                # print(f'{ROI1} | {np.array(vecs1).shape=}')
                 vecs = get_conn_vecs(vecs0, vecs1, conn=conn)
             if vecs.shape[1] == 1:
                 score_ar[i, j] = np.nan
@@ -120,14 +112,7 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                 IRAFs_ar[i, j, :] = np.full((114), np.nan)
                 IRAFs_ar[j, i, :] = np.full((114), np.nan)
                 continue
-            # if ROI1 == 'PCL_L' and ROI0 == 'PCL_L':
-                # print(vecs.shape)
-                # quit()
-            # else:
-            #     continue
-                # print(f'{vecs=}')
-                # quit()
-            # print(f'{ROI1} | {ROI0}')
+
             z, IRAFs = get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
                                     trial_similarity=trial_similarity,
                                                       second_order=second_order)
@@ -135,10 +120,7 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             score_ar[j, i] = z
             IRAFs_ar[i, j, :] = IRAFs
             IRAFs_ar[j, i, :] = IRAFs
-                # quit()
-            # print(f'{ROI0} | {ROI1}: {z=:.3f}')
-            # ROI_pair2conn_vecs[(ROI0, ROI1)] = z
-            # ROI_pair2conn_vecs[(ROI1, ROI0)] = z
+
     return score_ar, np.nan, IRAFs_ar
 
 
@@ -177,9 +159,7 @@ def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
     IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn,
                       within_to_nan=False,
                       second_order=second_order)
-    # except:
-    #     print(f'{RSM_fMRI=}')
-    #     quit()
+
     return z, IRAFs
 
 
@@ -240,38 +220,11 @@ def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,
     score_by_edge[edge_trils[1], edge_trils[0]] = score_by_edge_flat
     return score_by_edge, np.nan, np.nan
 
-    # TODO:
-
-    #
-    # plt.imshow(RSA_by_edge)
-    # plt.show()
-    #
-    #
-    # quit()
-    #
-    # # print(RSM_fMRI_by_edge.shape)
-    # RSM_fMRI_by_edge = np.transpose(RSM_fMRI_by_edge, (2, 0, 1))
-    # # print(RSM_fMRI_by_edge.shape)
-    # RSM_flat_fMRI_by_edge = RSM_fMRI_by_edge[:, trils[0], trils[1]]
-    # # print(RSM_flat_fMRI_by_edge.shape)
-    # # print(RSM_fMRI_by_edge.shape)
-    # # print(f'{len(trils)=}')
-    # # print(f'{RSM_flat_fMRI_by_edge.shape=}')
-    # # print(f'{RSM_stim_flat.shape=}')
-    # rs_by_edge = corr_last_dim(RSM_flat_fMRI_by_edge, RSM_stim_flat)
-    # # print(rs_by_edge)
-    # # quit()
-    # # print(f'{rs_by_edge.shape=}')
-    # rs_by_edge_ar = np.zeros((n_regions, n_regions))
-    # trils_c = np.tril_indices_from(rs_by_edge_ar, k=-1)
-    #
-    # rs_by_edge_ar[trils_c[0], trils_c[1]] = rs_by_edge
-    # rs_by_edge_ar[trils_c[1], trils_c[0]] = rs_by_edge
-
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
-           RDM_method='by_run', combine_regions=False):
+           RDM_method='by_run', combine_regions=False,
+           stdize_by_run=False):
     BOLD = conn == 'BOLD'
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
@@ -293,7 +246,6 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     sizes = []
     IRAFs_all_ROI = []
     for ROI, vecs in ROI2vecs.items():
-
         vecs_BOLD = ROI2vecs[ROI]
         # TODO: Implement toggle to disable connectivity
         keeps = ~np.isnan(vecs_BOLD).any(axis=0)
@@ -305,11 +257,19 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         vecs_BOLD = vecs_BOLD[:, keeps]
         sizes.append(np.sum(keeps))
 
+        # if stdize_by_run:
+        #     vecs_BOLD = (
+        #         np.concatenate([stdize(vecs_BOLD[:38], axis=0, nans=True),
+        #                         stdize(vecs_BOLD[38:76], axis=0, nans=True),
+        #                         stdize(vecs_BOLD[76:], axis=0, nans=True)]))
+        # else:
         vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
         if BOLD or cross_region:
             vecs = vecs_BOLD
         else:
-            vecs = get_conn_vecs(vecs_BOLD, conn=conn)
+            vecs = get_conn_vecs(vecs_BOLD, conn=conn,
+                                 stdize_by_run=stdize_by_run)
+
         RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                                 dist=trial_similarity)
         if RDM_method == 'by_run':

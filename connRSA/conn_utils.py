@@ -89,13 +89,15 @@ def corr_last_dim(ar0, ar1, nans=True, euc_dist=False, stdize=True):
 
 
 
-def get_conn_vecs(vecs, vecs1=None, conn='euc'):
-    vecs = stdize(vecs, axis=0, nans=True)
+def get_conn_vecs(vecs, vecs1=None, conn='euc', stdize_by_run=False):
+
+
+    vecs = stdize(vecs, axis=0, nans=True, stdize_by_run=stdize_by_run)
     if vecs1 is None:
         vecs1 = vecs
         cross = False
     else:
-        vecs1 = stdize(vecs1, axis=0, nans=True)
+        vecs1 = stdize(vecs1, axis=0, nans=True, stdize_by_run=stdize_by_run)
         cross = True
     if conn == 'euc':
         vecs = pb_outer_euc(vecs, vecs1, tril=not cross,
