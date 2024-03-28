@@ -288,9 +288,10 @@ def run_lmer_PFC_RSA():
     four_tasks = '7'
     combine_regions = False
     split = False
-    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    # RDM_method = 'within_nan'
+    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    RDM_method = 'by_run'
     age = 'healthy'
+    stdize_by_run = True
 
     target_ROI = 'Occipital'
 
@@ -299,7 +300,8 @@ def run_lmer_PFC_RSA():
                       conn=conn, trial_similarity=trial_similarity,
                       second_order=second_order, four_tasks=four_tasks,
                       combine_regions=combine_regions, split=split,
-                      RDM_method=RDM_method,age=age))
+                      RDM_method=RDM_method,age=age,
+                      stdize_by_run=stdize_by_run))
 
 
 
