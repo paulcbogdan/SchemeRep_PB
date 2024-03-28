@@ -172,7 +172,7 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 
 def run_settings_ISPC_healthy(settings):
 	# results_both = run_settings_healthy(settings, run_settings_ISPC)
-	dir_results = r'../cache/conn_RSA'
+	dir_results = r'cache/conn_RSA'
 
 	settings1 = settings.copy()
 	del settings1['age']
@@ -217,7 +217,7 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			settings['conn'] = f'cross_{conn}'
 			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
-	dir_results = r'../cache/conn_RSA'
+	dir_results = r'cache/conn_RSA'
 	if age == 'healthy':
 		results = pickle_wrap(run_settings_ISPC_healthy, None, kwargs={'settings': settings}, easy_override=True,
 							  verbose=0, cache_dir=dir_results)

@@ -143,6 +143,9 @@ def calculate_cross_region_vecs(ROI2vecs, networks, conn='euc'):
 def cluster_regions(ROI2vecs, networks):
     ROI2vecs_new = {}
     for network, ROIs in networks.items():
+        # print(list(ROI2vecs))
+        # print(ROIs)
+        # quit()
         vecs_l = []
         for ROI in ROIs:
             if ROI in ROI2vecs:
@@ -165,24 +168,20 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       easy_override=False):
     assert not (combine_regions and org_by_region)
 
-    easy_override = True
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                              drop_nan_voxels=False,
                              org_by_region=org_by_region,
                              easy_override=easy_override,
-                             combine_regions=combine_regions)
-
-    key = 'SFG'
+                             combine_regions=combine_regions,
+                             verbose=-1)
 
     if fp1 is not None:
         ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
                                  drop_nan_voxels=False,
                                  org_by_region=org_by_region,
                                  easy_override=easy_override,
-                                 combine_regions=combine_regions)
-        # ROI2vecs1 = get_ROI_vecs_old(df_sn, fp1, atlas,
-        #                              nan_thresh=1.01, org_by_region=org_by_region,
-        #                              drop_nan_voxels=False)
+                                 combine_regions=combine_regions,
+                                 verbose=-1)
     else:
         ROI2vecs1 = None
 

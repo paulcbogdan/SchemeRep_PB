@@ -14,7 +14,7 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             trial_similarity='corr', second_order='spear',
             RDM_method='by_run', combine_regions=False,
             PFC=False, PFC2=False, ROI_ctrl=False):
-    df_sn = get_trial_info(sn)
+    df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
@@ -85,21 +85,16 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
                      RDM_method='by_run', combine_regions=False):
     # print(f'{second_order=}')
     # quit()
-    df_sn = get_trial_info(sn)
+    df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,
                                  cross_region=False, conn=conn,
                                  combine_regions=False)
     key0 = list(ROI2vecs)[2]
-    # print(ROI2vecs[key0])
-    # print(f'{key0=}')
-    # quit()
+
 
     ROI2vecs, region_order, score_ar, IRAFs_ar = \
         prep_for_pairwise(ROI2vecs, atlas)
-    # print(list(ROI2vecs))
-    # print(ROI2vecs)
-    # quit()
 
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
@@ -110,8 +105,6 @@ def RSA_ROI_pairwise(sn, atlas, d_vecs, fp, networks=True, conn='euc',
     for i, ROI0 in enumerate(region_order):
 
         vecs0 = ROI2vecs[ROI0]
-        # print(ROI0, vecs0)
-        # quit()
         # print(f'{np.array(vecs0).shape=}')
 
         for j, ROI1 in enumerate(region_order):
@@ -197,7 +190,7 @@ def get_RSM_subtract_run_mean_fast(vecs, RSM_stim, df_sn,
 def RSA_edgewise(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
            RDM_method='by_run', combine_regions=False):
-    df_sn = get_trial_info(sn)
+    df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=True,
                                  cross_region=False, conn=conn,
@@ -298,14 +291,18 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     if 'cross_' in conn:
         conn = conn.replace('cross_', '')
 
-    df_sn = get_trial_info(sn, easy_override=True)
-    sess = fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '')
+    df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
+    sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
+            replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
     # TODO: Implement toggle to be high density
+
+    org_by_region = (not BOLD) or (networks)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
-                                 networks=networks, org_by_region=not BOLD,
+                                 networks=networks, org_by_region=org_by_region,#not BOLD,
                                  cross_region=cross_region, conn=conn,
                                  combine_regions=combine_regions)
+
     scores = []
     sizes = []
     IRAFs_all_ROI = []

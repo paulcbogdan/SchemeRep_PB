@@ -1,3 +1,7 @@
+import os
+
+os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
+
 import warnings
 
 import numpy as np
@@ -17,7 +21,7 @@ def print_settings(settings):
 
 
 def report_results(results, do_lmer=False, ISPC=False):
-    print_settings(results['settings'])
+    # print_settings(results['settings'])
     if 'plotting' in results['settings'] and \
             results['settings']['plotting'] in ['regions', 'edges']:
         setting_plotting = results['settings']['plotting']
@@ -33,7 +37,7 @@ def report_results(results, do_lmer=False, ISPC=False):
         if results['settings']['conn'] == 'BOLD':
             assert scores.shape[1] == 246, f'BAD BOLD {scores.shape=}'
             results['keys'] = get_BNA_ROIs()
-            warnings.warn('For Bold, setting keys to 246 BNA ROIs')
+            warnings.warn('For BOLD, setting keys to 246 BNA ROIs')
         else:
             raise ValueError(f'{len(results["keys"])=} != {scores.shape=}')
 
