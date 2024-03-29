@@ -238,9 +238,10 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
 
     org_by_region = (not BOLD) or (networks)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
-                                 networks=networks, org_by_region=org_by_region,#not BOLD,
+                                 networks=networks, org_by_region=org_by_region,
                                  cross_region=cross_region, conn=conn,
-                                 combine_regions=combine_regions)
+                                 combine_regions=combine_regions,
+                                 easy_override=False)
 
     scores = []
     sizes = []

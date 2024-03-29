@@ -110,8 +110,12 @@ def prep_vecs(RSA, semantic):
     return d_vecs
 
 def prep_fps(four_tasks):
-    assert four_tasks == '7'
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    if four_tasks == '7':
+        fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    elif four_tasks == '7b':
+        fps = ['bl7_fMRI', 'obj8_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    else:
+        raise NotImplementedError
     return fps
 
     # if four_tasks == '3b_4':
@@ -189,7 +193,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
                  age=1, plotting=None, atlas='BNA',
                  stdize_by_run=False):
-    assert not ((conn == 'BOLD') and ('clever' in RDM_method) and
+    assert not ((conn == 'BOLD') and RDM_method and ('clever' in RDM_method) and
                 (not do_networks))
     settings = locals().copy()
     print(f'Run settings start:')

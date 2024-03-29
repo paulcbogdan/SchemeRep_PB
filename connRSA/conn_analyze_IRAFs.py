@@ -49,16 +49,12 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     results_conn = pickle_wrap(run_settings, None, kwargs=settings,
                                easy_override=False, verbose=1,
                                cache_dir=dir_results)
-    # print(list(results_conn))
-    # pprint(results_conn)
 
-
-
-    # print('-' * 100)
-    report_results(results_conn, do_lmer=True)
+    report_results(results_conn, do_lmer=False)#True)
     # quit()
 
-    if 'complex_mean' in settings['RDM_method']:
+    if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
+            'complex_mean' in settings['RDM_method']):
         # settings['RDM_method'] = 'clever_std'
         settings['RDM_method'] = 'within_nan'
 
@@ -74,6 +70,9 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
+
+    report_results(results_bold_sep, do_lmer=False)
+
 
     return results_conn, results_bold_comb, results_bold_sep
 
@@ -155,7 +154,8 @@ def prep_network2ROI(do_networks, target_ROI):
     for key, l in network2ROI.items():
         if isinstance(l, tuple):
             network2ROI[key] = l[0] + l[1]
-    assert target_ROI in network2ROI.keys(), f'{target_ROI} not in settings choice'
+    assert target_ROI in network2ROI.keys(), \
+        f'{target_ROI} not in settings choice'
 
     BOLD_keys = get_BNA_ROIs()
     key2short = {key: key.split(' ')[1] for key in BOLD_keys}
@@ -165,23 +165,26 @@ def prep_network2ROI(do_networks, target_ROI):
 
 
 def lmer_stats(df, ROI_cols):
+    conn_sess_ERS = ['2', ] # '4', '5'
+    df = df[df['fp_idx'].isin(conn_sess_ERS)]
+
+    n_sn = df['sn'].nunique()
+
     df_M = df.groupby('sn')['conn_score'].mean()
     M_score = df_M.mean()
     SD_score = df_M.std()
-    SE_score = SD_score / np.sqrt(df_M.shape[0])
+    # print(np.sum(~np.isnan(df_M)))
+    # quit()
+    N_score = np.sum(~np.isnan(df_M))
+    SE_score = SD_score / np.sqrt(N_score)
     t_score = M_score / SE_score
 
     print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, '
           f'{t_score=:.3f}')
-    # quit()
 
-    # print(f'{list(ROI_to_bold_keys)=}')
-    # ROI_cols = ROI_to_bold_keys[target_ROI]
-    # print(f'{ROI_cols=}')
-    # print(f'{len(ROI_cols)=}')
-    # print()
+
     cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
-            'inc_str', 'per_inc_str', 'fp_idx'] + \
+            'inc_str', 'per_inc_str', 'fp_idx', 'BOLD_score'] + \
            ROI_cols
     df = df[cols]
     df.dropna(inplace=True)
@@ -190,8 +193,23 @@ def lmer_stats(df, ROI_cols):
 
     from pymer4.models import Lmer
 
+
+    if len(df['fp_idx'].unique()) > 1:
+        formula = 'conn_score ~ 1 + BOLD_score + (1|sn) + (1|fp_idx)'
+        print('tteet')
+    else:
+        formula = 'conn_score ~ 1 + BOLD_score + (1|sn)'
+        print('toast')
+    # quit()
+
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=True, summary=True)
+    print(model.summary())
+
     print('-' * 120)
-    formula = 'conn_score ~ 1 + ' + ' + '.join(ROI_cols) + '+  (1|sn) + (1|fp_idx)'
+    formula = ('conn_score ~ 1 + BOLD_score + ' +
+               ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=True, summary=True)
@@ -279,8 +297,8 @@ def lmer_stats(df, ROI_cols):
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
-    semantic = True
+    RSA = False
+    semantic = False
     do_networks = 1
     conn = 'prod'
     trial_similarity = 'corr'
@@ -288,11 +306,13 @@ def run_lmer_PFC_RSA():
     four_tasks = '7'
     combine_regions = False
     split = False
-    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    RDM_method = 'by_run'
+    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    # RDM_method = 'within_nan'
+    # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = True
 
+    target_ROI = 'else_cortical'
     target_ROI = 'Occipital'
 
     results_conn, results_bold_comb, results_bold_sep = (

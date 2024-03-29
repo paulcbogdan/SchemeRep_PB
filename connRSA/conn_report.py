@@ -56,9 +56,17 @@ def report_results(results, do_lmer=False, ISPC=False):
     for j, ROI in enumerate(results['keys']):
         ROI_scores_by_fp = scores_by_fp[:, :, j]
         M_by_fp = np.nanmean(ROI_scores_by_fp, axis=0)
+        # print(f'{M_by_fp=}')
         SD_by_fp = np.nanstd(ROI_scores_by_fp, axis=0)
-        N_by_fp = len(ROI_scores_by_fp[~np.isnan(ROI_scores_by_fp)])
+        # print(ROI_scores_by_fp)
+        # quit()
+        N_by_fp = [len(ROI_scores_by_fp[~np.isnan(ROI_scores_by_fp[:, k])]
+                    ) for k in range(ROI_scores_by_fp.shape[1])]
+        # N_by_fp = len(ROI_scores_by_fp[~np.isnan(ROI_scores_by_fp)])
         SE_by_fp = SD_by_fp / np.sqrt(N_by_fp)
+        # print(f'{SD_by_fp=}')
+        # print(f'{N_by_fp=}')
+        # print(f'{SE_by_fp=}')
         t_by_fp = M_by_fp / SE_by_fp
         t_by_fp_str = '['
         for k, t in enumerate(t_by_fp):
