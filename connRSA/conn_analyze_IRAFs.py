@@ -71,7 +71,7 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
 
-    report_results(results_bold_sep, do_lmer=False)
+    # report_results(results_bold_sep, do_lmer=False)
 
 
     return results_conn, results_bold_comb, results_bold_sep
@@ -165,8 +165,9 @@ def prep_network2ROI(do_networks, target_ROI):
 
 
 def lmer_stats(df, ROI_cols):
-    conn_sess_ERS = ['2', ] # '4', '5'
-    df = df[df['fp_idx'].isin(conn_sess_ERS)]
+    # conn_sess_ERS = ['2', ] # '4', '5'
+    # df = df[df['fp_idx'].isin(conn_sess_ERS)]
+    df = df[df['fp_idx'].isin(['0'])]
 
     n_sn = df['sn'].nunique()
 
@@ -182,10 +183,9 @@ def lmer_stats(df, ROI_cols):
     print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, '
           f'{t_score=:.3f}')
 
-
     cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
             'inc_str', 'per_inc_str', 'fp_idx', 'BOLD_score'] + \
-           ROI_cols
+             ROI_cols
     df = df[cols]
     df.dropna(inplace=True)
     df['vis_hit'] = df['vis_hit'].astype(int)
@@ -204,7 +204,7 @@ def lmer_stats(df, ROI_cols):
 
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
+    model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
     print('-' * 120)
@@ -212,7 +212,7 @@ def lmer_stats(df, ROI_cols):
                ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
+    model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
     quit()
 
@@ -297,23 +297,25 @@ def lmer_stats(df, ROI_cols):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
-    semantic = False
-    do_networks = 1
+    RSA = True
+    semantic = True
+    do_networks = 14
     conn = 'prod'
     trial_similarity = 'corr'
     second_order = 'spear'
-    four_tasks = '7'
+    four_tasks = '8'
     combine_regions = False
     split = False
     RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    # RDM_method = 'within_nan'
+    RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'
-    stdize_by_run = True
+    stdize_by_run = False
 
-    target_ROI = 'else_cortical'
-    target_ROI = 'Occipital'
+    # target_ROI = 'else_cortical'
+    # target_ROI = 'Occipital'
+    # target_ROI = 'Occipital'
+    target_ROI = 'PFC'
 
     results_conn, results_bold_comb, results_bold_sep = (
         load_for_lmer(RSA=RSA, semantic=semantic, do_networks=do_networks,

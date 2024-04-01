@@ -17,9 +17,10 @@ def prep_networks(network_setting=1):
             #             'Str', 'Tha'],
             'else': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS', 'SPL',
                      'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'Amyg', 'Hipp', 'Str',
-                     'Tha'],
+                     'Tha', 'ACC', 'PCC'],
             'else_cortical': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS',
-                              'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG'],
+                              'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG',
+                              'ACC', 'PCC'],
             'sub': ['Amyg', 'Hipp', 'Str', 'Tha'],
         }
     # elif setting == 3:
@@ -72,7 +73,7 @@ def prep_networks(network_setting=1):
                     'dorsal_proper': ['SPL', 'IPL', 'Pcun', 'PoG'],
                     }
     elif network_setting == 9:
-        networks = {'MTL': ['ITG', 'FuG', 'ATL', 'Hipp']}
+        networks = {'MTL': ['PhG', 'ATL', 'Hipp']} # 'ITG',
     elif network_setting == 10:
         networks = {'whole_brain': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
                                      'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
@@ -98,7 +99,8 @@ def prep_networks(network_setting=1):
                     'prefrontal': ['SFG', 'MFG', 'IFG', 'OrG']}
     elif network_setting == 14:
         networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG'],
-                    'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC']}
+                    'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC'],
+                    'FP': ['MFG', 'IFG', 'IPL', 'SPL']}
     elif network_setting == 15:
         networks = {'PFC_lTemp': ['SFG', 'MFG', 'IFG', 'OrG',
                                               'ATL', 'STG', 'MTG']}

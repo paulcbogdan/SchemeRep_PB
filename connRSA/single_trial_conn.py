@@ -112,8 +112,8 @@ def prep_vecs(RSA, semantic):
 def prep_fps(four_tasks):
     if four_tasks == '7':
         fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    elif four_tasks == '7b':
-        fps = ['bl7_fMRI', 'obj8_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    elif four_tasks == '8':
+        fps = ['bl8_fMRI', 'obj8_fMRI', 'con8_fMRI', 'vis8_fMRI']
     else:
         raise NotImplementedError
     return fps
@@ -211,8 +211,10 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
-    sns = [sn for sn in sns if int(sn) != 239]
+    sns = [sn for sn in sns if int(sn) not in [230, 234, 239]] # TODO: ask SH to re-run 230 GSR
+    # sns = [sn for sn in sns if int(sn) != 239]
     print(f'{sns=}')
+
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
     networks = prep_networks(do_networks)
