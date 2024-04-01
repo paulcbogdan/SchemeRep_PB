@@ -113,7 +113,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
     i = 77
 
     # for i in [16, 142, 198, 77]:
-    for i in [0, 4, 208]:
+    for i in [83]:
         all_black = True
         fig = plt.figure(figsize=(3.5, 3.5))
 

@@ -62,9 +62,9 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     results_bold_comb = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
-
+    print(f'BOLD ' * 10)
     report_results(results_bold_comb, do_lmer=True)
-
+    quit()
 
     settings['do_networks'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
@@ -83,11 +83,6 @@ def organize_df(results_conn, results_bold_sep, results_bold_com,
     scores_sep = results_bold_sep['scores_by_ROI']
     scores_sep = np.array(scores_sep)
     scores_comb = results_bold_com['scores_by_ROI']
-    scores_comb = np.array(scores_comb)
-    # print(f'{scores_conn.shape=}')
-    # print(f'{scores_sep.shape=}')
-    # print(f'{scores_comb.shape=}')
-    # quit()
 
     network2ROI, BOLD_keys_short = prep_network2ROI(do_networks, target_ROI)
 
@@ -298,15 +293,15 @@ def lmer_stats(df, ROI_cols):
 
 def run_lmer_PFC_RSA():
     RSA = True
-    semantic = True
-    do_networks = 14
-    conn = 'prod'
-    trial_similarity = 'corr'
+    semantic = False
+    do_networks = 14 # 14 = multi PFC
+    conn = 'euc'
+    trial_similarity = 'spear'
     second_order = 'spear'
     four_tasks = '8'
     combine_regions = False
     split = False
-    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
     RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'

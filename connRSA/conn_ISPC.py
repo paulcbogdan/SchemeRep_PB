@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from single_trial_conn import prep_fps, run_settings_healthy
 from conn_report import report_results
-from vendor import prep_networks
+from old.networks import prep_networks
 from utils import pickle_wrap
 import warnings
 from colorama import Fore
@@ -30,13 +30,14 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 	ROI2vecs_all_sn = defaultdict(list)
 
 	for sn in sns:
-		df_sn = get_trial_info(sn)
+		df_sn = get_trial_info(sn, verbose=-1)
 		ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
 									 networks=networks,
 									 org_by_region=not BOLD,
 									 cross_region=cross_region, conn=conn,
 									 combine_regions=combine_regions,
 									 )
+
 		for ROI, vecs in ROI2vecs.items():
 			vecs_BOLD = ROI2vecs[ROI]
 			if BOLD or cross_region:
@@ -44,15 +45,11 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 			else:
 				vecs = get_conn_vecs(vecs_BOLD, conn=conn)
 			vecs = vecs[df_sn['obj'].argsort(), :]
-
 			ROI2vecs_all_sn[ROI].append(vecs)
 
 	score_by_stim = []
 	sizes = []
 	for ROI, ROI_vecs in ROI2vecs_all_sn.items():
-		# if 'Occ' not in ROI and 'LOC' not in ROI: continue
-		# if 'LOC' not in ROI: continue
-		# if ROI != 'LOC' and ROI != 'EVC': continue
 		ROI_vecs = np.array(ROI_vecs)
 
 		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
@@ -61,6 +58,10 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 
 		size = np.sum(~np.isnan(ROI_vecs)) / (ROI_vecs.shape[0] *
 											  ROI_vecs.shape[1])
+
+		bad_sns = np.isnan(ROI_vecs).any(axis=(1, 2))
+		print(f'Number of bad sns: {np.sum(bad_sns)}')
+		ROI_vecs = ROI_vecs[~bad_sns]
 		keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
 		nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
 		n_good =  np.sum(keeps)
@@ -71,7 +72,6 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 			sizes.append(0)
 			continue
 		sizes.append(size)
-		# print(f'{ROI}, {vecs_all.shape=}')
 		ROI_same_scores = []
 		ROI_else_scores = []
 		for stim_j in tqdm(range(ROI_vecs.shape[1]), desc='ISPC'):
@@ -92,28 +92,18 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 				# 	continue
 				stim_data2 = ROI_vecs[:, stim_j2, :]
 				stim_data2 = stim_data2[:, keeps]
-				# stim_data2 = np.repeat(np.array(list(range(30)))[:, None],
-				# 					  stim_data.shape[1], axis=1)
+
 				ISPC_matrix = get_trial_x_trial(stim_data, stim_data2,
 											   trial_similarity=trial_similarity)
 				ISPC_matrix[np.eye(ISPC_matrix.shape[0], dtype=bool)] = np.nan
 				M_similarity2 = np.nanmean(ISPC_matrix)
 				stim_else_scores.append(M_similarity2)
-				# plt.imshow(ISPC_matrix)
-				# plt.title(f'{M_similarity2=:.5f}')
-				# plt.colorbar()
-				# plt.show()
-				# quit()
-				# ISPC_triangle2 = ISPC_matrix[np.triu_indices_from(ISPC_matrix, k=-1)]
 
 			M_similarity_else = np.mean(stim_else_scores)
 			ROI_else_scores.append(M_similarity_else)
 		ROI_same_scores = np.array(ROI_same_scores)
-		# print(f'{ROI_same_scores=}')
 		ROI_else_scores = np.array(ROI_else_scores)
-		# print(f'{ROI_else_scores=}')
 		ROI_scores = ROI_same_scores - ROI_else_scores
-		# print(f'{ROI_scores=}')
 
 
 		ROI_M = np.mean(ROI_scores)
@@ -143,8 +133,9 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	else:
 		do_networks = None
 		keys = atlas['tick_labels']
-	age2sn = get_sns(ret=True)
+	age2sn = get_sns('all', sh=False)
 	sns = age2sn[age]
+	sns = [sn for sn in sns if int(sn) not in [230, 234, 239]]  # TODO: ask SH to re-run
 
 	results = {'networks': do_networks, 'keys': keys, 'sns': sns}
 
@@ -152,11 +143,13 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	scores_by_fp_ROI_stim, size_by_ROI = [], []
 	for fp in fps:
 		print(f'--------- {fp} ---------')
+		# if 'obj' not in fp: continue
 		scores, sizes = ISPC(atlas, sns, fp=fp, conn=conn,
 							 combine_regions=combine_regions,
 							 split=split, networks=do_networks,
 							 trial_similarity=trial_similarity)
 		scores_by_fp_ROI_stim.append(scores)
+
 		size_by_ROI.append(sizes)
 
 	scores_by_fp_ROI_stim = np.array(scores_by_fp_ROI_stim)
@@ -176,14 +169,16 @@ def run_settings_ISPC_healthy(settings):
 
 	settings1 = settings.copy()
 	del settings1['age']
-	results1 = pickle_wrap(run_settings_ISPC, None, kwargs=settings1, easy_override=False, verbose=0,
+	results1 = pickle_wrap(run_settings_ISPC, None, kwargs=settings1,
+						   easy_override=True, verbose=0,
 						   cache_dir=dir_results)
 	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
 	report_results(results1, ISPC=True)
 
 	settings2 = settings.copy()
 	settings2['age'] = 2
-	results2 = pickle_wrap(run_settings_ISPC, None, kwargs=settings2, easy_override=False, verbose=0,
+	results2 = pickle_wrap(run_settings_ISPC, None, kwargs=settings2,
+						   easy_override=True, verbose=0,
 						   cache_dir=dir_results)
 	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
 	report_results(results2, ISPC=True)
@@ -219,21 +214,23 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
 	if age == 'healthy':
-		results = pickle_wrap(run_settings_ISPC_healthy, None, kwargs={'settings': settings}, easy_override=True,
+		results = pickle_wrap(run_settings_ISPC_healthy, None,
+							  kwargs={'settings': settings}, easy_override=True,
 							  verbose=0, cache_dir=dir_results)
 		print(f'{Fore.RED}Combined people:{Fore.RESET}')
 	else:
-		if age == 2:
-			assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
-		else:
-			del settings['age']
-		results = pickle_wrap(run_settings_ISPC, None, kwargs=settings, easy_override=False, cache_dir=dir_results)
+		# if age == 2:
+		# 	assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
+		# else:
+		# 	del settings['age']
+		results = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
+							  easy_override=True, cache_dir=dir_results)
 		print(f'{Fore.RED}Finished!{Fore.RESET}')
 	report_results(results, ISPC=True)
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
-	four_tasks_toggle = ['3_4']#, '3_3']
+	four_tasks_toggle = ['7', '8']#, '3_3']
 	conn_toggle = ['euc']
 	# conn_toggle = ['BOLD']
 	split_toggle = [False]
@@ -242,7 +239,7 @@ def run_ISPC_toggle():
 	for conn in conn_toggle:
 		for four_tasks in four_tasks_toggle:
 			# for do_networks in [1,  3, 4, 5, 6, 8, 9, False, 2, 7]:
-			for do_networks in [6]:
+			for do_networks in [16]:
 				for split in split_toggle:
 					for trial_similarity in trial_similarity_toggle:
 						try:

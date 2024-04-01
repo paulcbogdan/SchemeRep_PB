@@ -46,6 +46,7 @@ def report_results(results, do_lmer=False, ISPC=False):
     if ISPC:
         scores_by_ROI = np.array(results['scores_by_ROI'])
         scores_by_fp = np.transpose(scores_by_ROI, (0, 2, 1))
+
     else:
         scores_by_ROI = np.array(results['scores_by_ROI'])
         scores_by_fp = np.nanmean(scores_by_ROI, axis=3)
@@ -56,6 +57,7 @@ def report_results(results, do_lmer=False, ISPC=False):
     for j, ROI in enumerate(results['keys']):
         ROI_scores_by_fp = scores_by_fp[:, :, j]
         M_by_fp = np.nanmean(ROI_scores_by_fp, axis=0)
+
         # print(f'{M_by_fp=}')
         SD_by_fp = np.nanstd(ROI_scores_by_fp, axis=0)
         # print(ROI_scores_by_fp)

@@ -211,7 +211,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
-    sns = [sn for sn in sns if int(sn) not in [230, 234, 239]] # TODO: ask SH to re-run 230 GSR
+    sns = [sn for sn in sns if int(sn) not in [230, 234, 239]] # TODO: ask SH to re-run
     # sns = [sn for sn in sns if int(sn) != 239]
     print(f'{sns=}')
 
