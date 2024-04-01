@@ -213,19 +213,19 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
-	if age == 'healthy':
-		results = pickle_wrap(run_settings_ISPC_healthy, None,
-							  kwargs={'settings': settings}, easy_override=True,
-							  verbose=0, cache_dir=dir_results)
-		print(f'{Fore.RED}Combined people:{Fore.RESET}')
-	else:
+	# if age == 'healthy':
+	# 	results = pickle_wrap(run_settings_ISPC_healthy, None,
+	# 						  kwargs={'settings': settings}, easy_override=True,
+	# 						  verbose=0, cache_dir=dir_results)
+	# 	print(f'{Fore.RED}Combined people:{Fore.RESET}')
+	# else:
 		# if age == 2:
 		# 	assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
 		# else:
 		# 	del settings['age']
-		results = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
-							  easy_override=True, cache_dir=dir_results)
-		print(f'{Fore.RED}Finished!{Fore.RESET}')
+	results = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
+						  easy_override=True, cache_dir=dir_results)
+	print(f'{Fore.RED}Finished!{Fore.RESET}')
 	report_results(results, ISPC=True)
 
 def run_ISPC_toggle():
