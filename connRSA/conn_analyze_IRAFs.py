@@ -1,4 +1,7 @@
 import os
+
+from connRSA.conn_ISPC import run_settings_ISPC
+
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 from collections import defaultdict
@@ -14,6 +17,7 @@ import numpy as np
 from tqdm import tqdm
 
 from colorama import Fore
+import statsmodels.formula.api as smf
 from pprint import pprint
 
 def get_idx_from_key(l, substring):
@@ -30,6 +34,37 @@ def get_idx_from_key(l, substring):
             not_keys.append(key)
     return idxs, keys
 
+def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
+			 split=False, do_networks=0, trial_similarity='corr',
+			 age=1):
+    settings = locals().copy()
+    dir_results = r'cache/conn_RSA'
+    results_conn = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
+                               easy_override=False, cache_dir=dir_results)
+    report_results(results_conn, do_lmer=True, ISPC=True)
+
+    if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
+            'complex_mean' in settings['RDM_method']):
+        settings['RDM_method'] = 'within_nan'
+    #
+    settings['conn'] = 'BOLD'
+    results_bold_comb = pickle_wrap(run_settings_ISPC, None,
+                                   kwargs=settings, easy_override=False,
+                                   verbose=1, cache_dir=dir_results)
+
+    report_results(results_bold_comb, do_lmer=True, ISPC=True)
+
+    results_bold_sep = {}
+
+    # settings['do_networks'] = False
+    # results_bold_sep = pickle_wrap(run_settings_ISPC, None,
+    #                                kwargs=settings, easy_override=False,
+    #                                verbose=1, cache_dir=dir_results)
+
+    # report_results(results_bold_sep, do_lmer=False)
+
+
+    return results_conn, results_bold_comb, results_bold_sep
 
 def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
@@ -64,7 +99,6 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                    verbose=1, cache_dir=dir_results)
     print(f'BOLD ' * 10)
     report_results(results_bold_comb, do_lmer=True)
-    quit()
 
     settings['do_networks'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
@@ -77,9 +111,11 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     return results_conn, results_bold_comb, results_bold_sep
 
 def organize_df(results_conn, results_bold_sep, results_bold_com,
-                do_networks, target_ROI):
+                do_networks, target_ROI,):
     scores_conn = results_conn['scores_by_ROI']
+    print(f'{scores_conn.shape=}')
     scores_conn = np.array(scores_conn)
+    # if not ISPC:
     scores_sep = results_bold_sep['scores_by_ROI']
     scores_sep = np.array(scores_sep)
     scores_comb = results_bold_com['scores_by_ROI']
@@ -104,6 +140,7 @@ def organize_df(results_conn, results_bold_sep, results_bold_com,
                 df_as_d['conn_score'].extend(scores_conn_fp)
                 df_as_d['BOLD_score'].extend(
                     scores_comb[sn_i, fp_idx, ROI_j, :])
+                # if ISPC: continue
 
                 if ROI_name in ROI_to_idxs:
                     ROI_bold_keys_short = ROI_to_bold_keys[ROI_name]
@@ -293,16 +330,16 @@ def lmer_stats(df, ROI_cols):
 
 def run_lmer_PFC_RSA():
     RSA = True
-    semantic = False
-    do_networks = 14 # 14 = multi PFC
-    conn = 'euc'
-    trial_similarity = 'spear'
+    semantic = True
+    do_networks = 2 # 14 = multi PFC
+    conn = 'prod'
+    trial_similarity = 'corr'
     second_order = 'spear'
     four_tasks = '8'
     combine_regions = False
     split = False
-    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    RDM_method = 'within_nan'
+    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    # RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = False
@@ -327,12 +364,66 @@ def run_lmer_PFC_RSA():
 
     lmer_stats(df, ROI_cols)
 
-            
+def run_lmer_PFC_ISPC():
+    do_networks = 16
+    target_ROI = 'PFC'
+
+    results_conn, results_bold_comb, results_bold_sep = (
+        load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
+                           split=False, do_networks=do_networks,
+                           trial_similarity='corr',
+                           age='healthy'))
+
+    results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, 0, :]
+
+    # networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG'],
+    #             'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC'],
+    #             'FP': ['MFG', 'IFG', 'IPL', 'SPL']}
+
+    d = {'conn_score': np.reshape(results_conn['scores_by_ROI'], -1),
+         'BOLD_score': np.reshape(results_bold_comb['scores_by_ROI'], -1),
+         'fp_idx': list(range(4)) * 114,
+         'img': list(range(114)) * 4}
+
+    df = pd.DataFrame(d)
+    df = df.groupby('img').mean()
+
+    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
+    res = mod.fit()
+    print(res.summary())
+    quit()
+
+    formula = 'conn_score ~ 1 + BOLD_score + (1|fp_idx)'
+    from pymer4.models import Lmer
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=True)
+    print(model.summary())
+
+    # scores_conn = results_conn['scores_by_ROI']
+    # print(f'{scores_conn.shape=}')
+    # scores_conn = np.array(scores_conn)
+    # # if not ISPC:
+    # scores_sep = results_bold_sep['scores_by_ROI']
+    # scores_sep = np.array(scores_sep)
+    # scores_comb = results_bold_com['scores_by_ROI']
+
+
+    # print(df)
+    # print(results_conn['scores_by_ROI'].shape)
+    quit()
+
+    # scores_by_ROI = np.array(results['scores_by_ROI'])
+    # scores_by_fp = np.transpose(scores_by_ROI, (0, 2, 1))
+
+    # df, ROI_cols = organize_df(results_conn, results_bold_sep,
+    #                            results_bold_comb, do_networks, target_ROI,
+    #                            ISPC=True)
+    #
+    # lmer_stats(df, ROI_cols)
 
 if __name__ == '__main__':
     # atlas = get_atlas(False, False)
     # print(atlas['tick_labels'])
     # quit()
-    run_lmer_PFC_RSA()
-    # run_lmer_PFC_ERS()
-
+    # run_lmer_PFC_RSA()
+    run_lmer_PFC_ISPC()

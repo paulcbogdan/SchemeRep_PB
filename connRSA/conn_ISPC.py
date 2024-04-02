@@ -18,6 +18,10 @@ from old.networks import prep_networks
 from utils import pickle_wrap
 import warnings
 from colorama import Fore
+import os
+
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 
 def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=False,
 		 networks=False,  trial_similarity='corr', ):
@@ -29,17 +33,22 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 
 	ROI2vecs_all_sn = defaultdict(list)
 
+	org_by_region = (not BOLD) or (networks)
+	# print(f'{org_by_region=}')
+	# quit()
+
 	for sn in sns:
 		df_sn = get_trial_info(sn, verbose=-1)
 		ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
 									 networks=networks,
-									 org_by_region=not BOLD,
+									 org_by_region=org_by_region,
 									 cross_region=cross_region, conn=conn,
 									 combine_regions=combine_regions,
 									 )
 
 		for ROI, vecs in ROI2vecs.items():
 			vecs_BOLD = ROI2vecs[ROI]
+			# print(f'{ROI} | {vecs_BOLD.shape=}')
 			if BOLD or cross_region:
 				vecs = vecs_BOLD
 			else:
@@ -51,6 +60,8 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 	sizes = []
 	for ROI, ROI_vecs in ROI2vecs_all_sn.items():
 		ROI_vecs = np.array(ROI_vecs)
+		print('test')
+		# quit()
 
 		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
 		sn_SDs = np.nanstd(ROI_vecs, axis=1)[:, None, :]
@@ -58,19 +69,51 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 
 		size = np.sum(~np.isnan(ROI_vecs)) / (ROI_vecs.shape[0] *
 											  ROI_vecs.shape[1])
+		# bad_sns_base = np.array([False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False,  True, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False, False, False, False,
+		# 						 False, False, False])
 
-		bad_sns = np.isnan(ROI_vecs).any(axis=(1, 2))
-		print(f'Number of bad sns: {np.sum(bad_sns)}')
-		ROI_vecs = ROI_vecs[~bad_sns]
-		keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
-		nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
-		n_good =  np.sum(keeps)
-		if n_good < 10:
-			warn_str = f'Barely any good voxels for {ROI}. {n_good=}, {nan_prop=:.3f}'
-			warnings.warn(warn_str)
-			score_by_stim.append(np.full(ROI_vecs.shape[1], np.nan))
-			sizes.append(0)
-			continue
+		if org_by_region:
+			bad_sns = np.isnan(ROI_vecs).any(axis=(1, 2))# > 0.5
+			print(f'{ROI} | Number of bad sns: {np.sum(bad_sns)}')
+			ROI_vecs = ROI_vecs[~bad_sns]
+			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
+			nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
+			n_good = np.sum(keeps)
+			if n_good < 10:
+				warn_str = f'Barely any good voxels for {ROI}. {n_good=}, {nan_prop=:.3f}'
+				warnings.warn(warn_str)
+				score_by_stim.append(np.full(ROI_vecs.shape[1], np.nan))
+				sizes.append(0)
+				continue
+		else:
+			print(ROI_vecs.shape)
+			bad_voxels = np.isnan(ROI_vecs).mean(axis=(0, 1)) > 0.5
+			ROI_vecs = ROI_vecs[..., ~bad_voxels]
+			bad_sns = np.isnan(ROI_vecs).mean(axis=(1, 2)) > 0.25
+			ROI_vecs = ROI_vecs[~bad_sns]
+
+			M = np.nanmean(ROI_vecs, axis=2)
+			for i in range(ROI_vecs.shape[0]):
+				for j in range(ROI_vecs.shape[1]):
+					nans = np.isnan(ROI_vecs[i, j, :])
+					ROI_vecs[i, j, nans] = M[i, j]
+			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
+
+			# plt.imshow(np.isnan(ROI_vecs).mean(axis=-1), aspect='auto')
+			# plt.colorbar()
+			# plt.show()
+			# print(bad_sns)
+			# print(np.mean(bad_voxels))
+			# quit()
+
 		sizes.append(size)
 		ROI_same_scores = []
 		ROI_else_scores = []
@@ -162,38 +205,38 @@ def run_settings_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	results['sizes'] = size_by_ROI
 	results['scores_by_ROI'] = scores_by_stim_fp_ROI
 	return results
-
-def run_settings_ISPC_healthy(settings):
-	# results_both = run_settings_healthy(settings, run_settings_ISPC)
-	dir_results = r'cache/conn_RSA'
-
-	settings1 = settings.copy()
-	del settings1['age']
-	results1 = pickle_wrap(run_settings_ISPC, None, kwargs=settings1,
-						   easy_override=True, verbose=0,
-						   cache_dir=dir_results)
-	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
-	report_results(results1, ISPC=True)
-
-	settings2 = settings.copy()
-	settings2['age'] = 2
-	results2 = pickle_wrap(run_settings_ISPC, None, kwargs=settings2,
-						   easy_override=True, verbose=0,
-						   cache_dir=dir_results)
-	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
-	report_results(results2, ISPC=True)
-
-	results_both = {'networks': results1['networks'],
-					'keys': results1['keys'],
-					'sns': results1['sns'] + results2['sns'],
-					'scores': np.concatenate([results1['scores'],
-											  results2['scores']]),
-					'sizes': np.concatenate([results1['sizes'],
-											 results2['sizes']]),
-					'scores_by_ROI': np.concatenate([results1['scores_by_ROI'],
-													 results2['scores_by_ROI']]),
-					'settings': settings}
-	return results_both
+#
+# def run_settings_ISPC_healthy(settings):
+# 	# results_both = run_settings_healthy(settings, run_settings_ISPC)
+# 	dir_results = r'cache/conn_RSA'
+#
+# 	settings1 = settings.copy()
+# 	del settings1['age']
+# 	results1 = pickle_wrap(run_settings_ISPC, None, kwargs=settings1,
+# 						   easy_override=True, verbose=0,
+# 						   cache_dir=dir_results)
+# 	print(f'{Fore.CYAN}Young people:{Fore.RESET}')
+# 	report_results(results1, ISPC=True)
+#
+# 	settings2 = settings.copy()
+# 	settings2['age'] = 2
+# 	results2 = pickle_wrap(run_settings_ISPC, None, kwargs=settings2,
+# 						   easy_override=True, verbose=0,
+# 						   cache_dir=dir_results)
+# 	print(f'{Fore.LIGHTYELLOW_EX}Old people:{Fore.RESET}')
+# 	report_results(results2, ISPC=True)
+#
+# 	results_both = {'networks': results1['networks'],
+# 					'keys': results1['keys'],
+# 					'sns': results1['sns'] + results2['sns'],
+# 					'scores': np.concatenate([results1['scores'],
+# 											  results2['scores']]),
+# 					'sizes': np.concatenate([results1['sizes'],
+# 											 results2['sizes']]),
+# 					'scores_by_ROI': np.concatenate([results1['scores_by_ROI'],
+# 													 results2['scores_by_ROI']]),
+# 					'settings': settings}
+# 	return results_both
 
 def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 			 split=False, do_networks=0, trial_similarity='corr',
@@ -206,32 +249,23 @@ def run_ISPC(four_tasks=True, conn='euc', combine_regions=False,
 	# 	del settings['age']
 	assert not (combine_regions and split), 'cannot combine and split'
 	assert (not combine_regions) or do_networks
-	assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
+	# assert not (conn == 'BOLD' and do_networks), 'Not conn=BOLD and do networks'
 	if do_networks == 3:
 		if 'cross' not in conn:
 			settings['conn'] = f'cross_{conn}'
 			print(f'Missing \"cross_\" for networks 3, Changed conn to {conn}')
 	print(f'Before: {settings=}')
 	dir_results = r'cache/conn_RSA'
-	# if age == 'healthy':
-	# 	results = pickle_wrap(run_settings_ISPC_healthy, None,
-	# 						  kwargs={'settings': settings}, easy_override=True,
-	# 						  verbose=0, cache_dir=dir_results)
-	# 	print(f'{Fore.RED}Combined people:{Fore.RESET}')
-	# else:
-		# if age == 2:
-		# 	assert isinstance(four_tasks, str) and '3_' in four_tasks, 'Bad OA'
-		# else:
-		# 	del settings['age']
+
 	results = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
-						  easy_override=True, cache_dir=dir_results)
+						  easy_override=False, cache_dir=dir_results)
 	print(f'{Fore.RED}Finished!{Fore.RESET}')
 	report_results(results, ISPC=True)
 
 def run_ISPC_toggle():
 	trial_similarity_toggle = ['corr']
 	four_tasks_toggle = ['7', '8']#, '3_3']
-	conn_toggle = ['euc']
+	conn_toggle = ['prod']
 	# conn_toggle = ['BOLD']
 	split_toggle = [False]
 	age = 'healthy'
