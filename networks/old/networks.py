@@ -103,7 +103,7 @@ def prep_networks(network_setting=1):
                     'FP': ['MFG', 'IFG', 'IPL', 'SPL']}
     elif network_setting == 15:
         networks = {'PFC_lTemp': ['SFG', 'MFG', 'IFG', 'OrG',
-                                              'ATL', 'STG', 'MTG']}
+                                  'ATL', 'STG', 'MTG']}
     elif network_setting == 16:
         networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
     elif network_setting == 17:

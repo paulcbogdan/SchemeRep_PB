@@ -282,9 +282,9 @@ def run_ISPC_toggle():
 					for trial_similarity in trial_similarity_toggle:
 						try:
 							run_ISPC(conn=conn,
-										 trial_similarity=trial_similarity,
-										 four_tasks=four_tasks, split=split,
-										 do_networks=do_networks,
+									 trial_similarity=trial_similarity,
+									 four_tasks=four_tasks, split=split,
+									 do_networks=do_networks,
 									 age=age)
 						except AssertionError as e:
 							print(f'Assertion no bueno: {e}')

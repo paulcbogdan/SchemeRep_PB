@@ -21,6 +21,7 @@ import scipy.stats as stats
 from colorama import Fore
 import statsmodels.formula.api as smf
 from pprint import pprint
+import matplotlib.pyplot as plt
 
 def get_idx_from_key(l, substring):
     idxs = []
@@ -197,10 +198,134 @@ def prep_network2ROI(do_networks, target_ROI):
 
     return network2ROI, BOLD_keys_short
 
+def plot_different_IRAFs(df, ROI_cols):
+    plt.hist(np.reshape(df[ROI_cols], -1), bins=400, density=True,
+             range=(-1, 1), label='ROI', alpha=0.9, color='dodgerblue')
+    plt.hist(df['BOLD_score'], bins=400, density=True, label='Region',
+             range=(-1, 1), alpha=0.66, color='red')
+    n, _, _ = plt.hist(df['conn_score'], bins=400, density=True, label='conn',
+             range=(-1, 1), alpha=0.34, color='green')
+    plt.plot([0, 0], [0, max(n)], 'k--', linewidth=0.75)
+    plt.legend()
+    plt.show()
+
+def rsum(row):
+    return np.sqrt(np.sum((row ** 2) * np.sign(row)))
+
+
+
+def pie_charts(df, ROI_cols):
+    df['ROI_M'] = df[ROI_cols].mean(axis=1)
+
+    # df = df[cols_keep].dropna()
+    mod = smf.ols(formula='conn_score ~ 1', data=df)
+    res = mod.fit()
+    conn_itr0 = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'{conn_itr0=:.4f} ({p=:.3f}, {z=:.3f})')
+
+    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
+    res = mod.fit()
+    conn_itr1 = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'\tRegress out BOLD {conn_itr1=:.4f} ({p=:.3f}, {z=:.3f})')
+
+    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + '
+                          + ' + '.join(ROI_cols),
+                  data=df)
+    res = mod.fit()
+
+    conn_itr_r = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'\tRegress out all: {conn_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
+    print('-')
+
+    # df['BOLD_score'] /= df['BOLD_score'].std()
+
+    mod = smf.ols(formula='BOLD_score ~ 1', data=df)
+    res = mod.fit()
+    bold_itr0 = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'{bold_itr0=:.4f} ({p=:.3f}, {z=:.3f})')
+
+    mod = smf.ols(formula='BOLD_score ~ 1 + ROI_M', data=df)
+    res = mod.fit()
+    bold_itr1 = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'\tRegress ROI_M: {bold_itr1=:.4f} ({p=:.3f}, {z=:.3f})')
+
+    mod = smf.ols(formula='BOLD_score ~ 1 + ' + ' + '.join(ROI_cols),
+                  data=df)
+    res = mod.fit()
+    bold_itr_r = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'\tRegress out ROIs: {bold_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
+    print('-')
+
+    # print(res.summary())
+    #
+
+    # df['ROI_M'] /= df['ROI_M'].std()
+
+    mod = smf.ols(formula='ROI_M ~ 1', data=df)
+    res = mod.fit()
+    ROI_M_itr0 = res.params['Intercept']
+    print(f'{ROI_M_itr0=:.4f}')
+
+    mod = smf.ols(formula='ROI_M ~ 1 + BOLD_score', data=df)
+    res = mod.fit()
+    ROI_M_itr1 = res.params['Intercept']
+    print(f'\tRegress BOLD: {ROI_M_itr1=:.4f}')
+    # print(res.summary())
+    # quit()
+
+    ctrl = '+ BOLD_score + conn_score'
+    mod = smf.ols(formula=f'{ROI_cols[0]} ~ 1 {ctrl}', data=df)
+    res = mod.fit()
+    ROI_itr_total = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'First ROI: {ROI_itr_total=:.4f} ({p=:.3f}, {z=:.3f})')
+    ROI_itr_total_sign = np.sign(ROI_itr_total)
+    ROI_itr_total = (ROI_itr_total ** 2) * ROI_itr_total_sign
+    # print(res.summary())
+    # quit()
+
+    ROI_col_str = ROI_cols[0]
+    for i in range(1, len(ROI_cols)):
+        formula = f'{ROI_cols[i]} ~ 1 + {ROI_col_str} {ctrl}'
+        mod = smf.ols(formula=formula, data=df)
+        res = mod.fit()
+        # print(res.summary())
+        ROI_col_str += f' + {ROI_cols[i]}'
+        ROI_itr = res.params['Intercept']
+
+        # ROI_itr_sign = np.sign(ROI_itr)
+        ROI_itr_ = (ROI_itr ** 2)  # * ROI_itr_sign
+        ROI_itr_total += ROI_itr_
+        if False:
+            p = res.pvalues['Intercept']
+            z = res.tvalues['Intercept']
+            print(f'\t{ROI_itr:+.4f} = {np.sqrt(ROI_itr_total)=:.4f} '
+                  f'({p=:.3f}, {z=:.3f})')
+
+    print(f'{np.sqrt(ROI_itr_total)=:.4f}')
+    ROI_itr_r = np.sqrt(ROI_itr_total)
+    print('-*-')
+    print(f'{conn_itr_r=:.4f}')
+    print(f'{bold_itr_r=:.4f}')
+    print(f'{ROI_itr_r=:.4f}')
+
+
 
 def lmer_stats(df, ROI_cols):
     from pymer4.models import Lmer
-
     # conn_sess_ERS = ['2', ] # '4', '5'
     # df = df[df['fp_idx'].isin(conn_sess_ERS)]
     # df = df[df['fp_idx'].isin(['1'])]
@@ -261,12 +386,15 @@ def lmer_stats(df, ROI_cols):
     cols_keep = ['ROI_M', 'BOLD_score', 'conn_score', 'sn',
                  'fp_idx', 'hit_hit', 'con_hit', 'vis_hit']
 
-    df['ROI_M'] = df[ROI_cols].mean(axis=1)
-    df = df[cols_keep].dropna()
 
-    mod = smf.ols(formula='BOLD_score ~ 1 + mem', data=df_)
-    res = mod.fit()
-    print(res.summary())
+
+    # plt.hist(df['ROI_M'])
+
+
+
+    # df['ROI_M'] = df[ROI_cols].apply(rsum, axis=1)
+
+    df['ROI_M'] = df[ROI_cols].mean(axis=1)
 
 
 
@@ -325,7 +453,7 @@ def lmer_stats(df, ROI_cols):
 def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
-    conn = 'euc'
+    conn = 'prod'
     trial_similarity = 'corr'
     second_order = 'spear'
     four_tasks = '8'
@@ -339,12 +467,18 @@ def run_lmer_PFC_RSA():
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    target_ROI = 'Ventral'
+    # target_ROI = 'Occipital'
+    target_ROI = 'PFC_ACC'
+    # target_ROI = 'MTL'
+    # target_ROI = 'Dorsal'
+    # target_ROI = 'full_frontal'
 
     ROI2network = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                    'else_cortical': 2,
                    'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
-                   'perceptual': 17}
+                   'perceptual': 17,
+                   'full_frontal': 11,
+                   'MTL': 9}
     do_networks = ROI2network[target_ROI]
 
     kwargs = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
@@ -367,8 +501,15 @@ def run_lmer_PFC_RSA():
 
     df, ROI_cols = organize_df(results_conn, results_bold_sep,
                                results_bold_comb, do_networks, target_ROI)
+    pie_charts(df, ROI_cols)
 
-    lmer_stats(df, ROI_cols)
+    # lmer_stats(df, ROI_cols)
+
+def pie_charts_ISPC(df, ROI_cols):
+    pass
+
+def lmer_ISPC():
+    pass
 
 def run_lmer_PFC_ISPC():
     do_networks = 17
@@ -458,5 +599,5 @@ if __name__ == '__main__':
     # atlas = get_atlas(False, False)
     # print(atlas['tick_labels'])
     # quit()
-    run_lmer_PFC_RSA()
-    # run_lmer_PFC_ISPC()
+    # run_lmer_PFC_RSA()
+    run_lmer_PFC_ISPC()
