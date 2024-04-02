@@ -158,7 +158,8 @@ def cluster_regions(ROI2vecs, networks):
                 vecs_l.append(ROI2vecs[f'{ROI}_L'])
                 vecs_l.append(ROI2vecs[f'{ROI}_R'])
             else:
-                warnings.warn(f'ROI={ROI} not found')
+                if ROI != 'CG':
+                    warnings.warn(f'ROI={ROI} not found')
         vecs = np.concatenate(vecs_l, axis=1)
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new

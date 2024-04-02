@@ -24,6 +24,45 @@ import statsmodels.formula.api as smf
 import warnings
 warnings.filterwarnings("ignore",
                         message='Series.__getitem__ treating keys as positions')
+
+FIRST_LOAD = True
+def evaluate_acc_ps(accs, kernel='rbf', subj_std=False, by_run=False,
+                    strict=False):
+    if subj_std:
+        num = 11
+        subj_std_str = '_subjstd'
+    else:
+        num = 24
+        subj_std_str = ''
+    by_run_str = '' if by_run else '_notbyrun'
+    strict_str = '_strict' if strict else ''
+    fp_perm = (fr'cache/accs_all_perm_{num}_{kernel}_noneu'
+               fr'{subj_std_str}{by_run_str}{strict_str}.pkl')
+    # print(fp_perm)
+    with open(fp_perm, 'rb') as f:
+        accs_all_perm = pickle.load(f)
+    global FIRST_LOAD
+    if FIRST_LOAD:
+        print(f'{fp_perm=}')
+        print_list_stats(accs_all_perm)
+        FIRST_LOAD = False
+    if len(accs) > 10:
+        print_list_stats(accs)
+    accs_all_perm = np.array(accs_all_perm)
+    accs_all_perm = np.sort(accs_all_perm)
+    accs_all_perm = accs_all_perm[~np.isnan(accs_all_perm)]
+    ps = []
+    for acc in accs:
+        if np.isnan(acc):
+            continue
+        p = np.mean(accs_all_perm > acc) #+ 0.5 / len(accs_all_perm)
+        if p == 0:
+            print('Minimal!')
+            p += 0.5 / len(accs_all_perm)
+        # print(f'{acc=:.2f}, {p=:.4f}')
+        ps.append(p)
+    return ps
+
 def combine_bl(sn_inc_conn):
     n_sn = sn_inc_conn.shape[0]
     n_cond = sn_inc_conn.shape[1]
@@ -45,30 +84,33 @@ def combine_bl(sn_inc_conn):
     return sn_inc_conn_new
 
 def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
-                   comb_bl=True, semi_combine=True, only_cortical=False,
-                   perm=True, by_run=True):
+                   comb_bl=True, semi_combine=True, only_cortical=True,
+                   perm=False, by_run=False, kernel='rbf', subj_std=True,
+                   strict_perm=True):
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
               'key_vals': (1, 2, 3),
               'combine_regions': combine_regions,
-              'combine_bilateral': comb_bl
+              'combine_bilateral': comb_bl if combine_regions else False
               }
+
+    print(f'{by_run=}')
+    print(f'{subj_std=}')
+    print(f'{semi_combine=}')
+    print(f'{only_cortical=}')
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
+
     if by_run:
         sn_inc_act_ = np.concatenate([sn_inc_activity[..., :38],
                                       sn_inc_activity[..., 38:76],
                                       sn_inc_activity[..., 76:]], axis=1)
         sn_inc_act_ = stdize(sn_inc_act_, axis=-1, nans=True)
-        # print(sn_inc_act_)
-        # print(sn_inc_act_.shape)
-        # quit()
         sn_inc_conn_ = sn_inc_act_[..., None, :] * sn_inc_act_[..., None, :, :]
         sn_inc_conn = np.nanmean(sn_inc_conn_, axis=-1)
-
     if only_cortical:
         atlas = get_atlas(combine_regions=combine_regions)
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
@@ -78,11 +120,6 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
         sn_inc_conn[..., :, bad_j] = np.nan
         print('Pruned subcortical')
 
-    # age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
-    # idxs = age2idxs[age]
-    # sn_inc_conn = sn_inc_conn[idxs]
-    # print(f'{sn_inc_conn.shape=}')
-    # quit()
     n_sn = sn_inc_conn.shape[0]
     sns = [str(i) for i in range(n_sn) for _ in range(sn_inc_conn.shape[1])]
     incs = list(range(1, len(kwargs['key_vals']) + 1)) * n_sn
@@ -90,20 +127,16 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     new_nrows = sn_inc_conn.shape[0]*sn_inc_conn.shape[1]
     nrois = sn_inc_conn.shape[-1]
     sn_inc_conn = np.reshape(sn_inc_conn, (new_nrows, nrois, nrois))
-    # print(sn_inc_conn.shape)
-    # quit()
+
     cols = []
     cols_full = []
     vals = []
     vals_full = []
-    # col2vals = defaultdict(list)b
     np.set_printoptions(precision=4)
     for i in range(nrois):
         for j in range(i):
             cols.append(f'r{i}_{j}')
-            # z = stats.zscore(sn_inc_conn[:, i, j], nan_policy='omit')
             z = sn_inc_conn[:, i, j]
-            # z[np.abs(z) > 4] = np.nan
             vals.append(z)
             cols_full.append(f'r{j}_{i}')
             vals_full.append(z)
@@ -124,15 +157,50 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
         accs_max_perm = []
         accs_all_perm = []
         print('PERMY!!!')
+        no_neu = True
+        if no_neu:
+            df_full = df_full[df_full['inc'] != 2]
+
         for nsim in range(1000):
             df_full_ = df_full.copy()
-            for sn, df_sn in df_full_.groupby('sn'):
-                df_full_.loc[df_sn.index, 'inc'] = (
-                    np.random.permutation(df_sn['inc']))
+
+            for i, (sn, df_sn) in enumerate(df_full_.groupby('sn')):
+                # print(df_full_.loc[df_sn.index, 'inc'])
+
+                if strict_perm and by_run:
+                    if i % 2 == 0: # flip 1 of each
+                        idx1 = df_full_.loc[df_sn.index, 'inc'] == 1
+                        idx1 = idx1[idx1].sample(1).index
+                        idx3 = df_full_.loc[df_sn.index, 'inc'] == 3
+                        idx3 = idx3[idx3].sample(1).index
+                        df_full_.loc[idx1, 'inc'] = 3
+                        df_full_.loc[idx3, 'inc'] = 1
+                        # print('test')
+                        # print(idx1)
+                    else: # flip 2 of each
+                        idx1 = df_full_.loc[df_sn.index, 'inc'] == 1
+                        idx1 = idx1[idx1].sample(2).index
+                        idx3 = df_full_.loc[df_sn.index, 'inc'] == 3
+                        idx3 = idx3[idx3].sample(2).index
+                        # print(idx1)
+                        # print(idx3)
+                        df_full_.loc[idx1, 'inc'] = 3
+                        df_full_.loc[idx3, 'inc'] = 1
+                elif strict_perm:
+                    # raise NotImplementedError
+                    if i % 2:
+                        df_full_.loc[df_sn.index, 'inc'] = [1, 3]
+                    else:
+                        df_full_.loc[df_sn.index, 'inc'] = [3, 1]
+                else:
+                    incs_shuffled = np.random.permutation(df_sn['inc'])
+                    df_full_.loc[df_sn.index, 'inc'] = incs_shuffled
+            # print(df_full_['inc'].value_counts())
+            # quit()
             accs = conn_clf(df_full_, combine_regions=combine_regions,
-                            nrois=nrois,
-                            semi_combine=semi_combine,
-                            )
+                            nrois=nrois, semi_combine=semi_combine,
+                            kernel=kernel, subj_std=subj_std,
+                            comb_bl=comb_bl, by_run=by_run, strict=strict_perm)
             max_acc = np.max(accs)
             print_list_stats(accs)
             accs_all_perm.extend(accs)
@@ -140,12 +208,21 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
             print_list_stats(accs_max_perm)
             print(f'{accs_all_perm=}')
             print_list_stats(accs_all_perm)
-
-            with open(f'cache/accs_all_perm_{nsim}.pkl', 'wb') as f:
+            semi_str = '_semi' if semi_combine else ''
+            no_neu_str = '_noneu' if no_neu else ''
+            subj_std_str = '_subjstd' if subj_std else ''
+            semi_combine_str = '_semi' if semi_combine else ''
+            by_run_str = '' if by_run else '_notbyrun'
+            strict_str = '_strict' if strict_perm else ''
+            with open(f'cache/accs_all_perm_{nsim}_'
+                      f'{kernel}{semi_str}{no_neu_str}{subj_std_str}'
+                      f'{semi_combine_str}{by_run_str}{strict_str}.pkl',
+                      'wb') as f:
                 pickle.dump(accs_all_perm, f)
     else:
         conn_clf(df_full, combine_regions=combine_regions, nrois=nrois,
-                        semi_combine=semi_combine)
+                 semi_combine=semi_combine, kernel=kernel, subj_std=subj_std,
+                 comb_bl=comb_bl, by_run=by_run, strict=strict_perm)
 
     t_mat = np.full((nrois, nrois), np.nan)
     p_l = []
@@ -248,15 +325,12 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
             X = df[cols]
             ex_grps = df['sn']
             accs = []
-            for seed in range(100):
+            for seed in range(128):
                 df = df.sample(frac=1)
                 Y = df['inc']
                 X = df[cols]
-                # print(f'{len(X)=}')
+
                 groups = df['sn']
-                # print(groups)
-                # print(X.shape)
-                # quit()
 
                 grps_unq = np.sort(np.unique(groups))
                 grps_unq_ = np.sort(np.unique(groups))
@@ -266,13 +340,10 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
                     grp_mapper[grp] = grps_unq_[i]
                 groups = np.array([grp_mapper[grp] for grp in groups])
 
-                # print(f'{ex_grps=}')
-                cv = GroupKFold(n_splits=2, #random_state=seed,
-                                          ) #shuffle=True
+                cv = StratifiedGroupKFold(n_splits=2, )
                 acc = cross_val_score(SVC(kernel=kernel), X, Y, groups=groups,
                                       cv=cv, scoring='accuracy')
                 accs.extend(acc)
-            # print(f'{accs=}')
             return None, None, accs
 
         else:
@@ -300,33 +371,30 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 
 def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
              thresh=2.32, semi_combine=False, groupkfold=True,
-             subj_std=False):
+             subj_std=False, comb_bl=False, by_run=False, strict=False):
     sns = get_sns()
     sns = sns[1] + sns[2]
     print(f'{sns=}')
     print(f'{kernel=}')
-    atlas = get_atlas(combine_regions=combine_regions)
+    print(df.shape)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=False)
     regions = []
-    for region in atlas['ROI_regions_laterality']:
+    for region in atlas['ROI_regions' if comb_bl else 'ROI_regions_laterality']:
         if region not in regions:
             regions.append(region)
-    # regions = atlas['ROI_regions_laterality']
-    # print(df.columns)
-    # quit()
-    # df = df[df['inc'] != 2]
-    # df['inc'] = (df['inc'] - 1) / 2
-
-    ps = []
+    scores = []
 
     i2cols = []
     M_accs = []
     if semi_combine:
         labels = regions
-        print(f'{labels=}')
+        # print(f'{labels=}')
         for region in regions:
             cols = []
             for i, roi0 in enumerate(atlas['ROIs']):
                 if region not in roi0:
+                    # print(f'{region} not in {roi0}')
                     continue
                 for j, roi1 in enumerate(atlas['ROIs']):
                     if region in roi1:
@@ -341,61 +409,70 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
             cols = [f'r{i}_{j}' for j in range(nrois) if j != i]
             i2cols.append(cols)
 
-    # for roi_i in range(nrois):
-        # cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
-        # cols = [f'r{roi_i}_{j}' for j in range(nrois) if j != roi_i]
     for i, label in enumerate(labels):
         df_ = df.copy()
         # cv = LeaveOneGroupOut()
         cols = i2cols[i]
         grps = df_['sn'].unique()
+        df_ = df_[df_['inc'] != 2] # MOVED AT 4/1 11:43 am
         if kernel in ['rbf', 'linear']:
             if subj_std:
                 for grp in grps:
-                    # df.loc[df['sn'] == grp, cols] = (
-                    #     stats.zscore(df.loc[df['sn'] == grp, cols], axis=0))
-                    df_.loc[df_['sn'] == grp, cols] -= (
-                        np.nanmean(df_.loc[df_['sn'] == grp, cols], axis=0))
-        df_ = df_[df_['inc'] != 2]
+                    z = stats.zscore(df_.loc[df_['sn'] == grp, cols],
+                                     axis=0, nan_policy='omit',
+                                     )
+                    # print(z.shape)
+                    # print(df_.loc[df_['sn'] == grp, cols].shape )
+                    # print(len(z))
+                    df_.loc[df_['sn'] == grp, cols] = z
+
+                    # df_.loc[df_['sn'] == grp, cols] -= (
+                    #     np.nanmean(df_.loc[df_['sn'] == grp, cols], axis=0))
         df_['inc'] = (df_['inc'] - 1) / 2
 
         nan_cols = df_[cols].isna().sum()
-        # print(nan_cols.value_counts())
-        # quit()
-        # import matplotlib.pyplot as plt
-        # plt.hist(nan_cols)
-        # plt.show()
-        # print(f'{nan_cols=}')
-        # quit()
-        # cols = [col for i, col in enumerate(cols) if not nan_cols[i]]
         cols = [col for i, col in enumerate(cols) if nan_cols[i] < 10]
-        df_.dropna(subset=cols, inplace=True)
-        # print(f'{cols=}')
-        # quit()
+        # print(cols)
+        df_ = df_[cols + ['sn', 'inc']]
+        df_['num_nans'] = df_[cols].isna().sum(axis=1)
+        df_ = df_[df_['num_nans'] < 1] # TODO: toggle
+        df_.fillna(0, inplace=True) # some subjects have 1 or 2 edges missing
         df_[cols] = stats.zscore(df_[cols], axis=0)
-
-
-        # print(f'Number of NaN cols: {sum(nan_cols > 0)}')
+        # print(df_[cols])
+        # print(df_.shape)
+        # quit()
 
         try:
             y_trues, y_preds, acc = do_ROI_clf(df_, grps, cols, kernel=kernel,
                                                groupkfold=groupkfold)
         except ValueError as e:
-            print(f'{e=}')
-            ps.append(np.nan)
+            print(f'error: do_ROI_clf {e=}')
+            # scores.append(np.nan)
             continue
 
         M_acc = np.mean(acc)
         M_accs.append(M_acc)
         if groupkfold:
-            print(f'{label}: {M_acc=:.2%}')
-            ps.append(M_acc)
+            try:
+                p_acc = evaluate_acc_ps([M_acc], kernel=kernel,
+                                        subj_std=subj_std, by_run=by_run,
+                                        strict=strict)[0]
+            except FileNotFoundError:
+                scores.append(M_acc)
+                print(f'{label}: {M_acc=:.2%}')
+                continue
+
+            if np.isnan(p_acc):
+                print('HOW IS THIS NAN??')
+                continue
+            print(f'{label}: {M_acc=:.2%}, {p_acc=:.4f}')
+            scores.append(M_acc)
             continue
 
         if kernel == 'hotel':
             p = acc
             print(f'{label}: {p=:.4f}')
-            ps.append(p)
+            scores.append(p)
             continue
 
         r, p = stats.pearsonr(y_trues, y_preds)
@@ -412,11 +489,29 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
               f'({z=:.2f}, {corr=:.1f}) '
               f'| {r=:.3f}, {p=:.4f}')
         # ps.append(p_binom)
-        ps.append(p) # TODO: toggle p_binom probably is better
+        scores.append(p) # TODO: toggle p_binom probably is better
     if semi_combine or groupkfold:
-        print(f'{ps=}')
+        print(f'{scores=}')
+        try:
+            ps = evaluate_acc_ps(scores, kernel=kernel, subj_std=subj_std,
+                                 by_run=by_run, strict=strict)
+            sigs, p_corr, alpha_sidak, alpha_bon = \
+                multipletests(ps, alpha=.05, method='fdr_bh')
+            num_sig = np.sum(sigs)
+            print(f'{num_sig=}')
+            print(f'{ps=}')
+            np.sort(p_corr)
+            print(f'{p_corr=}')
+            ps_sig = [p for p, sig in zip(ps, sigs) if sig]
+            print(f'{ps_sig=}')
+            if len(ps_sig):
+                print(f'Weakest sig: {max(ps_sig)}')
+            else:
+                print('No sig at all')
+        except FileNotFoundError:
+            pass
         return M_accs
-    zs = -stats.norm.ppf(ps)
+    zs = -stats.norm.ppf(scores)
     zs[zs < 0] = np.nan
     print(f'{zs=}')
     atlas = get_atlas(combine_regions=combine_regions)
@@ -479,22 +574,6 @@ def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True,
                       title=f'Connectivity ~ congruency '
                             f'{cutoff_str}', fp=fp_out, no_avg=True,
                       cbar_label='z-score')
-
-    # plot_connectivity(t_mat,
-    #                   atlas['ticks'],
-    #                   atlas['tick_labels'],
-    #                   atlas['tick_lows'],
-    #                   no_avg=True,
-    #                   title=f't-val'
-    #                         f'{cutoff_str}',
-    #                   vmin=-3, vmax=3,py
-    #                   cbar_label='z-score')
-
-# def t2z(t, df=999):
-#     p = stats.t.cdf(t, df=df)
-#     print(f'{p=:.3f}')
-#     z = stats.norm.ppf(p)
-#     print(f'{z=:.3f}')
 
 if __name__ == '__main__':
     # t2z(-2.85)

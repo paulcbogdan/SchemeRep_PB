@@ -126,8 +126,13 @@ if __name__ == '__main__':
     # quit()
 
     # test_fp('bl7_fMRI')
-    test_fp('obj7_fMRI')
+    # test_fp('obj7_fMRI')
     # test_fp('vis7_fMRI')
+
+    test_fp('bl8_fMRI')
+    test_fp('vis8_fMRI')
+    test_fp('con8_fMRI')
+
 
     # df_sn = get_trial_info('105', easy_override=True)
     # pd.set_option('display.max_rows', 115)

@@ -289,10 +289,10 @@ def get_trial_info_(sn, ret=True):
     obj_root3 = fr'fMRI_in/{sn}/ENC_rerun3/OBJ'
     scn_root3 = fr'fMRI_in/{sn}/ENC_rerun3/SCN'
     cmb_root3 = fr'fMRI_in/{sn}/ENC_rerun3/CMB'
-    obj_root2 = fr'fMRI_in/{sn}/Enc_rerun/obj'
-    LSS1b_root4 = fr'fMRI_in/{sn}/ENC_LSS1b/OBJ'
-    LSS1_root5 = fr'fMRI_in/{sn}/ENC_LSS1/OBJ'
-    LSS2_root6 = fr'fMRI_in/{sn}/ENC_LSS2/OBJ'
+    # obj_root2 = fr'fMRI_in/{sn}/Enc_rerun/obj'
+    # LSS1b_root4 = fr'fMRI_in/{sn}/ENC_LSS1b/OBJ'
+    # LSS1_root5 = fr'fMRI_in/{sn}/ENC_LSS1/OBJ'
+    # LSS2_root6 = fr'fMRI_in/{sn}/ENC_LSS2/OBJ'
     new_GM_root = fr'fMRI_in/{sn}/ENC_GM20_LLS1_bpF_full/OBJ'
     no_GRS_enc_root = fr'fMRI_in/{sn}/Enc_NoGSR_8/OBJ'
 
@@ -306,84 +306,7 @@ def get_trial_info_(sn, ret=True):
 
         for i in range(38):
             trial = i + 1
-            try:
-                glob_obj = fr'{obj_root}/Day2_Run{run}_Trial{trial}_*.nii'
-                glob_obj = glob(glob_obj)
-            # assert len(glob_obj) == 1, f'{sn}, trial: {trial}'
-                fp_obj = glob_obj[0]
-                glob_scn = fr'{scn_root}/Day2_Run{run}_Trial{trial}_*.nii'
-                glob_scn = glob(glob_scn)
-                # assert len(glob_scn) == 1
-                fp_scn = glob_scn[0]
-            except IndexError:
-                fp_obj = None
-                fp_scn = None
 
-            glob_obj3 = fr'{obj_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_obj3 = glob(glob_obj3)
-            try:
-                # assert len(glob_obj3) == 1
-                fp_obj3 = glob_obj3[0]
-            except IndexError:
-                if sn == '224' and run == 3:
-                    fp_obj3 = None
-                elif sn == '234' and run == 1:
-                    fp_obj3 = None
-                elif sn == '239':
-                    fp_obj3 = None
-                else:
-                    raise IndexError(f'{sn}, {run}, {trial}')
-
-            glob_scn3 = fr'{scn_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_scn3 = glob(glob_scn3)
-            try:
-                fp_scn3 = glob_scn3[0]
-            except IndexError:
-                if sn == '224' and run == 3:
-                    fp_scn3 = None
-                elif sn == '234' and run == 1:
-                    fp_scn3 = None
-                elif sn == '239':
-                    fp_scn3 = None
-                else:
-                    raise IndexError(f'{sn}, {run}, {trial}')
-
-            glob_obj4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
-            glob_obj4 = glob(glob_obj4)
-            glob_obj5 = fr'{LSS1_root5}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
-            glob_obj5 = glob(glob_obj5)
-            glob_obj6 = fr'{LSS2_root6}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
-            glob_obj6 = glob(glob_obj6)
-            glob_scn4 = fr'{LSS1b_root4}/ENC_sub{sn}_run{run}_trial{trial}_*_scene.nii'
-            glob_scn4 = glob(glob_scn4)
-
-            try:
-                fp_obj4 = glob_obj4[0]
-                fp_scn4 = glob_scn4[0]
-                try:
-                    fp_obj5 = glob_obj5[0]
-                    fp_obj6 = glob_obj6[0]
-                except IndexError:
-                    # These aren't criticall
-                    fp_obj5 = None
-                    fp_obj6 = None
-            except IndexError:
-                if sn == '239' or (sn == '224' and run == 3):
-                    fp_scn4 = None
-                    fp_obj4 = None
-                    fp_obj5 = None
-                    fp_obj6 = None
-                elif sn == '234' and run == 1:
-                    fp_scn4 = None
-                    fp_obj4 = None
-                    fp_obj5 = None
-                    fp_obj6 = None
-                else:
-                    print(f'{glob_obj4=}')
-                    print(f'{glob_obj5=}')
-                    print(f'{glob_obj6=}')
-                    print(f'{glob_scn4=}')
-                    raise IndexError(f'{sn}, {run}, {trial}')
 
             glob_obj7 = fr'{new_GM_root}/ENC_sub{sn}_run{run}_trial{trial}_*_object.nii'
             glob_obj7 = glob(glob_obj7)
@@ -413,7 +336,6 @@ def get_trial_info_(sn, ret=True):
                 fp_scn8 = glob_scn8[0]
             except IndexError:
                 if sn in ['116', '125', '138', '213', '230', '234',
-
                           '239']:
                     fp_obj8 = None
                     fp_scn8 = None
@@ -425,19 +347,6 @@ def get_trial_info_(sn, ret=True):
                     fp_scn8 = None
                 else:
                     raise IndexError(f'fp8 IndexError: {sn}, {run}, {trial}')
-
-            glob_cmb3 = fr'{cmb_root3}/ENC_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_cmb3 = glob(glob_cmb3)
-            try:
-                fp_cmb3 = glob_cmb3[0]
-            except IndexError:
-
-                if sn == '239' or (sn == '224' and run == 3):
-                    fp_cmb3 = None
-                elif sn == '234' and run == 1:
-                    fp_cmb3 = None
-                else:
-                    raise IndexError(f'{sn}, {run}, {trial}')
 
             obj = mat_enc['pdata'][0][0][7][0][i][0]
             scene = mat_enc['pdata'][0][0][8][0][i][0]
@@ -477,11 +386,6 @@ def get_trial_info_(sn, ret=True):
                 inc_match14 = inc_match14_strict = np.nan
                 inc_match = resp in [2, 3]
 
-            # inc_match14 = np.nan if inc == 2 \
-            #     else inc_str == per_inc14_str
-            # inc_match = inc_str == per_inc_str
-            # print(f'{inc_str}, {per_inc_str} ({resp}) | '
-            #       f'{inc_match14=}, {inc_match14_strict=}, {inc_match=}')
             inc_run = run * 10 + int(inc)
             inc_run_cnt[inc_run] += 1
 
@@ -494,21 +398,12 @@ def get_trial_info_(sn, ret=True):
                  'obj_run': run,
                  'scn_run': run,
 
-                 'obj_fMRI': fp_obj,
-                 'obj3_fMRI': fp_obj3,
-                 'obj4_fMRI': fp_obj4,
-                 'obj5_fMRI': fp_obj5,
-                 'obj6_fMRI': fp_obj6,
                  'obj7_fMRI': fp_obj7,
                  'obj8_fMRI': fp_obj8,
 
-                 'scn_fMRI': fp_scn,
-                 'scn3_fMRI': fp_scn3,
-                 'scn4_fMRI': fp_scn4,
                  'scn7_fMRI': fp_scn7,
                  'scn8_fMRI': fp_scn8,
 
-                 'cmb3_fMRI': fp_cmb3,
                  'obj': obj,
                  'scene': scene,
                  'obj_rename': obj_rename,
@@ -641,8 +536,9 @@ def include_conceptual(df_sn, sn):
     obj2fp2 = {}
     obj2fp3 = {}
     obj2fp7 = {}
+    obj2fp8 = {}
     obj2trial = {}
-    # obj2run = {}
+
     for run in range(1, 4):
         # if sn == '231': # TODO: use their data if I can
         #     continue
@@ -672,21 +568,6 @@ def include_conceptual(df_sn, sn):
             resp = mat_enc['pdata'][0][0][9][0][i][0]
             obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][10][0][i][0]
-            glob_conc = fr'{conc_root}/all_CONruns_sorted/Day3Conceptual_Run{run}_Trial{trial}_*.nii'
-            glob_conc = glob(glob_conc)
-            if len(glob_conc) < 1:
-                obj2fp[obj] = np.nan
-            else:
-                obj2fp[obj] = glob_conc[0]
-
-            glob_conc3 = fr'{conc_root}/CON_rerun3/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
-            glob_conc3 = glob(glob_conc3)
-            if len(glob_conc3):
-                assert len(glob_conc3) == 1
-                obj2fp3[obj] = glob_conc3[0]
-            else:
-                if len(glob_conc3) < 1:
-                    obj2fp3[obj] = None
 
             glob_conc7 = fr'{conc_root}/CON_rerun7/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_conc7 = glob(glob_conc7)
@@ -696,14 +577,21 @@ def include_conceptual(df_sn, sn):
             else:
                 if len(glob_conc7) < 1:
                     obj2fp7[obj] = None
+
+            glob_conc8 = fr'{conc_root}/Con_NoGSR_8/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_conc8 = glob(glob_conc8)
+            if len(glob_conc8):
+                assert len(glob_conc8) == 1
+                obj2fp8[obj] = glob_conc8[0]
+            else:
+                if len(glob_conc8) < 1:
+                    obj2fp8[obj] = None
     else:
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['con_hit'] = df_sn['con_resp'].apply(
             lambda x: np.nan if pd.isna(x) else x >= 3)
-        df_sn['con_fMRI'] = df_sn['obj'].map(obj2fp)
-        df_sn['con2_fMRI'] = df_sn['obj'].map(obj2fp2)
-        df_sn['con3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['con7_fMRI'] = df_sn['obj'].map(obj2fp7)
+        df_sn['con8_fMRI'] = df_sn['obj'].map(obj2fp8)
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
@@ -718,6 +606,7 @@ def include_vis(df_sn, sn):
     obj2fp2 = {}
     obj2fp3 = {}
     obj2fp7 = {}
+    obj2fp8 = {}
     obj2rt = {}
     obj2run = {}
     obj2trial = {}
@@ -747,43 +636,24 @@ def include_vis(df_sn, sn):
             old_similar_new = 'old' if old_similar_new == 0 else \
                 'similar' if old_similar_new == 1 else 'new'
             obj2type[obj] = old_similar_new
-            glob_vic = fr'{vis_root}/all_VISruns_sorted/Day3Visual_Run{run}_Trial{trial}_*.nii'
-            glob_vic = glob(glob_vic)
-            if len(glob_vic) < 1:
-                obj2fp[obj] = None
-            else:
-                obj2fp[obj] = glob_vic[0]
 
             if sn == '138' and run == 3: # has original preprocessing but no rerun betas?
                 continue
 
-            if sn[0] == '2':
-                obj2fp2[obj] = None
-            else:
-                glob_vis2 = fr'{vis_root}/VIS_rerun/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-                glob_vis2 = glob(glob_vis2)
-                if len(glob_vis2):
-                    obj2fp2[obj] = glob_vis2[0]
-                else:
-                    obj2fp2[obj] = None
-
-            glob_vis3 = fr'{vis_root}/VIS_rerun3/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            glob_vis3 = glob(glob_vis3)
-            if len(glob_vis3):
-                obj2fp3[obj] = glob_vis3[0]
-            else:
-                obj2fp3[obj] = None
-
             glob_vis7 = fr'{vis_root}/VIS_rerun7/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
-            # print(f'{glob_vis7=}')
-
             glob_vis7 = glob(glob_vis7)
             if len(glob_vis7):
                 obj2fp7[obj] = glob_vis7[0]
             else:
                 obj2fp7[obj] = None
+
+            glob_vis8 = fr'{vis_root}/Vis_NoGSR_8/VIS/RVIS_sub{sn}_run{run + 3}_trial{trial}_*.nii'
+            glob_vis8 = glob(glob_vis8)
+            if len(glob_vis8):
+                obj2fp8[obj] = glob_vis8[0]
+            else:
+                obj2fp8[obj] = None
     else:
-        print(obj2fp7)
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
         f = lambda row: np.nan if pd.isna(row['vis_resp']) else \
@@ -793,6 +663,7 @@ def include_vis(df_sn, sn):
         df_sn['vis2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['vis7_fMRI'] = df_sn['obj'].map(obj2fp7)
+        df_sn['vis8_fMRI'] = df_sn['obj'].map(obj2fp8)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
@@ -819,6 +690,7 @@ def include_BL(df_sn, sn):
     obj2fp2 = {}
     obj2fp3 = {}
     obj2fp7 = {}
+    obj2fp8 = {}
     obj2trial = {}
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/bl/S{sn}_run{run}.mat'
@@ -831,42 +703,32 @@ def include_BL(df_sn, sn):
         for i in range(38):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
-            # print(f'{obj=}')
-            # quit()
+
             obj2run[obj] = run
             obj2trial[obj] = trial + 38 * (run - 1)
-            resp = mat_enc['pdata'][0][0][8][0][i][0]
-            obj2resp[obj] = resp
             do_BL_move(bl_root, run, trial)
-
-            glob_BL = fr'{bl_root}/all_BLruns_sorted/Day1_Run{run}_Trial{trial}_*.nii'
-            glob_BL = glob(glob_BL)
-            if len(glob_BL):
-                obj2fp[obj] = glob_BL[0]
-
-            # glob_BL3 = fr'{bl_root}/BL_rerun3/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
-            # glob_BL3 = glob(glob_BL3)
-            # assert len(glob_BL3) == 1 or len(glob_BL) == 1, \
-            #     f'Bad bl3 missing'
-            # if len(glob_BL3):
-            #     obj2fp3[obj] = glob_BL3[0]
-            # else:
-            obj2fp3[obj] = None
 
             glob_BL7 = fr'{bl_root}/BL_rerun7/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL7 = glob(glob_BL7)
-            if sn != '239':
-                assert len(glob_BL7) == 1 or len(glob_BL) == 1, f'Bad bl7 missing'
             if len(glob_BL7):
                 obj2fp7[obj] = glob_BL7[0]
             else:
                 obj2fp7[obj] = None
+
+            glob_BL8 = fr'{bl_root}/Bl_NoGSR_8/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
+            glob_BL8 = glob(glob_BL8)
+            if len(glob_BL8):
+                obj2fp8[obj] = glob_BL8[0]
+            else:
+                obj2fp8[obj] = None
+
     else:
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['bl2_fMRI'] = df_sn['obj'].map(obj2fp2)
         df_sn['bl3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['bl7_fMRI'] = df_sn['obj'].map(obj2fp7)
+        df_sn['bl8_fMRI'] = df_sn['obj'].map(obj2fp8)
         df_sn['bl_run'] = df_sn['obj'].map(obj2run)
         df_sn['bl_trial'] = df_sn['obj'].map(obj2trial)
     df_sn['bl_resp'] = df_sn['bl_resp'].apply(
@@ -895,8 +757,7 @@ def prep_dif(df, sn):
             dif_fps.append(str(fp_out))
             if fp_out.is_file():
                 continue
-                # os.remove(fp_out)
-                # continue
+
             fp_out = str(fp_out) # nilearn errors with pathlib Paths
             img0 = image.load_img(fp0)
             img1 = image.load_img(fp1)
@@ -909,5 +770,5 @@ def prep_dif(df, sn):
 if __name__ == '__main__':
     df_sn = get_trial_info_('239')
     # print(df_sn['inc_hit_hit'])
-    print(df_sn['obj7_fMRI'])
-    print(df_sn['scn7_fMRI'])
+    print(df_sn['obj8_fMRI'])
+    # print(df_sn['scn7_fMRI'])

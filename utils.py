@@ -6,7 +6,6 @@ import numpy as np
 from scipy import stats as stats
 
 from datetime import datetime
-from time import time
 from pickle import UnpicklingError
 import pandas as pd
 from nilearn import image
@@ -14,6 +13,10 @@ import inspect
 import functools
 from functools import cache
 from colorama import Fore
+
+import pickle
+import os
+from time import time
 
 def regress_out(x, y):
     x = np.array(x)
@@ -297,9 +300,7 @@ def tril_flat(ar):
     return ar_flat
 
 
-import pickle
-import os
-from time import time
+
 
 def getVariableName(variable, globalVariables):
     # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string

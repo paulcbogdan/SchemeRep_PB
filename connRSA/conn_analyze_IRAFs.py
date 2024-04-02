@@ -1,6 +1,7 @@
 import os
 
 from connRSA.conn_ISPC import run_settings_ISPC
+from corr_RSA_x_vendor import get_plain_df_sn
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
@@ -16,6 +17,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+import scipy.stats as stats
 from colorama import Fore
 import statsmodels.formula.api as smf
 from pprint import pprint
@@ -255,40 +257,51 @@ def lmer_stats(df, ROI_cols):
     # model.fit(REML=True, verbose=False, summary=False)
     # print(model.summary())
 
-    df['BOLD_score'] = df['conn_score']
+    # df['BOLD_score'] = df['conn_score']
     cols_keep = ['ROI_M', 'BOLD_score', 'conn_score', 'sn',
                  'fp_idx', 'hit_hit', 'con_hit', 'vis_hit']
 
     df['ROI_M'] = df[ROI_cols].mean(axis=1)
     df = df[cols_keep].dropna()
+
+    mod = smf.ols(formula='BOLD_score ~ 1 + mem', data=df_)
+    res = mod.fit()
+    print(res.summary())
+
+
+
+
+
     mem_cols = ['hit_hit', 'con_hit', 'vis_hit']
     df[mem_cols] = df[mem_cols].astype(int)
-    # print(df['con_hit'].value_counts(dropna=True))
-    # quit()
 
-    # print(df['con_hit'].value_counts(dropna=False))
-    # print(df['vis_hit'].value_counts(dropna=False))
-    # print(df['hit_hit'].value_counts(dropna=False))
-    # quit()
     formula = ('BOLD_score ~ 1 + ROI_M + (1 + ROI_M |sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    formula = ('hit_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx + (1 |sn)')# + (1|fp_idx)'
+    formula = ('conn_score ~ 1 + BOLD_score + ROI_M + '
+               '(1 + BOLD_score + ROI_M | sn)')# + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+    quit()
+
+    formula = ('hit_hit ~ 1 + BOLD_score*fp_idx +  (1 |sn)')# + (1|fp_idx)' ROI_M*fp_idx  +
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df, family='binomial')
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    formula = ('con_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx  + (1 |sn)')# + (1|fp_idx)' + ROI_M*fp_idx
+    formula = ('con_hit ~ 1 + BOLD_score*fp_idx + (1 |sn)')# + (1|fp_idx)' + ROI_M*fp_idx
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df, family='binomial')
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    formula = ('vis_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx  + (1 |sn)')# + (1|fp_idx)'
+    formula = ('vis_hit ~ 1 + BOLD_score*fp_idx + (1 |sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df, family='binomial')
     model.fit(REML=True, verbose=False, summary=False)
@@ -312,11 +325,10 @@ def lmer_stats(df, ROI_cols):
 def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
-    do_networks = 1 # 14 = multi PFC
     conn = 'euc'
     trial_similarity = 'corr'
     second_order = 'spear'
-    four_tasks = '7'
+    four_tasks = '8'
     combine_regions = False
     split = False
     RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
@@ -326,9 +338,14 @@ def run_lmer_PFC_RSA():
     stdize_by_run = False
 
     # target_ROI = 'else_cortical'
-    # target_ROI = 'Occipital'
-    # target_ROI = 'Occipital'
-    target_ROI = 'Occipital'
+    # target_ROI = 'perceptual'
+    target_ROI = 'Ventral'
+
+    ROI2network = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
+                   'else_cortical': 2,
+                   'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
+                   'perceptual': 17}
+    do_networks = ROI2network[target_ROI]
 
     kwargs = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': conn, 'trial_similarity': trial_similarity,
@@ -354,17 +371,21 @@ def run_lmer_PFC_RSA():
     lmer_stats(df, ROI_cols)
 
 def run_lmer_PFC_ISPC():
-    do_networks = 14
+    do_networks = 17
     # target_ROI = 'else'
 
+    df_bhv, _ = get_plain_df_sn()
+    df_bhv = df_bhv.groupby('obj')['hit_hit'].mean()
+    mem_scores = list(df_bhv.values) * 4
+
+
     results_conn, results_bold_comb, results_bold_sep = (
-        load_for_lmer_ISPC(four_tasks='7', conn='prod', combine_regions=False,
+        load_for_lmer_ISPC(four_tasks='7', conn='euc', combine_regions=False,
                            split=False, do_networks=do_networks,
                            trial_similarity='corr',
                            age='healthy'))
 
-
-    idx = 2
+    idx = 0
     results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, idx, :]
     results_bold_comb['scores_by_ROI'] \
         = results_bold_comb['scores_by_ROI'][:, idx, :]
@@ -373,23 +394,36 @@ def run_lmer_PFC_ISPC():
     #             'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC'],
     #             'FP': ['MFG', 'IFG', 'IPL', 'SPL']}
 
+
+
     d = {'conn_score': np.reshape(results_conn['scores_by_ROI'], -1),
          'BOLD_score': np.reshape(results_bold_comb['scores_by_ROI'], -1),
          'fp_idx': list(range(4)) * 114,
-         'img': list(range(114)) * 4}
+         'img': list(range(114)) * 4,
+         'mem': mem_scores}
 
     df = pd.DataFrame(d)
     df['fp_idx'] = df['fp_idx'].astype(str)
     # df = df.groupby('img').mean()
+    # df['BOLD_score'] = stats.zscore(df['BOLD_score'])
+    # df['conn_score'] = stats.zscore(df['conn_score'])
 
-    # mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + fp_idx', data=df)
-    # res = mod.fit()
-    # print(res.summary())
-
-    df = df.groupby('img')[['conn_score', 'BOLD_score']].mean()
-    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
+    for fp_idx in range(4):
+        df_ = df[df['fp_idx'] == str(fp_idx)]
+        df_['mem'] = stats.zscore(df_['mem'])
+        mod = smf.ols(formula='BOLD_score ~ 1 + mem', data=df_)
+        res = mod.fit()
+        print(res.summary())
+        # quit()
+    quit()
+    mod = smf.ols(formula='conn_score ~ 0 + mem * fp_idx', data=df)
     res = mod.fit()
     print(res.summary())
+
+    # df = df.groupby('img')[['conn_score', 'BOLD_score']].mean()
+    # mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
+    # res = mod.fit()
+    # print(res.summary())
     quit()
 
     formula = 'conn_score ~ 1 + BOLD_score + (1|fp_idx)'

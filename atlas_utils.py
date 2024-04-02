@@ -142,7 +142,7 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
         # print('Defunct atlas')
 
     fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    # fp_labels = r'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
+    fp_labels = r'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()
@@ -169,14 +169,17 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
                         HCP=False, natview=False):
     assert not (HCP and natview), 'HCP= and natview= are mutually exclusive'
     if new_space:
-        fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
-                 r'fMRI_in/102/Enc_rerun3/obj/' \
-                 r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+        # fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
+        #          r'fMRI_in/102/Enc_rerun3/obj/' \
+        #          r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
+        fp_ref = (r'E:\PycharmProjects_E\SchemeRep\fMRI_in\102'
+                  r'\ENC_GM20_LLS1_bpF_full\OBJ'
+                  r'\ENC_sub102_run1_trial1_subset3_pairID29_object.nii')
     else:
-        fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
-                 r'fMRI_in/102/all_ENCruns_sorted/objects/' \
-                 r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
-
+        raise NotImplementedError
+        # fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
+        #          r'fMRI_in/102/all_ENCruns_sorted/objects/' \
+        #          r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
     img = image.load_img(fp_ref)
     atlas = get_BN_atlas(combine_bilaterally=combine_bilateral,
                          shenyang=shenyang)

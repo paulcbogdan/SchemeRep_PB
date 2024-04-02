@@ -144,6 +144,10 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 
 			M_similarity_else = np.mean(stim_else_scores)
 			ROI_else_scores.append(M_similarity_else)
+
+			# TODO: ISPC_IRAF = np.mean(ISPC_triangle, axis=1)
+
+
 		ROI_same_scores = np.array(ROI_same_scores)
 		ROI_else_scores = np.array(ROI_else_scores)
 		ROI_scores = ROI_same_scores - ROI_else_scores

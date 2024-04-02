@@ -9,6 +9,7 @@ from atlas_utils import get_atlas
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 from nilearn import image
+import matplotlib.pyplot as plt
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from utils import stdize, nan_ar, defaultdict_to_dict
@@ -110,7 +111,10 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
     if within_to_nan:
         fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
     elif by_run:
-        raise NotImplementedError
+        fMRI_RDM_within_nan = within_run_to_nan(fMRI_RDM)
+        fMRI_RDM_ = fMRI_RDM.copy()
+        fMRI_RDM_[~np.isnan(fMRI_RDM_within_nan)] = np.nan
+        # raise NotImplementedError
     else:
         fMRI_RDM_ = fMRI_RDM
     fMRI_RDM_[np.diag_indices_from(fMRI_RDM)] = np.nan
@@ -196,7 +200,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         sn = df_sn['sn'].values[0]
         print(df_sn[fp_fMRI_col])
         for i in range(10):
-            print(f'Error in loading: {e}')
+            print(f'Error in loading ({fp_fMRI_col}): {e}')
             print(f'\t{sn=}')
         quit()
 
