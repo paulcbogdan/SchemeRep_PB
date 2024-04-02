@@ -246,6 +246,14 @@ def lmer_stats(df, ROI_cols):
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
+
+    formula = ('BOLD_score ~ 1 + ' +
+               ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+
     quit()
 
     print('-' * 120)
@@ -331,8 +339,8 @@ def lmer_stats(df, ROI_cols):
 def run_lmer_PFC_RSA():
     RSA = True
     semantic = True
-    do_networks = 2 # 14 = multi PFC
-    conn = 'prod'
+    do_networks = 14 # 14 = multi PFC
+    conn = 'euc'
     trial_similarity = 'corr'
     second_order = 'spear'
     four_tasks = '8'
@@ -365,8 +373,8 @@ def run_lmer_PFC_RSA():
     lmer_stats(df, ROI_cols)
 
 def run_lmer_PFC_ISPC():
-    do_networks = 16
-    target_ROI = 'PFC'
+    do_networks = 2
+    target_ROI = 'else'
 
     results_conn, results_bold_comb, results_bold_sep = (
         load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
@@ -386,9 +394,10 @@ def run_lmer_PFC_ISPC():
          'img': list(range(114)) * 4}
 
     df = pd.DataFrame(d)
-    df = df.groupby('img').mean()
+    df['fp_idx'] = df['fp_idx'].astype(str)
+    # df = df.groupby('img').mean()
 
-    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
+    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + fp_idx', data=df)
     res = mod.fit()
     print(res.summary())
     quit()
@@ -425,5 +434,5 @@ if __name__ == '__main__':
     # atlas = get_atlas(False, False)
     # print(atlas['tick_labels'])
     # quit()
-    # run_lmer_PFC_RSA()
-    run_lmer_PFC_ISPC()
+    run_lmer_PFC_RSA()
+    # run_lmer_PFC_ISPC()
