@@ -106,6 +106,10 @@ def prep_networks(network_setting=1):
                                               'ATL', 'STG', 'MTG']}
     elif network_setting == 16:
         networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG']}
+    elif network_setting == 17:
+        networks = {'perceptual': ['EVC', 'LOC', 'sOcG',
+                                   'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
+                                   'SPL', 'IPL', 'Pcun', 'pSTS']}
     elif network_setting == -1:
         networks = {}
     # elif setting == 7:

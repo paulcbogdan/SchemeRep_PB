@@ -197,153 +197,126 @@ def prep_network2ROI(do_networks, target_ROI):
 
 
 def lmer_stats(df, ROI_cols):
-    # conn_sess_ERS = ['2', ] # '4', '5'
-    # df = df[df['fp_idx'].isin(conn_sess_ERS)]
-    df = df[df['fp_idx'].isin(['0'])]
-
-    n_sn = df['sn'].nunique()
-
-    df_M = df.groupby('sn')['conn_score'].mean()
-    M_score = df_M.mean()
-    SD_score = df_M.std()
-    # print(np.sum(~np.isnan(df_M)))
-    # quit()
-    N_score = np.sum(~np.isnan(df_M))
-    SE_score = SD_score / np.sqrt(N_score)
-    t_score = M_score / SE_score
-
-    print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, '
-          f'{t_score=:.3f}')
-
-    cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
-            'inc_str', 'per_inc_str', 'fp_idx', 'BOLD_score'] + \
-             ROI_cols
-    df = df[cols]
-    df.dropna(inplace=True)
-    df['vis_hit'] = df['vis_hit'].astype(int)
-    df['con_hit'] = df['con_hit'].astype(int)
-
     from pymer4.models import Lmer
 
+    # conn_sess_ERS = ['2', ] # '4', '5'
+    # df = df[df['fp_idx'].isin(conn_sess_ERS)]
+    # df = df[df['fp_idx'].isin(['1'])]
+    #
+    # n_sn = df['sn'].nunique()
+    #
+    # df_M = df.groupby('sn')['conn_score'].mean()
+    # M_score = df_M.mean()
+    # SD_score = df_M.std()
+    # # print(np.sum(~np.isnan(df_M)))
+    # # quit()
+    # N_score = np.sum(~np.isnan(df_M))
+    # SE_score = SD_score / np.sqrt(N_score)
+    # t_score = M_score / SE_score
+    #
+    # print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, '
+    #       f'{t_score=:.3f}')
+    #
+    # cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
+    #         'inc_str', 'per_inc_str', 'fp_idx', 'BOLD_score'] + \
+    #          ROI_cols
+    # df = df[cols]
+    # df.dropna(inplace=True)
+    # df['vis_hit'] = df['vis_hit'].astype(int)
+    # df['con_hit'] = df['con_hit'].astype(int)
+    #
+    #
+    #
+    # if len(df['fp_idx'].unique()) > 1:
+    #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn) + (1|fp_idx)'
+    #     print('tteet')
+    # else:
+    #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn)'
+    #     print('toast')
+    # # quit()
+    #
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
+    #
+    # print('-' * 120)
+    # formula = ('conn_score ~ 1 + BOLD_score + ' +
+    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
+    #
+    # formula = ('BOLD_score ~ 1 + ' +
+    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
 
-    if len(df['fp_idx'].unique()) > 1:
-        formula = 'conn_score ~ 1 + BOLD_score + (1|sn) + (1|fp_idx)'
-        print('tteet')
-    else:
-        formula = 'conn_score ~ 1 + BOLD_score + (1|sn)'
-        print('toast')
+    df['BOLD_score'] = df['conn_score']
+    cols_keep = ['ROI_M', 'BOLD_score', 'conn_score', 'sn',
+                 'fp_idx', 'hit_hit', 'con_hit', 'vis_hit']
+
+    df['ROI_M'] = df[ROI_cols].mean(axis=1)
+    df = df[cols_keep].dropna()
+    mem_cols = ['hit_hit', 'con_hit', 'vis_hit']
+    df[mem_cols] = df[mem_cols].astype(int)
+    # print(df['con_hit'].value_counts(dropna=True))
     # quit()
 
+    # print(df['con_hit'].value_counts(dropna=False))
+    # print(df['vis_hit'].value_counts(dropna=False))
+    # print(df['hit_hit'].value_counts(dropna=False))
+    # quit()
+    formula = ('BOLD_score ~ 1 + ROI_M + (1 + ROI_M |sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
     model = Lmer(formula, data=df)
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    print('-' * 120)
-    formula = ('conn_score ~ 1 + BOLD_score + ' +
-               ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    formula = ('hit_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx + (1 |sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
+    model = Lmer(formula, data=df, family='binomial')
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    formula = ('BOLD_score ~ 1 + ' +
-               ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    formula = ('con_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx  + (1 |sn)')# + (1|fp_idx)' + ROI_M*fp_idx
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
+    model = Lmer(formula, data=df, family='binomial')
     model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    quit()
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + hit_hit + (1|sn) + (1|fp_idx)'
+    formula = ('vis_hit ~ 1 + BOLD_score*fp_idx + ROI_M*fp_idx  + (1 |sn)')# + (1|fp_idx)'
     print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
+    model = Lmer(formula, data=df, family='binomial')
+    model.fit(REML=True, verbose=False, summary=False)
     print(model.summary())
 
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + con_hit + (1|sn) + (1|fp_idx)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + inc_str + (1|sn) + (1|fp_idx)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + (1|sn) + (1|fp_idx)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + (1|sn)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + (1|fp_idx)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-    print('-' * 120)
-    formula = 'conn_score ~ 1 + fp_idx + (1|sn)'
-    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=True, summary=True)
-    print(model.summary())
-
-    for fp, df_fp in df.groupby('fp_idx'):
-        print('-*-' * 20 + Fore.CYAN + fp + Fore.RESET + '-*-' * 20)
-        formula = 'conn_score ~ 1 + (1|sn)'
-        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-        model = Lmer(formula, data=df_fp)
-        model.fit(REML=True, verbose=True, summary=True)
-        print(model.summary())
-
-        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
-        formula = 'conn_score ~ 1 + ' + ' + '.join(ROI_cols) + '+  (1|sn)'
-        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-        model = Lmer(formula, data=df_fp)
-        model.fit(REML=True, verbose=True, summary=True)
-        print(model.summary())
-
-        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
-        formula = 'conn_score ~ 1 + con_hit + (1|sn)'
-        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-        model = Lmer(formula, data=df_fp)
-        model.fit(REML=True, verbose=True, summary=True)
-        print(model.summary())
-
-        print('-' * 20 + Fore.CYAN + ' ' + fp + ' ' + Fore.RESET + '-' * 20)
-        formula = 'conn_score ~ 1 + inc_str + (1|sn)'
-        print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-        model = Lmer(formula, data=df_fp)
-        model.fit(REML=True, verbose=True, summary=True)
-        print(model.summary())
+    # print('-' * 120)
+    # formula = 'conn_score ~ 1 + hit_hit + (1|sn) + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=True, summary=True)
+    # print(model.summary())
+    #
+    # print('-' * 120)
+    # formula = 'conn_score ~ 1 + con_hit + (1|sn) + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=True, summary=True)
+    # print(model.summary())
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
-    semantic = True
-    do_networks = 14 # 14 = multi PFC
+    RSA = False
+    semantic = False
+    do_networks = 1 # 14 = multi PFC
     conn = 'euc'
     trial_similarity = 'corr'
     second_order = 'spear'
-    four_tasks = '8'
+    four_tasks = '7'
     combine_regions = False
     split = False
     RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
@@ -355,17 +328,25 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'else_cortical'
     # target_ROI = 'Occipital'
     # target_ROI = 'Occipital'
-    target_ROI = 'PFC'
+    target_ROI = 'Occipital'
 
-    results_conn, results_bold_comb, results_bold_sep = (
-        load_for_lmer(RSA=RSA, semantic=semantic, do_networks=do_networks,
-                      conn=conn, trial_similarity=trial_similarity,
-                      second_order=second_order, four_tasks=four_tasks,
-                      combine_regions=combine_regions, split=split,
-                      RDM_method=RDM_method,age=age,
-                      stdize_by_run=stdize_by_run))
+    kwargs = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
+                'conn': conn, 'trial_similarity': trial_similarity,
+                'second_order': second_order, 'four_tasks': four_tasks,
+                'combine_regions': combine_regions, 'split': split,
+                'RDM_method': RDM_method, 'age': age,
+                'stdize_by_run': stdize_by_run
+              }
+    results_conn, results_bold_comb, results_bold_sep \
+        = pickle_wrap(load_for_lmer, None, kwargs=kwargs,)
 
-
+    # results_conn, results_bold_comb, results_bold_sep = (
+    #     load_for_lmer(RSA=RSA, semantic=semantic, do_networks=do_networks,
+    #                   conn=conn, trial_similarity=trial_similarity,
+    #                   second_order=second_order, four_tasks=four_tasks,
+    #                   combine_regions=combine_regions, split=split,
+    #                   RDM_method=RDM_method,age=age,
+    #                   stdize_by_run=stdize_by_run))
 
     df, ROI_cols = organize_df(results_conn, results_bold_sep,
                                results_bold_comb, do_networks, target_ROI)
@@ -373,16 +354,20 @@ def run_lmer_PFC_RSA():
     lmer_stats(df, ROI_cols)
 
 def run_lmer_PFC_ISPC():
-    do_networks = 2
-    target_ROI = 'else'
+    do_networks = 14
+    # target_ROI = 'else'
 
     results_conn, results_bold_comb, results_bold_sep = (
-        load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
+        load_for_lmer_ISPC(four_tasks='7', conn='prod', combine_regions=False,
                            split=False, do_networks=do_networks,
                            trial_similarity='corr',
                            age='healthy'))
 
-    results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, 0, :]
+
+    idx = 2
+    results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, idx, :]
+    results_bold_comb['scores_by_ROI'] \
+        = results_bold_comb['scores_by_ROI'][:, idx, :]
 
     # networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG'],
     #             'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC'],
@@ -397,7 +382,12 @@ def run_lmer_PFC_ISPC():
     df['fp_idx'] = df['fp_idx'].astype(str)
     # df = df.groupby('img').mean()
 
-    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + fp_idx', data=df)
+    # mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + fp_idx', data=df)
+    # res = mod.fit()
+    # print(res.summary())
+
+    df = df.groupby('img')[['conn_score', 'BOLD_score']].mean()
+    mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
     res = mod.fit()
     print(res.summary())
     quit()
