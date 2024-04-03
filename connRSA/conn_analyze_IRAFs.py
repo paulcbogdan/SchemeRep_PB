@@ -296,7 +296,8 @@ def pie_charts(df, ROI_cols, title):
         if True:
             p = res.pvalues['Intercept']
             z = res.tvalues['Intercept']
-            print(f'\t{ROI_itr:+.4f} = {np.sqrt(ROI_itr_total)=:.4f} '
+            ROI = ROI_cols[i]
+            print(f'\t{ROI} | {ROI_itr:+.4f} = {np.sqrt(ROI_itr_total)=:.4f} '
                   f'({p=:.3f}, {z=:.3f})')
 
     print(f'{np.sqrt(ROI_itr_total)=:.4f}')
@@ -524,6 +525,8 @@ def run_lmer_PFC_RSA():
     # df = df[df['fp_idx'].isin(['0', '2', '3'])] # no con
     # df = df[df['fp_idx'].isin(['1', '3', '4'])] # all con
 
+
+
     # df = df.groupby(['sn', 'img'])[ROI_cols + ['BOLD_score', 'conn_score']
     #                                ].mean().reset_index()
 
@@ -539,6 +542,12 @@ def run_lmer_PFC_RSA():
     else:
         title = title.replace('MTL', 'Medial Temporal Lobe')
     title = title.replace('PFC_ACC', 'Prefrontal')
+
+    only_con = True
+    if only_con:
+        df = df[df['fp_idx'].isin(['2',])]
+        title += '\n(Only conceptual memory)'
+
     pie_charts(df, ROI_cols, title)
     # lmer_stats(df, ROI_cols)
 
