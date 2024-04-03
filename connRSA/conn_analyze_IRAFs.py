@@ -202,6 +202,9 @@ def pie_charts(df, ROI_cols, title):
     z = res.tvalues['Intercept']
     print(f'\tRegress out BOLD {conn_itr1=:.4f} ({p=:.3f}, {z=:.3f})')
 
+
+
+
     mod = smf.ols(formula='conn_score ~ 1 + BOLD_score + '
                           + ' + '.join(ROI_cols),
                   data=df)
@@ -212,6 +215,9 @@ def pie_charts(df, ROI_cols, title):
     z = res.tvalues['Intercept']
     print(f'\tRegress out all: {conn_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
     print('-')
+
+    if p > 0.1:
+        conn_itr_r = 0.
 
     # df['BOLD_score'] /= df['BOLD_score'].std()
 
@@ -294,6 +300,7 @@ def pie_charts(df, ROI_cols, title):
                   f'({p=:.3f}, {z=:.3f})')
 
     print(f'{np.sqrt(ROI_itr_total)=:.4f}')
+    # print(f'{ROI_itr_total=}')
     ROI_itr_r = np.sqrt(ROI_itr_total)
     print('-*-')
     print(f'{conn_itr_r=:.4f}')
@@ -321,7 +328,7 @@ def plot_pie_chart(vals, title):
             labeldistance=1.3, wedgeprops={"alpha": 0.8,
                                            'edgecolor': 'w',
                                            'linewidth': 3.0},
-            startangle=-26 + (225 if len(sizes) == 1 else 0),) #  +
+            startangle=(225 if len(sizes) == 1 else -26),) #  +
     [autotext.set_color(c) for autotext, c in zip(text, cs)]
     plt.tight_layout()
     plt.show()
@@ -454,7 +461,7 @@ def lmer_stats(df, ROI_cols):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
+    RSA = True
     semantic = False
     conn = 'prod'
     trial_similarity = 'corr' # euc
@@ -513,12 +520,12 @@ def run_lmer_PFC_RSA():
 
     df, ROI_cols = organize_df(results_conn, results_bold_sep,
                                results_bold_comb, do_networks, target_ROI)
-    df['img'] = list(range(114)) * 342
+    df['img'] = list(range(114)) * (len(df) // 114)
     # df = df[df['fp_idx'].isin(['0', '2', '3'])] # no con
     # df = df[df['fp_idx'].isin(['1', '3', '4'])] # all con
 
-    df = df.groupby(['sn', 'img'])[ROI_cols + ['BOLD_score', 'conn_score']
-                                   ].mean().reset_index()
+    # df = df.groupby(['sn', 'img'])[ROI_cols + ['BOLD_score', 'conn_score']
+    #                                ].mean().reset_index()
 
     if RSA:
         if semantic:
@@ -527,6 +534,10 @@ def run_lmer_PFC_RSA():
             title = f'RSA (perceptual): {target_ROI}'
     else:
         title = f'NPS: {target_ROI}'
+    if RSA:
+        title = title.replace('MTL', 'Med. Temp. Lobe')
+    else:
+        title = title.replace('MTL', 'Medial Temporal Lobe')
     pie_charts(df, ROI_cols, title)
     # lmer_stats(df, ROI_cols)
 

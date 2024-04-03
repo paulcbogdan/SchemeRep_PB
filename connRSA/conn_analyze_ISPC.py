@@ -168,7 +168,7 @@ def run_lmer_PFC_ISPC():
     df_bhv = df_bhv.groupby('obj')['hit_hit'].mean()
     mem_scores = list(df_bhv.values) * 4
 
-    target_ROI = 'PFC_ACC'
+    target_ROI = 'MTL'
 
     ROI2network = {'Occipital': (1, 0), 'Ventral': (1, 1), 'Dorsal': (1, 1),
                    'else_cortical': (2, 1),
@@ -176,7 +176,7 @@ def run_lmer_PFC_ISPC():
                    'PFC_ACC': (14, 1), 'FP': (14, 2),
                    'perceptual': 17,
                    'full_frontal': 11, 'full_frontal_CG': 11,
-                   'MTL': 9}
+                   'MTL': (9, 0)}
 
     do_networks = ROI2network[target_ROI][0]
     results_conn, results_bold_comb, results_bold_sep = (
@@ -207,6 +207,7 @@ def run_lmer_PFC_ISPC():
 
     title = f'ISPC: {target_ROI}'
     title = title.replace('PFC_ACC', 'Prefrontal')
+    title = title.replace('MTL', 'Medial Temporal Lobe')
     pie_charts_ISPC(df, title)
     # df = df.groupby('img').mean()
     # df['BOLD_score'] = stats.zscore(df['BOLD_score'])
