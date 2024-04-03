@@ -324,8 +324,8 @@ def plot_pie_chart(vals, title):
         = plt.gca().pie(sizes,
             labels=labels,
             colors=cs,
-            textprops=dict(color='k', fontsize=24, ha='center'),
-            labeldistance=1.3, wedgeprops={"alpha": 0.8,
+            textprops=dict(color='k', fontsize=24),
+            labeldistance=1.1, wedgeprops={"alpha": 0.8,
                                            'edgecolor': 'w',
                                            'linewidth': 3.0},
             startangle=(225 if len(sizes) == 1 else -26),) #  +
@@ -461,24 +461,24 @@ def lmer_stats(df, ROI_cols):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
-    semantic = False
+    RSA = True
+    semantic = True
     conn = 'prod'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     four_tasks = '8'
     combine_regions = False
     split = False
-    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    # RDM_method = 'within_nan'
+    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'
-    stdize_by_run = False
+    stdize_by_run = True if trial_similarity == 'euc' else False
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    target_ROI = 'Occipital'
-    # target_ROI = 'PFC_ACC'
+    # target_ROI = 'Occipital'
+    target_ROI = 'PFC_ACC'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
