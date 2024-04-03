@@ -461,7 +461,7 @@ def lmer_stats(df, ROI_cols):
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
+    RSA = False
     semantic = False
     conn = 'prod'
     trial_similarity = 'corr' # euc
@@ -469,17 +469,17 @@ def run_lmer_PFC_RSA():
     four_tasks = '8'
     combine_regions = False
     split = False
-    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    RDM_method = 'within_nan'
+    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    # RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = False
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    # target_ROI = 'Occipital'
+    target_ROI = 'Occipital'
     # target_ROI = 'PFC_ACC'
-    target_ROI = 'MTL'
+    # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
@@ -534,10 +534,11 @@ def run_lmer_PFC_RSA():
             title = f'RSA (perceptual): {target_ROI}'
     else:
         title = f'NPS: {target_ROI}'
-    if RSA:
+    if RSA and not semantic:
         title = title.replace('MTL', 'Med. Temp. Lobe')
     else:
         title = title.replace('MTL', 'Medial Temporal Lobe')
+    title = title.replace('PFC_ACC', 'Prefrontal')
     pie_charts(df, ROI_cols, title)
     # lmer_stats(df, ROI_cols)
 
