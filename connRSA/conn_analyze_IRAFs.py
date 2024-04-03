@@ -37,37 +37,7 @@ def get_idx_from_key(l, substring):
             not_keys.append(key)
     return idxs, keys
 
-def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
-			 split=False, do_networks=0, trial_similarity='corr',
-			 age=1):
-    settings = locals().copy()
-    dir_results = r'cache/conn_RSA'
-    results_conn = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
-                               easy_override=False, cache_dir=dir_results)
-    report_results(results_conn, do_lmer=True, ISPC=True)
 
-    if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
-            'complex_mean' in settings['RDM_method']):
-        settings['RDM_method'] = 'within_nan'
-    #
-    settings['conn'] = 'BOLD'
-    results_bold_comb = pickle_wrap(run_settings_ISPC, None,
-                                   kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results)
-
-    report_results(results_bold_comb, do_lmer=True, ISPC=True)
-
-    results_bold_sep = {}
-
-    # settings['do_networks'] = False
-    # results_bold_sep = pickle_wrap(run_settings_ISPC, None,
-    #                                kwargs=settings, easy_override=False,
-    #                                verbose=1, cache_dir=dir_results)
-
-    # report_results(results_bold_sep, do_lmer=False)
-
-
-    return results_conn, results_bold_comb, results_bold_sep
 
 def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
@@ -214,7 +184,7 @@ def rsum(row):
 
 
 
-def pie_charts(df, ROI_cols):
+def pie_charts(df, ROI_cols, title):
     df['ROI_M'] = df[ROI_cols].mean(axis=1)
 
     # df = df[cols_keep].dropna()
@@ -252,20 +222,28 @@ def pie_charts(df, ROI_cols):
     z = res.tvalues['Intercept']
     print(f'{bold_itr0=:.4f} ({p=:.3f}, {z=:.3f})')
 
-    mod = smf.ols(formula='BOLD_score ~ 1 + ROI_M', data=df)
+    mod = smf.ols(formula='BOLD_score ~ 1 + conn_score', data=df)
     res = mod.fit()
     bold_itr1 = res.params['Intercept']
     p = res.pvalues['Intercept']
     z = res.tvalues['Intercept']
-    print(f'\tRegress ROI_M: {bold_itr1=:.4f} ({p=:.3f}, {z=:.3f})')
+    print(f'\tRegress conn: {bold_itr1=:.4f} ({p=:.3f}, {z=:.3f})')
 
-    mod = smf.ols(formula='BOLD_score ~ 1 + ' + ' + '.join(ROI_cols),
+    mod = smf.ols(formula='BOLD_score ~ 1 + ROI_M', data=df)
+    res = mod.fit()
+    bold_itr2 = res.params['Intercept']
+    p = res.pvalues['Intercept']
+    z = res.tvalues['Intercept']
+    print(f'\tRegress ROI_M: {bold_itr2=:.4f} ({p=:.3f}, {z=:.3f})')
+
+    mod = smf.ols(formula='BOLD_score ~ 1 + conn_score + ' +
+                          ' + '.join(ROI_cols),
                   data=df)
     res = mod.fit()
     bold_itr_r = res.params['Intercept']
     p = res.pvalues['Intercept']
     z = res.tvalues['Intercept']
-    print(f'\tRegress out ROIs: {bold_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
+    print(f'\tRegress out all: {bold_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
     print('-')
 
     # print(res.summary())
@@ -306,10 +284,10 @@ def pie_charts(df, ROI_cols):
         ROI_col_str += f' + {ROI_cols[i]}'
         ROI_itr = res.params['Intercept']
 
-        # ROI_itr_sign = np.sign(ROI_itr)
-        ROI_itr_ = (ROI_itr ** 2)  # * ROI_itr_sign
+        ROI_itr_sign = np.sign(ROI_itr)
+        ROI_itr_ = (ROI_itr ** 2) * ROI_itr_sign
         ROI_itr_total += ROI_itr_
-        if False:
+        if True:
             p = res.pvalues['Intercept']
             z = res.tvalues['Intercept']
             print(f'\t{ROI_itr:+.4f} = {np.sqrt(ROI_itr_total)=:.4f} '
@@ -321,7 +299,32 @@ def pie_charts(df, ROI_cols):
     print(f'{conn_itr_r=:.4f}')
     print(f'{bold_itr_r=:.4f}')
     print(f'{ROI_itr_r=:.4f}')
+    plot_pie_chart([conn_itr_r, bold_itr_r, ROI_itr_r], title)
 
+def plot_pie_chart(vals, title):
+    plt.title(title, fontsize=24)
+    cs_ = ['dodgerblue', 'red', 'green']
+    sizes_ = vals#[conn_itr_r, bold_itr_r, ROI_itr_r]
+    labels_ = ['Conn', 'Region', 'ROIs']
+    cs, sizes, labels = [], [], []
+    for c, s, l in zip(cs_, sizes_, labels_):
+        if s > 0:
+            cs.append(c)
+            sizes.append(s)
+            labels.append(l)
+
+    wedge, text \
+        = plt.gca().pie(sizes,
+            labels=labels,
+            colors=cs,
+            textprops=dict(color='k', fontsize=24, ha='center'),
+            labeldistance=1.3, wedgeprops={"alpha": 0.8,
+                                           'edgecolor': 'w',
+                                           'linewidth': 3.0},
+            startangle=-26 + (225 if len(sizes) == 1 else 0),) #  +
+    [autotext.set_color(c) for autotext, c in zip(text, cs)]
+    plt.tight_layout()
+    plt.show()
 
 
 def lmer_stats(df, ROI_cols):
@@ -454,13 +457,13 @@ def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
     conn = 'prod'
-    trial_similarity = 'corr'
+    trial_similarity = 'corr' # euc
     second_order = 'spear'
     four_tasks = '8'
     combine_regions = False
     split = False
-    RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
-    # RDM_method = 'within_nan'
+    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
+    RDM_method = 'within_nan'
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = False
@@ -468,16 +471,17 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
     # target_ROI = 'Occipital'
-    target_ROI = 'PFC_ACC'
-    # target_ROI = 'MTL'
+    # target_ROI = 'PFC_ACC'
+    target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
-    # target_ROI = 'full_frontal'
+    # target_ROI = 'full_frontal_CG'
+    # target_ROI = 'FP'
 
     ROI2network = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                    'else_cortical': 2,
                    'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
                    'perceptual': 17,
-                   'full_frontal': 11,
+                   'full_frontal': 11, 'full_frontal_CG': 11,
                    'MTL': 9}
     do_networks = ROI2network[target_ROI]
 
@@ -491,6 +495,12 @@ def run_lmer_PFC_RSA():
     results_conn, results_bold_comb, results_bold_sep \
         = pickle_wrap(load_for_lmer, None, kwargs=kwargs,)
 
+    report_results(results_conn, do_lmer=False)#True)
+    print('BOLD')
+    report_results(results_bold_comb, do_lmer=False)#True)
+
+
+
     # results_conn, results_bold_comb, results_bold_sep = (
     #     load_for_lmer(RSA=RSA, semantic=semantic, do_networks=do_networks,
     #                   conn=conn, trial_similarity=trial_similarity,
@@ -499,105 +509,30 @@ def run_lmer_PFC_RSA():
     #                   RDM_method=RDM_method,age=age,
     #                   stdize_by_run=stdize_by_run))
 
+
+
     df, ROI_cols = organize_df(results_conn, results_bold_sep,
                                results_bold_comb, do_networks, target_ROI)
-    pie_charts(df, ROI_cols)
+    df['img'] = list(range(114)) * 342
+    # df = df[df['fp_idx'].isin(['0', '2', '3'])] # no con
+    # df = df[df['fp_idx'].isin(['1', '3', '4'])] # all con
 
+    df = df.groupby(['sn', 'img'])[ROI_cols + ['BOLD_score', 'conn_score']
+                                   ].mean().reset_index()
+
+    if RSA:
+        if semantic:
+            title = f'RSA (semantic): {target_ROI}'
+        else:
+            title = f'RSA (perceptual): {target_ROI}'
+    else:
+        title = f'NPS: {target_ROI}'
+    pie_charts(df, ROI_cols, title)
     # lmer_stats(df, ROI_cols)
 
-def pie_charts_ISPC(df, ROI_cols):
-    pass
-
-def lmer_ISPC():
-    pass
-
-def run_lmer_PFC_ISPC():
-    do_networks = 17
-    # target_ROI = 'else'
-
-    df_bhv, _ = get_plain_df_sn()
-    df_bhv = df_bhv.groupby('obj')['hit_hit'].mean()
-    mem_scores = list(df_bhv.values) * 4
-
-
-    results_conn, results_bold_comb, results_bold_sep = (
-        load_for_lmer_ISPC(four_tasks='7', conn='euc', combine_regions=False,
-                           split=False, do_networks=do_networks,
-                           trial_similarity='corr',
-                           age='healthy'))
-
-    idx = 0
-    results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, idx, :]
-    results_bold_comb['scores_by_ROI'] \
-        = results_bold_comb['scores_by_ROI'][:, idx, :]
-
-    # networks = {'PFC': ['SFG', 'MFG', 'IFG', 'OrG'],
-    #             'PFC_ACC': ['SFG', 'MFG', 'IFG', 'OrG', 'ACC'],
-    #             'FP': ['MFG', 'IFG', 'IPL', 'SPL']}
-
-
-
-    d = {'conn_score': np.reshape(results_conn['scores_by_ROI'], -1),
-         'BOLD_score': np.reshape(results_bold_comb['scores_by_ROI'], -1),
-         'fp_idx': list(range(4)) * 114,
-         'img': list(range(114)) * 4,
-         'mem': mem_scores}
-
-    df = pd.DataFrame(d)
-    df['fp_idx'] = df['fp_idx'].astype(str)
-    # df = df.groupby('img').mean()
-    # df['BOLD_score'] = stats.zscore(df['BOLD_score'])
-    # df['conn_score'] = stats.zscore(df['conn_score'])
-
-    for fp_idx in range(4):
-        df_ = df[df['fp_idx'] == str(fp_idx)]
-        df_['mem'] = stats.zscore(df_['mem'])
-        mod = smf.ols(formula='BOLD_score ~ 1 + mem', data=df_)
-        res = mod.fit()
-        print(res.summary())
-        # quit()
-    quit()
-    mod = smf.ols(formula='conn_score ~ 0 + mem * fp_idx', data=df)
-    res = mod.fit()
-    print(res.summary())
-
-    # df = df.groupby('img')[['conn_score', 'BOLD_score']].mean()
-    # mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
-    # res = mod.fit()
-    # print(res.summary())
-    quit()
-
-    formula = 'conn_score ~ 1 + BOLD_score + (1|fp_idx)'
-    from pymer4.models import Lmer
-    model = Lmer(formula, data=df)
-    model.fit(REML=True, verbose=False, summary=True)
-    print(model.summary())
-
-    # scores_conn = results_conn['scores_by_ROI']
-    # print(f'{scores_conn.shape=}')
-    # scores_conn = np.array(scores_conn)
-    # # if not ISPC:
-    # scores_sep = results_bold_sep['scores_by_ROI']
-    # scores_sep = np.array(scores_sep)
-    # scores_comb = results_bold_com['scores_by_ROI']
-
-
-    # print(df)
-    # print(results_conn['scores_by_ROI'].shape)
-    quit()
-
-    # scores_by_ROI = np.array(results['scores_by_ROI'])
-    # scores_by_fp = np.transpose(scores_by_ROI, (0, 2, 1))
-
-    # df, ROI_cols = organize_df(results_conn, results_bold_sep,
-    #                            results_bold_comb, do_networks, target_ROI,
-    #                            ISPC=True)
-    #
-    # lmer_stats(df, ROI_cols)
 
 if __name__ == '__main__':
     # atlas = get_atlas(False, False)
     # print(atlas['tick_labels'])
     # quit()
-    # run_lmer_PFC_RSA()
-    run_lmer_PFC_ISPC()
+    run_lmer_PFC_RSA()
