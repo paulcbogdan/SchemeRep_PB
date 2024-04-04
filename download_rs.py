@@ -1,3 +1,7 @@
+import os
+import shutil
+from pathlib import Path
+
 from tqdm import tqdm
 
 from analyze_rs import analyze_vendor
@@ -13,6 +17,9 @@ if __name__ == '__main__':
     dir_in = r'Z:\Cabeza\SchemRep.01\Data\fMRIprep_by_subject_out'
     sns = get_sns()
     sns = sns[1] + sns[2]
+    # print(sns)
+    # quit()
+    sns = ['239']
     for sn in tqdm(sns, desc='Looping over fMRI'):
         has_match = False
         for i in range(1, 4):

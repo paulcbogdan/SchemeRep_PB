@@ -153,8 +153,22 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                  'dv_ant_no', 'dv_pos_no',
                  'pd_no2', 'ad_no2',
                  'pv_no2', 'av_no2',
-                 'no_no'
+                 'no_no',
+
+                 'pd_no_L', 'pd_no_R',
+                 'ad_no_L', 'ad_no_R',
+                 'pv_no_L', 'pv_no_R',
+                 'av_no_L', 'av_no_R',
                  ]
+
+    p_d_pos_L = [i for i in p_d_pos if i % 2 == 0]
+    p_d_pos_R = [i for i in p_d_pos if i % 2 == 1]
+    p_d_ant_L = [i for i in p_d_ant if i % 2 == 0]
+    p_d_ant_R = [i for i in p_d_ant if i % 2 == 1]
+    p_v_pos_L = [i for i in p_v_pos if i % 2 == 0]
+    p_v_pos_R = [i for i in p_v_pos if i % 2 == 1]
+    p_v_ant_L = [i for i in p_v_ant if i % 2 == 0]
+    p_v_ant_R = [i for i in p_v_ant if i % 2 == 1]
     conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant),
                (p_d_ant, p_v_ant), (p_d_pos, p_v_pos),
                (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
@@ -168,7 +182,11 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                (p_ant, no_match), (p_pos, no_match),
                (p_d_pos, pd_no), (p_v_pos, pv_no),
                (p_d_ant, ad_no), (p_v_ant, av_no),
-               (no_match, no_match)
+               (no_match, no_match),
+               (p_d_pos_L, no_match), (p_d_pos_R, no_match),
+               (p_d_ant_L, no_match), (p_d_ant_R, no_match),
+               (p_v_pos_L, no_match), (p_v_pos_R, no_match),
+               (p_v_ant_L, no_match), (p_v_ant_R, no_match),
                ]
     return conn_keys, conn_ps
 

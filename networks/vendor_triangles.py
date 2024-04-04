@@ -229,7 +229,7 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
     return beta_main, p_main, beta_itr, p_itr
 
 
-def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
+def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                                   HCP=True, anat_version=2):
     # if HCP:
     #     # f = partial(load_HCP_act, N=N,
@@ -242,9 +242,11 @@ def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
     # else:
     if 'rs_' in fp:
         df, _ = pickle_wrap(get_df_networks, kwargs={'fp': fp,
-                                                     'anat_ver': 2,
+                                                     'anat_ver': anat_version,
                                                      'add_hemi': 2},
-                            easy_override=True)
+                            easy_override=False)
+        # print(len(df['sn'].unique()))
+        # quit()
     else:
         df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp,
                                                                  'anat': anat,
@@ -252,50 +254,12 @@ def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
                                         'anat_version': anat_version},
                                easy_override=False, cache_dir='cache')
 
-    # cols = ['Lda_Lda', 'Lda_Rda', 'Lda_Ldp', 'Lda_Rdp', 'Lda_Lva', 'Lda_Rva',
-    #         'Lda_Lvp', 'Lda_Rvp', 'Rda_Lda', 'Rda_Rda', 'Rda_Ldp', 'Rda_Rdp',
-    #         'Rda_Lva', 'Rda_Rva', 'Rda_Lvp', 'Rda_Rvp', 'Ldp_Lda', 'Ldp_Rda',
-    #         'Ldp_Ldp', 'Ldp_Rdp', 'Ldp_Lva', 'Ldp_Rva', 'Ldp_Lvp', 'Ldp_Rvp',
-    #         'Rdp_Lda', 'Rdp_Rda', 'Rdp_Ldp', 'Rdp_Rdp', 'Rdp_Lva', 'Rdp_Rva',
-    #         'Rdp_Lvp', 'Rdp_Rvp', 'Lva_Lda', 'Lva_Rda', 'Lva_Ldp', 'Lva_Rdp',
-    #         'Lva_Lva', 'Lva_Rva', 'Lva_Lvp', 'Lva_Rvp', 'Rva_Lda', 'Rva_Rda',
-    #         'Rva_Ldp', 'Rva_Rdp', 'Rva_Lva', 'Rva_Rva', 'Rva_Lvp', 'Rva_Rvp',
-    #         'Lvp_Lda', 'Lvp_Rda', 'Lvp_Ldp', 'Lvp_Rdp', 'Lvp_Lva', 'Lvp_Rva',
-    #         'Lvp_Lvp', 'Lvp_Rvp', 'Rvp_Lda', 'Rvp_Rda', 'Rvp_Ldp', 'Rvp_Rdp',
-    #         'Rvp_Lva', 'Rvp_Rva', 'Rvp_Lvp', 'Rvp_Rvp']
-
-
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.precision', 2)
-    pd.options.display.float_format = '{:.2f}'.format
-
-    cols_order = []
-    cols_order_dd = ['Ldp_Lda', 'Rdp_Rda', # top = main direction
-                     'Ldp_Rdp', 'Lda_Rda', # middle = hemi-bounce
-                     'Ldp_Rda', 'Lda_Rdp'] # bottom = cross
-    cols_order_vv = [col.replace('d', 'v') for col in cols_order_dd]
-    cols_order_p  = ['Ldp_Lvp', 'Rdp_Rvp',
-                     'Ldp_Rdp', 'Lvp_Rvp',
-                     'Ldp_Rvp', 'Lvp_Rdp']
-    cols_order_a  = [col.replace('p', 'a') for col in cols_order_p]
-
-    cols_order_L = ['Ldp_Lda', 'Lvp_Lva',
-                    'Ldp_Lvp', 'Lda_Lva',
-                    'Ldp_Lva', 'Lda_Lvp']
-    cols_order_R = [col.replace('L', 'R') for col in cols_order_L]
-
-    cols_order += cols_order_dd + cols_order_vv + cols_order_p + cols_order_a
-    cols_order += cols_order_L + cols_order_R
-
-    # cols_order = ['da_dp', 'va_vp', 'dp_vp', 'da_va',
-    #               'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
-    #
-    # cols_order = ['Lda_Ldp', 'Rda_Rdp',
-    #               'Lva_Lvp', 'Rva_Rvp',
-    #               'Ldp_Lvp', 'Rdp_Rvp',
-    #               'Lda_Lva', 'Rda_Rva',
-    #               'Ldp_Rdp', 'Lvp_Rvp', 'Lda_Rda', 'Lva_Rva', ]
+    cols_order = ['Lda_Ldp', 'Rda_Rdp',
+                  'Lva_Lvp', 'Rva_Rvp',
+                  'Ldp_Lvp', 'Rdp_Rvp',
+                  'Lda_Lva', 'Rda_Rva',
+                  'Ldp_Rdp', 'Lvp_Rvp',
+                  'Lda_Rda', 'Lva_Rva', ]
 
     # cols_order += ['dd', 'vv']
 
@@ -323,31 +287,53 @@ def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
         print(f'{col}: {M:+.2f} | {height}')
 
     tick_lows = np.arange(0, len(cols_order))
-    ticks = tick_lows# + 0.5
+    ticks = tick_lows
     tick_labels = cols_order
 
     # print(df[cols_order].corr())
 
-    cols_order = list(set(cols_order))
-    # print(len(cols_order))
+    # print(f'{cols_order=}')
+    # print(df[['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
+    #           'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',
+    #           'FC_all']])
     # quit()
 
-    corr = partial_corr_df(df, cols_order, #['dd', 'vv', 'dv_ant', 'dv_pos'],
-                           cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])
-    # corr = np.array(df[cols_order].corr())
-    # quit()
-
-    # plot_connectivity(corr, ticks, tick_labels, tick_lows, title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
-    # quit()
+    corr = partial_corr_df(df.copy(), cols_order, #['dd', 'vv', 'dv_ant', 'dv_pos'],
+                           # cov=['pd_no', 'ad_no', 'av_no', 'pv_no',
+                           #      'FC_all'])
+                           cov=['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
+                                'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',
+                                ])
 
     # corr = np.array(df[cols_order].corr())
     corr[corr > .99] = np.nan
 
-    median = np.nanmedian(corr)
+    # new_corr = []
+    # for i in range(corr.shape[0]):
+    #     median = np.nanmedian(corr)
+    #     row = corr[i]
+    #     row[row > median] = 1
+    #     row[row < median] = 0
+    #     new_corr.append(row)
+    # corr = np.array(new_corr)
+    # print(corr)
+
+
+    # quit()
+
+    # corr = np.array(df[cols_order].corr())
+    plot_connectivity(corr, ticks, tick_labels, tick_lows,
+                      title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
+    # median = np.nanmedian(corr)
+    median = 0
     print(f'{median=}')
 
-    corr[corr > 0] = 1
-    corr[corr < 0] = 0
+    corr[corr > median + .0001] = 1
+    corr[corr < median] = 0
+    plot_connectivity(corr, ticks, tick_labels, tick_lows,
+                      title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
+    # quit()
+
     partitions = get_modules(corr)
 
 

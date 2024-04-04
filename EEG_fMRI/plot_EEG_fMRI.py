@@ -23,8 +23,10 @@ def plot_hz_corrs(name2r):
 
     plt.figure(figsize=(6, 4))
 
-    for hz in range(1, 51):
+    upper = 101 if 'r100' in name2r else 51
+    for hz in range(1, upper):
         name = f'r{hz}'
+        hz /= 2
         SE = np.nanstd(name2r[name]) / np.sqrt(len(name2r[name]))
         M = np.nanmean(name2r[name])
         high = M + 1 * SE

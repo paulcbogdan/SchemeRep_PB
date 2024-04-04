@@ -180,7 +180,7 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
 
     return sn_roi_act, sns
 
-def get_HCP_df(N=20):
+def get_HCP_df(N=25):
     f = partial(load_HCP_act, N=N,
                 RS=True, clean_confounds=True,
                 compcor=True, GSR=False)
@@ -188,7 +188,7 @@ def get_HCP_df(N=20):
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'f': f, 'zscore': False,
-                                       'anat_ver': 3},
+                                       'anat_ver': 2},
                                easy_override=True)
 
     pd.set_option('display.precision', 3)

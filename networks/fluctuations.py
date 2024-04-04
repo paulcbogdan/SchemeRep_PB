@@ -145,6 +145,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     n_TRs = sn_roi_act.shape[-1]
     for i, sn in enumerate(sns):
         for key, conn in key2conn.items():
+            # print(f'{conn.shape=}')
             vals = conn[i, :]
             if zscore: vals = stats.zscore(vals)
             df_as_d[key].extend(vals)
@@ -177,6 +178,7 @@ def partial_corr_df(df, cols, cov):
                            round(3))
                 except AssertionError as e:
                     ar[i, j] = np.nan
+                    ar[j, i] = np.nan
 
                 ar[i, j] = out['r'].values[0]
                 ar[j, i] = ar[i, j]
