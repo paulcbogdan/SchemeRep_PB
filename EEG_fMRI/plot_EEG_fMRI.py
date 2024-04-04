@@ -26,21 +26,26 @@ def plot_hz_corrs(name2r):
     upper = 101 if 'r100' in name2r else 51
     for hz in range(1, upper):
         name = f'r{hz}'
-        hz /= 2
+        if 'r100' in name2r: hz /= 2
         SE = np.nanstd(name2r[name]) / np.sqrt(len(name2r[name]))
         M = np.nanmean(name2r[name])
+
+        M /= SE
+        SE /= SE
+
         high = M + 1 * SE
         low = M - 1 * SE
         c = get_range(hz)
-        plt.plot([hz-0.05, hz-0.05], [low, high], color='gray', alpha=1,
+        plt.plot([hz-0.05, hz-0.05], [low, high], color='gray',
+                 alpha=0.7,
                  linewidth=0.75)
         plt.plot([hz+0.05, hz+0.05], [low, high], color=c, alpha=1,
                  linewidth=0.75)
 
         plt.plot([hz, hz], [low, high], color=c, alpha=0.25,
                  linewidth=3.0)
-        plt.plot([hz-.2, hz+.2], [high, high], color='gray')
-        plt.plot([hz-.2, hz+.2], [low, low], color='gray')
+        # plt.plot([hz-.2, hz+.2], [high, high], color='gray')
+        # plt.plot([hz-.2, hz+.2], [low, low], color='gray')
         plt.plot(hz, M, 'o', color=c, markersize=3)
 
 
@@ -48,8 +53,8 @@ def plot_hz_corrs(name2r):
     plt.ylabel(r'Connectivity (d) x Power (A$^{\rm 2}$)',# + '\nCorrelation',
                labelpad=7)
 
-    drag = .015
-    plt.ylim(0, 0.089 - drag)
+    drag = .012 # 0.015
+    # plt.ylim(0, 0.089 - drag)
     plt.xlim(0.0, 50.5)
     plt.yticks([0, 0.02, 0.04, 0.06, 0.08])
     plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
@@ -75,7 +80,7 @@ def plot_hz_corrs(name2r):
 
     plt.gca().spines[['right', 'top',]].set_visible(False)
     plt.tight_layout()
-    plt.savefig('result_pics/other/hz_corrs.png', dpi=300)
+    plt.savefig('result_pics/other/hz_corrs.png', dpi=600)
     plt.show()
 
 

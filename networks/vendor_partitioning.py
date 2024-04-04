@@ -310,7 +310,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             label = label.split(' ')[1].split('_')[0]
             quadrant2labels[quadrant].append(label)
             # print(f'{i}, {quadrant}: {label}')
-            node_sizes.append(5)
+            node_sizes.append(10)
     for k, v in quadrant2labels.items():
         print(f'{k}: {Counter(v)}')
 
@@ -381,12 +381,12 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
 if __name__ == '__main__':
     # THRESHOLD = 0.99 #  0.95, 0.975, 1.65, 2.0, 2.32
 
-    get_vendor_partitions(age='healthy', flip=True, plot=True,
-                          scrub=True, easy_override=True, anat=True,
-                          anat_ver=2)
-    quit()
+    # get_vendor_partitions(age='healthy', flip=True, plot=True,
+    #                       scrub=True, easy_override=True, anat=True,
+    #                       anat_ver=3)
+    # quit()
     REGRESS = True
-    for THRESHOLD in [.9]:
+    for THRESHOLD in [.95]:
         get_vendor_partitions(age='healthy', flip=True, plot=True,
                               scrub=True, easy_override=True, thr=THRESHOLD,
                               combine_regions=False, regress=REGRESS)

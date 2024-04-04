@@ -136,11 +136,15 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
     #                  ('vv', 'dv_ant'),
 
     # cond_sets = [('Within', 'Between')]
-    plt.rcParams.update({'font.size': 14,})
+    plt.rcParams.update({'font.size': 18,})
 
     # sns.set_theme(rc={'figure.figsize': (11.7, 8.27)})
+
+
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
+        # extreme sns (53 for inc between, 53 for inc within)
+        df_set = df_set[df_set['sn'] != 53]
         for wb in ['Within', 'Between']:
             for sn in df_set['sn'].unique():
                 # match = (df_set['sn'] == sn) # (df_set['within_between'] == wb) &
@@ -148,6 +152,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
 
                 match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
                 df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+
                 # df_set.loc[match, 'vals'] /= df_set.loc[match, 'vals'].std()
                 # print(sn)
                 # quit()
@@ -156,6 +161,45 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
             #     df_set.loc[df_set['within_between'] == wb, 'vals'].mean()
             # print(df_set.loc[df_set['within_between'] == wb, 'vals'])
             # quit()
+
+        pd.set_option('display.max_rows', None)
+
+
+        df_inc = df_set[df_set['inc'] == 'Inc']
+        df_inc_w = df_inc[df_inc['within_between'] == 'Within'].reset_index()
+        df_inc_b = df_inc[df_inc['within_between'] == 'Between'].reset_index()
+        df_con = df_set[df_set['inc'] == 'Con']
+        df_con_w = df_con[df_con['within_between'] == 'Within'].reset_index()
+        df_con_b = df_con[df_con['within_between'] == 'Between'].reset_index()
+        # t_within, p_within = stats.ttest_rel(df_inc_w['vals'],
+        #                                         df_inc_b['vals'])
+        df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
+        df_set['sn_str'] = df_set['sn'].astype(str)
+        # formula = 'vals ~ inc_num + sn_str'
+        # # print(df_set)
+        # model = smf.ols(formula=formula,
+        #                 data=df_set[df_set['within_between'] == 'Between'])
+        # res = model.fit()
+        # print(res.summary())
+        # quit()
+
+        t_within, p_within = stats.ttest_1samp(df_inc_w['vals'] - df_con_w['vals'],
+                                               0, nan_policy='omit')
+
+        # print(df_set.groupby(['inc', 'within_between'])['vals'].mean())
+
+        print(f'{t_within=:.3f}, {p_within=:.4f}')
+        t_between, p_between = stats.ttest_rel(df_inc_b['vals'],
+                                                df_con_b['vals'])
+        print(f'{t_between=:.3f}, {p_between=:.4f}')
+
+        t_anova, p_anova = stats.ttest_1samp(df_inc_w['vals'] - df_inc_b['vals'] -
+                                             df_con_w['vals'] + df_con_b['vals'],
+                                             0, nan_policy='omit')
+        print(f'{t_anova=:.3f}, {p_anova=:.4f}')
+
+        # print(df_set)
+        # quit()
 
         df_set['PE'] = df_set['inc'].map({'Inc': 'High PE', 'Neu': 'Med. PE',
                                           'Con': 'Low PE'})
@@ -184,6 +228,8 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
 
         formula = 'vals ~ inc_num*within_between + within_between*sn_str'
         # print(df_set)
+
+        # df_set['vals'] = stats.zscore(df_set['vals'])
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()
         key = cond_set[0]
@@ -194,16 +240,16 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
             continue
 
         # sns.color_palette()
+
         g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
-              hue=plot_params['hue'], alpha=.4,
+              hue=plot_params['hue'], alpha=.35,
               data=df_set[['inc', 'vals', 'within_between']],
               palette=['dodgerblue', 'red'], dodge=True, edgecolor='k',
               linewidth=0.7)
         # plt.legend([], [], frameon=False)
 
         if cond_set == ('Within', 'Between'):
-            # print(df_set[['inc', 'vals']])
-            # quit()
+
             df_pivot = df_set.pivot_table(index=['sn'],
                                           columns=['inc', 'within_between'],
                                           values='vals', aggfunc='mean')
@@ -211,8 +257,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
                                      df_pivot[('Inc', 'Between')]
             df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
                                     df_pivot[('Inc', 'Within')]
-            # print(df_pivot[['between_ef', 'within_ef']])
-            # quit()
+
             t_itr, p_itr = stats.ttest_rel(df_pivot['between_ef'],
                                            df_pivot['within_ef'])
             supt = (f'Two-level [Inc/Con] x Direction: p = {p_itr:.3f}\n'
@@ -245,115 +290,17 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
         # annot.apply_and_annotate()
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
         plt.xlim(-.5, 2.5)
-        plt.ylim(-.145, .145)
+        plt.ylim(-.11, .11)
         g.set_xticklabels(['High PE', 'Med. PE', 'Low PE'])
         plt.gca().spines['bottom'].set_visible(False)
         plt.xlabel('')
         plt.ylabel('Mean connectivity')
         plt.tight_layout()
+        fp = r'result_pics/other/inc_vendor_FC.png'
+        plt.savefig(fp, dpi=600)
         plt.show()
         # quit()
     return p_reg
-
-def plot_sns_bars(df_agg):
-    plot_params = {
-        # 'data': df_agg,
-        'y': 'vals',
-        'x': 'inc',
-        'hue': 'within_between',
-        'hue_order': ['Within', 'Between'],
-        'col': 'age',
-        'kind': 'bar'
-    }
-
-
-    g = sns.catplot(edgecolor="black", errcolor="black", errwidth=1.5,
-                    capsize=0.1, height=4, aspect=.7, alpha=0.5,
-                    ci="sd", data=df_agg, **plot_params)
-    g.map(sns.stripplot, plot_params["x"], plot_params["y"],
-          plot_params["hue"],
-          hue_order=plot_params["hue_order"],  # order=plot_params["order"],
-          palette=sns.color_palette(), dodge=True, alpha=0.6, ec='k',
-          linewidth=1)
-
-    sns.move_legend(
-        g, "lower center",
-        bbox_to_anchor=(0.9, 0.5), ncol=1,
-        title=None, frameon=False,
-    )
-
-    pairs = [
-        [('Inc', 'Between'), ('Con', 'Between')],
-        [('Inc', 'Within'), ('Con', 'Within')],
-    ]
-
-    # for name, ax in g.axes_dict.items():
-    #     ax.set_ylabel('Connectivity')
-    #     ax.set_xlabel('')
-    #
-    #     # subset the table otherwise the stats were calculated on the whole dataset
-    #     annot = Annotator(ax, pairs, **plot_params,
-    #                       data=df_agg.loc[df_agg['age'] == name, :])
-    #     annot.configure(test='t-test_paired', text_format='simple',
-    #                     show_test_name=False,
-    #                     # loc='inside',
-    #                     verbose=2)
-    #     # annot.apply_test().annotate()
-    #     annot.apply_and_annotate()
-
-
-    df_pivot = df_agg.pivot_table(index=['age', 'subj_num'],
-                                  columns=['inc', 'within_between'],
-                                  values='vals', aggfunc='mean')
-    df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
-                             df_pivot[('Inc', 'Between')]
-    df_pivot['between_sum'] = df_pivot[('Con', 'Between')] + \
-                              df_pivot[('Inc', 'Between')]
-    df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
-                            df_pivot[('Inc', 'Within')]
-    df_pivot['within_sum'] = df_pivot[('Con', 'Within')] + \
-                             df_pivot[('Inc', 'Within')]
-    df_pivot['two_way'] = df_pivot['between_ef'] - df_pivot['within_ef']
-    df_pivot['network_dif'] = df_pivot['between_sum'] - df_pivot['within_sum']
-
-    print('-' * 50)
-    t_wit, p_wit = stats.ttest_ind(df_pivot.loc['OA', :]['within_ef'],
-                                   df_pivot.loc['YA', :]['within_ef'])
-    M_OA_wit = df_pivot.loc['OA', :]['within_ef'].mean()
-    M_YA_wit = df_pivot.loc['YA', :]['within_ef'].mean()
-    print(f'Within, age x congruency: '
-          f'{t_wit=:.2f}, {p_wit=:.4f} | '
-          f'Effects: {M_OA_wit=:.3f}, {M_YA_wit=:.3f}')
-    t_three, p_three = stats.ttest_ind(df_pivot.loc['OA', :]['two_way'],
-                                       df_pivot.loc['YA', :]['two_way'])
-
-    t_bet, p_bet = stats.ttest_ind(df_pivot.loc['OA', :]['between_ef'],
-                                   df_pivot.loc['YA', :]['between_ef'])
-    M_OA_bet = df_pivot.loc['OA', :]['between_ef'].mean()
-    M_YA_bet = df_pivot.loc['YA', :]['between_ef'].mean()
-    print(f'Between, age x congruency: '
-          f'{t_bet=:.2f}, {p_bet=:.4f} | '
-          f'Effects: {M_OA_bet=:.3f}, {M_YA_bet=:.3f}')
-
-    t_two_OA, p_two_OA = stats.ttest_1samp(df_pivot.loc['OA', :]['two_way'], 0)
-    print(f'\tOA, congruency x module: {t_two_OA=:.2f}, {p_two_OA=:.4f}')
-    t_two_YA, p_two_YA = stats.ttest_1samp(df_pivot.loc['YA', :]['two_way'], 0)
-    print(f'\tYA, congruency x module: {t_two_YA=:.2f}, {p_two_YA=:.4f}')
-    print(f'Three way: {t_three=:.2f}, {p_three=:.4f}')
-
-    t_network_x_age, p_network_x_age = \
-        stats.ttest_ind(df_pivot.loc['OA', :]['network_dif'],
-                        df_pivot.loc['YA', :]['network_dif'])
-
-    supt = f'Three-way: p = {p_three:.2f},\n ' \
-           f'OA: Congruency x Direction: {p_two_OA:.3f},\n' \
-           f'Within: Congruency x Age: {p_wit:.2f}\n' \
-           f'Direction x age: {p_network_x_age:.2f}'
-    plt.suptitle(supt)
-    # plt.tight_layout()
-    plt.tight_layout(rect=(0, 0, 0.85, 1.0))
-
-    plt.show()
 
 def plot_four(df_agg):
     plot_params = {

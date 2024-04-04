@@ -14,7 +14,8 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                       atlas=None, title='', fp=None, ax=None,
                       t=False, no_avg=True, cbar_label='', vmin=None, vmax=None,
                       xlabel=None, ylabel=None, tile=.001,
-                      tick_low=None, tick_high=None, minimal=False):
+                      tick_low=None, tick_high=None, minimal=False,
+                      colorbar=True):
 
     if atlas is not None:
         ticks = atlas['ticks']
@@ -88,10 +89,11 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
     plt.title(title, fontsize=fontsize)
     plt.yticks(ticks, tick_labels, fontsize=fontsize)
     plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
-    cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,)
-    cbar.set_label(cbar_label, y=1.05, labelpad=-55, rotation=0,
-                   fontsize=fontsize)
-    cbar.ax.tick_params(labelsize=fontsize)
+    if colorbar:
+        cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,)
+        cbar.set_label(cbar_label, y=1.05, labelpad=-55, rotation=0,
+                       fontsize=fontsize)
+        cbar.ax.tick_params(labelsize=fontsize)
 
     if tick_low is not None or tick_high is not None:
         ticks = list(cbar.get_ticks())[1:-1]

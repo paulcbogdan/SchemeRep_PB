@@ -9,7 +9,7 @@ def plot_quadrant_conn():
     atlas = get_atlas(combine_regions=False)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=2, combine_regions=False)
+                              anat_ver=3, combine_regions=False)
 
     nroi = len(atlas['coords'])
     graph = np.full((nroi, nroi), np.nan)
@@ -20,7 +20,7 @@ def plot_quadrant_conn():
     # print(f'{p_v_ant=}')
     # quit()
     p_v_ant = np.array(p_v_ant)
-    p_v_ant = p_v_ant[~np.isin(p_v_ant, [78, 79])]
+    # p_v_ant = p_v_ant[~np.isin(p_v_ant, [78, 79])]
     # p_v_ant = []
     # p_v_ant = [68, 69, 76,  82, 83, 92, 93]
     print(p_v_ant)
@@ -39,7 +39,7 @@ def plot_quadrant_conn():
     # empty_graph[:, :] = 0
     # graph[:, :] = 0
 
-    rnd = np.random.uniform(0.8, 1.2, size=graph.shape)
+    rnd = np.random.uniform(0.65, 1.2, size=graph.shape)
     graph *= rnd
 
     i_lower = np.tril_indices_from(graph, -1)
@@ -51,23 +51,33 @@ def plot_quadrant_conn():
     coords = np.array(atlas['coords'])[p_all]
 
     vabs = 1.43
-    # fig = plt.figure(figsize=(3.5, 3.5))
-    # plotting.plot_connectome(
-    #     graph_tight,
-    #     coords,
-    #     edge_threshold=0.2,
-    #     edge_vmin=-vabs, edge_vmax=vabs,
-    #     # alpha=0.01,
-    #     # colorbar=True,
-    #     # edge_cmap='coolwarm',
-    #     edge_cmap='turbo',
-    #     node_size=5,
-    #     node_color='k',
-    #     edge_kwargs={'linewidth': 1., 'alpha': .8},
-    #     display_mode='x',
-    #     figure=fig
-    # )
+    fig = plt.figure(figsize=(3.5, 3.5))
+    plotting.plot_connectome(
+        graph_tight,
+        coords,
+        edge_threshold=0.2,
+        edge_vmin=-vabs, edge_vmax=vabs,
+        # alpha=0.01,
+        # colorbar=True,
+        # edge_cmap='coolwarm',
+        edge_cmap='turbo',
+        node_size=5,
+        node_color='k',
+        edge_kwargs={'linewidth': 1., 'alpha': .8},
+        display_mode='x',
+        figure=fig
+    )
+    fp_out = 'result_pics/other/vendor_drawing.png'
+    plt.savefig(fp_out, dpi=600)
+    plt.show()
+    quit()
+
+
+    # plotting.plot_markers(rois, coords_clean,
+    #                       colorbar=False, node_cmap='turbo')
     # plt.show()
+    #
+    # quit()
 
     rois = [0, 3, 24, 30, 31, 43, 51, 73, 76, 81, 99, 123, 142, 152, 173, 188,
             198, 202, 206, 207]

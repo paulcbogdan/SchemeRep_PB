@@ -230,7 +230,7 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
 
 
 def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
-                                  HCP=True, anat_version=2):
+                                  HCP=True, anat_version=3):
     # if HCP:
     #     # f = partial(load_HCP_act, N=N,
     #     #             RS=True, clean_confounds=True, LSS=False, LSA=False,
@@ -307,9 +307,14 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
 
     # corr = np.array(df[cols_order].corr())
     corr[corr > .99] = np.nan
-
+    # plt.imshow(corr, cmap='turbo', vmin=-0.15, vmax=0.15)
+    # plt.show()
+    # tick_labels = ['' for _ in range(len(ticks))]
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
-                      title=fp, no_avg=True, vmin=-0.15, vmax=0.15)
+                      title=None, no_avg=True, vmin=-0.15, vmax=0.15,
+                      minimal=True)
+    # quit()
+
 
     bool_ar = np.zeros(corr.shape)
     # new_corr = []
@@ -331,6 +336,8 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     # quit()
 
     # corr = np.array(df[cols_order].corr())
+
+
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
                       title=fp, no_avg=True, vmin=-0.15, vmax=0.15)
     # quit()

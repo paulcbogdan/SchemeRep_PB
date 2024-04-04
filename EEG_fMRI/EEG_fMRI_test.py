@@ -105,14 +105,19 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
 
     atlas = get_atlas(natview=True, combine_regions=combine_regions)
 
+
+    # print(key2idxs['ATL'])
+    # quit()
+
     ROI2idx = {ROI: [] for ROI in atlas['ROI_regions']}
     for i, region in enumerate(atlas['ROI_regions']):
         ROI2idx[region].append(i)
 
     if many_ROI:
-        key2idxs['MFG'] = ROI2idx['IFG'] # ROI2idx['SFG'] + ROI2idx['MFG'] +
+        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] #
         key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
         key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
+        key2idxs['ATL'] = ROI2idx['ATL']
 
     # print(ar_fMRI[key2idxs['MFG']].shape)
     # quit()
@@ -513,14 +518,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         return None, None
 
     num_TRs = fMRI_fluc.shape[-1]
-    # picks = ['Fz', 'Cz', 'Pz',
-    #          'F1', 'C1', 'P1',
-    #          'F2', 'C2', 'P2']
-    # picks = ['F1', 'Fz', 'F2',
-    #          'FC1', 'FCz', 'FC2',
-    #          'C1', 'Cz', 'C2',
-    #          'CP1', 'CPz', 'CP2',
-    #          'P1', 'Pz', 'P2']
 
     picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
              'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
@@ -536,7 +533,8 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                            kwargs={'sn': sn, 'sess': sess, 'num_TRs': num_TRs,
                                    'picks': picks, 'avg_before': avg_before,
                                    'high_gamma': high_gamma,
-                                   'super_slow': super_slow, 'avg_ref': avg_ref,
+                                   'super_slow': super_slow,
+                                   'avg_ref': avg_ref,
                                    'double_speed': double_speed},
                            easy_override=False, verbose=-1)
 
@@ -575,27 +573,17 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
 
     EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
-    # print(EEG_fluc.shape)
-    # quit()
-    # EEG_fluc = EEG_fluc ** 2
-    # plt.imshow(EEG_fluc.T, aspect='auto', origin='lower')
-    # plt.show()
-    # print(EEG_fluc.shape)
-    # quit()
 
-    # plt.plot(fMRI_fluc)
-    # plt.show()
-    # quit()
 
-    # EEG_fluc = EEG_fluc[5:-5]
-    # fMRI_fluc = fMRI_fluc[5:-5]
-
-    ranges = {'delta': (1, 4),
+    ranges = {'delta': (0.5, 4),
               'theta': (4, 8),
-              'alpha': (8, 14),
-              'beta': (14, 30),
-              'gamma': (30, 50),
+              'alpha': (8, 13),
+              'beta': (13, 30),
+              'gamma': (30, 50.5),
               }
+    if double_speed:
+        for key, tup in ranges.items():
+            ranges[key] = (int(tup[0]*2), int(tup[1]*2))
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
@@ -603,7 +591,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
     else:
         ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
-    # ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 11)})
 
     name2fluc = {}
     name2r = {}
@@ -612,6 +599,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     df['sess'] = sess
     for name, rng in ranges.items():
         idxs = np.arange(*rng)
+        # print(f'{name} | {len(idxs)=}')
+        # print(f'{idxs/2=}')
+
+        # print(idxs)
         idxs -= 1
         range_fluc = EEG_fluc[:, idxs].mean(axis=1)
         df[name] = range_fluc
@@ -630,6 +621,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         r = np.arctanh(r)
         print(f'{name}: {r=:.3f}, {p=:.3f}')
         name2r[name] = r
+    # quit()
     return name2r, df#, psd
 
 
@@ -737,8 +729,10 @@ if __name__ == '__main__':
                 N = len(l)
                 if N > 5:
                     M = np.mean(l)
-                    SE = np.std(l) / np.sqrt(N)
+                    SD = np.std(l, ddof=1)
+                    SE = SD / np.sqrt(N)
                     t = M / SE
+                    d = M / SD
                     p = stats.t.sf(np.abs(t), len(l) - 1)
                     M_low = M - 1.96 * SE
                     M_high = M + 1.96 * SE
@@ -749,7 +743,7 @@ if __name__ == '__main__':
                     p_wilcox = res.pvalue
 
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
-                          f'({t=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')
+                          f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')
             # continue
             if 'r50' not in NAME2L:
                 continue

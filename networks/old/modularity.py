@@ -13,14 +13,29 @@ from utils import pickle_wrap
 import matplotlib.pyplot as plt
 
 def get_binary_matrix(matrix, threshold=.9):
-    if threshold < 1:
-        threshold = np.nanquantile(matrix, threshold)
-    print(f'Binary threshold: {threshold=:.3f}')
+    # if threshold < 1:
+    #     threshold = np.nanquantile(matrix, threshold)
+    # print(f'Binary threshold: {threshold=:.3f}')
+    # matrix_binary = matrix.copy()
+    # matrix_mask = matrix > threshold
+    # matrix_binary[matrix_binary < threshold] = 0
+    # matrix_binary[matrix_binary >= threshold] = 1
+    # matrix[matrix < threshold] = 0
+    #
+    matrix_mask = np.zeros(matrix.shape)
+    # new_corr = []
+    for i in range(matrix.shape[0]):
+        row = matrix[i]
+        median = np.nanquantile(row, threshold)
+        matrix_mask[i, row > median - .0001] += 1
+        matrix_mask[row > median - .0001, i] += 1
+    matrix_mask[matrix_mask > 1.5] = 1
     matrix_binary = matrix.copy()
-    matrix_mask = matrix > threshold
-    matrix_binary[matrix_binary < threshold] = 0
-    matrix_binary[matrix_binary >= threshold] = 1
-    matrix[matrix < threshold] = 0
+    matrix_binary[matrix_mask < 1] = 0
+    # corr = bool_ar
+
+
+
     return matrix_binary, matrix_mask
 
 def get_modules(matrix_thresh):

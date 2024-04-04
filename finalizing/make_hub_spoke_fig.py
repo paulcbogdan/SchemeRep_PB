@@ -117,7 +117,8 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
     # 142 = IPL
     # 188 = EVC
 
-    for i in [30, 76, 142, 202]:
+    # for i in [30, 76, 142, 202]:
+    for i in [78, 79]:
         all_black = False
         fig = plt.figure(figsize=(3.5, 3.5))
 
