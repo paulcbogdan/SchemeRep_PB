@@ -300,7 +300,7 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
 
     corr = partial_corr_df(df.copy(), cols_order, #['dd', 'vv', 'dv_ant', 'dv_pos'],
                            # cov=['pd_no', 'ad_no', 'av_no', 'pv_no',
-                           #      'FC_all'])
+                           #      ])
                            cov=['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
                                 'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',
                                 ])
@@ -308,28 +308,38 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     # corr = np.array(df[cols_order].corr())
     corr[corr > .99] = np.nan
 
+    plot_connectivity(corr, ticks, tick_labels, tick_lows,
+                      title=fp, no_avg=True, vmin=-0.15, vmax=0.15)
+
+    bool_ar = np.zeros(corr.shape)
     # new_corr = []
-    # for i in range(corr.shape[0]):
-    #     median = np.nanmedian(corr)
-    #     row = corr[i]
-    #     row[row > median] = 1
-    #     row[row < median] = 0
-    #     new_corr.append(row)
-    # corr = np.array(new_corr)
-    # print(corr)
+    for i in range(corr.shape[0]):
+        row = corr[i]
+        median = np.nanmedian(row)
+        bool_ar[i, row > median - .0001] += 1
+        bool_ar[row > median - .0001, i] += 1
+    bool_ar[bool_ar > 1.5] = 1
+    corr = bool_ar
+    # print(bool_ar)
+    # quit()
+    # quit()
+
+    # tril = np.tril_indices_from(corr, -1)
+    # corr[tril[0], tril[1]] =
 
 
     # quit()
 
     # corr = np.array(df[cols_order].corr())
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
-                      title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
+                      title=fp, no_avg=True, vmin=-0.15, vmax=0.15)
+    # quit()
     # median = np.nanmedian(corr)
-    median = 0
+    # median = 0
     print(f'{median=}')
 
-    corr[corr > median + .0001] = 1
-    corr[corr < median] = 0
+    # corr[corr > median + .0001] = 1
+    # corr[corr < median] = 0
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
                       title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
     # quit()
