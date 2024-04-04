@@ -110,7 +110,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         ROI2idx[region].append(i)
 
     if many_ROI:
-        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] # ROI2idx['SFG'] +
+        key2idxs['MFG'] = ROI2idx['IFG'] # ROI2idx['SFG'] + ROI2idx['MFG'] +
         key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
         key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
 
@@ -494,8 +494,8 @@ def get_hrf():
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
-                     abs_analysis=True,
-                     all_conn=False
+                     abs_analysis=True, all_conn=False,
+                     double_speed=True,
                      ):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
@@ -532,17 +532,13 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     # picks = ['POz', 'P1', 'Pz', 'P2', 'P3', 'P4',]
     # picks = ['C1', 'Cz', 'C2', 'C3', 'C4']
 
-    EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs={'sn': sn,
-                                                     'sess': sess,
-                                                     'num_TRs': num_TRs,
-                                                     'picks': picks,
-                                                     'avg_before': avg_before,
-                                                     'high_gamma': high_gamma,
-                                                     'super_slow': super_slow,
-                                                     'avg_ref': avg_ref,
-                                                     'double_speed': False},
-                           easy_override=True, verbose=-1)
-    # (ch, freq, TR)
+    EEG_fluc = pickle_wrap(get_EEG_score_sn,
+                           kwargs={'sn': sn, 'sess': sess, 'num_TRs': num_TRs,
+                                   'picks': picks, 'avg_before': avg_before,
+                                   'high_gamma': high_gamma,
+                                   'super_slow': super_slow, 'avg_ref': avg_ref,
+                                   'double_speed': double_speed},
+                           easy_override=False, verbose=-1)
 
     if EEG_fluc is None:
         return None, None
@@ -603,7 +599,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
-    ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
+    if double_speed:
+        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
+    else:
+        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
     # ranges.update({f'r{hz}': (hz, hz + 1) for hz in range(1, 11)})
 
     name2fluc = {}
@@ -696,7 +695,7 @@ if __name__ == '__main__':
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
-    SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
+    # SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
 
     # SESSES += SESS_OTHER
     # SESSES += SESS_MONKEY

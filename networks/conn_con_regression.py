@@ -85,7 +85,7 @@ def combine_bl(sn_inc_conn):
 
 def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
                    comb_bl=True, semi_combine=True, only_cortical=True,
-                   perm=False, by_run=False, kernel='rbf', subj_std=True,
+                   perm=False, by_run=False, kernel='linear', subj_std=True,
                    strict_perm=True):
     kwargs = {'fp': fp,
               'split': False,

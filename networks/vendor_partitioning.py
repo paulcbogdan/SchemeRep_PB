@@ -245,7 +245,7 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
         p_v_ant_labels = ['ATL', ]
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     elif anat_ver == 2:
-        p_d_ant_labels = ['MFG']
+        p_d_ant_labels = ['IFG']
         p_d_pos_labels = ['IPL']
         p_v_ant_labels = ['ATL']
         p_v_pos_labels = ['LOC', 'sOcG', 'OcG']

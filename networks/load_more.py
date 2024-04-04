@@ -60,7 +60,7 @@ def load_a(fp='pb_lss', norm_std=False, f=None,):
         f = partial(load_resting_data, compcor=True, light=True, clean=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=True,
-                                                     f=f, YA_only=True)
+                                                     f=f, YA_only=False)
     elif fp == 'rs_medium':
         f = partial(load_resting_data, medium=True, clean=True)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,

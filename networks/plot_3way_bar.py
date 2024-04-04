@@ -26,9 +26,13 @@ from connsearch import print_list_stats
 from warnings import filterwarnings
 filterwarnings('ignore', category=SettingWithCopyWarning,)
 
+np.float = float
+np.bool = bool
+np.int = int
+
 
 def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
-                        anat_ver=2):
+                        anat_ver=3):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',

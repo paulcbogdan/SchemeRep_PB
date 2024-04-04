@@ -112,9 +112,13 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
     # 77 ATL
     i = 77
 
-    # for i in [16, 142, 198, 77]:
-    for i in [83]:
-        all_black = True
+    # 30 = IFG
+    # 76 = ATL
+    # 142 = IPL
+    # 188 = EVC
+
+    for i in [30, 76, 142, 202]:
+        all_black = False
         fig = plt.figure(figsize=(3.5, 3.5))
 
         z_graph_ = z_graph.copy()
@@ -140,13 +144,15 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
             edge_vmin=-vabs, edge_vmax=vabs,
             colorbar=False,
             edge_cmap='bone_r' if all_black else 'turbo',
-            node_size=1 if all_black else 5,
+            node_size=1 if all_black else 1.5,
             node_color='k',
             edge_kwargs=edge_kw,
             display_mode='x',
             figure=fig,
             # title=atlas['ROIs'][i] + f' {atlas["coords"][i]}',
         )
+        fp_out = fr'result_pics/other/hub_spoke/{atlas["ROIs"][i]}.png'
+        plt.savefig(fp_out, dpi=300)
         plt.show()
 
 

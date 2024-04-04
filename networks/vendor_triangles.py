@@ -242,8 +242,9 @@ def plot_massive_hemi_corr_matrix(fp='rs_light', anat=True, scrub=False,
     # else:
     if 'rs_' in fp:
         df, _ = pickle_wrap(get_df_networks, kwargs={'fp': fp,
-                                                     'anat_version': 2,
-                                                     'add_hemi': 2})
+                                                     'anat_ver': 2,
+                                                     'add_hemi': 2},
+                            easy_override=True)
     else:
         df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp,
                                                                  'anat': anat,
@@ -417,18 +418,10 @@ def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
     print(f'{fp=}')
 
 if __name__ == '__main__':
-    # penguins = sns.load_dataset("penguins")
-    # sns.pairplot(penguins)
-    # plt.show()
-    # quit()
-
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
-    # plot_2x2_triangle()
-    # lmer_triangle()
-    # plot_massive_hemi_corr_matrix()
-    # quit()
-    lmer_triangle()
+
+    plot_massive_hemi_corr_matrix()
     # plot_meta_corr_matrix()

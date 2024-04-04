@@ -180,9 +180,9 @@ def load_HCP_act(RS=True, N=50, lr_only=True, LSS=False,
 
     return sn_roi_act, sns
 
-def get_HCP_df(N=300):
+def get_HCP_df(N=20):
     f = partial(load_HCP_act, N=N,
-                RS=False, clean_confounds=True,
+                RS=True, clean_confounds=True,
                 compcor=True, GSR=False)
 
     # sn_roi_act, sns, conn_trials = load_act_conn(True, f=f)
