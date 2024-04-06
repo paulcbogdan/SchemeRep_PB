@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 
 from organize_bhv import get_trial_info
@@ -75,7 +77,7 @@ def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
     return score_ar, np.nan, IRAFs_ar
 
 
-def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
+def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
            combine_regions=False, stdize_by_run=False):
     BOLD = conn == 'BOLD'
@@ -89,6 +91,10 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
             replace('3', '').replace('4', '').
             replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
+
+    dir_out = fr'cache/conn_RSA/ars/ERS'
+    dir_out = fr'{dir_out}/{fp0}_{fp1}_{conn}_{trial_similarity}_{stdize_by_run}'
+    Path(dir_out).mkdir(parents=True, exist_ok=True)
 
     org_by_region = (not BOLD) or (networks)
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
@@ -125,11 +131,10 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
 
         ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
                                    trial_similarity=trial_similarity)
-        dir_out = fr'connRSA/ars/ERS'
-        fn_out = (f'{sn}_{ROI}_{fp0}_{fp1}_{conn}_{trial_similarity}_'
-                  f'{stdize_by_run}.npy')
-        with open(f'{dir_out}/{fn_out}', 'wb') as f:
-            print(f'Saving: {fn_out=}\n\t({dir_out})')
+
+        fn_matrix = f'{sn}_{ROI}.npy'
+        fp_matrix = f'{dir_out}/{fn_matrix}'
+        with open(fp_matrix, 'wb') as f:
             np.save(f, ERS_ar)
 
         ERS_sames = np.diag(ERS_ar)

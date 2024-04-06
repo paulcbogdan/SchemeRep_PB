@@ -1,5 +1,7 @@
 import os
 
+from colorama import Fore
+
 os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
 
 import warnings
@@ -7,17 +9,9 @@ import warnings
 import numpy as np
 import pandas as pd
 from scipy import stats as stats
-from tqdm import tqdm
 
-from atlas_utils import get_atlas
 from conn_utils import get_BNA_ROIs
-from old.plot_gen import plot_connectivity, my_plot_surf
 
-from utils import get_default_fp, pickle_wrap, make_title_str
-
-
-def print_settings(settings):
-    print(f'{settings=}')
 
 
 def report_results(results, do_lmer=False, ISPC=False):
@@ -119,170 +113,130 @@ def report_results(results, do_lmer=False, ISPC=False):
         print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}, '
               f'{t_by_fp_str} {lmer_result_str}')
 
-
-
-
-
     return ts, ts_by_fp
 
-def get_lmer_matrix(results):
-    print(f'{results["scores_by_ROI"].shape=}')
-    n_regions = results['scores_by_ROI'].shape[2]
-    print(f'{n_regions=}')
-    lmer_ar = np.full((n_regions, n_regions), np.nan)
-    for i in tqdm(range(n_regions), desc='running lmers'):
-        for j in range(n_regions):
-            if i > j:
-                continue
-            else:
-                pair_scores = results['scores_by_ROI'][:, :, i, j, :]
-                # print(f'{i} | {j} ')
-                pair_scores_raveled = pair_scores.ravel()
-                # print(f'{pair_scores_raveled.shape=}')
-                df = pd.DataFrame({'IRAF': pair_scores_raveled})
-                # print(f'{pair_scores.shape=}')
-                idxs = np.ndindex(pair_scores.shape)
-                idxs = np.array(list(idxs))
 
-                df[['sn', 'fp', 'stim']] = idxs
-                for key in ['sn', 'fp', 'stim']:
-                    df[key] = df[key].astype(str)
-                # print(df)
-                df.dropna(inplace=True)
-                if len(df) < 10000:
-                    print(f'{i}, {j} | many na drops {len(df)=}')
-                    lmer_ar[i, j] = np.nan
-                    lmer_ar[j, i] = np.nan
-                    continue
+def lmer_stats(df, ROI_cols):
+    from pymer4.models import Lmer
+    # conn_sess_ERS = ['2', ] # '4', '5'
+    # df = df[df['fp_idx'].isin(conn_sess_ERS)]
+    # df = df[df['fp_idx'].isin(['1'])]
+    #
+    # n_sn = df['sn'].nunique()
+    #
+    # df_M = df.groupby('sn')['conn_score'].mean()
+    # M_score = df_M.mean()
+    # SD_score = df_M.std()
+    # # print(np.sum(~np.isnan(df_M)))
+    # # quit()
+    # N_score = np.sum(~np.isnan(df_M))
+    # SE_score = SD_score / np.sqrt(N_score)
+    # t_score = M_score / SE_score
+    #
+    # print(f'Single FP: {M_score=:.3f}, {SD_score=:.3f}, {SE_score=:.3f}, '
+    #       f'{t_score=:.3f}')
+    #
+    # cols = ['ROI', 'sn', 'conn_score', 'hit_hit', 'inc', 'vis_hit', 'con_hit',
+    #         'inc_str', 'per_inc_str', 'fp_idx', 'BOLD_score'] + \
+    #          ROI_cols
+    # df = df[cols]
+    # df.dropna(inplace=True)
+    # df['vis_hit'] = df['vis_hit'].astype(int)
+    # df['con_hit'] = df['con_hit'].astype(int)
+    #
+    #
+    #
+    # if len(df['fp_idx'].unique()) > 1:
+    #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn) + (1|fp_idx)'
+    #     print('tteet')
+    # else:
+    #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn)'
+    #     print('toast')
+    # # quit()
+    #
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
+    #
+    # print('-' * 120)
+    # formula = ('conn_score ~ 1 + BOLD_score + ' +
+    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
+    #
+    # formula = ('BOLD_score ~ 1 + ' +
+    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=False, summary=False)
+    # print(model.summary())
 
-                # print(df)
-                from pymer4.models import Lmer
-                # st = time()
-                formula = 'IRAF ~ 1 + (1|sn) + (1|fp)'
-                model = Lmer(formula, data=df)
-                # model.fit()
-                # print(model.summary())
-
-                model.fit(REML=True, verbose=False, summary=False)
-                summary = model.coefs
-                lmer_t = summary['T-stat'].loc['(Intercept)']
-                lmer_ar[i, j] = lmer_t
-                lmer_ar[j, i] = lmer_t
-    return lmer_ar
-
-def visualize_region_matrix(results, plot_lmer=False):
-    M_all = np.nanmean(results['scores'], axis=0)
-    SD_all = np.nanstd(results['scores'], axis=0)
-    N_all = np.sum(~np.isnan(results['scores']), axis=0)
-    N = np.max(N_all)
-    SE_all = SD_all / np.sqrt(N_all)
-    t_all = M_all / SE_all
-
-    # ticks = results['ticks']
-    # tick_labels = results['tick_labels']
-    # tick_lows = results['tick_lows']
-
-    # print(f'{ticks=}')
-    # print(f'{tick_lows=}')
-
-    conn_str = f'conn={results["settings"]["conn"]}'
-    second_order_str = f'second_order={results["settings"]["second_order"]}'
-    trial_similarity_str = f'trial_similarity={results["settings"]["trial_similarity"]}'
-    analysis_str = f'RSA={results["settings"]["RSA"]}, ' \
-                   f'arg={results["settings"]["semantic"]}'
-    title_str = f'n = {N}, {analysis_str}, \n' \
-                f'{conn_str}, {second_order_str}, {trial_similarity_str}'
-
-    plot_connectivity(t_all, results['ticks'], results['tick_labels'], results['tick_lows'],
-                      title=f't-test: {title_str}', no_avg=True, cbar_label='t-value', vmin=-4, vmax=4)
-
-    if N == 24 or N >= 30:
-        results['scores_by_ROI'] = np.array(results['scores_by_ROI'])
-        scores_trialwise = results['scores_by_ROI']
-        for fp in range(scores_trialwise.shape[1]):
-            scores_fp = np.mean(scores_trialwise[:, fp, :, :, :],
-                                axis=-1)
-            M_scores_fp = np.nanmean(scores_fp, axis=0)
-            SD_scores_fp = np.nanstd(scores_fp, axis=0)
-            N_scores_fp = np.sum(~np.isnan(scores_fp), axis=0)
-            SE_scores_fp = SD_scores_fp / np.sqrt(N_scores_fp)
-            t_scores_fp = M_scores_fp / SE_scores_fp
-            plot_connectivity(t_scores_fp, results['ticks'], results['tick_labels'], results['tick_lows'],
-                              title=f't-test (fp={fp}): {title_str}', no_avg=True, cbar_label='t-value', vmin=-4,
-                              vmax=4)
-        # quit()
-
-    if not plot_lmer:
-        return
-
-    settings = results['settings']
-    lmer_fp = get_default_fp(None, settings, get_lmer_matrix,
-                             r'../cache/lmer_ar', False)
-
-    lmer_ar = pickle_wrap(lambda: get_lmer_matrix(results), lmer_fp)
-
-    plot_connectivity(lmer_ar, results['ticks'], results['tick_labels'], results['tick_lows'],
-                      title=f'lmer: {title_str}', no_avg=True, cbar_label='t-value', vmin=-4, vmax=4)
-
-def visualize_ROIs(results, do_lmer=False):
-    from connsearch.report import plot_ROI_scores
-    if 'atlas' in results['settings'] and results['settings']['atlas'] == 'schaefer':
-        atlas = get_atlas(schaefer=True)
-    else:
-        atlas = get_atlas(combine_regions=results['settings']['combine_regions'],
-                          combine_bilateral=False,
-                          split=results['settings']['split'], split_code='xyz')
-    # print(atlas['ROIs'])
-    # quit()
-    ROI2coord = atlas['ROI2coord']
-    # print(ROI2coord)
-    # print(f'{len(ROI2coord)=}')
-    # print(list(atlas['ROI2coord']))
-    # quit()
-    results['keys'] = [ROI.replace('LH_', 'L_').replace('RH_', 'R_')
-                       for ROI in results['keys']]
-    # print(list(ROI2coord))
-    # print(results['keys'])
-    results_coords = [ROI2coord[ROI] for ROI in results['keys']]
-    ts, ts_by_fp = report_results(results, do_lmer=do_lmer)
-    print(f'{do_lmer=}')
+    # df['BOLD_score'] = df['conn_score']
+    cols_keep = ['ROI_M', 'BOLD_score', 'conn_score', 'sn',
+                 'fp_idx', 'hit_hit', 'con_hit', 'vis_hit']
 
 
 
-    # print(f'{len(atlas["ROIs"])=}')
-    # quit()
+    # plt.hist(df['ROI_M'])
 
-    ROI2atlas_idx = {ROI: i for i, ROI in enumerate(atlas['ROIs'])}
-    scores = np.full((len(atlas['ROIs']),), np.nan)
-    for i, ROI in enumerate(results['keys']):
-        scores[ROI2atlas_idx[ROI]] = ts[i]
-    if results['settings']['RSA']:
-        title_short = make_title_str('', 'obj', 1, False,
-                                     results['settings']['semantic'],
-                                     short=True)
-    else:
-        title_short = 'Object IPS. YA.'
-    my_plot_surf(scores, atlas, title_short)
+
+
+    # df['ROI_M'] = df[ROI_cols].apply(rsum, axis=1)
+
+    df['ROI_M'] = df[ROI_cols].mean(axis=1)
+
+
+
+
+
+    mem_cols = ['hit_hit', 'con_hit', 'vis_hit']
+    df[mem_cols] = df[mem_cols].astype(int)
+
+    formula = ('BOLD_score ~ 1 + ROI_M + (1 + ROI_M |sn)')# + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+
+    formula = ('conn_score ~ 1 + BOLD_score + ROI_M + '
+               '(1 + BOLD_score + ROI_M | sn)')# + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df)
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
     quit()
 
-    # ROI2score = {}
-    # for i, ROI in enumerate(results['keys']):
-    #     ROI2score[ROI] = ts[i]
-    # scores_w_NaNs = []
-    # print(f'{len(ROI2score)=}')
-    # for ROI in atlas['ROIs']:
-    #     if ROI in ROI2score:
-    #         scores_w_NaNs.append(ROI2score[ROI])
-    #     else:
-    #         scores_w_NaNs.append(np.nan)
-    # print(f'{len(scores_w_NaNs)=}')
-    # print(ts)
-    # quit()
-    plot_ROI_scores(ts, results_coords, fp_out='trash.png', show=True,
-                    vmin=0, vmax=2, title='all')
+    formula = ('hit_hit ~ 1 + BOLD_score*fp_idx +  (1 |sn)')# + (1|fp_idx)' ROI_M*fp_idx  +
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df, family='binomial')
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
 
-    for k in range(ts_by_fp.shape[0]):
-        plot_ROI_scores(ts_by_fp[k, :], results_coords, fp_out='trash.png',
-                        show=True, vmin=0, vmax=3, title=f'fp: {k}')
+    formula = ('con_hit ~ 1 + BOLD_score*fp_idx + (1 |sn)')# + (1|fp_idx)' + ROI_M*fp_idx
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df, family='binomial')
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
 
-    quit()
+    formula = ('vis_hit ~ 1 + BOLD_score*fp_idx + (1 |sn)')# + (1|fp_idx)'
+    print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    model = Lmer(formula, data=df, family='binomial')
+    model.fit(REML=True, verbose=False, summary=False)
+    print(model.summary())
+
+    # print('-' * 120)
+    # formula = 'conn_score ~ 1 + hit_hit + (1|sn) + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=True, summary=True)
+    # print(model.summary())
+    #
+    # print('-' * 120)
+    # formula = 'conn_score ~ 1 + con_hit + (1|sn) + (1|fp_idx)'
+    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
+    # model = Lmer(formula, data=df)
+    # model.fit(REML=True, verbose=True, summary=True)
+    # print(model.summary())

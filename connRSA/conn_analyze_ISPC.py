@@ -1,7 +1,7 @@
 import os
 
 from connRSA.conn_ISPC import run_settings_ISPC
-from connRSA.conn_analyze_IRAFs import plot_pie_chart
+from connRSA.conn_plot import plot_pie_chart
 from corr_RSA_x_vendor import get_plain_df_sn
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
