@@ -224,9 +224,6 @@ def make_title_str(pre_str, key, age, DNN_layer, semantic,
         fp_str = ''
     stim_str = get_RSA_name(key)
 
-    # print(f'{fp=}')
-    # print(f'{fp_str=}')
-    # quit()
 
     out_str = f'{pre_str} {fp_str}, {stim_str} {rsa_str}.\n{age_str}. {inc_str}'
     return out_str
@@ -281,9 +278,7 @@ def prune_to_only_hits(d, key, misses=False):
     for ROI in d['IRAFs_ROI'][key]:
         if d['IRAFs_ROI'][key][ROI].shape[0] != 29:
             mask = np.full(d['IRAFs_ROI'][key][ROI].shape, False)
-            # print('bad')
         else:
-            # print('good')
             if misses:
                 mask = ~d['bhv']['hit_bool']
             else:
@@ -322,14 +317,11 @@ def obj2str(val):
         # val_d = ''
         for key2 in sorted(val.keys()):
             kwargs_str += obj2str(val[key2])
-            # val_d += f'{val[key2]}_'
-        # kwargs_str += f'{val_d}_'
+
     elif isinstance(val, list):
-        # val_l = ''
         for val_ in val:
             kwargs_str += obj2str(val_)
-            # val_l += f'{val_}_'
-        # kwargs_str += f'{val_l}_'
+
     else:
         kwargs_str += f'{val}_'
     if len(kwargs_str) > 20:

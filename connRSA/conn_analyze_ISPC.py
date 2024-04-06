@@ -1,5 +1,7 @@
 import os
 
+from matplotlib import pyplot as plt
+
 from connRSA.conn_ISPC import run_settings_ISPC
 from connRSA.conn_plot import plot_pie_chart
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
@@ -30,13 +32,29 @@ def pie_charts_ISPC(df, title):
     z = res.tvalues['Intercept']
     print(f'{conn_itr0=:.4f} ({p=:.3f}, {z=:.3f})')
 
+    # df_ = df.copy()
+    # df['BOLD_score'] = stats.zscore(df['BOLD_score'])
+    # df['BOLD_score'] -= 10
     mod = smf.ols(formula='conn_score ~ 1 + BOLD_score', data=df)
     res = mod.fit()
+    # print(res.summary())
     conn_itr_r = res.params['Intercept']
+    # slope_bold = res.params['BOLD_score']
     p = res.pvalues['Intercept']
     z = res.tvalues['Intercept']
     print(f'\tRegress out BOLD: {conn_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
     print('-')
+
+    # df['conn_score'] = df['conn_score'] - slope_bold * df['BOLD_score']
+    # mod = smf.ols(formula='conn_score ~ 1', data=df)
+    # res = mod.fit()
+    # print(res.summary())
+    # conn_itr_r = res.params['Intercept']
+    # p = res.pvalues['Intercept']
+    # z = res.tvalues['Intercept']
+    # print(f'\tRegress out BOLD 2: {conn_itr_r=:.4f} ({p=:.3f}, {z=:.3f})')
+    # print('-')
+    # quit()
 
     mod = smf.ols(formula='BOLD_score ~ 1', data=df)
     res = mod.fit()
@@ -144,8 +162,8 @@ def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
     results_bold_sep = pickle_wrap(run_settings_ISPC, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
-    report_results(results_bold_sep, do_lmer=True, ISPC=True)
-    quit()
+    # report_results(results_bold_sep, do_lmer=True, ISPC=True)
+    # quit()
 
 
     results_bold_sep = {}
@@ -157,13 +175,16 @@ def run_lmer_PFC_ISPC():
     df_bhv = df_bhv.groupby('obj')['hit_hit'].mean()
     mem_scores = list(df_bhv.values) * 4
 
-    target_ROI = 'PFC_ACC'
+    # else_cortical:
+    # numpy.core._exceptions._ArrayMemoryError: Unable to allocate 49.8 GiB
+    #   for an array with shape (56, 114, 114, 9180) and data type float64
+    target_ROI = 'Occipital'
 
     ROI2network = {'Occipital': (1, 0), 'Ventral': (1, 1), 'Dorsal': (1, 1),
                    'else_cortical': (2, 1),
                    'PFC': (16, 0),
                    'PFC_ACC': (14, 1), 'FP': (14, 2),
-                   'perceptual': 17,
+                   'perceptual': (17, 0),
                    'full_frontal': 11, 'full_frontal_CG': 11,
                    'MTL': (9, 0)}
 
@@ -176,6 +197,11 @@ def run_lmer_PFC_ISPC():
 
     idx = ROI2network[target_ROI][1]
     results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, idx, :]
+    # plt.hist(results_conn['scores_by_ROI'].flatten())
+    # plt.show()
+    # quit()
+    # print(results_conn['scores_by_ROI'][:, :].shape)
+    # quit()
     results_bold_comb['scores_by_ROI'] \
         = results_bold_comb['scores_by_ROI'][:, idx, :]
 

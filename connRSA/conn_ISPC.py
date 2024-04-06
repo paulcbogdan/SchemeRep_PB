@@ -35,8 +35,6 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 
 	ROI2vecs_all_sn = defaultdict(list)
 	org_by_region = (not BOLD) or (networks)
-	# print(len(sns))
-	# quit()
 
 	for sn in sns:
 		df_sn = get_trial_info(sn, verbose=-1)
@@ -149,6 +147,10 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 			with open(fp_focus, 'wb') as f:
 				np.save(f, ISPC_ar[i])
 		num_nans = np.sum(np.isnan(ISPC_ar))
+		if num_nans > 0:
+			warnings.warn(f'ISPC_ar has nans (!!): {num_nans=}')
+			score_by_stim.append(np.full(ROI_vecs.shape[1], np.nan))
+			continue
 		assert num_nans == 0, f'ISPC_ar has nans: {num_nans=}'
 
 		n_stim = ROI_vecs.shape[1]
@@ -158,14 +160,10 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 			stim_else = ISPC_ar[:, stim_i, :] # (57, 114)
 			stim_else = np.sum(stim_else, axis=-1) - stim_same
 			stim_else /= n_stim - 1
-			# print(stim_same)
-			# print(stim_else)
-			# quit()
 			stim_scores = stim_same - stim_else # (57, )
 			ROI_scores.append(np.mean(stim_scores))
 		score_by_stim.append(ROI_scores)
 
-		# print(stim_same)
 
 		ROI_M = np.mean(ROI_scores)
 		ROI_SD = np.std(ROI_scores)
