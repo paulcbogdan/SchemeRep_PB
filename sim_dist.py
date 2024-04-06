@@ -1,14 +1,11 @@
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 
-from analyze_rs import get_rs_vendor_df
-from fluctuations import get_df_networks, partial_corr_df
+from old_Apr6.fluctuations import get_df_networks, partial_corr_df
 from utils import pickle_wrap
 import os
 import pandas as pd
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
-from scipy.spatial import distance
 
 
 def sim_second_order_corr(r=-.5):

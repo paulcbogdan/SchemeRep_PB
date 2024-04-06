@@ -2,7 +2,7 @@ import os
 
 from ttest_mat import get_stats_graphs
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir('/')
 
 from scipy import stats
 

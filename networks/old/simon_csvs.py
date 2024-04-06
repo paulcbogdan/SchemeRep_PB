@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from atlas_utils import get_atlas
-from ttest_mat import get_stats_graphs
+from old_Apr6.ttest_mat import get_stats_graphs
 from old.networks import load_FC_for_Lifu
 from utils import pickle_wrap, run_two_sample_on_2D
 import numpy as np

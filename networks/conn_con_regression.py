@@ -9,7 +9,7 @@ from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
 from org_sns import get_sns
-from ttest_mat import get_stats_graphs
+from old_Apr6.ttest_mat import get_stats_graphs
 
 
 from scipy import stats
@@ -286,7 +286,6 @@ def perm_conn_clf():
     pass
 
 def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
-    from scipy.stats import f
     from hotelling.stats import hotelling_t2
 
     if kernel == 'hotel':
@@ -318,8 +317,7 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 
     else:
         from sklearn.svm import SVC
-        from sklearn.model_selection import (StratifiedGroupKFold, GroupKFold,
-                                             cross_val_score)
+        from sklearn.model_selection import (StratifiedGroupKFold, cross_val_score)
         if groupkfold:
             Y = df['inc']
             X = df[cols]

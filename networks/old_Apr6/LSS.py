@@ -2,7 +2,7 @@ import os
 
 from nilearn.plotting import plot_design_matrix
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 from collections import defaultdict
 
 import numpy as np

@@ -2,27 +2,17 @@ import os
 
 from connRSA.conn_ISPC import run_settings_ISPC
 from connRSA.conn_plot import plot_pie_chart
-from corr_RSA_x_vendor import get_plain_df_sn
+from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-from collections import defaultdict
-
-from conn_utils import get_BNA_ROIs
-from organize_bhv import get_trial_info
-from single_trial_conn import run_settings
 from conn_report import report_results
-from old.networks import prep_networks
 from utils import pickle_wrap
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 
 import scipy.stats as stats
-from colorama import Fore
 import statsmodels.formula.api as smf
-from pprint import pprint
-import matplotlib.pyplot as plt
 
 
 def pie_charts_ISPC(df, title):

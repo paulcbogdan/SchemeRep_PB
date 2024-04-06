@@ -2,7 +2,7 @@ from connsearch import print_list_stats
 
 from atlas_utils import get_atlas
 from network_clf import generic_prep
-from ttest_mat import get_stats_graphs
+from old_Apr6.ttest_mat import get_stats_graphs
 from networks.old.network_funcs import load_FC_for_Lifu
 from utils import stdize, pickle_wrap
 import numpy as np

@@ -10,7 +10,7 @@ from atlas_utils import get_atlas
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from vendor_lmers import get_module_trialwise_z
+from old_Apr6.vendor_lmers import get_module_trialwise_z
 from load_more import get_module_cross_trialwise_z, load_act_conn
 from vendor_partitioning import get_vendor_partitions
 

@@ -4,13 +4,12 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy import stats as stats
 
-from emotemporal_bar import get_stars
-from fluctuations import get_df_networks, partial_corr_df
+from old_Apr6.fluctuations import get_df_networks, partial_corr_df
 # from atlas_utils import get_atlas
 from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from vendor_lmers import get_vendor_df, get_hemi_cross_vendor_df
+from old_Apr6.vendor_lmers import get_vendor_df, get_hemi_cross_vendor_df
 from load_more import get_hemi_vendor_df
 
 # filter PerformanceWarning

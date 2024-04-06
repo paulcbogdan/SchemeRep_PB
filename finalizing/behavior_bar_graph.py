@@ -4,8 +4,7 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 import pandas as pd
 
-from corr_RSA_x_vendor import get_plain_df_sn
-import seaborn as sns
+from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 import matplotlib.pyplot as plt
 import numpy as np
 

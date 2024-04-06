@@ -1,8 +1,6 @@
 
 import os
 
-from old.plot_gen import plot_connectivity
-
 os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 from pathlib import Path
@@ -12,11 +10,11 @@ from copy import copy
 import numpy as np
 
 from atlas_utils import get_atlas
-from ttest_mat import get_stats_graphs
+from old_Apr6.ttest_mat import get_stats_graphs
 from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap, stdize
-import matplotlib.pyplot as plt
+
 
 def do_regression():
     pass

@@ -9,7 +9,7 @@ from nilearn.image import high_variance_confounds
 from scipy import stats as stats
 from tqdm import tqdm
 
-from LSS import get_LSS_img
+from old_Apr6.LSS import get_LSS_img
 from atlas_utils import get_atlas
 from old.modularity import get_partition_cross
 from old.network_funcs import load_FC_for_Lifu

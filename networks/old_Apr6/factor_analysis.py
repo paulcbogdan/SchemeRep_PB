@@ -1,9 +1,6 @@
-import pandas as pd
-from tqdm import tqdm
-
 from analyze_rs import get_rs_vendor_df
 from autocorr import add_prev, add_next
-from dFC_control_FC import get_all_task_vendor
+from old_Apr6.dFC_control_FC import get_all_task_vendor
 from utils import pickle_wrap
 from vendor_lmers import get_vendor_df
 from sklearn import decomposition

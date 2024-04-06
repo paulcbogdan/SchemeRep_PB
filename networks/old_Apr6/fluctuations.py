@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from vendor_partitioning import get_vendor_partitions
 from functools import partial
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 
 # TODO: set up windows backups
 

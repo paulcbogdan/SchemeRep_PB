@@ -1,6 +1,6 @@
 import numpy as np
 
-from ttest_mat import get_stats_graphs
+from old_Apr6.ttest_mat import get_stats_graphs
 from old.networks import load_FC_for_Lifu
 from modularity import get_main_partitions, get_partition_matrix
 from utils import pickle_wrap

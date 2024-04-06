@@ -3,8 +3,7 @@ from nilearn import plotting
 
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
-from ttest_mat import get_stats_graphs
-from utils import pickle_wrap
+from old_Apr6.ttest_mat import get_stats_graphs
 
 import os
 from utils import pickle_wrap, stdize

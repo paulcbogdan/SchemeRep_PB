@@ -9,7 +9,7 @@ from sklearn.svm import SVC
 from atlas_utils import get_atlas
 from old.network_funcs import load_FC_for_Lifu
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 from connsearch.permute import Permutation_Manager
 from connsearch.components import get_none_components, get_components
 

@@ -1,13 +1,11 @@
-import pdb
-
 import pandas as pd
 
-from dFC_control_FC import get_all_task_vendor
+from old_Apr6.dFC_control_FC import get_all_task_vendor
 from factor_analysis import identify_extremely_low_variance_sn
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 
 
 def do_rs_sine(fp='rs'):

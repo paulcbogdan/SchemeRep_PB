@@ -1,7 +1,7 @@
 import os
 import time
 
-from LSS import get_LSS_img, load_motion
+from old_Apr6.LSS import get_LSS_img, load_motion
 from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap, stdize
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -14,9 +14,8 @@ from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from fluctuations import get_df_networks, partial_corr_df
-import matplotlib.pyplot as plt
-import scipy.stats as stats
+from old_Apr6.fluctuations import get_df_networks, partial_corr_df
+
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,
                clean_confounds=False, RS=True, compcor=True):
