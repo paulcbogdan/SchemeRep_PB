@@ -81,6 +81,9 @@ def RDM_x_RDM(fMRI_RDM, stim_RDM, corr='spear', within_to_nan=True):
         fMRI_RDM_ = within_run_to_nan(fMRI_RDM)
     else:
         fMRI_RDM_ = fMRI_RDM
+    # plt.imshow(fMRI_RDM_)
+    # plt.show()
+    # quit()
     fMRI_flat = fMRI_RDM_[tril_idx]
     stim_flat = stim_RDM[tril_idx]
     nans = np.isnan(fMRI_flat) | np.isnan(stim_flat)

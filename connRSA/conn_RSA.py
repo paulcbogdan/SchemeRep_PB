@@ -10,12 +10,12 @@ from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
 from scipy.spatial import distance
 from time import time
-
+import matplotlib.pyplot as plt
 
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
            RDM_method='by_run', combine_regions=False,
-           stdize_by_run=False):
+           stdize_by_run=False, semantic=False):
     BOLD = conn == 'BOLD'
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
@@ -24,7 +24,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
             replace('7', '').replace('8', ''))
-    df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with run-wise sorting
     # TODO: Implement toggle to be high density
 
     org_by_region = (not BOLD) or (networks)
@@ -33,7 +33,6 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                                  cross_region=cross_region, conn=conn,
                                  combine_regions=combine_regions,
                                  easy_override=False)
-
     scores = []
     sizes = []
     IRAFs_all_ROI = []
@@ -41,7 +40,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                             dist=trial_similarity)
     RSM_fmri_l = []
     dir_out = fr'cache/conn_RSA/ars/RSA'
-    dir_out = (f'{dir_out}/{fp}_{conn}_{trial_similarity}_'
+    dir_out = (f'{dir_out}/{fp}_{trial_similarity}_'
                f'{second_order}_{RDM_method}_{stdize_by_run}')
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     for i, (ROI, vecs) in enumerate(ROI2vecs.items()):
@@ -80,11 +79,13 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         elif RDM_method == 'within_nan':
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
+
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
         else:
             raise ValueError(f'{RDM_method=} not supported')
         scores.append(z)
+
 
         RSM_fmri_l.append(RSM_fMRI)
         IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn, within_to_nan=False,
@@ -92,18 +93,18 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         IRAFs_all_ROI.append(IRAFs)
         t_processing = time() - t_st
 
-        fn_RSM = f'{sn}_{ROI}.npy'
+        fn_RSM = f'{sn}_{ROI}_{conn}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
         t_st = time()
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)
         t_save = time() - t_st
         p_processing = t_processing / (t_processing + t_save)
-        if i == 0:
-            print(f'{ROI} | {t_processing:.5f} | '
-                  f'{t_save:.5f} ({p_processing:.1%})')
+        # if i == 0:
+        #     print(f'{ROI} | {t_processing:.5f} | '
+        #           f'{t_save:.5f} ({p_processing:.1%})')
 
-    fn_RSM = f'{sn}_stim.npy'
+    fn_RSM = f'{sn}_stim_{semantic}.npy'
     fp_RSM = f'{dir_out}/{fn_RSM}'
     with open(fp_RSM, 'wb') as f:
         np.save(f, RSM_stim)

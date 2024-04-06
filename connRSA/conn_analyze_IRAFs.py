@@ -17,6 +17,12 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
+ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
+               'else_cortical': 2,
+               'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
+               'perceptual': 17,
+               'full_frontal': 11, 'full_frontal_CG': 11,
+               'MTL': 9}
 
 def get_idx_from_key(l, substring):
     idxs = []
@@ -143,7 +149,10 @@ def organize_df(results_conn, results_bold_sep, results_bold_com,
     return df, ROI_cols
 
 def prep_network2ROI(do_networks, target_ROI):
+    if do_networks is None:
+        do_networks = ROI2NETWORK[target_ROI]
     network2ROI = prep_networks(network_setting=do_networks)
+
     for key, l in network2ROI.items():
         if isinstance(l, tuple):
             network2ROI[key] = l[0] + l[1]
@@ -164,7 +173,7 @@ def rsum(row):
 def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
-    conn = 'prod'
+    conn = 'euc'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     four_tasks = '8'
@@ -186,13 +195,8 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
 
-    ROI2network = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
-                   'else_cortical': 2,
-                   'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
-                   'perceptual': 17,
-                   'full_frontal': 11, 'full_frontal_CG': 11,
-                   'MTL': 9}
-    do_networks = ROI2network[target_ROI]
+
+    do_networks = ROI2NETWORK[target_ROI]
 
     kwargs = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
                 'conn': conn, 'trial_similarity': trial_similarity,

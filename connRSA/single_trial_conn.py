@@ -23,7 +23,7 @@ from functools import partial
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
            RDM_method='by_run', combine_regions=False, plotting=None,
-           stdize_by_run=False):
+           stdize_by_run=False, semantic=False):
     scores_all = []
     sizes_all = []
     trialwise_all = []
@@ -44,11 +44,10 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 raise ValueError(f'run_sn RSA unknown: {plotting=}')
             scores, sizes, trialwise = \
                 f(sn, atlas, d_vecs, fp0, networks=networks,
-                       conn=conn, trial_similarity=trial_similarity,
-                       second_order=second_order, RDM_method=RDM_method,
-                       combine_regions=combine_regions,
-                  stdize_by_run=stdize_by_run
-                       )
+                  conn=conn, trial_similarity=trial_similarity,
+                  second_order=second_order, RDM_method=RDM_method,
+                  combine_regions=combine_regions, stdize_by_run=stdize_by_run,
+                  semantic=semantic)
             scores_all.append(scores)
             sizes_all.append(sizes)
             trialwise_all.append(trialwise)
@@ -230,7 +229,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                    conn=conn, trial_similarity=trial_similarity,
                    second_order=second_order, RDM_method=RDM_method,
                    combine_regions=combine_regions, plotting=plotting,
-                   stdize_by_run=stdize_by_run)
+                   stdize_by_run=stdize_by_run, semantic=semantic)
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         trialwise_all.append(scores_trialwise)
