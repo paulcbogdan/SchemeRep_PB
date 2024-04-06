@@ -123,10 +123,10 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         network_colors = {'Uncertain': 'k', 'Visual': 'k',
                           'SM': 'k', 'DAN': 'k', 'VAN': 'k',
                           'Limbic': 'k', 'FPCN': 'k', 'DMN': 'k'}
-        chord_kw['vmin'] = -4
-        chord_kw['vmax'] = 4
-        glass_kw['vmin'] = -4
-        glass_kw['vmax'] = 4
+        chord_kw['vmin'] = -3.5
+        chord_kw['vmax'] = 3.5
+        glass_kw['vmin'] = -3.5
+        glass_kw['vmax'] = 3.5
         glass_kw['linewidths'] = 3.
         if 'flipTrue' in dir_out:
             chord_kw['vmax'] = 2
@@ -135,6 +135,7 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         else:
             chord_kw['vmin'] = -2
             glass_kw['vmin'] = -2
+        # glass_kw['node_size']
 
     network_order = ['FPCN', 'DMN', 'DAN', 'Visual', 'SM', 'Limbic',
                      'Uncertain', 'VAN']
@@ -180,12 +181,6 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
     else:
         partitions = get_modules(matrix_binary)
 
-
-    # plt.imshow(matrix_binary)
-    # plt.show()
-    # for p in partitions:
-    #     print(f'{p=}')
-    # quit()
     if plot:
 
         for i, p in enumerate(partitions):

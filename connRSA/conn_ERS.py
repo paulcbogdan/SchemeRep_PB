@@ -125,6 +125,12 @@ def ERS_sn(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
 
         ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
                                    trial_similarity=trial_similarity)
+        dir_out = fr'connRSA/ars/ERS'
+        fn_out = (f'{sn}_{ROI}_{fp0}_{fp1}_{conn}_{trial_similarity}_'
+                  f'{stdize_by_run}.npy')
+        with open(f'{dir_out}/{fn_out}', 'wb') as f:
+            print(f'Saving: {fn_out=}\n\t({dir_out})')
+            np.save(f, ERS_ar)
 
         ERS_sames = np.diag(ERS_ar)
         ERS_ar_ = ERS_ar.copy()

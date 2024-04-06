@@ -11,6 +11,9 @@ result_pics/.DS_Store
 *.nii.gz
 *.lnk
 *.mat
+/result_pics/ttest_modules/*
+/result_pics/ttest_modules/flipFalse_thr0.95_healthy_regr_n66_FINAL/*
+/result_pics/ttest_modules/flipTrue_thr0.95_healthy_regr_n66_FINAL/*
 /behavFiles/*
 /cache/*
 /old/super_old/*

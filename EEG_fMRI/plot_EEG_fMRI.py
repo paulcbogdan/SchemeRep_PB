@@ -2,14 +2,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def plot_hz_corrs(name2r):
+def plot_hz_corrs(name2r, effect_size=False, t_vals=False):
     def get_range(hz):
 
         if hz < 4:
             return cm(0.05)
-        elif hz < 9:
+        elif hz < 8:
             return cm(0.3)
-        elif hz < 14:
+        elif hz < 13:
             return cm(0.63)
         elif hz < 30:
             return cm(0.75)
@@ -24,50 +24,81 @@ def plot_hz_corrs(name2r):
     plt.figure(figsize=(6, 4))
 
     upper = 101 if 'r100' in name2r else 51
+    hz_all = []
+    M_all = []
     for hz in range(1, upper):
         name = f'r{hz}'
         if 'r100' in name2r: hz /= 2
-        SE = np.nanstd(name2r[name]) / np.sqrt(len(name2r[name]))
+        SD = np.nanstd(name2r[name], ddof=1)
+        SE = SD / np.sqrt(len(name2r[name]))
         M = np.nanmean(name2r[name])
 
-        M /= SE
-        SE /= SE
+        if t_vals:
+            M /= SE
+            SE = 1
+        elif effect_size:
+            M /= SD
+            SE /= SD
 
         high = M + 1 * SE
         low = M - 1 * SE
         c = get_range(hz)
-        plt.plot([hz-0.05, hz-0.05], [low, high], color='gray',
-                 alpha=0.7,
-                 linewidth=0.75)
-        plt.plot([hz+0.05, hz+0.05], [low, high], color=c, alpha=1,
-                 linewidth=0.75)
+        if not t_vals:
+            plt.plot([hz-0.05, hz-0.05], [low, high], color='gray',
+                     alpha=0.8,
+                     linewidth=0.5)
+            plt.plot([hz+0.05, hz+0.05], [low, high], color=c,
+                     alpha=0.6,
+                     linewidth=0.75)
 
-        plt.plot([hz, hz], [low, high], color=c, alpha=0.25,
-                 linewidth=3.0)
-        # plt.plot([hz-.2, hz+.2], [high, high], color='gray')
-        # plt.plot([hz-.2, hz+.2], [low, low], color='gray')
+            plt.plot([hz, hz], [low, high], color=c, alpha=0.25,
+                     linewidth=3.0)
+            plt.plot([hz-.2, hz+.2], [high, high], color='gray',
+                     alpha=1, linewidth=0.5)
+            plt.plot([hz-.2, hz+.2], [low, low], color='gray',
+                     alpha=1, linewidth=0.5)
         plt.plot(hz, M, 'o', color=c, markersize=3)
+        hz_all.append(hz)
+        M_all.append(M)
+    if t_vals:
+        plt.plot(hz_all, M_all, color='k', alpha=0.5, linewidth=0.5,
+                 zorder=-1)
 
 
     plt.xlabel('Hz', labelpad=7)
     plt.ylabel(r'Connectivity (d) x Power (A$^{\rm 2}$)',# + '\nCorrelation',
                labelpad=7)
 
-    drag = .012 # 0.015
-    # plt.ylim(0, 0.089 - drag)
+    if t_vals:
+        height = 6
+        height_theta = 6.6
+        drag = 0.7
+        plt.yticks([0, 1, 2, 3, 4, 5, 6,])
+        plt.ylim(0, 6.)
+    elif effect_size:
+        height = 1.5
+        height_theta = 1.6
+        drag = 0.1
+        plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2, 1.4,])
+        plt.ylim(0, 1.5)
+    else:
+        height = 0.08
+        height_theta = 0.087
+        drag = .012  # 0.015
+        plt.ylim(0, 0.089 - drag)
+        plt.yticks([0, 0.02, 0.04, 0.06, 0.08])
     plt.xlim(0.0, 50.5)
-    plt.yticks([0, 0.02, 0.04, 0.06, 0.08])
     plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
     # plt.gca().set_facecolor('whitesmoke')
-    plt.text(1, 0.08 - drag, 'Delta', fontsize=12, c=get_range(2.5),
+    plt.text(1, height - drag, 'Delta', fontsize=12, c=get_range(2.5),
              ha='left')
-    plt.text(6, 0.087 - drag, 'Theta', fontsize=12, c='green',
+    plt.text(6, height_theta - drag, 'Theta', fontsize=12, c='green',
              ha='center')
-    plt.text(11.5, 0.08 - drag, 'Alpha', fontsize=12, c='goldenrod',
+    plt.text(11.5, height - drag, 'Alpha', fontsize=12, c='goldenrod',
              ha='center')
-    plt.text(22, 0.08 - drag, 'Beta', fontsize=12, c='orange',
+    plt.text(22, height - drag, 'Beta', fontsize=12, c='orange',
              ha='center')
-    plt.text(40, 0.08 - drag, 'Gamma', fontsize=12, c='red',
+    plt.text(40, height - drag, 'Gamma', fontsize=12, c='red',
              ha='center')
 
     # pc = patches.Rectangle((0.25, 0), 3, 0.075,

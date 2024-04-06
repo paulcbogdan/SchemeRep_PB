@@ -587,10 +587,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
-    if double_speed:
-        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
-    else:
-        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
+    # if double_speed:
+    #     ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
+    # else:
+    #     ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
 
     name2fluc = {}
     name2r = {}
@@ -733,14 +733,14 @@ if __name__ == '__main__':
                     SE = SD / np.sqrt(N)
                     t = M / SE
                     d = M / SD
-                    p = stats.t.sf(np.abs(t), len(l) - 1)
+                    p = stats.t.sf(np.abs(t), len(l) - 1) * 2
                     M_low = M - 1.96 * SE
                     M_high = M + 1.96 * SE
 
 
                     res = stats.wilcoxon(l)
                     # print(f'{res=}')
-                    p_wilcox = res.pvalue
+                    p_wilcox = res.pvalue * 2
 
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
                           f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')

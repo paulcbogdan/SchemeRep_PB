@@ -475,6 +475,7 @@ def run_lmer_PFC_RSA():
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = True if trial_similarity == 'euc' else False
+    # stdize_by_run = True
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'

@@ -81,7 +81,7 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                 z_both[:, i] = np.nan
                 break
 
-    num_non_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
+    num_no1n_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''

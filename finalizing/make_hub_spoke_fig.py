@@ -17,8 +17,11 @@ def get_beta_graph(sn_inc_conn):
     sn_inc_conn = (sn_inc_conn -
                    np.nanmean(sn_inc_conn, axis=1)[:, None, :, :])
     n_sn = sn_inc_conn.shape[0]
-    sn_conn = sn_inc_conn.reshape(-1, 246, 246)
-    trils = np.tril_indices(246, k=-1)
+    n_roi = sn_inc_conn.shape[2]
+    # print(n_roi)
+    # quit()
+    sn_conn = sn_inc_conn.reshape(-1, n_roi, n_roi)
+    trils = np.tril_indices(n_roi, k=-1)
     sn_flat = sn_conn[:, trils[0], trils[1]]
     # print(f'{sn_flat.shape=}')
     sn_flat = stdize(sn_flat, axis=0)
@@ -38,13 +41,13 @@ def get_beta_graph(sn_inc_conn):
     z = -z
 
 
-    z_graph = np.full((246, 246), np.nan)
+    z_graph = np.full((n_roi, n_roi), np.nan)
     z_graph[trils] = z
     z_graph[trils[1], trils[0]] = z
     return z_graph
 
 
-def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
+def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
                    all_black=False, only_cortical=True):
     kwargs = {'fp': fp,
               'split': False,
@@ -58,7 +61,8 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
                     easy_override=False, verbose=1,
                     cache_dir='cache')
 
-    atlas = get_atlas(combine_regions=combine_regions)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=True)
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
 
@@ -91,20 +95,20 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
         _, _, _, _, _, _, z_graph = \
             get_stats_graphs(sn_inc_conn[:, 0, :, :],
                              sn_inc_conn[:, 2, :, :])
-    # upper_thresh = np.nanpercentile(z_graph, 90)
-    # z_graph_high = z_graph.copy()
-    # z_graph_high[z_graph < upper_thresh] = np.nan
-    # plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    upper_thresh = np.nanpercentile(z_graph, 85)
+    z_graph_high = z_graph.copy()
+    z_graph_high[z_graph < upper_thresh] = np.nan
+    plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     #
-    # z_graph_low = z_graph.copy()
-    # lower_thresh = np.nanpercentile(z_graph, 10)
+    z_graph_low = z_graph.copy()
+    lower_thresh = np.nanpercentile(z_graph, 15)
     #
-    # z_graph_low[z_graph > lower_thresh] = np.nan
-    # plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    z_graph_low[z_graph > lower_thresh] = np.nan
+    plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     #
-    # plot_connectivity(z_graph, atlas=atlas, vmin=-4, vmax=4, minimal=True)
-    #
-    # quit()
+    plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=True)
+
+    quit()
 
     # 16 MFG
     # 142 IPL
