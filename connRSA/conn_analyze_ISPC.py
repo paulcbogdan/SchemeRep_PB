@@ -119,12 +119,12 @@ def lmer_ISPC(df):
     # lmer_stats(df, ROI_cols)
 
 def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
-			 split=False, do_networks=0, trial_similarity='corr',
-			 age=1):
+                       split=False, do_networks=0, trial_similarity='corr',
+                       age=1):
     settings = locals().copy()
     dir_results = r'cache/conn_RSA'
     results_conn = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
-                               easy_override=False, cache_dir=dir_results)
+                               easy_override=True, cache_dir=dir_results)
     report_results(results_conn, do_lmer=True, ISPC=True)
 
     if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
@@ -139,26 +139,15 @@ def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
     report_results(results_bold_comb, do_lmer=True, ISPC=True)
 
     results_bold_sep = {}
-
-    # settings['do_networks'] = False
-    # results_bold_sep = pickle_wrap(run_settings_ISPC, None,
-    #                                kwargs=settings, easy_override=False,
-    #                                verbose=1, cache_dir=dir_results)
-
-    # report_results(results_bold_sep, do_lmer=False)
-
-
     return results_conn, results_bold_comb, results_bold_sep
 
 
 def run_lmer_PFC_ISPC():
-    # target_ROI = 'else'
-
     df_bhv, _ = get_plain_df_sn()
     df_bhv = df_bhv.groupby('obj')['hit_hit'].mean()
     mem_scores = list(df_bhv.values) * 4
 
-    target_ROI = 'MTL'
+    target_ROI = 'PFC_ACC'
 
     ROI2network = {'Occipital': (1, 0), 'Ventral': (1, 1), 'Dorsal': (1, 1),
                    'else_cortical': (2, 1),

@@ -19,22 +19,23 @@ from utils import pickle_wrap
 import warnings
 from colorama import Fore
 import os
+from utils import stdize
+from pathlib import Path
+
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 
-def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=False,
-		 networks=False,  trial_similarity='corr', ):
+def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
+		 split=False, networks=False,  trial_similarity='corr', ):
 	BOLD = conn == 'BOLD'
 	cross_region = 'cross_' in conn
 	if 'cross_' in conn:
 		conn = conn.replace('cross_', '')
 
-
 	ROI2vecs_all_sn = defaultdict(list)
-
 	org_by_region = (not BOLD) or (networks)
-	# print(f'{org_by_region=}')
+	# print(len(sns))
 	# quit()
 
 	for sn in sns:
@@ -43,12 +44,10 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 									 networks=networks,
 									 org_by_region=org_by_region,
 									 cross_region=cross_region, conn=conn,
-									 combine_regions=combine_regions,
-									 )
+									 combine_regions=combine_regions,)
 
 		for ROI, vecs in ROI2vecs.items():
 			vecs_BOLD = ROI2vecs[ROI]
-			# print(f'{ROI} | {vecs_BOLD.shape=}')
 			if BOLD or cross_region:
 				vecs = vecs_BOLD
 			else:
@@ -61,29 +60,21 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 	for ROI, ROI_vecs in ROI2vecs_all_sn.items():
 		ROI_vecs = np.array(ROI_vecs)
 		print('test')
-		# quit()
 
 		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
 		sn_SDs = np.nanstd(ROI_vecs, axis=1)[:, None, :]
 		ROI_vecs = (ROI_vecs - sn_Ms) / sn_SDs
 
+		# TODO: lots of subjects being excluded for MTL. inspect before paper
 		size = np.sum(~np.isnan(ROI_vecs)) / (ROI_vecs.shape[0] *
 											  ROI_vecs.shape[1])
-		# bad_sns_base = np.array([False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False,  True, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False, False, False, False,
-		# 						 False, False, False])
 
 		if org_by_region:
-			bad_sns = np.isnan(ROI_vecs).any(axis=(1, 2))# > 0.5
-			print(f'{ROI} | Number of bad sns: {np.sum(bad_sns)}')
-			ROI_vecs = ROI_vecs[~bad_sns]
+			bad_sns_bool = np.isnan(ROI_vecs).any(axis=(1, 2))# > 0.5
+			good_sns = [sn for i, sn in enumerate(sns) if not bad_sns_bool[i]]
+
+			# print(f'{ROI} | Number of bad sns: {np.sum(bad_sns_bool)}')
+			ROI_vecs = ROI_vecs[~bad_sns_bool]
 			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
 			nan_prop = np.sum(np.isnan(ROI_vecs)) / np.prod(ROI_vecs.shape)
 			n_good = np.sum(keeps)
@@ -94,11 +85,12 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 				sizes.append(0)
 				continue
 		else:
-			print(ROI_vecs.shape)
+			# print(ROI_vecs.shape)
 			bad_voxels = np.isnan(ROI_vecs).mean(axis=(0, 1)) > 0.5
 			ROI_vecs = ROI_vecs[..., ~bad_voxels]
-			bad_sns = np.isnan(ROI_vecs).mean(axis=(1, 2)) > 0.25
-			ROI_vecs = ROI_vecs[~bad_sns]
+			bad_sns_bool = np.isnan(ROI_vecs).mean(axis=(1, 2)) > 0.25
+			good_sns = [sn for i, sn in enumerate(sns) if not bad_sns_bool[i]]
+			ROI_vecs = ROI_vecs[~bad_sns_bool]
 
 			M = np.nanmean(ROI_vecs, axis=2)
 			for i in range(ROI_vecs.shape[0]):
@@ -107,61 +99,127 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False, split=Fal
 					ROI_vecs[i, j, nans] = M[i, j]
 			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
 
-			# plt.imshow(np.isnan(ROI_vecs).mean(axis=-1), aspect='auto')
-			# plt.colorbar()
-			# plt.show()
-			# print(bad_sns)
-			# print(np.mean(bad_voxels))
-			# quit()
-
 		sizes.append(size)
-		ROI_same_scores = []
-		ROI_else_scores = []
-		for stim_j in tqdm(range(ROI_vecs.shape[1]), desc='ISPC'):
-			stim_data = ROI_vecs[:, stim_j, :]
-			stim_data = stim_data[:, keeps]
+		# print(ROI_vecs.shape)
 
-			ISPC_matrix = get_trial_x_trial(stim_data,
-											trial_similarity=trial_similarity)
-			ISPC_triangle = ISPC_matrix[np.tril_indices_from(ISPC_matrix, k=-1)]
-			M_similarity = np.mean(ISPC_triangle)
-			ROI_same_scores.append(M_similarity)
+		n_sn = ROI_vecs.shape[0]
+		ROI_vecs = stdize(ROI_vecs, axis=-1)
+		avg_vec = np.nanmean(ROI_vecs, axis=0)
+		avg_vec = ((avg_vec * n_sn)[None] - ROI_vecs) / (n_sn - 1)
+		avg_vec = stdize(avg_vec, axis=-1)
 
-			stim_else_scores = []
-			for stim_j2 in list(range(ROI_vecs.shape[1])):
-				if stim_j2 == stim_j:
-					continue
-				# if random() > 0.1:
-				# 	continue
-				stim_data2 = ROI_vecs[:, stim_j2, :]
-				stim_data2 = stim_data2[:, keeps]
+		ISPC_ar = np.nanmean(ROI_vecs[:, :, None, :] *
+							 avg_vec[:, None, :, :], axis=-1) # (57, 114, 114)
+		# print(ISPC_ar.shape)
+		# print(np.nanmax(ISPC_ar))
+		# quit()
 
-				ISPC_matrix = get_trial_x_trial(stim_data, stim_data2,
-											   trial_similarity=trial_similarity)
-				ISPC_matrix[np.eye(ISPC_matrix.shape[0], dtype=bool)] = np.nan
-				M_similarity2 = np.nanmean(ISPC_matrix)
-				stim_else_scores.append(M_similarity2)
+		# dg = np.diag_indices_from(ISPC_ar[0])
+		# test = ISPC_ar[0][dg]
+		# print(np.nanmean(test))
+		# quit()
 
-			M_similarity_else = np.mean(stim_else_scores)
-			ROI_else_scores.append(M_similarity_else)
+		# for sn in range(ISPC_ar.shape[0]):
+		# 	# plt.imshow(ISPC_ar[sn])
+		# 	# plt.colorbar()
+		# 	# plt.show()
+		# 	# quit()
+		# 	diag = np.mean(np.diag(ISPC_ar[sn]))
+		# 	ISPC_ar_sn = ISPC_ar[sn].copy()
+		# 	ISPC_ar_sn[np.eye(ISPC_ar_sn.shape[0], dtype=bool)] = np.nan
+		# 	sum_else = np.nanmean(ISPC_ar_sn)
+		# 	# sum_else = total - diag
+		# 	# diag /= ISPC_ar.shape[1]
+		# 	# sum_else /= (ISPC_ar.shape[1] * (ISPC_ar.shape[1] - 1))
+		# 	print(f'{diag=:.4f}, {sum_else=:.4f}')
+		#
+		# 	# plt.imshow(ISPC_ar[0])
+		# 	# plt.show()
+		# 	# quit()
+		# quit()
 
-			# TODO: ISPC_IRAF = np.mean(ISPC_triangle, axis=1)
+		assert len(good_sns) == ROI_vecs.shape[0], \
+			f'{len(good_sns)=}, {ROI_vecs.shape[0]=}'
 
+		dir_in = fr'cache/conn_RSA/ars/ISPC'
+		dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
+		Path(dir_focus).mkdir(parents=True, exist_ok=True)
+		for i, sn in enumerate(good_sns):
+			fp_focus = f'{dir_focus}/{sn}_{ROI}_{conn}.npy'
+			with open(fp_focus, 'wb') as f:
+				np.save(f, ISPC_ar[i])
+		num_nans = np.sum(np.isnan(ISPC_ar))
+		assert num_nans == 0, f'ISPC_ar has nans: {num_nans=}'
 
-		ROI_same_scores = np.array(ROI_same_scores)
-		ROI_else_scores = np.array(ROI_else_scores)
-		ROI_scores = ROI_same_scores - ROI_else_scores
+		n_stim = ROI_vecs.shape[1]
+		ROI_scores = []
+		for stim_i in range(n_stim):
+			stim_same = ISPC_ar[:, stim_i, stim_i] # (57, )
+			stim_else = ISPC_ar[:, stim_i, :] # (57, 114)
+			stim_else = np.sum(stim_else, axis=-1) - stim_same
+			stim_else /= n_stim - 1
+			# print(stim_same)
+			# print(stim_else)
+			# quit()
+			stim_scores = stim_same - stim_else # (57, )
+			ROI_scores.append(np.mean(stim_scores))
+		score_by_stim.append(ROI_scores)
 
+		# print(stim_same)
 
 		ROI_M = np.mean(ROI_scores)
 		ROI_SD = np.std(ROI_scores)
-		ROI_SE = ROI_SD / np.sqrt(len(ROI_same_scores))
+		ROI_SE = ROI_SD / np.sqrt(len(ROI_scores))
 		ROI_t = ROI_M / ROI_SE
-		ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_same_scores) - 1)# * 2
+		ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_scores) - 1)# * 2
 		print(f'{ROI} ({ROI_M:.5f}), t={ROI_t:.2f}, p={ROI_p:.3f}')
-		score_by_stim.append(ROI_scores)
-		# quit()
-		# scores.append(ROI_M)
+
+		continue
+
+		# ROI_same_scores = []
+		# ROI_else_scores = []
+		# for stim_j in tqdm(range(ROI_vecs.shape[1]), desc='ISPC'):
+		# 	stim_data = ROI_vecs[:, stim_j, :]
+		# 	stim_data = stim_data[:, keeps]
+		#
+		# 	ISPC_matrix = get_trial_x_trial(stim_data,
+		# 									trial_similarity=trial_similarity)
+		# 	ISPC_triangle = ISPC_matrix[np.tril_indices_from(ISPC_matrix, k=-1)]
+		# 	M_similarity = np.mean(ISPC_triangle)
+		# 	ROI_same_scores.append(M_similarity)
+		#
+		# 	stim_else_scores = []
+		# 	for stim_j2 in list(range(ROI_vecs.shape[1])):
+		# 		if stim_j2 == stim_j:
+		# 			continue
+		# 		# if random() > 0.1:
+		# 		# 	continue
+		# 		stim_data2 = ROI_vecs[:, stim_j2, :]
+		# 		stim_data2 = stim_data2[:, keeps]
+		#
+		# 		ISPC_matrix = get_trial_x_trial(stim_data, stim_data2,
+		# 									   trial_similarity=trial_similarity)
+		# 		ISPC_matrix[np.eye(ISPC_matrix.shape[0], dtype=bool)] = np.nan
+		# 		M_similarity2 = np.nanmean(ISPC_matrix)
+		# 		stim_else_scores.append(M_similarity2)
+		#
+		# 	M_similarity_else = np.mean(stim_else_scores)
+		# 	ROI_else_scores.append(M_similarity_else)
+		#
+		# 	# TODO: ISPC_IRAF = np.mean(ISPC_triangle, axis=1)
+		#
+		#
+		# ROI_same_scores = np.array(ROI_same_scores)
+		# ROI_else_scores = np.array(ROI_else_scores)
+		# ROI_scores = ROI_same_scores - ROI_else_scores
+		# ROI_M = np.mean(ROI_scores)
+		# ROI_SD = np.std(ROI_scores)
+		# ROI_SE = ROI_SD / np.sqrt(len(ROI_same_scores))
+		# ROI_t = ROI_M / ROI_SE
+		# ROI_p = stats.t.sf(np.abs(ROI_t), len(ROI_same_scores) - 1)# * 2
+		# print(f'{ROI} ({ROI_M:.5f}), t={ROI_t:.2f}, p={ROI_p:.3f}')
+		# score_by_stim.append(ROI_scores)
+
 	score_by_stim = np.array(score_by_stim)
 	return score_by_stim, sizes,
 
