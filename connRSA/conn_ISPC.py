@@ -97,6 +97,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 					nans = np.isnan(ROI_vecs[i, j, :])
 					ROI_vecs[i, j, nans] = M[i, j]
 			keeps = ~np.isnan(ROI_vecs).any(axis=(0, 1))
+			ROI_vecs = ROI_vecs[..., keeps]
 
 		sizes.append(size)
 		# print(ROI_vecs.shape)

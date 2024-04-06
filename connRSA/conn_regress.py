@@ -47,8 +47,11 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
         else:
             flat_ctrl = flat_ctrl[:, ~nan_cols]
             ERS_ctrl = ERS_ctrl[~nan_cols]
+        flat_itr = np.array([1] * len(flat_ctrl))
+        X = np.hstack([flat_itr[:, None], flat_ctrl])
+
         try:
-            solution, residuals, rank, s = np.linalg.lstsq(flat_ctrl, flat_focus,
+            solution, residuals, rank, s = np.linalg.lstsq(X, flat_focus,
                                                            rcond=None)
         except np.linalg.LinAlgError as e:
             print(f'{e=}')
@@ -57,7 +60,7 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
             plt.show()
             quit()
         ERS_ctrl = np.transpose(ERS_ctrl, (1, 2, 0))
-        ERS_focus -= np.dot(ERS_ctrl, solution) # TODO: double-check
+        ERS_focus -= np.dot(ERS_ctrl, solution[1:])
 
     ERS_sames = np.diag(ERS_focus)
     ERS_focus_ = ERS_focus.copy()
@@ -67,6 +70,7 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     score = np.nanmean(ERS_dif)
 
     return score
+
 
 
 def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
@@ -91,7 +95,6 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     with open(fp_stim, 'rb') as f:
         RSM_stim = np.load(f)
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
-    # print(f'{flat_stim.shape=}')
 
     flat_itr = np.array([1] * len(flat_focus))
 
@@ -99,10 +102,6 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
         flat_ctrls = []
         skips = 0
         for ROI_ctrl in ROIs_ctrl:
-            # conn = ROI_ctrl.split('_')[-1]
-            # dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
-            #              f'{second_order}_{RDM_method}_{stdize_by_run}')
-            # ROI_ctrl_ = '_'.join(ROI_ctrl.split('_')[:-1])
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
             if not os.path.isfile(fp_ctrl):
                 skips += 1
@@ -117,8 +116,6 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
         # flat_ctrl = ERS_ctrl.reshape(ERS_ctrl.shape[0], -1).T # (12996, 22)
         nan_cols = np.isnan(flat_ctrl).any(axis=0)
         n_nan_cols = np.sum(nan_cols) + skips
-        # print(f'{n_nan_cols=}')
-        # # print(f'Num NaNs: {n_nan_cols=}')
         if n_nan_cols > 10:
             print(f'Lots ({sn})! {n_nan_cols=}')
         else:
@@ -127,6 +124,71 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrl])
     else:
         X = np.hstack([flat_itr[:, None], flat_focus[:, None]])
+    if RDM_method == 'within_nan':
+        # print(len(X))
+        X = X[~np.isnan(flat_focus), :]
+        # print(len(X))
+        # quit()
+        flat_stim = flat_stim[~np.isnan(flat_focus)]
+    # else:
+    assert np.sum(np.isnan(X)) == 0
+    X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
+    flat_stim = stats.zscore(flat_stim)
+    solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
+    return solution[1]
+
+
+def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
+                   second_order, RDM_method, stdize_by_run, semantic,
+                   fp0, fp1):
+
+
+    dir_in = fr'cache/conn_RSA/ars/ISPC'
+    dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
+    fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
+    with open(fp_focus, 'rb') as f:
+        ISPC_focus = np.load(f)
+    flat_focus = ISPC_focus.flatten()
+
+    if len(ROIs_ctrl):
+        ISPC_ctrls = []
+        flat_ctrls = []
+        skips = 0
+        for ROI_ctrl in ROIs_ctrl:
+            fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
+            if not os.path.isfile(fp_ctrl):
+                skips += 1
+                continue
+            with open(fp_ctrl, 'rb') as f:
+                ISPC_ctrl = np.load(f)
+            ISPC_ctrls.append(ISPC_ctrl)
+            flat_ctrls.append(ISPC_ctrl.flatten())
+
+        flat_ctrl = np.array(flat_ctrls).T
+        # nan_cols = np.isnan(flat_ctrl).any(axis=0)
+        # n_nan_cols = np.sum(nan_cols) + skips
+        # if n_nan_cols > 10:
+        #     print(f'Lots ({sn})! {n_nan_cols=}')
+        # else:
+        #     flat_ctrl = flat_ctrl[:, ~nan_cols]
+        print(flat_ctrl.shape)
+        quit()
+        try:
+            flat_itr = np.array([1] * len(flat_ctrl))
+            X = np.hstack([flat_itr[:, None], flat_ctrl])
+            solution, residuals, rank, s = np.linalg.lstsq(X, flat_focus,
+                                                           rcond=None)
+        except np.linalg.LinAlgError as e:
+            print(f'{e=}')
+            print(f'{flat_focus=}')
+            plt.imshow(X[:, 1:], aspect='auto')
+            plt.show()
+            quit()
+        ISPC_ctrls = np.array(ISPC_ctrls).T
+        print(ISPC_ctrls.shape)
+        quit()
+        ISPC_focus -= np.dot(ISPC_ctrls, solution[1:])
+
     if RDM_method == 'within_nan':
         # print(len(X))
         X = X[~np.isnan(flat_focus), :]
@@ -154,6 +216,8 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     # res = mod.fit()
     # print(res.summary())
 
+
+
 def send_to_specific(kwargs, RSA, ISPC=False):
     fps = prep_fps('8')
     scores = []
@@ -162,11 +226,19 @@ def send_to_specific(kwargs, RSA, ISPC=False):
             kwargs['fp'] = fp
             score = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                 verbose=-1,
-                                easy_override=True)
+                                easy_override=False)
             # score = do_regr_RSA_sn(**kwargs)
             scores.append(score)
         return np.nanmean(scores)
     elif ISPC:
+        for fp in fps:
+            kwargs['fp'] = fp
+            score = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
+                                verbose=-1,
+                                easy_override=False)
+            # score = do_regr_RSA_sn(**kwargs)
+            scores.append(score)
+        return np.nanmean(scores)
         # for fp0 in fps:
         #     for fp1 in fps:
         #         if fp0 >= fp1: continue
@@ -190,14 +262,15 @@ def send_to_specific(kwargs, RSA, ISPC=False):
 
 
 def do_regr():
-    RSA = True
-    semantic = True
-    conn = 'BOLD'
+    ISPC = True
+    RSA = False
+    semantic = False
+    conn = 'prod'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    target_ROI = 'MTL'
+    target_ROI = 'PFC_ACC'
 
     sns = get_sns('all')['healthy']
     ROI_focus = f'{target_ROI}_{conn}'
@@ -226,7 +299,7 @@ def do_regr():
         if sn in ['138', '224']: continue
         kwargs['sn'] = sn
         try:
-            z = send_to_specific(kwargs, RSA)
+            z = send_to_specific(kwargs, RSA, ISPC)
         except FileNotFoundError as e:
             print(f'sn: {e}')
             continue

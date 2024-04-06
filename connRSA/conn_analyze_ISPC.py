@@ -124,19 +124,29 @@ def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
     settings = locals().copy()
     dir_results = r'cache/conn_RSA'
     results_conn = pickle_wrap(run_settings_ISPC, None, kwargs=settings,
-                               easy_override=True, cache_dir=dir_results)
+                               easy_override=False, cache_dir=dir_results)
     report_results(results_conn, do_lmer=True, ISPC=True)
 
     if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
             'complex_mean' in settings['RDM_method']):
         settings['RDM_method'] = 'within_nan'
-    #
+
     settings['conn'] = 'BOLD'
+    print('BOLD ' * 10)
     results_bold_comb = pickle_wrap(run_settings_ISPC, None,
                                    kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results)
-
+                                   verbose=1, cache_dir=dir_results,
+                                )
     report_results(results_bold_comb, do_lmer=True, ISPC=True)
+
+    print('SEP ' * 10)
+    settings['do_networks'] = False
+    results_bold_sep = pickle_wrap(run_settings_ISPC, None,
+                                   kwargs=settings, easy_override=False,
+                                   verbose=1, cache_dir=dir_results)
+    report_results(results_bold_sep, do_lmer=True, ISPC=True)
+    quit()
+
 
     results_bold_sep = {}
     return results_conn, results_bold_comb, results_bold_sep
