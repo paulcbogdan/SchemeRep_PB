@@ -188,8 +188,8 @@ def run_lmer_PFC_RSA():
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    target_ROI = 'Occipital'
-    # target_ROI = 'PFC_ACC'
+    # target_ROI = 'Occipital'
+    target_ROI = 'PFC_ACC'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'

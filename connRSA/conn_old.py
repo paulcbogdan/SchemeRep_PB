@@ -184,6 +184,7 @@ def RSA_ROI(sn, atlas, d_vecs, fp, networks=True, conn='euc',
             trial_similarity='corr', second_order='spear',
             RDM_method='by_run', combine_regions=False,
             PFC=False, PFC2=False, ROI_ctrl=False):
+
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=False, org_by_region=False,

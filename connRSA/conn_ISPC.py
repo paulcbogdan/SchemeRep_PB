@@ -59,7 +59,6 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 	sizes = []
 	for ROI, ROI_vecs in ROI2vecs_all_sn.items():
 		ROI_vecs = np.array(ROI_vecs)
-		print('test')
 
 		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
 		sn_SDs = np.nanstd(ROI_vecs, axis=1)[:, None, :]

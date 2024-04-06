@@ -28,13 +28,17 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     sizes_all = []
     trialwise_all = []
     for fp0 in fps:
+
         if RSA:
+
             if plotting is None:
                 f = RSA_sn
+
             elif 'ROIs' in plotting:
                 PFC2 = 'PFC2' in plotting
                 PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
                 ctrl = 'ctrl' in plotting
+
                 f = partial(RSA_ROI, PFC=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
             elif plotting == 'edges':
                 f = RSA_edgewise
@@ -42,6 +46,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
                 f = RSA_ROI_pairwise
             else:
                 raise ValueError(f'run_sn RSA unknown: {plotting=}')
+
             scores, sizes, trialwise = \
                 f(sn, atlas, d_vecs, fp0, networks=networks,
                   conn=conn, trial_similarity=trial_similarity,
@@ -211,9 +216,11 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
-    sns = [sn for sn in sns if int(sn) not in [230, 234, 239]] # TODO: ask SH to re-run
-    # sns = [sn for sn in sns if int(sn) != 239]
-    print(f'{sns=}')
+    sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
+    sns = [sn for sn in sns if int(sn) != 239]
+    # sns = [239] # 230, 234,
+    # sns = [138]
+    # print(f'{sns=}')
 
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
@@ -222,7 +229,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
     trialwise_all = []
     for i, sn in tqdm(enumerate(sns), desc='run_settings, looping subjects'):
-        print(f'{sn=}')
+        # print(f'{sn=}')
         ers_sn_by_comparison = []
         scores, sizes, scores_trialwise = \
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
@@ -230,6 +237,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                    second_order=second_order, RDM_method=RDM_method,
                    combine_regions=combine_regions, plotting=plotting,
                    stdize_by_run=stdize_by_run, semantic=semantic)
+        # quit()
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         trialwise_all.append(scores_trialwise)

@@ -102,7 +102,8 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
                                                    org_by_region=org_by_region,
                                                    cross_region=cross_region,
                                                    conn=conn,
-                                                   combine_regions=combine_regions,)
+                                                   combine_regions=combine_regions,
+                                                   easy_override=False)
     scores = []
     sizes = []
     scores_by_trial = []
@@ -113,7 +114,8 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
         except KeyError:
             scores.append(np.nan)
             continue
-        assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape
+        assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape, \
+            f'{sn=} | {vecs_enc_BOLD.shape=}, {vecs_ret_BOLD.shape=}'
         keeps = np.logical_and(~np.isnan(vecs_enc_BOLD).any(axis=0),
                                ~np.isnan(vecs_ret_BOLD).any(axis=0))
         vecs_enc_BOLD = vecs_enc_BOLD[:, keeps]

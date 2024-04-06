@@ -28,11 +28,13 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     # TODO: Implement toggle to be high density
 
     org_by_region = (not BOLD) or (networks)
+
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks, org_by_region=org_by_region,
                                  cross_region=cross_region, conn=conn,
                                  combine_regions=combine_regions,
                                  easy_override=False)
+
     scores = []
     sizes = []
     IRAFs_all_ROI = []
@@ -47,12 +49,31 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         t_st = time()
         vecs_BOLD = ROI2vecs[ROI]
         # TODO: Implement toggle to disable connectivity
+        # if sn == 138 and 'obj' in fp:
+        #     print(vecs_BOLD.shape)
+        #     keeps = ~np.isnan(vecs_BOLD).sum(axis=0) > 0
+        #     print(keeps)
+        #     quit()
+        # else:
         keeps = ~np.isnan(vecs_BOLD).any(axis=0)
-        if np.sum(keeps) < 2:
+        # plt.imshow(vecs_BOLD)
+        # plt.show()
+        # print(keeps)
+        # print('test')
+        # quit()
+        # print(vecs_BOLD.shape)
+        # quit()
+        # print(ROI2vecs)
+        # quit()
+        # print(sn)
+        # print(type(sn))
+        # quit()
+        if np.sum(keeps) < 2 and sn != 138: # 138 is missing run 3
             sizes.append(0)
             scores.append(np.nan)
             IRAFs_all_ROI.append(np.full(len(df_sn), np.nan))
             continue
+
         vecs_BOLD = vecs_BOLD[:, keeps]
         sizes.append(np.sum(keeps))
 
@@ -82,10 +103,11 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
 
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
+
+
         else:
             raise ValueError(f'{RDM_method=} not supported')
         scores.append(z)
-
 
         RSM_fmri_l.append(RSM_fMRI)
         IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn, within_to_nan=False,
