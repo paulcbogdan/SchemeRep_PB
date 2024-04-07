@@ -139,7 +139,7 @@ def get_IRAFs(fMRI_RDM, stim_RDM, df_sn, within_to_nan=True,
         IRAFs = np.arctanh(IRAFs)
     else:
         raise NotImplementedError(f'get_IRAFs {second_order=}')
-    IRAFs = IRAFs[df_sn['obj'].argsort()]
+    if df_sn is not None: IRAFs = IRAFs[df_sn['obj'].argsort()]
     return IRAFs
 
 def get_triple_connectivity(ROI_to_RDM_fMRI, RDM_stim, ROIs):
