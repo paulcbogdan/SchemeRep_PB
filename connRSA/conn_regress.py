@@ -204,9 +204,7 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     #     # print(f'{time() - t_st:.2f} s')
     #     return solution[1], r_sq
     # else:
-    p = X.shape[1]
-    print(f'{p=}')
-    quit()
+    p = X.shape[1] - 1
     n = X.shape[0] - 1 # minus 1 because of the intercept
     r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
     r_sq = r_sq[0]
@@ -235,6 +233,7 @@ def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
             if not os.path.isfile(fp_ctrl):
                 skips += 1
+                # print(f'{sn}: missing')
                 continue
             with open(fp_ctrl, 'rb') as f:
                 ISPC_ctrl = np.load(f)
@@ -242,7 +241,11 @@ def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
             flat_ctrls.append(ISPC_ctrl.flatten())
 
         flat_ctrl = np.array(flat_ctrls).T
-        assert flat_ctrl.shape[1] > 20, f'{flat_ctrl.shape=}'
+        if len(flat_ctrl) == 0:
+            return np.nan, np.nan
+
+        # print(f'{flat_ctrl.shape=}')
+        # assert flat_ctrl.shape[1] > 20, f'{flat_ctrl.shape=}'
 
         try:
             flat_itr = np.array([1] * len(flat_ctrl))
@@ -287,7 +290,7 @@ def send_to_specific(kwargs, RSA, ISPC=False):
             kwargs['fp'] = fp
             kwargs['cv'] = False
             score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                      verbose=-1, easy_override=True)
+                                      verbose=-1, easy_override=False)
             scores.append(score)
             r_sqs.append(r_sq)
     elif ISPC:
@@ -342,7 +345,46 @@ def run_all_sn(kwargs, RSA, ISPC):
     t, p = stats.ttest_1samp(z_l, 0)
     M_r_sq = np.nanmean(np.array(r_sqs))
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5f}')
-    return np.nanmean(np.array(r_sqs))
+    return t, np.nanmean(np.array(r_sqs))
+
+def plot_stacked_bars(kwargs, RSA, ISPC):
+    ROI_bold = '_'.join(kwargs['ROI_focus_conn'].split('_')[:-1]) + '_BOLD'
+
+    kwargs_ = kwargs.copy()
+    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl'] + [ROI_bold]
+    t_conn_all, r_sqs_conn_all = run_all_sn(kwargs_, RSA, ISPC)
+    kwargs_['ROIs_ctrl'] = []
+    t_conn, r_sqs_conn = run_all_sn(kwargs_, RSA, ISPC)
+
+    kwargs_ = kwargs.copy()
+    kwargs_['ROI_focus_conn'] = kwargs_['ROIs_ctrl'][0]
+    kwargs_['ROIs_ctrl'] = [kwargs['ROI_focus_conn'], ROI_bold]
+    t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC)
+    kwargs_['ROIs_ctrl'] = []
+    t_ROIs, r_sqs_ROIs = run_all_sn(kwargs_, RSA, ISPC)
+
+    kwargs_ = kwargs.copy()
+    kwargs_['ROI_focus_conn'] = ROI_bold
+    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl'] + [kwargs['ROI_focus_conn']]
+    t_bold_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC)
+    kwargs_['ROIs_ctrl'] = []
+    t_bold, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC)
+
+    print('-')
+    print(f'{t_conn=:.3f} ({r_sqs_conn:.4f})')
+    print(f'\t{t_conn_all=:.3f} ({r_sqs_conn_all:.4f})')
+    print(f'{t_ROIs=:.3f} ({r_sqs_ROIs:.4f})')
+    print(f'\t{t_ROIs_all=:.3f} ({r_sqs_ROIs_all:.4f})')
+    print(f'{t_bold=:.3f} ({r_sqs_bold:.4f})')
+    print(f'\t{t_bold_all=:.3f} ({r_sqs_bold_all:.4f})')
+
+    # print(f'\t{r_sqs_conn_all=:.4f}')
+    # print(f'{r_sqs_ROIs=:.4f}')
+    # print(f'\t{r_sqs_ROIs_all=:.4f}')
+    # print(f'{r_sqs_bold=:.4f}')
+    # print(f'\t{r_sqs_bold_all=:.4f}')
+
+
 
 def plot_r_sqs(kwargs, RSA, ISPC):
 
@@ -453,7 +495,8 @@ def do_regr():
     second_order = 'spear'
     RDM_method = 'within_nan'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    target_ROI = 'Occipital'
+    # target_ROI = 'Occipital'
+    target_ROI = 'MTL'
 
     ROI_focus = f'{target_ROI}_{conn}'
 
@@ -485,38 +528,13 @@ def do_regr():
 
     # print(f'Num controls: {len(ROIs_ctrl)}')
     # run_all_sn(kwargs, RSA, ISPC)
-    plot_r_sqs(kwargs, RSA, ISPC)
+    # plot_r_sqs(kwargs, RSA, ISPC)
+    plot_stacked_bars(kwargs, RSA, ISPC)
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    # n_col = 500
-    # n_ex = 1000
-    # cov = np.zeros((n_col, n_col))
-    # cov[1:, 1:] = 0.5
-    # cov[np.diag_indices(n_col)] = 1
-    #
-    # ar = np.random.multivariate_normal([0] * n_col, cov,
-    #                                    size=n_ex)
-    # # print(ar.shape)
-    # # quit()
-    # cols = [f'i{i}' for i in range(n_col)]
-    # df = pd.DataFrame(ar, columns=cols)
-    # df = stats.zscore(df, axis=0)
-    # formula = f'i0 ~ 1' + ' + ' + ' + '.join(cols[1:])
-    # model = smf.ols(formula=formula, data=df)
-    # res = model.fit()
-    # print(res.summary())
-    # coefs = res.params[1:]
-    # coefs_ss = np.sum(coefs ** 2)
-    # print(f'{coefs_ss=:.6f}')
-    # print(f'{res.rsquared=:.6f}')
-    # # print(f'{res.adj_rsquared=:.6f}')
-    #
-    # # print(res.rsquared)
-    # quit()
-
     do_regr()
 
 
