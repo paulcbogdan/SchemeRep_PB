@@ -1,6 +1,9 @@
 import os
 
 import pandas as pd
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 from connRSA.conn_analyze_IRAFs import prep_network2ROI, ROI2NETWORK
@@ -9,6 +12,7 @@ from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan
 from old.networks import prep_networks
 from utils import pickle_wrap
+import statsmodels.formula.api as smf
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
@@ -18,6 +22,8 @@ import scipy.stats as stats
 from time import time
 from org_sns import get_sns
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import LeaveOneOut, KFold
 
 def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
                    fp0, fp1, trial_similarity, stdize_by_run,
@@ -81,7 +87,7 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
 
 def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
-                   fp0, fp1):
+                   fp0, fp1, cv=True):
 
     # TODO: within to NaN
 
@@ -118,7 +124,6 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
             flat_ctrls.append(flat_ctrl)
         flat_ctrl = np.array(flat_ctrls).T
 
-        # flat_ctrl = ERS_ctrl.reshape(ERS_ctrl.shape[0], -1).T # (12996, 22)
         nan_cols = np.isnan(flat_ctrl).any(axis=0)
         n_nan_cols = np.sum(nan_cols) + skips
         if n_nan_cols > 10:
@@ -130,40 +135,90 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     else:
         X = np.hstack([flat_itr[:, None], flat_focus[:, None]])
     if RDM_method == 'within_nan':
-        # print(len(X))
         X = X[~np.isnan(flat_focus), :]
-        # print(len(X))
-        # quit()
         flat_stim = flat_stim[~np.isnan(flat_focus)]
-    # else:
     assert np.sum(np.isnan(X)) == 0
-    # print(f'{X.shape=}')
-    # quit()
-    X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
-    flat_stim = stats.zscore(flat_stim)
-    # print(flat_stim)
-    # print(f'{X.shape=}')
-    # print(X[:, 0])
-    # print(X[:, 1])
-    # quit()
-    # plt.imshow(X, aspect='auto')
-    # plt.show()
+
+    # X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
+    # flat_stim = stats.zscore(flat_stim)
+
+
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
-    # print(f'{residuals}')
-    # print(f'{solution=}')
-    # print(f'{residuals=}')
-    # plt.plot(flat_stim)
-    # plt.show()
-    r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
-    # print(f'{r_sq=}')
-    # quit()
-    return solution[1], r_sq
+    if cv:
+        # t_st = time()
+        # lm = LinearRegression()
+        # clf = make_pipeline(StandardScaler(), LinearRegression())
+        # cv = LeaveOneOut()
+        cv = KFold(n_splits=100)
+        resid_l = []
+
+        for train_idx, test_idx in cv.split(X, flat_stim):
+            X_train, X_test = X[train_idx], X[test_idx]
+            y_train, y_test = flat_stim[train_idx], flat_stim[test_idx]
+
+            X_train = StandardScaler().fit_transform(X_train)
+            # print(f'{np.mean(X_train)}')
+            # print(X_train.shape)
+            # quit()
+            # print(X_train.shape)
+            # print(np.mean(X_train, axis=0).shape)
+            # print(np.mean(X_train, axis=0))
+            # quit()
+            y_train = stats.zscore(y_train)
+            # print(y_train)
+            # quit()
+            X_test = StandardScaler().fit_transform(X_test)
+            y_test = stats.zscore(y_test)
+            clf = LinearRegression()
+            clf.fit(X_train, y_train)
+            y_pred = clf.predict(X_test)
+            residuals = y_test - y_pred
+            # print(f'{np.mean(y_train)=:.4f}')
+            # print(f'{np.mean(y_test)=:.4f}')
+            # print()
+            # plt.plot(residuals)
+            # plt.show()
+            # print(f'{np.mean(residuals)=:.4f}')
+            # quit()
+            # quit()
+            # SSE = np.sum(residuals ** 2)
+            resid_l.extend(residuals)
+            # print(residuals)
+        resid_l = np.array(resid_l)
+        # print(len(resid_l))
+        # quit()
+        # M_resid = np.mean(np.abs(resid_l))
+        # print(f'{M_resid=}')
+        residuals = np.sum(resid_l ** 2)
+        # residuals = np.sum(SSE_l)
+        # plt.plot(residuals)
+        # plt.show()
+        # quit()
+        flat_stim = stats.zscore(flat_stim)
+        r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
+        print(f'{r_sq=:.4f}')
+        # quit()
+        # M = np.mean(fat_stim ** 2)
+        # print(M)
+        # quit()
+        # scores = -cross_val_score(clf, X, flat_stim, cv=cv,
+        #                           scoring='neg_mean_squared_error')
+        # r_sq = 1 - np.mean(scores)
+        # print(f'{r_sq=:.5f}')
+        # print(f'{time() - t_st:.2f} s')
+        return solution[1], r_sq
+    else:
+        n = X.shape[0] - 1 # minus 1 because of the intercept
+        r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
+        r_sq = r_sq[0]
+        # print(f'{r_sq=:.4f}')
+        adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - X.shape[1] - 1)
+        return solution[1], adj_r_sq
 
 
 def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
                    fp0, fp1):
-
 
     dir_in = fr'cache/conn_RSA/ars/ISPC'
     dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
@@ -230,17 +285,16 @@ def send_to_specific(kwargs, RSA, ISPC=False):
     if RSA:
         for fp in fps:
             kwargs['fp'] = fp
+            kwargs['cv'] = True
             score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                verbose=-1,
-                                easy_override=False)
+                                      verbose=-1, easy_override=True)
             scores.append(score)
             r_sqs.append(r_sq)
     elif ISPC:
         for fp in fps:
             kwargs['fp'] = fp
             score, r_sq = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
-                                verbose=-1,
-                                easy_override=False)
+                                      verbose=-1, easy_override=False)
             scores.append(score)
             r_sqs.append(r_sq)
     else:
@@ -249,9 +303,8 @@ def send_to_specific(kwargs, RSA, ISPC=False):
                 if fp0 >= fp1: continue
                 kwargs['fp0'] = fp0
                 kwargs['fp1'] = fp1
-                # score = do_regr_ERS_sn(**kwargs)
                 score, r_sq = pickle_wrap(do_regr_ERS_sn, kwargs=kwargs,
-                                    verbose=-1)
+                                          verbose=-1)
                 scores.append(score)
                 r_sqs.append(r_sq)
 
@@ -276,8 +329,13 @@ def run_all_sn(kwargs, RSA, ISPC):
         z_l.append(z)
         r_sqs.append(r_sq)
     # print(f'{time() - t_st:.2f} s')
+    # print(f'{r_sqs=}')
+    # print(np.nanmean(np.array(r_sqs)))
+    # plt.hist(r_sqs)
+    # plt.show()
     t, p = stats.ttest_1samp(z_l, 0)
-    print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f}')
+    M_r_sq = np.nanmean(np.array(r_sqs))
+    print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5f}')
     return np.sqrt(np.nanmean(np.array(r_sqs)))
 
 def plot_r_sqs(kwargs, RSA, ISPC):
@@ -297,13 +355,11 @@ def plot_r_sqs(kwargs, RSA, ISPC):
     r_sqs_bold_ROI = run_all_sn(kwargs_, RSA, ISPC)
 
     kwargs_ = kwargs.copy()
-    print(f'{kwargs_=}')
     kwargs_['ROIs_ctrl'] = []
     r_sqs_conn = run_all_sn(kwargs_, RSA, ISPC)
 
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = ROI_bold
-    print(f'{kwargs_=}')
     kwargs_['ROIs_ctrl'] = []
     r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC)
 
@@ -329,7 +385,7 @@ def do_regr():
     second_order = 'spear'
     RDM_method = 'within_nan'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    target_ROI = 'PFC_ACC'
+    target_ROI = 'Occipital'
 
     ROI_focus = f'{target_ROI}_{conn}'
 
@@ -354,17 +410,36 @@ def do_regr():
     # run_all_sn(kwargs, RSA, ISPC)
     plot_r_sqs(kwargs, RSA, ISPC)
 
+import sys
+sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
+    # n_col = 500
+    # n_ex = 1000
+    # cov = np.zeros((n_col, n_col))
+    # cov[1:, 1:] = 0.5
+    # cov[np.diag_indices(n_col)] = 1
+    #
+    # ar = np.random.multivariate_normal([0] * n_col, cov,
+    #                                    size=n_ex)
+    # # print(ar.shape)
+    # # quit()
+    # cols = [f'i{i}' for i in range(n_col)]
+    # df = pd.DataFrame(ar, columns=cols)
+    # df = stats.zscore(df, axis=0)
+    # formula = f'i0 ~ 1' + ' + ' + ' + '.join(cols[1:])
+    # model = smf.ols(formula=formula, data=df)
+    # res = model.fit()
+    # print(res.summary())
+    # coefs = res.params[1:]
+    # coefs_ss = np.sum(coefs ** 2)
+    # print(f'{coefs_ss=:.6f}')
+    # print(f'{res.rsquared=:.6f}')
+    # # print(f'{res.adj_rsquared=:.6f}')
+    #
+    # # print(res.rsquared)
+    # quit()
+
     do_regr()
-
-
-
-
-
-
-
-
-
 
 

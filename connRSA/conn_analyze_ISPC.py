@@ -72,23 +72,6 @@ def pie_charts_ISPC(df, title):
     plot_pie_chart([conn_itr_r, bold_itr_r], title)
     return
 
-    # plt.title(title, fontsize=24)
-    # if conn_itr_r < 0:
-    #     plt.pie([bold_itr_r], labels=['Region'],
-    #             colors=[' red'],
-    #             textprops=dict(color="w", fontsize=24, ha='center'),
-    #             labeldistance=0.001,
-    #             startangle=90,)
-    # else:
-    #     plt.pie([conn_itr_r, bold_itr_r],
-    #                                        labels=['Conn', 'Region'],
-    #             colors=['dodgerblue', 'red'], explode=[.01, .01],
-    #             textprops=dict(color="w", fontsize=24, ha='center'),
-    #             labeldistance=0.5,
-    #             startangle=90,)
-    # # plt.setp(autotexts, size=8, weight="bold")
-    # plt.show()
-
 def lmer_ISPC(df):
     for fp_idx in range(4):
         df_ = df[df['fp_idx'] == str(fp_idx)]
