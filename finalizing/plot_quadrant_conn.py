@@ -51,26 +51,26 @@ def plot_quadrant_conn():
     coords = np.array(atlas['coords'])[p_all]
 
     vabs = 1.43
-    fig = plt.figure(figsize=(3.5, 3.5))
-    plotting.plot_connectome(
-        graph_tight,
-        coords,
-        edge_threshold=0.2,
-        edge_vmin=-vabs, edge_vmax=vabs,
-        # alpha=0.01,
-        # colorbar=True,
-        # edge_cmap='coolwarm',
-        edge_cmap='turbo',
-        node_size=5,
-        node_color='k',
-        edge_kwargs={'linewidth': 1., 'alpha': .8},
-        display_mode='x',
-        figure=fig
-    )
-    fp_out = 'result_pics/other/vendor_drawing.png'
-    plt.savefig(fp_out, dpi=600)
-    plt.show()
-    quit()
+    # fig = plt.figure(figsize=(3.5, 3.5))
+    # plotting.plot_connectome(
+    #     graph_tight,
+    #     coords,
+    #     edge_threshold=0.2,
+    #     edge_vmin=-vabs, edge_vmax=vabs,
+    #     # alpha=0.01,
+    #     # colorbar=True,
+    #     # edge_cmap='coolwarm',
+    #     edge_cmap='turbo',
+    #     node_size=5,
+    #     node_color='k',
+    #     edge_kwargs={'linewidth': 1., 'alpha': .8},
+    #     display_mode='x',
+    #     figure=fig
+    # )
+    # fp_out = 'result_pics/other/vendor_drawing.png'
+    # plt.savefig(fp_out, dpi=600)
+    # plt.show()
+    # quit()
 
 
     # plotting.plot_markers(rois, coords_clean,
@@ -81,6 +81,8 @@ def plot_quadrant_conn():
 
     rois = [0, 3, 24, 30, 31, 43, 51, 73, 76, 81, 99, 123, 142, 152, 173, 188,
             198, 202, 206, 207]
+    rois = list(range(188, 210))
+    # rois = [200]
     # rois = [0, 3, 24, 30, 31,]
     coords_clean = [atlas['coords'][i] for i in rois]
     vals = [5] * len(rois)
@@ -96,7 +98,19 @@ def plot_quadrant_conn():
     data[data == 143] = 999
     data[data == 153] = 143
     data[data == 999] = 153
-    data[data < 1] = 0
+    # data[data < 1] = 0
+
+    # data[data > 1] = np.random.randint(1, 200, data[data > 1].shape)
+    data_ = np.zeros(data.shape)
+    # data_[24:27, :, :] = 1
+    data_[48:52, :, :] = 1
+    data[data > 1] -= 187
+
+    data *= data_
+    # print(data.shape)
+    # print(np.isnan)
+    # quit()/
+
 
     # for x in range(1, data.shape[0]-1):
     #     for y in range(1, data.shape[1]-1):
@@ -143,10 +157,15 @@ def plot_quadrant_conn():
     # quit()
     img = image.new_img_like(atlas['maps'], data)
     plotting.plot_glass_brain(img, cmap=plt.get_cmap('turbo'), black_bg=False,
-                              threshold=0.5)
+                              vmin=0.5,
+                              resampling_interpolation='nearest',
+                              alpha=0.7)
     # quit()
     # plotting.plot_roi(img, cmap=plt.get_cmap('turbo'), display_mode='y',)
-    plt.savefig('result_pics/other/signif_clf_no74.png', dpi=600)
+    # plt.savefig('result_pics/other/signif_clf_no74.png', dpi=600)
+    plt.savefig('result_pics/other/Occipital_.png', dpi=600)
+    # plt.savefig('result_pics/other/Occ200.png', dpi=600)
+
     plt.show()
 
 if __name__ == '__main__':

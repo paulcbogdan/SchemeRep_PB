@@ -171,9 +171,9 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
+    RSA = False
     semantic = False
-    conn = 'prod'
+    conn = 'euc'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     four_tasks = '8'
@@ -184,13 +184,13 @@ def run_lmer_PFC_RSA():
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    stdize_by_run = True
+    # stdize_by_run = True
 
 
-    target_ROI = 'else_cortical'
+    # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    # target_ROI = 'Occipital'
-    target_ROI = 'PFC_ACC'
+    target_ROI = 'Occipital'
+    # target_ROI = 'PFC_ACC'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
@@ -200,11 +200,11 @@ def run_lmer_PFC_RSA():
     do_networks = ROI2NETWORK[target_ROI]
 
     kwargs = {'RSA': RSA, 'semantic': semantic, 'do_networks': do_networks,
-                'conn': conn, 'trial_similarity': trial_similarity,
-                'second_order': second_order, 'four_tasks': four_tasks,
-                'combine_regions': combine_regions, 'split': split,
-                'RDM_method': RDM_method, 'age': age,
-                'stdize_by_run': stdize_by_run
+              'conn': conn, 'trial_similarity': trial_similarity,
+              'second_order': second_order, 'four_tasks': four_tasks,
+              'combine_regions': combine_regions, 'split': split,
+              'RDM_method': RDM_method, 'age': age,
+              'stdize_by_run': stdize_by_run
               }
     results_conn, results_bold_comb, results_bold_sep \
         = pickle_wrap(load_for_lmer, None, kwargs=kwargs,
