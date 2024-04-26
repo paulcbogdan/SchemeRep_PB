@@ -28,7 +28,7 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 		 split=False, networks=False,  trial_similarity='corr', ):
-	BOLD = conn == 'BOLD'
+	BOLD = 'BOLD' in conn
 	cross_region = 'cross_' in conn
 	if 'cross_' in conn:
 		conn = conn.replace('cross_', '')
@@ -44,6 +44,7 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 									 cross_region=cross_region, conn=conn,
 									 combine_regions=combine_regions,)
 
+		print(f'{len(ROI2vecs)=}')
 		for ROI, vecs in ROI2vecs.items():
 			vecs_BOLD = ROI2vecs[ROI]
 			if BOLD or cross_region:
@@ -57,6 +58,9 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 	sizes = []
 	for ROI, ROI_vecs in ROI2vecs_all_sn.items():
 		ROI_vecs = np.array(ROI_vecs)
+		print(f'{ROI_vecs.shape=}')
+		assert ROI_vecs.shape[0] == len(sns), \
+			f'Bad shapes! {ROI_vecs.shape=}, {len(sns)=}'
 
 		sn_Ms = np.nanmean(ROI_vecs, axis=1)[:, None, :]
 		sn_SDs = np.nanstd(ROI_vecs, axis=1)[:, None, :]
@@ -88,6 +92,9 @@ def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,
 			bad_sns_bool = np.isnan(ROI_vecs).mean(axis=(1, 2)) > 0.25
 			good_sns = [sn for i, sn in enumerate(sns) if not bad_sns_bool[i]]
 			ROI_vecs = ROI_vecs[~bad_sns_bool]
+
+			if 'avg' in conn:
+				ROI_vecs = np.nanmean(ROI_vecs, axis=-1)[..., None]
 
 			M = np.nanmean(ROI_vecs, axis=2)
 			for i in range(ROI_vecs.shape[0]):

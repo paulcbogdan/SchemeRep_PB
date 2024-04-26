@@ -1,5 +1,6 @@
 import os
 
+from atlas_utils import get_atlas
 from connRSA.conn_plot import pie_charts
 from connRSA.conn_report import lmer_stats
 
@@ -22,7 +23,29 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
                'perceptual': 17,
                'full_frontal': 11, 'full_frontal_CG': 11,
-               'MTL': 9}
+               'MTL': 9,}
+               # 'Hipp': 18, 'PhG': 18, 'ATL': 18,
+               # 'STG': 18, 'MTG': 18, 'ITG': 18}
+ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
+                    'PCL': 19, 'ATL': 19, 'STG': 19, 'MTG': 19, 'ITG': 19,
+                    'FuG': 19, 'PhG': 19, 'pSTS': 19, 'SPL': 19, 'IPL': 19,
+                    'Pcun': 19, 'PoG': 19, 'INS': 19, 'PCC': 19, 'ACC': 19,
+                    'EVC': 19, 'LOC': 19, 'sOcG': 19, 'Amyg': 19, 'Hipp': 19,
+                    'Str': 19, 'Tha': 19}
+ROI2NETWORK.update(ROI2network_anat)
+
+# atlas = get_atlas()
+# labels = atlas['tick_labels']
+# d = {}
+# d2 = {}
+# for label in atlas['tick_labels']:
+#     d[label] = 19
+#     d2[label] = [label]
+#
+# print(d)
+# print(d2)
+# print(atlas['tick_labels'])
+# quit()
 
 def get_idx_from_key(l, substring):
     idxs = []
@@ -68,14 +91,23 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
     print(f'BOLD ' * 10)
-    report_results(results_bold_comb, do_lmer=True)
+    report_results(results_bold_comb, do_lmer=False)
 
     settings['do_networks'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
 
-    return results_conn, results_bold_comb, results_bold_sep
+    settings['do_networks'] = False
+    settings['combine_regions'] = True
+    results_bold_sep_big = pickle_wrap(run_settings, None,
+                                       kwargs=settings, easy_override=False,
+                                       verbose=1, cache_dir=dir_results)
+    report_results(results_bold_sep_big, do_lmer=False)
+
+
+    return (results_conn, results_bold_comb, results_bold_sep_big,
+            results_bold_sep)
 
 def organize_df(results_conn, results_bold_sep, results_bold_com,
                 do_networks, target_ROI,):
@@ -173,10 +205,10 @@ def rsum(row):
 def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
-    conn = 'euc'
+    conn = 'prod'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
-    four_tasks = '8'
+    four_tasks = '7'
     combine_regions = False
     split = False
     # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
@@ -184,17 +216,19 @@ def run_lmer_PFC_RSA():
     # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    # stdize_by_run = True
-
+    # stdize_by_run = False
 
     # target_ROI = 'else_cortical'
     # target_ROI = 'perceptual'
-    target_ROI = 'Occipital'
+    # target_ROI = 'Occipital'
+    # target_ROI = 'Hipp'
+    # target_ROI = 'SFG'
     # target_ROI = 'PFC_ACC'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
+    target_ROI = 'MTL'
 
 
     do_networks = ROI2NETWORK[target_ROI]
@@ -206,9 +240,10 @@ def run_lmer_PFC_RSA():
               'RDM_method': RDM_method, 'age': age,
               'stdize_by_run': stdize_by_run
               }
-    results_conn, results_bold_comb, results_bold_sep \
+    results_conn, results_bold_comb, results_bold_sep_big, results_bold_sep \
         = pickle_wrap(load_for_lmer, None, kwargs=kwargs,
                       easy_override=True)
+    quit()
 
     report_results(results_conn, do_lmer=False)#True)
     print('BOLD')

@@ -28,15 +28,13 @@ def report_results(results, do_lmer=False, ISPC=False):
     #     return
 
     if len(results['keys']) != scores.shape[1]:
-        if results['settings']['conn'] == 'BOLD':
+        if results['settings']['conn'] in ['BOLD', 'BOLD_avg']:
             assert scores.shape[1] == 246, f'BAD BOLD {scores.shape=}'
             results['keys'] = get_BNA_ROIs()
             warnings.warn('For BOLD, setting keys to 246 BNA ROIs')
         else:
             raise ValueError(f'{len(results["keys"])=} != {scores.shape=}')
 
-    # assert len(results['keys']) == scores.shape[1], \
-    #     f'{len(results["keys"])=}, {scores.shape=}'
     if ISPC:
         scores_by_ROI = np.array(results['scores_by_ROI'])
         scores_by_fp = np.transpose(scores_by_ROI, (0, 2, 1))
@@ -110,6 +108,7 @@ def report_results(results, do_lmer=False, ISPC=False):
         else:
             lmer_result_str = ''
 
+        # if p < .05:
         print(f'{ROI} ({M_size:.1f}), t[{N - 1}]={t:.2f}, p={p:.3f}, '
               f'{t_by_fp_str} {lmer_result_str}')
 

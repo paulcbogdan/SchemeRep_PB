@@ -28,17 +28,13 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     sizes_all = []
     trialwise_all = []
     for fp0 in fps:
-
         if RSA:
-
             if plotting is None:
                 f = RSA_sn
-
             elif 'ROIs' in plotting:
                 PFC2 = 'PFC2' in plotting
                 PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
                 ctrl = 'ctrl' in plotting
-
                 f = partial(RSA_ROI, PFC=PFC, PFC2=PFC2, ROI_ctrl=ctrl)
             elif plotting == 'edges':
                 f = RSA_edgewise
@@ -144,7 +140,7 @@ def prep_fps(four_tasks):
 
 def prep_results_d(settings, networks, atlas, sns):
     if networks is None:
-        if settings['conn'] == 'BOLD':
+        if 'BOLD' in settings['conn']:
             keys = atlas['ROIs']
         else:
             keys = atlas['tick_labels']
@@ -198,8 +194,8 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                  combine_regions=False, split=False, RDM_method='by_run',
                  age=1, plotting=None, atlas='BNA',
                  stdize_by_run=False):
-    assert not ((conn == 'BOLD') and RDM_method and ('clever' in RDM_method) and
-                (not do_networks))
+    # assert not ((conn == 'BOLD') and RDM_method and ('clever' in RDM_method) and
+    #             (not do_networks))
     settings = locals().copy()
     print(f'Run settings start:')
     pprint(settings)
@@ -218,6 +214,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     sns = age2sn[age]
     sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
     sns = [sn for sn in sns if int(sn) != 239]
+    sns = [sn for sn in sns if int(sn) != 131] # gives errors for BOLD_avg? False | False
     # sns = [239] # 230, 234,
     # sns = [138]
     # print(f'{sns=}')

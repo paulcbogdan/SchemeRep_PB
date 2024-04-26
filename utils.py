@@ -469,7 +469,6 @@ def timing(f):
         return result
     return wrap
 
-
 def get_formula_cols(df, formula):
     import re
     formula = re.split(' |[*]|\)|\(', formula)
@@ -480,15 +479,6 @@ def get_formula_cols(df, formula):
             cols.append(col)
     return cols
 
-if __name__ == '__main__':
-    # f = lambda: pickle_wrap(1, None)
-    f = pickle_wrap
-    signature = inspect.signature(f)
-    # print(signature)
-    for k, v in signature.parameters.items():
-        # print(isinstance(v, ))
-        print(f'{k}: {v.default=}')
-        # print(v.default is v.empty)
 
 
 def run_two_sample_on_2D(ar0, ar1):
@@ -515,12 +505,17 @@ HCP_CACHE = r'F:\HCP_Preprocessing\HCP\HCP_cache'
 HCP_RS_ROOT = r'E:\HCP_RS'
 
 if __name__ == '__main__':
-
     test = [[-300, 1, 3, 4, 5], [-300, 3, 3, 4, 5]]
     test = np.array(test)
-
-    # print(test[[slice(None), 3]])
-    # quit()
     test = stdize(test, rankdata=True)
     print(test)
+
+if __name__ == '__main__':
+    # f = lambda: pickle_wrap(1, None)
+    f = pickle_wrap
+    signature = inspect.signature(f)
+    # print(signature)
+    for k, v in signature.parameters.items():
+        # print(isinstance(v, ))
+        print(f'{k}: {v.default=}')
 

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
@@ -16,7 +17,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
            RDM_method='by_run', combine_regions=False,
            stdize_by_run=False, semantic=False):
-    BOLD = conn == 'BOLD'
+    BOLD = 'BOLD' in conn
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
         conn = conn.replace('cross_', '')
@@ -34,12 +35,42 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                                  cross_region=cross_region, conn=conn,
                                  combine_regions=combine_regions,
                                  easy_override=False)
-
+    # print(len(ROI2vecs))
+    # quit()
     scores = []
     sizes = []
     IRAFs_all_ROI = []
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
+
+    if 'norm' in conn and 'avg' in conn:
+        networks = {'MTL': ['Hipp', 'PhG', 'ATL'],
+                    'Occipital': ['EVC', 'LOC', 'sOcG'],
+                    'PFC': ['SFG', 'MFG', 'IFG', 'OrG', ]
+                    }
+        networks2l = defaultdict(list)
+        i2network = {}
+
+        for i, (ROI, vecs) in enumerate(ROI2vecs.items()):
+            for network, keys in networks.items():
+                for key in keys:
+                    if key in ROI:
+                        networks2l[network].append(ROI)
+                        assert i not in i2network, \
+                            f'Mixed: {i=}, {i2network[i]=}'
+                        i2network[i] = network
+
+        network2M = {}
+        network2SD = {}
+        for network, ROIs in networks2l.items():
+            vecs = np.vstack([np.nanmean(ROI2vecs[ROI], axis=-1)
+                              for ROI in ROIs])
+            # ROI2vecs[network] = vecs
+            # print(vecs.shape)
+            network2M[network] = np.nanmean(vecs, axis=0)[:, None]
+            network2SD[network] = np.nanstd(vecs, axis=0)[:, None]
+        # quit()
+
     RSM_fmri_l = []
     dir_out = fr'cache/conn_RSA/ars/RSA'
     dir_out = (f'{dir_out}/{fp}_{trial_similarity}_'
@@ -49,25 +80,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         t_st = time()
         vecs_BOLD = ROI2vecs[ROI]
         # TODO: Implement toggle to disable connectivity
-        # if sn == 138 and 'obj' in fp:
-        #     print(vecs_BOLD.shape)
-        #     keeps = ~np.isnan(vecs_BOLD).sum(axis=0) > 0
-        #     print(keeps)
-        #     quit()
-        # else:
         keeps = ~np.isnan(vecs_BOLD).any(axis=0)
-        # plt.imshow(vecs_BOLD)
-        # plt.show()
-        # print(keeps)
-        # print('test')
-        # quit()
-        # print(vecs_BOLD.shape)
-        # quit()
-        # print(ROI2vecs)
-        # quit()
-        # print(sn)
-        # print(type(sn))
-        # quit()
         if np.sum(keeps) < 2 and sn != 138: # 138 is missing run 3
             sizes.append(0)
             scores.append(np.nan)
@@ -75,17 +88,56 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             continue
 
         vecs_BOLD = vecs_BOLD[:, keeps]
+        # print(vecs_BOLD.shape)
         sizes.append(np.sum(keeps))
 
         vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
         if BOLD or cross_region:
-            vecs = vecs_BOLD
+
+            # quit()
+            vecs = stdize(vecs_BOLD, axis=0, nans=True,
+                          stdize_by_run=stdize_by_run)
+            # plt.imshow(vecs)
+            # plt.show()
+            # print(vecs_BOLD.shape)
+            # vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn,
                                  stdize_by_run=stdize_by_run)
 
+
+        if 'avg' in conn:
+            vecs = np.nanmean(vecs, axis=-1)[..., None]
+
+        if '_norm' in conn:
+            # print('TEST')
+            if 'avg' in conn:
+                # print('TOAST')
+                if i in i2network:
+                # if i2network[i] in network2M:
+                    network = i2network[i]
+                    # print(vecs.shape)
+                    # print(network2M[network].shape)
+                    # plt.imshow(vecs)
+                    # plt.show()
+                    if 'half' in conn:
+                        vecs = vecs - (network2M[network] / 2)
+                    else:
+                        vecs = (vecs - network2M[network])# / network2SD[network]
+                    # print(vecs.shape)
+                    # print(f'subtracting {ROI}')
+                    # plt.imshow(vecs)
+                    # plt.show()
+                    # quit()
+                    # print(vecs.shape)
+            else:
+                vecs = stdize(vecs, axis=1, nans=True)
+            # print(vecs.shape)
+        # quit()
+
         if RDM_method == 'by_run':
-            RSM_fMRI = get_trial_x_trial(vecs, trial_similarity=trial_similarity)
+            RSM_fMRI = get_trial_x_trial(vecs,
+                                         trial_similarity=trial_similarity)
             z = RDM_x_RDM_by_run(RSM_fMRI, RSM_stim, corr=second_order)
         elif RDM_method == 'clever_std':
             RSM_fMRI = get_trial_x_trial_RSM(vecs, simple_mean=True,
@@ -100,17 +152,33 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         elif RDM_method == 'within_nan':
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
+            # plt.imshow(RSM_fMRI)
+            # plt.show()
+            # print(vecs.shape)
+            # vecs = stdize(vecs, axis=1, nans=True)
+            # RSM_fMRI2 = get_trial_x_trial(vecs,
+            #                              trial_similarity='euc')
+            # plt.imshow(RSM_fMRI2)
+            # plt.show()
+            #
+            # z = RDM_x_RDM(RSM_fMRI, RSM_fMRI2, corr=second_order,
+            #               within_to_nan=True)
+            # print(f'{z=}')
+            # quit()
 
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
-
-
         else:
             raise ValueError(f'{RDM_method=} not supported')
+        # plt.imshow(RSM_fMRI)
+        # plt.colorbar()
+        # plt.show()
+        # quit()
         scores.append(z)
 
         RSM_fmri_l.append(RSM_fMRI)
-        IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn, within_to_nan=False,
+        IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn,
+                          within_to_nan=RDM_method == 'within_nan',
                           by_run=RDM_method == 'by_run')
         IRAFs_all_ROI.append(IRAFs)
         t_processing = time() - t_st

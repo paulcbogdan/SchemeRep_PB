@@ -269,19 +269,26 @@ NAME_RENAMER = {'inside of a car': 'car',
                }
 
 
-def get_trial_info(sn, easy_override=False, ret=True, verbose=0):
+def get_trial_info(sn, easy_override=False, ret=True, incl_lures=False,
+                   verbose=0):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
-    fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
+    # fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
 
-    dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
+    kwargs = {'sn': sn, 'ret': ret, 'incl_lures': incl_lures}
 
-    df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp,
-                        easy_override=easy_override, verbose=verbose,
-                        dt_max=dt_max)
+    # dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
+
+    df_sn = pickle_wrap(get_trial_info_, None, kwargs=kwargs,
+                        verbose=verbose, easy_override=easy_override)
+
+
+    # df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp,
+    #                     easy_override=easy_override, verbose=verbose,
+    #                     dt_max=dt_max)
     return df_sn
 
-def get_trial_info_(sn, ret=True):
+def get_trial_info_(sn, ret=True, incl_lures=False):
     renamer = NAME_RENAMER
 
     obj_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/objects'
@@ -298,7 +305,6 @@ def get_trial_info_(sn, ret=True):
 
     df_sn_as_l = []
     inc_run_cnt = defaultdict(lambda: 0)
-    # print(f'{sn=}')
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/ENC/S{sn}_run{run}.mat'
         mat_enc = io.loadmat(fp_bhv)
@@ -314,8 +320,6 @@ def get_trial_info_(sn, ret=True):
             glob_scn7 = glob(glob_scn7)
             try:
                 fp_obj7 = glob_obj7[0]
-                # print(f'{fp_obj7=}')
-                # quit()
                 fp_scn7 = glob_scn7[0]
             except IndexError:
                 if sn == '224' and run == 3:
@@ -436,7 +440,7 @@ def get_trial_info_(sn, ret=True):
     df_sn = include_BL(df_sn, sn)
     if ret:
         df_sn = include_conceptual(df_sn, sn)
-        df_sn = include_vis(df_sn, sn)
+        df_sn = include_vis(df_sn, sn, incl_lures=incl_lures)
     try:
         df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
         def f(row):
@@ -473,6 +477,7 @@ def get_trial_info_(sn, ret=True):
     df_sn['in_c'] = df_sn['inc'].apply(lambda x: 'c' if x == 3 else 'in')
 
     add_fns(df_sn, sn)
+    df_sn['sn'] = sn
     return df_sn
 
 def add_fns(df_sn, sn):
@@ -596,7 +601,7 @@ def include_conceptual(df_sn, sn):
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
 
-def include_vis(df_sn, sn):
+def include_vis(df_sn, sn, incl_lures=False):
     # TODO: investigate why 138 is missing run3 visual retrieval
     # Figure out the trial breakdown
     vis_root = fr'fMRI_in/{sn}'
@@ -666,6 +671,24 @@ def include_vis(df_sn, sn):
         df_sn['vis8_fMRI'] = df_sn['obj'].map(obj2fp8)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
+
+        if incl_lures:
+            l_lures = []
+            for obj in obj2resp:
+                if obj2type[obj] == 'new':
+                    d = {'obj': obj,
+                         'vis_resp': obj2resp[obj],
+                         'vis8_fMRI': obj2fp8[obj],
+                         'vis_type': obj2type[obj],
+                         'vis_hit': np.nan if pd.isna(obj2resp[obj]) else
+                                    obj2resp[obj] == obj2type[obj],
+                         'vis_run': obj2run[obj],
+                         'vis_trial': obj2trial[obj],
+                         }
+                    l_lures.append(d)
+            df_lures = pd.DataFrame(l_lures)
+            df_sn = pd.concat([df_sn, df_lures], ignore_index=True)
+
     return df_sn
 
 def do_BL_move(bl_root, run, trial):

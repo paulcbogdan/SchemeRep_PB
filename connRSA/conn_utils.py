@@ -85,13 +85,7 @@ def corr_last_dim(ar0, ar1, nans=True, euc_dist=False, stdize=True):
     rs = m(rs, axis=-1)
     return rs
 
-
-
-
-
 def get_conn_vecs(vecs, vecs1=None, conn='euc', stdize_by_run=False):
-
-
     vecs = stdize(vecs, axis=0, nans=True, stdize_by_run=stdize_by_run)
     if vecs1 is None:
         vecs1 = vecs
@@ -219,9 +213,15 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         vecs0 = stdize(vecs0, axis=2, nans=True)
         vecs1 = stdize(vecs1, axis=2, nans=True)
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
-    elif trial_similarity == 'euc':
+    elif trial_similarity == 'mink':
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
-        RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
+        # RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
+    elif trial_similarity == 'euc':
+        RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
+                              metric='euclidean')
+        # print(RSM_fMRI.shape)
+        # quit()
+        # RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
     elif trial_similarity == 'spear':
         # print(vecs0)
         vecs0_r = stats.rankdata(vecs0, method='average', axis=-1,
@@ -232,10 +232,10 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         vecs0_r = stdize(vecs0_r, axis=2, nans=True)
         vecs1_r = stdize(vecs1_r, axis=2, nans=True)
         RSM_fMRI = np.nanmean(vecs0_r * vecs1_r, axis=-1)  # Spearman
-    elif trial_similarity == 'seuclidean':
+    elif trial_similarity in ['seuclidean', 'mahalanobis']:
         RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
-                              metric='seuclidean')
-        RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
+                              metric=trial_similarity)
+        # RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI

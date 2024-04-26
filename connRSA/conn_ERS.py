@@ -4,6 +4,7 @@ import numpy as np
 
 from organize_bhv import get_trial_info
 from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise
+from utils import stdize
 
 
 def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
@@ -49,6 +50,11 @@ def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
                 vecs_enc = get_conn_vecs(vecs0_enc, vecs1_enc, conn=conn)
                 vecs_ret = get_conn_vecs(vecs0_ret, vecs1_ret, conn=conn)
 
+            if 'avg' in conn:
+                vecs_enc = np.nanmean(vecs_enc, axis=-1)[..., None]
+                vecs_ret = np.nanmean(vecs_ret, axis=-1)[..., None]
+                print(f'{vecs_enc.shape=}')
+
             assert vecs_enc.shape == vecs_ret.shape
             if vecs_enc.shape[1] == 1:
                 score_ar[i, j] = np.nan
@@ -80,7 +86,7 @@ def ERS_ROI_pairwise(sn, atlas, fp0 = 'bl2_fMRI', fp1='obj2_fMRI',
 def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
            networks=True, conn='euc', trial_similarity='euc',
            combine_regions=False, stdize_by_run=False):
-    BOLD = conn == 'BOLD'
+    BOLD = 'BOLD' in conn
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
         conn = conn.replace('cross_', '')
@@ -114,8 +120,10 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
         except KeyError:
             scores.append(np.nan)
             continue
+        # print(f'{ROI=}')
         assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape, \
-            f'{sn=} | {vecs_enc_BOLD.shape=}, {vecs_ret_BOLD.shape=}'
+            (f'{sn=} ({ROI=}, {fp0}; {fp1}) | {vecs_enc_BOLD.shape=}, '
+             f'{vecs_ret_BOLD.shape=}')
         keeps = np.logical_and(~np.isnan(vecs_enc_BOLD).any(axis=0),
                                ~np.isnan(vecs_ret_BOLD).any(axis=0))
         vecs_enc_BOLD = vecs_enc_BOLD[:, keeps]
@@ -123,13 +131,21 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
 
         sizes.append(np.sum(keeps))
         if BOLD or cross_region:
-            vecs_enc = vecs_enc_BOLD
-            vecs_ret = vecs_ret_BOLD
+            vecs_enc = stdize(vecs_enc_BOLD, axis=0, nans=True,
+                          stdize_by_run=stdize_by_run)
+            vecs_ret = stdize(vecs_ret_BOLD, axis=0, nans=True,
+                          stdize_by_run=stdize_by_run)
+            # vecs_enc = vecs_enc_BOLD
+            # vecs_ret = vecs_ret_BOLD
         else:
             vecs_enc = get_conn_vecs(vecs_enc_BOLD, conn=conn,
                                      stdize_by_run=stdize_by_run)
             vecs_ret = get_conn_vecs(vecs_ret_BOLD, conn=conn,
                                      stdize_by_run=stdize_by_run)
+
+        if 'avg' in conn:
+            vecs_enc = np.nanmean(vecs_enc, axis=-1)[..., None]
+            vecs_ret = np.nanmean(vecs_ret, axis=-1)[..., None]
 
         ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
                                    trial_similarity=trial_similarity)

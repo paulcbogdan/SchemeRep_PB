@@ -3,6 +3,7 @@ import os
 from matplotlib import pyplot as plt
 
 from connRSA.conn_ISPC import run_settings_ISPC
+from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.conn_plot import plot_pie_chart
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 
@@ -143,7 +144,7 @@ def load_for_lmer_ISPC(four_tasks='8', conn='euc', combine_regions=False,
     print('SEP ' * 10)
     settings['do_networks'] = False
     results_bold_sep = pickle_wrap(run_settings_ISPC, None,
-                                   kwargs=settings, easy_override=False,
+                                   kwargs=settings, easy_override=True,
                                    verbose=1, cache_dir=dir_results)
     # report_results(results_bold_sep, do_lmer=True, ISPC=True)
     # quit()
@@ -162,8 +163,20 @@ def run_lmer_PFC_ISPC():
     # numpy.core._exceptions._ArrayMemoryError: Unable to allocate 49.8 GiB
     #   for an array with shape (56, 114, 114, 9180) and data type float64
     target_ROI = 'Occipital'
+    target_ROI = 'Hipp'
+    target_ROI = 'SFG'
+    # target_ROI = 'MTL'
 
-    ROI2network = {'Occipital': (1, 0), 'Ventral': (1, 1), 'Dorsal': (1, 1),
+
+
+    do_networks = ROI2NETWORK[target_ROI]
+    results_conn, results_bold_comb, results_bold_sep = (
+        load_for_lmer_ISPC(four_tasks='7', conn='prod', combine_regions=False,
+                           split=False, do_networks=do_networks,
+                           trial_similarity='corr',
+                           age='healthy'))
+
+    ROI2network_idx = {'Occipital': (1, 0), 'Ventral': (1, 1), 'Dorsal': (1, 1),
                    'else_cortical': (2, 1),
                    'PFC': (16, 0),
                    'PFC_ACC': (14, 1), 'FP': (14, 2),
@@ -171,14 +184,7 @@ def run_lmer_PFC_ISPC():
                    'full_frontal': 11, 'full_frontal_CG': 11,
                    'MTL': (9, 0)}
 
-    do_networks = ROI2network[target_ROI][0]
-    results_conn, results_bold_comb, results_bold_sep = (
-        load_for_lmer_ISPC(four_tasks='8', conn='prod', combine_regions=False,
-                           split=False, do_networks=do_networks,
-                           trial_similarity='corr',
-                           age='healthy'))
-
-    idx = ROI2network[target_ROI][1]
+    idx = ROI2network_idx[target_ROI][1]
     results_conn['scores_by_ROI'] = results_conn['scores_by_ROI'][:, idx, :]
     # plt.hist(results_conn['scores_by_ROI'].flatten())
     # plt.show()

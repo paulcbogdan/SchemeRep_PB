@@ -24,36 +24,36 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
 
-def get_stim_RDM_lifu(df_sn, per=True):
-    from tqdm import tqdm
-    import scipy.io as io
-    print('Loading existing...')
-    if per:
-        fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels' \
-                r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
-                r'\RSM_VGG16_PCA.mat'
-    else:
-        fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
-    mat = io.loadmat(fp_in)
-    RDM_stim = mat['R']
-    RDM_new = np.zeros((len(df_sn), len(df_sn)))
-
-    tblStim = pd.read_csv(r"SchemRep_tasks\PTBtasks\fullStimList.csv")
-    tblStim.head()
-    filelist = tblStim['ObjectFile'].to_list()
-    name2fps, _ = get_img_fns(get_dict=True)
-
-    for obj0 in tqdm(df_sn['obj'], desc='prepping Lifu RDM'):
-        obj0 = name2fps[obj0].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
-        for obj1 in df_sn['obj']:
-            obj1 = name2fps[obj1].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
-            idx0 = filelist.index(obj0)
-            idx1 = filelist.index(obj1)
-            RDM_new[idx0, idx1] = RDM_stim[idx0, idx1]
-            RDM_new[idx1, idx0] = RDM_stim[idx1, idx0]
-    # pd.DataFrame(RDM_new).to_csv('RDM_stim_lifu.csv')
-
-    return RDM_new
+# def get_stim_RDM_lifu(df_sn, per=True):
+#     from tqdm import tqdm
+#     import scipy.io as io
+#     print('Loading existing...')
+#     if per:
+#         fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels' \
+#                 r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
+#                 r'\RSM_VGG16_PCA.mat'
+#     else:
+#         fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
+#     mat = io.loadmat(fp_in)
+#     RDM_stim = mat['R']
+#     RDM_new = np.zeros((len(df_sn), len(df_sn)))
+#
+#     tblStim = pd.read_csv(r"SchemRep_tasks\PTBtasks\fullStimList.csv")
+#     tblStim.head()
+#     filelist = tblStim['ObjectFile'].to_list()
+#     name2fps, _ = get_img_fns(get_dict=True)
+#
+#     for obj0 in tqdm(df_sn['obj'], desc='prepping Lifu RDM'):
+#         obj0 = name2fps[obj0].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
+#         for obj1 in df_sn['obj']:
+#             obj1 = name2fps[obj1].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
+#             idx0 = filelist.index(obj0)
+#             idx1 = filelist.index(obj1)
+#             RDM_new[idx0, idx1] = RDM_stim[idx0, idx1]
+#             RDM_new[idx1, idx0] = RDM_stim[idx1, idx0]
+#     # pd.DataFrame(RDM_new).to_csv('RDM_stim_lifu.csv')
+#
+#     return RDM_new
 
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
@@ -105,48 +105,24 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
         RDM_stim = scipy_dist(all_vecs, metric='euclidean')
     else:
         raise ValueError('dist must be corr or mahalanobis')
+    RDM_stim[np.diag_indices_from(RDM_stim)] = np.nan
     return RDM_stim
 
 def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
     from scipy.spatial import distance
     all_vecs = np.array(all_vecs)
-    # V_by_edge = np.nanvar(all_vecs, axis=0)
-    # RSM = np.zeros((all_vecs.shape[0], all_vecs.shape[0]))
-    # for i in range(all_vecs.shape[0]):
-    #     for j in range(all_vecs.shape[1]):
-    #         vec_i = all_vecs[i]
-    #         vec_j = all_vecs[j]
-    #         r = distance.seuclidean(vec_i, vec_j, V_by_edge)
-    #         RSM[i, j] = r
-    # RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
-    # plt.imshow(RSM)
-    # plt.colorbar()
-    # plt.show()
-    # plt.imshow(all_vecs)
-    # plt.show()
-    # print(np.sum(np.isnan(all_vecs)))
-    # print(np.sum(np.isnan(vecs1)))
-    # quit()
+    if len(all_vecs.shape) == 1:
+        all_vecs = all_vecs[:, None]
+
     if vecs1 is None:
         RSM_triangle = -distance.pdist(all_vecs, metric)
         RSM = distance.squareform(RSM_triangle)
         RSM[np.diag_indices(all_vecs.shape[0])] = np.nan
     else:
+        if len(vecs1.shape) == 1:
+            vecs1 = vecs1[:, None]
         vecs1 = np.array(vecs1)
-        # print(f'{all_vecs.shape=}')
-        # print(f'{vecs1.shape=}')
         RSM = -distance.cdist(all_vecs, vecs1, metric)
-
-    #     plt.imshow(RSM)
-    #     plt.show()
-    #     quit()
-    # # print(RSM.shape)
-    # RSM = prune_RSM_outliers(RSM)
-    # plt.imshow(RSM)
-    # plt.colorbar()
-    # plt.show()
-    # quit()
-    # impute mean for nan
 
     return RSM
 

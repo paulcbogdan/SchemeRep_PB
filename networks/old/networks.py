@@ -111,6 +111,24 @@ def prep_networks(network_setting=1):
         networks = {'perceptual': ['EVC', 'LOC', 'sOcG',
                                    'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
                                    'SPL', 'IPL', 'Pcun', 'pSTS']}
+    elif network_setting == 18:
+        networks = {'Hipp': ['Hipp'],
+                    'PhG': ['PhG'],
+                    'ATL': ['ATL'],
+                    'STG': ['STG'],
+                    'MTG': ['MTG'],
+                    'ITG': ['ITG'],
+                    'FuG': ['FuG']}
+    elif network_setting == 19:
+        networks = {'SFG': ['SFG'], 'MFG': ['MFG'], 'IFG': ['IFG'],
+                    'OrG': ['OrG'], 'PrG': ['PrG'], 'PCL': ['PCL'],
+                    'ATL': ['ATL'], 'STG': ['STG'], 'MTG': ['MTG'],
+                    'ITG': ['ITG'], 'FuG': ['FuG'], 'PhG': ['PhG'],
+                    'pSTS': ['pSTS'], 'SPL': ['SPL'], 'IPL': ['IPL'],
+                    'Pcun': ['Pcun'], 'PoG': ['PoG'], 'INS': ['INS'],
+                    'PCC': ['PCC'], 'ACC': ['ACC'], 'EVC': ['EVC'],
+                    'LOC': ['LOC'], 'sOcG': ['sOcG'], 'Amyg': ['Amyg'],
+                    'Hipp': ['Hipp'], 'Str': ['Str'], 'Tha': ['Tha']}
     elif network_setting == -1:
         networks = {}
     # elif setting == 7:

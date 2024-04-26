@@ -84,7 +84,7 @@ def get_trialwise_RSA(semantic=True, inc=None, bilateral=False,
     df = pd.concat(df_l)
     return df, RSA_cols
 
-def get_plain_df_sn(bad_sns=None):
+def get_plain_df_sn(bad_sns=None, incl_lures=False):
     age2sns = pickle_wrap(get_sns, None, kwargs={'fp_fMRI': 'loose'},
                           easy_override=True)
     df_sns_l = []
@@ -94,8 +94,12 @@ def get_plain_df_sn(bad_sns=None):
         sns.extend(sns_age)
     if bad_sns is not None:
         sns = [sn for sn in sns if sn not in bad_sns]
-    df_sns_l.extend([get_trial_info(sn, verbose=-1) for sn in sns])
+    df_sns_l.extend([get_trial_info(sn, incl_lures=incl_lures,
+                                    easy_override=False,
+                                    verbose=-1) for sn in sns])
     df_sns = pd.concat(df_sns_l)
+    # print(df_sns['sn'].unique())
+
     df_sns['age'] = df_sns['sn'].apply(lambda sn: int(str(sn)[0]))
     return df_sns, df_sns_l
 

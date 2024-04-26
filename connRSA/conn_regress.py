@@ -1,4 +1,6 @@
 import os
+import warnings
+from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import cross_val_score
@@ -6,11 +8,13 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
+from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import prep_network2ROI, ROI2NETWORK
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from old.networks import prep_networks
+from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
 from utils import pickle_wrap
 import statsmodels.formula.api as smf
@@ -29,6 +33,7 @@ from sklearn.model_selection import LeaveOneOut, KFold
 def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
                   fp0, fp1, trial_similarity, stdize_by_run,
                   semantic, second_order, RDM_method, fp,
+                  four_tasks,
                   regress_row=False):
 
     dir_in = fr'cache/conn_RSA/ars/RSA'
@@ -36,6 +41,7 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     dir_focus1 = (f'{dir_in}/{fp0}_{trial_similarity}_'
                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
     fp_focus1 = f'{dir_focus1}/{sn}_{ROI_focus_conn}.npy'
+
     with open(fp_focus1, 'rb') as f:
         RSM_focus1 = np.load(f)
         if 'nan' in RDM_method:
@@ -125,6 +131,7 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     assert np.sum(np.isnan(X)) == 0
 
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
+
     p = X.shape[1] - 1
     n = X.shape[0] - 1 # minus 1 because of the intercept
     r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
@@ -137,10 +144,9 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
 
 
 
-def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
-                   fp0, fp1, trial_similarity, stdize_by_run,
-                   semantic, second_order, RDM_method, fp,
-                   regress_row=True):
+def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl, fp0, fp1, trial_similarity,
+                   stdize_by_run, semantic, second_order, RDM_method, fp,
+                   four_tasks, regress_row=True):
     dir_focus = fr'cache/conn_RSA/ars/ERS'
     dir_focus = fr'{dir_focus}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
@@ -152,20 +158,22 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
         ERS_ctrl_l = []
         for ROI_ctrl in ROIs_ctrl:
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
+            # print(f'{fp_ctrl=}')
             with open(fp_ctrl, 'rb') as f:
                 ERSs_ctrl = np.load(f)
             ERS_ctrl_l.append(ERSs_ctrl)
         ERSs_ctrl = np.array(ERS_ctrl_l)
         flat_ctrl = ERSs_ctrl.reshape(ERSs_ctrl.shape[0], -1).T # (12996, 22)
         nan_cols = np.isnan(flat_ctrl).any(axis=0)
+        # print(flat_ctrl)
         n_nan_cols = np.sum(nan_cols)
         if n_nan_cols > 10:
             print(f'Lots! {n_nan_cols=}')
-            return np.nan
+            return np.nan, np.nan
         else:
             flat_ctrl = flat_ctrl[:, ~nan_cols]
             ERSs_ctrl = ERSs_ctrl[~nan_cols]
-
+        # print(f'{nan_cols=}')
         if regress_row:
             ERS_dif_focus, var_explained_focus = get_ERS_scores(ERS_focus)
             ERS_difs_ctrls, var_explaineds_ctrls = [], []
@@ -175,6 +183,10 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
                 var_explaineds_ctrls.append(var_explained_ctrl)
             ERS_difs_ctrls = np.array(ERS_difs_ctrls).T
             X = np.hstack([np.ones((114, 1)), ERS_difs_ctrls])
+            if X.shape[1] == 1:
+                print(f'Bad ({sn}): {X.shape=}')
+                return np.nan, np.nan
+            print(f'{X.shape=}')
             solution, residuals, rank, s = np.linalg.lstsq(X, ERS_dif_focus,
                                                            rcond=None)
             ERS_dif_focus -= np.dot(ERS_difs_ctrls, solution[1:])
@@ -189,6 +201,12 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
         else:
             flat_itr = np.array([1] * len(flat_ctrl))
             X = np.hstack([flat_itr[:, None], flat_ctrl])
+            # print(f'{sn=}')
+            # print(f'{X=}')
+            if X.shape[1] == 1:
+                print(f'Bad ({sn}): {X.shape=}')
+                return np.nan, np.nan
+            assert X.shape[1] > 1, f'Bad: {X.shape=}'
             solution, residuals, rank, s = np.linalg.lstsq(X, flat_focus,
                                                            rcond=None)
             ERSs_ctrl = np.transpose(ERSs_ctrl, (1, 2, 0))
@@ -230,7 +248,7 @@ def get_ERS_scores(ERS_mat):
 
 def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
-                   fp0, fp1, cv=False,
+                   fp0, fp1, four_tasks, cv=False,
                    regress_row=True):
 
     dir_in = fr'cache/conn_RSA/ars/RSA'
@@ -261,6 +279,7 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                 skips += 1
                 continue
             with open(fp_ctrl, 'rb') as f:
+                # print(f'{fp_ctrl=}')
                 RSM_ctrl = np.load(f)
                 RSM_ctrl_l.append(RSM_ctrl)
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
@@ -287,8 +306,12 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                                     within_to_nan=RDM_method == 'within_nan',
                                     by_run=False, second_order='corr')
             X = np.hstack([np.ones((114, 1)), np.array(IRAFs_ctrl).T])
-            solution, residuals, rank, s = np.linalg.lstsq(X, IRAFs_focus,
+            try:
+                solution, residuals, rank, s = np.linalg.lstsq(X, IRAFs_focus,
                                                            rcond=None)
+            except np.linalg.LinAlgError as e:
+                print(f'{sn}: {fp} | {ROI_focus_conn=}, {ROIs_ctrl=} | {e=}')
+                return np.nan, np.nan
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
 
             M = np.nanmean(IRAFs_focus)
@@ -303,19 +326,23 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     assert np.sum(np.isnan(X)) == 0
 
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
+
     p = X.shape[1] - 1
     n = X.shape[0] - 1 # minus 1 because of the intercept
     r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
-    r_sq = r_sq[0]
-    # print(f'{r_sq=:.4f}')
+
+    try:
+        r_sq = r_sq[0]
+    except:
+        return solution[1], r_sq
+
     adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - p - 1)
-    # print(f'Number of predictors: {X.shape[1]=}')
     return solution[1], r_sq
 
 
 def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
-                   fp0, fp1, regress_row=False):
+                   fp0, fp1, four_tasks, regress_row=False):
 
     dir_in = fr'cache/conn_RSA/ars/ISPC'
     dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
@@ -332,7 +359,6 @@ def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
             if not os.path.isfile(fp_ctrl):
                 skips += 1
-                # print(f'{sn}: missing')
                 continue
             with open(fp_ctrl, 'rb') as f:
                 ISPC_ctrl = np.load(f)
@@ -377,7 +403,7 @@ def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
 
 
 def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
-    fps = prep_fps('8')
+    fps = prep_fps(kwargs['four_tasks'])
     scores = []
     r_sqs = []
     kwargs['ROIs_ctrl'] = sorted(kwargs['ROIs_ctrl'])  # needed for pkl wrap
@@ -386,20 +412,30 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
         for fp in fps:
             kwargs['fp'] = fp
             kwargs['cv'] = False
+            # print(kwargs['sn'])
             # kwargs['regress_row'] = regress_row
-            score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+            try:
+                score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                       verbose=-1, easy_override=True)
+            except ValueError as e:
+                print(f'Bad {kwargs["sn"]}: {e}')
+                continue
+            if not isinstance(r_sq, np.float64):
+                warnings.warn(f'{kwargs["sn"]}, {fp} yields no r_sq: {r_sq=}')
+                continue
             scores.append(score)
             r_sqs.append(r_sq)
     elif ISPC:
-        # print('-')
         for fp in fps:
             kwargs['fp'] = fp
             # kwargs['regress_row'] = regress_row
-            score, r_sq = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
-                                      verbose=-1, easy_override=True)
+            try:
+                score, r_sq = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
+                                          verbose=-1, easy_override=True)
+            except ValueError as e:
+                print(f'Bad {kwargs["sn"]}: {e}')
+                continue
             if isinstance(score, float) and np.isnan(score):
-                # print('skip')
                 continue
             scores.append(score)
             r_sqs.append(r_sq)
@@ -409,13 +445,15 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
                 if fp0 >= fp1: continue
                 kwargs['fp0'] = fp0
                 kwargs['fp1'] = fp1
-                # kwargs['regress_row'] = regress_row
                 f = do_RSM_ERS_sn if ERS_alt else do_regr_ERS_sn
 
                 score, r_sq = pickle_wrap(f, kwargs=kwargs,
                                           verbose=-1,
                                           easy_override=True)
+                if isinstance(score, float) and np.isnan(score):
+                    continue
                 scores.append(score)
+                # print(f'{len(score)=}')
                 r_sqs.append(r_sq)
 
     return np.nanmean(scores), np.nanmean(r_sqs)
@@ -435,8 +473,10 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
         if sn in ['138', '224']: continue
         kwargs['sn'] = sn
         try:
+            # print(f'{sn=}')
             z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt)
         except FileNotFoundError as e:
+            # if sn == '102':
             # print(f'sn: {e}')
             continue
         if np.isnan(z):
@@ -449,7 +489,44 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%}')
     return t, np.nanmean(np.array(r_sqs))
 
-def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt):
+def get_title(RSA, ISPC, kwargs, fontsize):
+    if 'PFC_ACC' in kwargs['ROI_focus_conn']:
+        region = 'Prefrontal'
+    elif 'MTL' in kwargs['ROI_focus_conn']:
+        region = 'Med. Temp. Lobe'
+    elif 'Occipital' in kwargs['ROI_focus_conn']:
+        region = 'Occipital'
+    else:
+        region = kwargs['ROI_focus_conn'].split('_')[0]
+        # raise ValueError
+
+    regress_row_str = '_regr_row' if kwargs['regress_row'] else ''
+
+    if RSA:
+        if kwargs['semantic']:
+            if 'Temp' in region:
+                fontsize = 22
+            else:
+                fontsize = 26
+            title = f'RSA (semantic): {region}'
+            fn = f'RSA_semantic{regress_row_str}_{kwargs["four_tasks"]}.png'
+        else:
+            if 'Temp' in region:
+                fontsize = 21
+            else:
+                fontsize = 25
+            title = f'RSA (perceptual): {region}'
+            fn = f'RSA_perceptual{regress_row_str}_{kwargs["four_tasks"]}.png'
+    elif ISPC:
+        title = f'ISPS: {region}'
+        fn = f'ISPS{regress_row_str}_{kwargs["four_tasks"]}.png'
+    else:
+        title = f'NPS: {region}'
+        fn = f'NPS{regress_row_str}_{kwargs["four_tasks"]}.png'
+    return title, fn, fontsize
+
+
+def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
     ROI_bold = '_'.join(kwargs['ROI_focus_conn'].split('_')[:-1]) + '_BOLD'
 
@@ -492,83 +569,69 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt):
     t_ROIs_all = max(0, t_ROIs_all)
     t_bold_all = max(0, t_bold_all)
 
-    # set default font to 16
-    plt.rcParams.update({'font.size': 20})
+    title, fn, _ = get_title(RSA, ISPC, kwargs, 28)
+    if plot:
+        plt.rcParams.update({'font.size': 20})
+
+        plt.bar(['ROI', 'System', 'Conn'],
+                [t_ROIs_dif, t_bold_dif, t_conn_dif],
+                bottom=[t_ROIs_all, t_bold_all, t_conn_all],
+                label='2', color='darkgray',
+                linewidth=1., edgecolor='k')
+        plt.bar(['ROI', 'System', 'Conn',],
+                [t_ROIs_all, t_bold_all, t_conn_all],
+                bottom=[0, 0, 0], label='1',
+                color=['forestgreen', 'crimson', 'dodgerblue'],
+                linewidth=1., edgecolor='k')
+
+        plt.xticks(['ROI', 'System', 'Conn'], fontsize=28)
+        plt.ylabel('t-value', fontsize=28)
+
+        # if RSA and not semantic:
+        #     title = title.replace('MTL', 'Med. Temp. Lobe')
+        # else:
+        #     title = title.replace('MTL', 'Medial Temporal Lobe')
+        #
+        # title = title.replace('PFC_ACC', 'Prefrontal')
 
 
-    plt.bar(['ROI', 'System', 'Conn'],
-            [t_ROIs_dif, t_bold_dif, t_conn_dif],
-            bottom=[t_ROIs_all, t_bold_all, t_conn_all], label='2', color='darkgray',
-            linewidth=1., edgecolor='k')
-    plt.bar(['ROI', 'System', 'Conn',],
-            [t_ROIs_all, t_bold_all, t_conn_all],
-            bottom=[0, 0, 0], label='1',
-            color=['forestgreen', 'crimson', 'dodgerblue'],
-            linewidth=1., edgecolor='k')
 
-    plt.xticks(['ROI', 'System', 'Conn'], fontsize=28)
-    plt.ylabel('t-value', fontsize=28)
+        fontsize = 28
 
-    # if RSA and not semantic:
-    #     title = title.replace('MTL', 'Med. Temp. Lobe')
-    # else:
-    #     title = title.replace('MTL', 'Medial Temporal Lobe')
-    #
-    # title = title.replace('PFC_ACC', 'Prefrontal')
 
-    if 'PFC_ACC' in kwargs['ROI_focus_conn']:
-        region = 'Prefrontal'
-    elif 'MTL' in kwargs['ROI_focus_conn']:
-        region = 'Med. Temp. Lobe'
-    elif 'Occipital' in kwargs['ROI_focus_conn']:
-        region = 'Occipital'
-    else:
-        raise ValueError
+        print(f'{title=}')
+        fn = f'{kwargs["ROI_focus_conn"]}_{fn}'
 
-    regress_row_str = '_regr_row' if kwargs['regress_row'] else ''
+        plt.gca().spines[['top', 'right']].set_visible(False)
+        max_height = max(t_ROIs, t_bold, t_conn, 4.)
+        if np.isnan(max_height):
+            print('NaN max_height!')
+            max_height = 0
+        plt.yticks(range(0, int(max_height*1.07) + 1,
+                         min(max(int(max_height*1.07) // 4, 1), 5)),
+                   fontsize=26)
+        plt.ylim(0, max_height * 1.07)
+        # plt.title()
 
-    fontsize = 28
-    if RSA:
-        if kwargs['semantic']:
-            if 'Temp' in region:
-                fontsize = 24
-            else:
-                fontsize = 26
-            title = f'RSA (semantic): {region}'
-            fn = f'RSA_semantic{regress_row_str}.png'
+        # plt.bar(['conn', 'roi'], [2, 3], bottom=[0, 2],
+        #         label='2')
+        plt.title(title, fontsize=fontsize, pad=15)
+        plt.tight_layout()
+        if 'RSA' in fn:
+            fp_out = rf'connRSA/stacked_bar/RSA/{fn}'
+            Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
+        elif 'ISPC' in fn:
+            fp_out = rf'connRSA/stacked_bar/ISPC/{fn}'
+            Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
         else:
-            if 'Temp' in region:
-                fontsize = 23
-            else:
-                fontsize = 25
-            title = f'RSA (perceptual): {region}'
-            fn = f'RSA_perceptual{regress_row_str}.png'
-    elif ISPC:
-        title = f'ISPS: {region}'
-        fn = f'ISPS{regress_row_str}.png'
-    else:
-        title = f'NPS: {region}'
-        fn = f'NPS{regress_row_str}.png'
+            fp_out = rf'connRSA/stacked_bar/ERS/{fn}'
+            Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
 
-    print(f'{title=}')
-    fn = f'{kwargs["ROI_focus_conn"]}_{fn}'
+        plt.savefig(fp_out, dpi=300)
 
-    plt.gca().spines[['top', 'right']].set_visible(False)
-    max_height = max(t_ROIs, t_bold, t_conn, 4.)
-    plt.yticks(range(0, int(max_height*1.07) + 1,
-                     min(max(int(max_height*1.07) // 4, 1), 5)),
-               fontsize=26)
-    plt.ylim(0, max_height * 1.07)
-    # plt.title()
+        plt.show()
 
-    # plt.bar(['conn', 'roi'], [2, 3], bottom=[0, 2],
-    #         label='2')
-    plt.title(title, fontsize=fontsize, pad=15)
-    plt.tight_layout()
-    plt.savefig(rf'connRSA/stacked_bar/{fn}', dpi=300)
-
-    plt.show()
-
+    return t_ROIs_all, t_bold_all, t_conn_all, title
 
 def plot_r_sqs(kwargs, RSA, ISPC):
 
@@ -611,19 +674,21 @@ def plot_r_sqs(kwargs, RSA, ISPC):
 
 def prep_ROI_avg(target_name, ROI_cols,
                  fp0, fp1, trial_similarity, stdize_by_run, semantic,
-                 second_order, RDM_method, fp, RSA=False, ISPC=False,
+                 second_order, RDM_method, fp,
+                 four_tasks='8',
+                 RSA=False, ISPC=False,
                  ERS_alt=False, regress_row=False):
     kwargs = locals().copy()
     if RSA or ISPC or ERS_alt:
         if fp is None:
-            fps = prep_fps('8')
+            fps = prep_fps(four_tasks)
             for fp in fps:
                 kwargs['fp'] = fp
                 prep_ROI_avg(**kwargs)
             return
     else:
         if fp0 is None:
-            fps = prep_fps('8')
+            fps = prep_fps(four_tasks)
             for fp0 in fps:
                 for fp1 in fps:
                     if fp0 >= fp1: continue
@@ -648,7 +713,8 @@ def prep_ROI_avg(target_name, ROI_cols,
     for sn in tqdm(sns, desc=f'Averaging ROI data: {target_name}',
                    position=0, leave=False):
         fp_out = f'{dir_focus}/{sn}_{target_name}.npy'
-        if os.path.isfile(fp_out):
+        if os.path.isfile(fp_out) and os.path.getsize(fp_out) > 2048:
+            # if os.path.getsize(fp_out) <= 2048:
             continue
 
         skips = 0
@@ -658,69 +724,66 @@ def prep_ROI_avg(target_name, ROI_cols,
             if not os.path.isfile(fp_ctrl):
                 skips += 1
                 continue
-            with open(fp_ctrl, 'rb') as f:
-                ISPC_ctrl = np.load(f)
-                l.append(ISPC_ctrl)
+            try:
+                with open(fp_ctrl, 'rb') as f:
+                    ISPC_ctrl = np.load(f)
+                    l.append(ISPC_ctrl)
+            except ValueError as e:
+                print(f'Bad {sn} ({ROI_ctrl}): {e}\n\t{fp_ctrl=}')
         # if skips > 1:
         #     print(f'{skips=}')
         if len(l) == 0:
             continue
 
         ctrl_M = np.nanmean(np.array(l), axis=0)
+        # print(f'TOAST: {sn} | {fp}')
         with open(fp_out, 'wb') as f:
             np.save(f, ctrl_M)
 
 
 def do_regr():
     ISPC = False
-    RSA = True
-    semantic = True
+    RSA = False
+    semantic = False
     ERS_alt = False
     conn = 'prod'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
+    four_tasks = '7'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
-    # stdize_by_run = True
+    # stdize_by_run = False
     # TODO: update ISPC to have stdize_by_run as a toggle
     # target_ROI = 'Occipital'
-    # target_ROI = 'MTL'
     # target_ROI = 'FP'
+    target_ROI = 'Hipp'
+    target_ROI = 'SFG'
 
-    # target_ROI = 'PFC_ACC'
-    # ROI_focus = f'{target_ROI}_{conn}'
-    # regions = set(prep_networks(
-    #     network_setting=ROI2NETWORK[target_ROI])[target_ROI])
-    # ROIs_match = [ROI for region in regions
-    #               for ROI in get_BNA_ROIs() if region in ROI]
-    # ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
-    #
-    # kwargs = {'semantic': semantic, 'fp': None, 'fp0': None, 'fp1': None,
-    #           'trial_similarity': trial_similarity,
-    #           'second_order': second_order, 'RDM_method': RDM_method,
-    #           'stdize_by_run': stdize_by_run,
-    #           'regress_row': regress_row}
-    #
-    # target_name = fr'{target_ROI}_M'
-    # prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
-    #              ERS_alt=ERS_alt, **kwargs)
-    # kwargs['ROI_focus_conn'] = ROI_focus
-    # kwargs['ROIs_ctrl'] = [target_name]
-    #
-    # plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt)
-    # quit()
+    # TODO: loop over every anatomical region and plot system vs ROI bias
 
+    # ['Hipp', 'ATL', 'PhG', 'STG', 'MTG', 'ITG']
 
+    target_ROIs = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
+                   'MTG', 'ITG', 'FuG', 'PhG', 'pSTS', 'SPL', 'IPL', 'Pcun',
+                   'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg',
+                   'Hipp', 'Str', 'Tha']
 
     l = [(False, False, False, False),
          (True, False, False, False),
          (False, True, False, False),
          (False, True, True, False),]
+
+    target_ROIs = ['MTL', 'Hipp', 'ATL', 'PhG']
+
     for (ISPC, RSA, semantic, ERS_alt) in l:
-        if not semantic: continue
-        for regress_row in [False, True]:
-            for target_ROI in ['Occipital', 'MTL', 'PFC_ACC']:
+        if ISPC: continue
+        # ts_ROI, ts_BOLD, ts_conn = [], [], []
+        # if not semantic: continue
+        # if not RSA or ISPC: continue
+        ts_ROI, ts_BOLD, ts_conn = [], [], []
+        for regress_row in [False]:
+            for target_ROI in target_ROIs: # Occipital', 'MTL', 'PFC_ACC
                 ROI_focus = f'{target_ROI}_{conn}'
                 regions = set(prep_networks(
                     network_setting=ROI2NETWORK[target_ROI])[target_ROI])
@@ -728,11 +791,12 @@ def do_regr():
                                   for ROI in get_BNA_ROIs() if region in ROI]
                 ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
 
-                kwargs = {'semantic': semantic, 'fp': None, 'fp0': None, 'fp1': None,
-                          'trial_similarity': trial_similarity,
-                          'second_order': second_order, 'RDM_method': RDM_method,
+                kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+                          'fp1': None, 'trial_similarity': trial_similarity,
+                          'second_order': second_order,
+                          'RDM_method': RDM_method,
                           'stdize_by_run': stdize_by_run,
-                          'regress_row': regress_row}
+                          'regress_row': regress_row, 'four_tasks': four_tasks}
 
                 target_name = fr'{target_ROI}_M'
                 prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
@@ -740,7 +804,25 @@ def do_regr():
                 kwargs['ROI_focus_conn'] = ROI_focus
                 kwargs['ROIs_ctrl'] = [target_name]
 
-                plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt)
+                t_ROIs_all, t_bold_all, t_conn_all, title = (
+                    plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt,
+                                      plot=len(target_ROIs) < 10))
+                ts_ROI.append(t_ROIs_all)
+                ts_BOLD.append(t_bold_all)
+                ts_conn.append(t_conn_all)
+        if len(target_ROIs) >= 10:
+            title_ROI = title.split(':')[0] + ': ROIs'
+            my_plot_surf(ts_ROI, get_atlas(combine_regions=True), title_ROI,)
+
+            title_system = title.split(':')[0] + ': System'
+            my_plot_surf(ts_BOLD, get_atlas(combine_regions=True), title_system,)
+
+            title_conn = title.split(':')[0] + ': Conn'
+            my_plot_surf(ts_conn, get_atlas(combine_regions=True), title_conn,)
+
+
+
+
 
 import sys
 sys.setrecursionlimit(10000)
