@@ -3,6 +3,7 @@ import os.path
 from nilearn import image
 from nilearn.glm.first_level import compute_regressor
 from nilearn.image import high_variance_confounds
+from scipy.interpolate import interpolate
 
 from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
 from atlas_utils import get_atlas
@@ -36,7 +37,6 @@ ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
 
 def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
-
     dir_func = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_preproc'
     fp_fMRI = fr'{dir_func}\func_pp_filter_sm0.mni152.3mm.nii.gz'
     if os.path.isfile(fp_fMRI):
@@ -75,7 +75,7 @@ def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     ar_fMRI = stdize(ar_fMRI, axis=-1)
     return ar_fMRI, key2idxs
 
-def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
+def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
                       many_ROI=True, abs_analysis=False, all_conn=True):
 
     ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
@@ -106,11 +106,6 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
         key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
         key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
         key2idxs['ATL'] = ROI2idx['ATL']
-
-    # print(ar_fMRI[key2idxs['MFG']].shape)
-    # quit()
-    # print(ar_fMRI[key2idxs['MFG']])
-    # return ar_fMRI[key2idxs['LOC']].mean(axis=0)
 
     conn_fMRI = ar_fMRI[None, :, :] * ar_fMRI[:, None, :]
     # print(conn_fMRI.shape)
@@ -254,7 +249,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=True,
 
     return fluc
 
-def get_event2true(fp_EEG, num_TRs):
+def get_event2true(fp_EEG, num_TRs, excl_before=False):
     # events = pd.read_csv(fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_events.tsv',
     #                      sep='\t')
     # if 'task-rest' in sess:
@@ -300,7 +295,8 @@ def get_event2true(fp_EEG, num_TRs):
             R128_pos_cnt += 1
 
     for i in range(num_TRs):
-        if i + 1 not in good_events and (i - 1) in good_events:
+        if (i + 1 not in good_events and
+                (excl_before and (i - 1) in good_events)):
             boundary_events.add(i)
             boundary_events.add(i + 1)
     # print(len(good_events))
@@ -309,7 +305,7 @@ def get_event2true(fp_EEG, num_TRs):
     # quit()
     return event2true, boundary_events
 
-def load_EEG(sn, sess, num_TRs, dir_eeg):
+def load_EEG(sn, sess, num_TRs, dir_eeg, excl_before=False):
     fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_eeg.set'
 
     if not os.path.isfile(fp_EEG):
@@ -326,7 +322,8 @@ def load_EEG(sn, sess, num_TRs, dir_eeg):
         warnings.warn(rf'OSError: {sn} ({sess}) {e=} | {fp_EEG=}')
         return None, None, None
     try:
-        event2true, boundary_events = get_event2true(fp_EEG, num_TRs)
+        event2true, boundary_events = get_event2true(fp_EEG, num_TRs,
+                                                     excl_before=excl_before)
     except AssertionError as e:
         print(f'{sn} | {e=}')
         return None, None, None
@@ -339,7 +336,8 @@ def load_EEG(sn, sess, num_TRs, dir_eeg):
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      avg_before=True, high_gamma=False,
                      super_slow=False, avg_ref=True,
-                     double_speed=False):
+                     double_speed=False,
+                     excl_before=True):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -349,7 +347,8 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     dir_eeg = fr'{root_sn}\eeg'
     # fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_eeg.set'
 
-    kw = {'sn': sn, 'sess': sess, 'num_TRs': num_TRs, 'dir_eeg': dir_eeg}
+    kw = {'sn': sn, 'sess': sess, 'num_TRs': num_TRs, 'dir_eeg': dir_eeg,
+          'excl_before': excl_before}
     raw, event2true, boundary_events = pickle_wrap(load_EEG, kwargs=kw,
                                                    easy_override=True)
 
@@ -454,6 +453,8 @@ def get_hrf():
     # quit()
     return signal[:, 0]
 
+ELECTRODES_KEPT = []
+
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
@@ -468,8 +469,9 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                     'many_ROI': many_ROI,
                                     'combine_regions': False,
                                     'abs_analysis': abs_analysis,
-                                    'all_conn': all_conn},
-                            easy_override=False, verbose=-1,)
+                                    'all_conn': all_conn,
+                                    'clean': True},
+                            easy_override=True, verbose=-1,)
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -498,19 +500,24 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'high_gamma': high_gamma,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
-                                   'double_speed': double_speed},
-                           easy_override=True, verbose=-1)
+                                   'double_speed': double_speed,
+                                   'excl_before': True},
+                           easy_override=False, verbose=-1)
     # print(EEG_fluc.shape)
     # quit()
 
     if EEG_fluc is None:
+        print(f'BAD EEG!! ({sn}; {sess})')
         return None, None
+    # global ELECTRODES_KEPT
+    # ELECTRODES_KEPT.append(EEG_fluc.shape[0])
+    # print(f'{np.mean(ELECTRODES_KEPT)=:.4f}')
+
     num_nans = np.isnan(EEG_fluc[0, 4]).sum()
     # plt.imshow(EEG_fluc[2, :, :])
     # plt.show()
     # quit()
-    print(f'{num_nans=}')
-    print(EEG_fluc.shape)
+    # print(f'{num_nans=}')
     EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
     # plt.imshow(EEG_fluc, aspect='auto')
     # plt.show()
@@ -520,15 +527,35 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     import scipy.ndimage as ndimage
     HRF = get_hrf()
 
-    for i in range(EEG_fluc.shape[1]):
-        prev_val = EEG_fluc[0, i]
-        for j in range(EEG_fluc.shape[0]):
-            if np.isnan(EEG_fluc[j, i]):
-                EEG_fluc[j, i] = prev_val
-            prev_val = EEG_fluc[j, i]
+    # for i in range(EEG_fluc.shape[1]):
+    #     prev_val = EEG_fluc[0, i]
+    #     for j in range(EEG_fluc.shape[0]):
+    #         if np.isnan(EEG_fluc[j, i]):
+    #             EEG_fluc[j, i] = prev_val
+    #         prev_val = EEG_fluc[j, i]
+    # print(EEG_fluc.shape)
+    # quit()
+    # print(len(list(range(EEG_fluc.shape[-1]))))
+    # quit()
+    print(EEG_fluc.shape)
 
     # plt.imshow(EEG_fluc, aspect='auto')
     # plt.show()
+    for i in range(EEG_fluc.shape[1]):
+        nans, x = np.isnan(EEG_fluc[:, i]), lambda z: z.nonzero()[0]
+        EEG_fluc[nans, i] = np.interp(x(nans), x(~nans), EEG_fluc[~nans, i])
+
+
+
+    # EEG_fluc = interpolate.interp1d(list(range(EEG_fluc.shape[0])),
+    #                                 EEG_fluc, kind='nearest', axis=0)
+    # EEG_fluc = np.array(EEG_fluc)
+    # print(EEG_fluc.shape)
+    # quit()
+
+    # plt.imshow(EEG_fluc, aspect='auto')
+    # plt.show()
+    # quit()
     EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
     # plt.imshow(EEG_fluc, aspect='auto')
@@ -628,6 +655,11 @@ def plot_regrs(df, key='theta'):
     quit()
 
 if __name__ == '__main__':
+    # ar = get_fMRI_ar('05', '01_task-rest', False,
+    #                  clean=True)
+    # print(ar.shape)
+    # quit()
+
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
@@ -655,14 +687,16 @@ if __name__ == '__main__':
     # SNS = ['22']
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
-               ()} #
+               ('06', '02_task-inscapes'), ('07', '01_task_inscapes'),
+               ('09', '01_task-inscapes'), ('12', '01_task-inscapes'),
+               ('15', '02_task-inscapes'), ('18', '01_task_inscapes')} # Bad EEG alignment
     NAME2L = defaultdict(list)
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     PSDs = []
     dfs_l = []
     for SN in SNS:
         for j, SESS in enumerate(SESSES):
-            if SN in ['01', '02', '03', '09'] and '02' in SESS: continue
+            if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue
             print(f'- ({SN}; {SESS}) -')
             name2r, df = test_EEG_fMRI_sn(SN, SESS)
@@ -679,13 +713,13 @@ if __name__ == '__main__':
 
             NAME2L = defaultdict(list)
             for SN, d in NAME2SN2L.items():
+                # print(f'left: {SN}')
                 for key, l in d.items():
                     NAME2L[key].append(np.mean(l))
                     # print(f'{len(NAME2L[key])=}')
                 # NAME2L[]
 
             for key, l in NAME2L.items():
-            # l = NAME2L[key]
                 N = len(l)
                 if N > 5:
                     M = np.mean(l)

@@ -325,9 +325,16 @@ def obj2str(val):
     else:
         kwargs_str += f'{val}_'
     if len(kwargs_str) > 20:
-        target_len = 10
-        skipper = len(kwargs_str) // target_len
-        kwargs_str = kwargs_str[::skipper]
+        kwargs_str = str(hash(kwargs_str))
+        # target_len = 20
+        # skipper = len(kwargs_str) // target_len
+        # print(f'{kwargs_str=}')
+        # print('---')
+        # print(hash(kwargs_str))
+        # print('-----')
+        # print(str(hash(kwargs_str)))
+        # quit()
+        # kwargs_str = kwargs_str[::skipper]
 
     return kwargs_str
 
@@ -375,8 +382,10 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
 
 PICKLE_CACHE = {}
 
-def pickle_wrap(callback: object, filepath: object = None, args: object = None, kwargs: object = None,
-                easy_override: object = False, verbose: object = 0, cache_dir: object = 'cache',
+def pickle_wrap(callback: object, filepath: object = None,
+                args: object = None, kwargs: object = None,
+                easy_override: object = False,
+                verbose: object = 0, cache_dir: object = 'cache',
                 dt_max: object = None, RAM_cache: object = False) -> object:
     '''
     :param filepath: File to which the callback output should be loaded (if already created)

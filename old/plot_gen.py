@@ -162,7 +162,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
-        above_thresh = np.abs(val) > thresh
+        # above_thresh = np.abs(val) > thresh
         continue
         # if above_thresh:
         #     mat = np.zeros((n_non_nans, n_non_nans))
@@ -189,15 +189,23 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     # rej, ps_corr, alpha_sidak, alpha_conf = \
     #     multipletests(ps, alpha=0.05, method='fdr_bh')
 
+
+
     cmap = get_split_cmap(vabs, thresh, 'cold_hot')
     # cmap = 'cold_hot'
+    # print(f'{thresh=}')
+    # quit()
+    img_data[img_data < thresh] = thresh - 0.1
+    # img_data[img_data > thresh] *= 100
     img = image.new_img_like(atlas['maps'], img_data)
     print(f'{thresh=}')
     print(f'{vmax=}')
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
-                                    cmap=cmap, title=title,
-                                    vmin=-vmax,
-                                    vmax=vmax)
+                                         cmap=cmap, title=title,
+                                         vmin=-vmax, vmax=vmax,
+                                         inflate=True,
+                                         # surf_mesh='fsaverage',
+                                         avg_method='median')
 
     if thresh > 5:
         axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
