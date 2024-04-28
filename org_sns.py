@@ -75,7 +75,11 @@ def get_sns(fp_fMRI='loose', sh=False):
 
 def test_fp(fp='obj3_fMRI', ages=(1, 2)):
     age2sn = get_sns('loose')
-    print(f'{age2sn=}')
+    # print(age2sn[1])
+    # print(age2sn[2])
+    # quit()
+    # print(f'{age2sn=}')
+    # quit()
     for age in ages:
         for sn in tqdm(age2sn[age], desc=f'Testing org_bhv for {fp}, {age=}'):
             print(f'Running ({fp}): {sn=}')
@@ -123,7 +127,7 @@ def get_shenyang_subjects():
 if __name__ == '__main__':
     # test = get_sns('loos')
     # print(test)
-    # quit()
+
 
     # test_fp('bl7_fMRI')
     # test_fp('obj7_fMRI')

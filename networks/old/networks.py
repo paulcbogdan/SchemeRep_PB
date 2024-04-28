@@ -129,6 +129,8 @@ def prep_networks(network_setting=1):
                     'PCC': ['PCC'], 'ACC': ['ACC'], 'EVC': ['EVC'],
                     'LOC': ['LOC'], 'sOcG': ['sOcG'], 'Amyg': ['Amyg'],
                     'Hipp': ['Hipp'], 'Str': ['Str'], 'Tha': ['Tha']}
+    elif network_setting == 20:
+        networks = {'MTL2': ['PhG', 'Hipp']} # 'ITG',
     elif network_setting == -1:
         networks = {}
     # elif setting == 7:

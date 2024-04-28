@@ -17,6 +17,8 @@ from colorama import Fore
 import pickle
 import os
 from time import time
+import zlib
+
 
 def regress_out(x, y):
     x = np.array(x)
@@ -325,7 +327,10 @@ def obj2str(val):
     else:
         kwargs_str += f'{val}_'
     if len(kwargs_str) > 20:
-        kwargs_str = str(hash(kwargs_str))
+        pre_kwargs_str = kwargs_str
+        kwargs_str = str(zlib.adler32(kwargs_str.encode()))
+        assert len(kwargs_str) < 21, f'{len(kwargs_str)=}: {kwargs_str}'
+        print(f'Hash: {kwargs_str} | Pre: {pre_kwargs_str}')
         # target_len = 20
         # skipper = len(kwargs_str) // target_len
         # print(f'{kwargs_str=}')

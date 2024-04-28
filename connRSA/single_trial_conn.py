@@ -206,7 +206,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
         atlas = get_atlas(schaefer=True)
     else:
         atlas = get_atlas(combine_regions=combine_regions,
-                          combine_bilateral=False,
+                          combine_bilateral=combine_regions,
                           split=split, split_code='xyz',)
                           # shenyang='_sh' in atlas)
     fps = prep_fps(four_tasks)

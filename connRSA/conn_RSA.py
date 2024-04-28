@@ -28,15 +28,22 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with run-wise sorting
     # TODO: Implement toggle to be high density
 
-    org_by_region = (not BOLD) or (networks)
+    # print(f'{BOLD=}')
+    # print(f'{networks=}')
+    # print(f'{combine_regions=}')
+    # org_by_region = (not BOLD) or (networks and not combine_regions)
+    org_by_region = (not BOLD) and (networks or not combine_regions)
 
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks, org_by_region=org_by_region,
                                  cross_region=cross_region, conn=conn,
                                  combine_regions=combine_regions,
                                  easy_override=False)
-    # print(len(ROI2vecs))
+    # for ROI, vecs in ROI2vecs.items():
+    #     if ROI != 'MTL2': continue
+    #     print(ROI, ':', vecs.shape)
     # quit()
+
     scores = []
     sizes = []
     IRAFs_all_ROI = []
@@ -183,16 +190,17 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         IRAFs_all_ROI.append(IRAFs)
         t_processing = time() - t_st
 
-        fn_RSM = f'{sn}_{ROI}_{conn}.npy'
+        cmb = '_cmb' if (combine_regions and BOLD) else ''
+        fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
+        # print(f'{fp_RSM=}')
+        # quit()
+
         t_st = time()
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)
-        t_save = time() - t_st
-        p_processing = t_processing / (t_processing + t_save)
-        # if i == 0:
-        #     print(f'{ROI} | {t_processing:.5f} | '
-        #           f'{t_save:.5f} ({p_processing:.1%})')
+        # t_save = time() - t_st
+        # p_processing = t_processing / (t_processing + t_save)
 
     fn_RSM = f'{sn}_stim_{semantic}.npy'
     fp_RSM = f'{dir_out}/{fn_RSM}'

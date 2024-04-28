@@ -103,7 +103,10 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
-
+    # print(age2idxs[1])
+    # print(age2idxs[2])
+    # print(sn_inc_conn.shape)
+    # quit()
     if by_run:
         sn_inc_act_ = np.concatenate([sn_inc_activity[..., :38],
                                       sn_inc_activity[..., 38:76],
@@ -370,11 +373,11 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
 def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
              thresh=2.32, semi_combine=False, groupkfold=True,
              subj_std=False, comb_bl=False, by_run=False, strict=False):
-    sns = get_sns()
-    sns = sns[1] + sns[2]
-    print(f'{sns=}')
-    print(f'{kernel=}')
-    print(df.shape)
+    # sns = get_sns()
+    # sns = sns[1] + sns[2]
+    # print(f'{sns=}')
+    # print(f'{kernel=}')
+    # print(df.shape)
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False)
     regions = []
@@ -412,6 +415,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
         # cv = LeaveOneGroupOut()
         cols = i2cols[i]
         grps = df_['sn'].unique()
+
         df_ = df_[df_['inc'] != 2] # MOVED AT 4/1 11:43 am
         if kernel in ['rbf', 'linear']:
             if subj_std:

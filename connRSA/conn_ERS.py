@@ -96,13 +96,16 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
     sess = (fp0.split('_')[0].replace('2', '').
             replace('3', '').replace('4', '').
             replace('7', '').replace('8', ''))
-    df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with runw-wise sorting
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True) # added to help with run-wise sorting
 
     dir_out = fr'cache/conn_RSA/ars/ERS'
     dir_out = fr'{dir_out}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
     Path(dir_out).mkdir(parents=True, exist_ok=True)
 
-    org_by_region = (not BOLD) or (networks)
+    # org_by_region = (not BOLD) or (networks)
+    # org_by_region = (not BOLD) or (networks and not combine_regions)
+    org_by_region = (not BOLD) and (networks or not combine_regions)
+
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
                                                    fp1=fp1, networks=networks,
                                                    org_by_region=org_by_region,
@@ -120,7 +123,6 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
         except KeyError:
             scores.append(np.nan)
             continue
-        # print(f'{ROI=}')
         assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape, \
             (f'{sn=} ({ROI=}, {fp0}; {fp1}) | {vecs_enc_BOLD.shape=}, '
              f'{vecs_ret_BOLD.shape=}')
@@ -150,7 +152,8 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
         ERS_ar = get_trial_x_trial(vecs_enc, vecs_ret,
                                    trial_similarity=trial_similarity)
 
-        fn_matrix = f'{sn}_{ROI}_{conn}.npy'
+        cmb = '_cmb' if (combine_regions and BOLD) else ''
+        fn_matrix = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_matrix = f'{dir_out}/{fn_matrix}'
         with open(fp_matrix, 'wb') as f:
             np.save(f, ERS_ar)

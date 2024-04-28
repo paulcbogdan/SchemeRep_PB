@@ -23,7 +23,8 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
                'perceptual': 17,
                'full_frontal': 11, 'full_frontal_CG': 11,
-               'MTL': 9,}
+               'MTL': 9,
+               'MTL2': 20}
                # 'Hipp': 18, 'PhG': 18, 'ATL': 18,
                # 'STG': 18, 'MTG': 18, 'ITG': 18}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
@@ -76,15 +77,19 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
         settings['RDM_method'] = None
         settings['second_order'] = 'spear'
 
-    results_conn = pickle_wrap(run_settings, None, kwargs=settings,
-                               easy_override=False, verbose=1,
-                               cache_dir=dir_results)
-    report_results(results_conn, do_lmer=False)
+    if not settings['combine_regions']:
+
+        results_conn = pickle_wrap(run_settings, None, kwargs=settings,
+                                   easy_override=False, verbose=1,
+                                   cache_dir=dir_results)
+        report_results(results_conn, do_lmer=False)
+        # quit()
 
     if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
             'complex_mean' in settings['RDM_method']):
         # settings['RDM_method'] = 'clever_std'
         settings['RDM_method'] = 'within_nan'
+
 
     settings['conn'] = 'BOLD'
     results_bold_comb = pickle_wrap(run_settings, None,
@@ -93,19 +98,32 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     print(f'BOLD ' * 10)
     report_results(results_bold_comb, do_lmer=False)
 
+    if settings['do_networks'] != 19: # this is covered by combine one below
+        print(f'COMBINE BIG ' * 10)
+        settings['combine_regions'] = True
+        results_bold_cmb_big = pickle_wrap(run_settings, None,
+                                           kwargs=settings, easy_override=True,
+                                           verbose=1, cache_dir=dir_results)
+        report_results(results_bold_cmb_big, do_lmer=False)
+
     settings['do_networks'] = False
+    settings['combine_regions'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
+    report_results(results_bold_sep, do_lmer=False)
+
 
     settings['do_networks'] = False
     settings['combine_regions'] = True
+    print(f'COMBINE ' * 10)
+
     results_bold_sep_big = pickle_wrap(run_settings, None,
                                        kwargs=settings, easy_override=False,
                                        verbose=1, cache_dir=dir_results)
     report_results(results_bold_sep_big, do_lmer=False)
 
-
+    quit()
     return (results_conn, results_bold_comb, results_bold_sep_big,
             results_bold_sep)
 
@@ -167,10 +185,6 @@ def organize_df(results_conn, results_bold_sep, results_bold_com,
                 for col in df_sn.columns:
                     # print(f'{col=} | {df_sn[col].values}')
                     df_as_d[col].extend(df_sn[col].values)
-        # break
-
-    # for key, l in df_as_d.items():
-    #     print(f'{key}: {len(l)}')
 
 
     ROI_cols = ROI_to_bold_keys[target_ROI]
@@ -229,6 +243,7 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
     target_ROI = 'MTL'
+    # target_ROI = 'MTL2'
 
 
     do_networks = ROI2NETWORK[target_ROI]

@@ -50,16 +50,14 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     flat_focus = RSM_focus1[np.tril_indices_from(RSM_focus1, k=-1)]
 
 
+    cmb = '_cmb' if 'cmb' in ROI_focus_conn else ''
     dir_focus2 = (f'{dir_in}/{fp1}_{trial_similarity}_'
                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
-    fp_focus2 = f'{dir_focus2}/{sn}_{ROI_focus_conn}.npy'
+    fp_focus2 = f'{dir_focus2}/{sn}_{ROI_focus_conn}{cmb}.npy'
     with open(fp_focus2, 'rb') as f:
         RSM_stim = np.load(f)
         if 'double_nan' in RDM_method:
             RSM_stim = within_run_to_nan(RSM_stim)
-            # plt.imshow(RSM_stim)
-            # plt.show()
-
 
         df_sn = get_trial_info(sn, verbose=-1)
         sess0 = fp0.split('_')[0][:-1]
@@ -99,7 +97,8 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
         flat_ctrls = []
         skips = 0
         for ROI_ctrl in ROIs_ctrl:
-            fp_ctrl = f'{dir_focus1}/{sn}_{ROI_ctrl}.npy'
+            cmb = '_cmb' if 'cmb' in ROIs_ctrl else ''
+            fp_ctrl = f'{dir_focus1}/{sn}_{ROI_ctrl}{cmb}.npy'
             if not os.path.isfile(fp_ctrl):
                 skips += 1
                 continue
@@ -477,7 +476,7 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
             z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt)
         except FileNotFoundError as e:
             # if sn == '102':
-            # print(f'sn: {e}')
+            print(f'sn: {e}')
             continue
         if np.isnan(z):
             continue
@@ -505,7 +504,7 @@ def get_title(RSA, ISPC, kwargs, fontsize):
     if RSA:
         if kwargs['semantic']:
             if 'Temp' in region:
-                fontsize = 22
+                fontsize = 21
             else:
                 fontsize = 26
             title = f'RSA (semantic): {region}'
@@ -529,30 +528,41 @@ def get_title(RSA, ISPC, kwargs, fontsize):
 def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
     ROI_bold = '_'.join(kwargs['ROI_focus_conn'].split('_')[:-1]) + '_BOLD'
+    #
+    # kwargs_ = kwargs.copy()
+    # kwargs_['ROI_focus_conn'] = ROI_bold + '_cmb'
+    # kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [ROI_bold]
+    # t_conn_all, r_sqs_conn_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    # kwargs_['ROIs_ctrl'] = []
+    # t_conn, r_sqs_conn = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
 
     kwargs_ = kwargs.copy()
-    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl'] + [ROI_bold]
-    t_conn_all, r_sqs_conn_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    kwargs_['ROI_focus_conn'] = ROI_bold + '_cmb'
+    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [ROI_bold]
+    t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
     kwargs_['ROIs_ctrl'] = []
-    t_conn, r_sqs_conn = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+
+    t_conn_all = None
+    t_conn = None
 
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = kwargs_['ROIs_ctrl'][0]
-    kwargs_['ROIs_ctrl'] = [kwargs['ROI_focus_conn'], ROI_bold]
+    kwargs_['ROIs_ctrl'] = [ROI_bold] # kwargs['ROI_focus_conn'],
     t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
     kwargs_['ROIs_ctrl'] = []
     t_ROIs, r_sqs_ROIs = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
 
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = ROI_bold
-    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl'] + [kwargs['ROI_focus_conn']]
+    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [kwargs['ROI_focus_conn']]
     t_bold_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
     kwargs_['ROIs_ctrl'] = []
     t_bold, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
 
     print('-')
-    print(f'{t_conn=:.3f} ({r_sqs_conn:.4f})')
-    print(f'\t{t_conn_all=:.3f} ({r_sqs_conn_all:.4f})')
+    # print(f'{t_conn=:.3f} ({r_sqs_conn:.4f})')
+    # print(f'\t{t_conn_all=:.3f} ({r_sqs_conn_all:.4f})')
     print(f'{t_ROIs=:.3f} ({r_sqs_ROIs:.4f})')
     print(f'\t{t_ROIs_all=:.3f} ({r_sqs_ROIs_all:.4f})')
     print(f'{t_bold=:.3f} ({r_sqs_bold:.4f})')
@@ -562,29 +572,33 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
     t_ROIs_dif = max(0, t_ROIs_dif)
     t_bold_dif = t_bold - t_bold_all
     t_bold_dif = max(0, t_bold_dif)
-    t_conn_dif = t_conn - t_conn_all
-    t_conn_dif = max(0, t_conn_dif)
+    # t_conn_dif = t_conn - t_conn_all
+    # t_conn_dif = max(0, t_conn_dif)
+    t_large_dif = t_large - t_large_all
+    t_large_dif = max(0, t_large_dif)
 
-    t_conn_all = max(0, t_conn_all)
+    # t_conn_all = max(0, t_conn_all)
     t_ROIs_all = max(0, t_ROIs_all)
     t_bold_all = max(0, t_bold_all)
+    t_large_all = max(0, t_large_all)
 
-    title, fn, _ = get_title(RSA, ISPC, kwargs, 28)
+    title, fn, fontsize = get_title(RSA, ISPC, kwargs, 28)
     if plot:
         plt.rcParams.update({'font.size': 20})
-
-        plt.bar(['ROI', 'System', 'Conn'],
-                [t_ROIs_dif, t_bold_dif, t_conn_dif],
-                bottom=[t_ROIs_all, t_bold_all, t_conn_all],
+        plt.bar(['ROI', 'System', 'Large'],
+                [t_ROIs_dif, t_bold_dif, t_large_dif],
+                bottom=[t_ROIs_all, t_bold_all, t_large_all],
                 label='2', color='darkgray',
                 linewidth=1., edgecolor='k')
-        plt.bar(['ROI', 'System', 'Conn',],
-                [t_ROIs_all, t_bold_all, t_conn_all],
+        plt.bar(['ROI', 'System', 'Large',],
+                [t_ROIs_all, t_bold_all, t_large_all],
                 bottom=[0, 0, 0], label='1',
                 color=['forestgreen', 'crimson', 'dodgerblue'],
                 linewidth=1., edgecolor='k')
 
-        plt.xticks(['ROI', 'System', 'Conn'], fontsize=28)
+        # plt.xticks(['ROI', 'System', 'Conn'], fontsize=28)
+        plt.xticks(['ROI', 'System', 'Large'], fontsize=28)
+
         plt.ylabel('t-value', fontsize=28)
 
         # if RSA and not semantic:
@@ -596,14 +610,14 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
 
 
 
-        fontsize = 28
+        # fontsize = 28
 
 
         print(f'{title=}')
         fn = f'{kwargs["ROI_focus_conn"]}_{fn}'
 
         plt.gca().spines[['top', 'right']].set_visible(False)
-        max_height = max(t_ROIs, t_bold, t_conn, 4.)
+        max_height = max(t_ROIs, t_bold, t_large_all, 4.)
         if np.isnan(max_height):
             print('NaN max_height!')
             max_height = 0
@@ -631,7 +645,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
 
         plt.show()
 
-    return t_ROIs_all, t_bold_all, t_conn_all, title
+    return t_ROIs_all, t_bold_all, t_large_all, title
 
 def plot_r_sqs(kwargs, RSA, ISPC):
 
@@ -710,8 +724,8 @@ def prep_ROI_avg(target_name, ROI_cols,
                      fr'{stdize_by_run}')
 
     sns = get_sns('all')['healthy']
-    for sn in tqdm(sns, desc=f'Averaging ROI data: {target_name}',
-                   position=0, leave=False):
+    for sn in sns:#, desc=f'Averaging ROI data: {target_name}',
+                   # position=0, leave=False):
         fp_out = f'{dir_focus}/{sn}_{target_name}.npy'
         if os.path.isfile(fp_out) and os.path.getsize(fp_out) > 2048:
             # if os.path.getsize(fp_out) <= 2048:
@@ -759,6 +773,7 @@ def do_regr():
     # target_ROI = 'FP'
     target_ROI = 'Hipp'
     target_ROI = 'SFG'
+    # target_ROI = 'MTL2'
 
     # TODO: loop over every anatomical region and plot system vs ROI bias
 
@@ -768,16 +783,22 @@ def do_regr():
                    'MTG', 'ITG', 'FuG', 'PhG', 'pSTS', 'SPL', 'IPL', 'Pcun',
                    'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg',
                    'Hipp', 'Str', 'Tha']
+    # print(len(target_ROIs))
+    # quit()
 
     l = [(False, False, False, False),
          (True, False, False, False),
          (False, True, False, False),
          (False, True, True, False),]
 
-    target_ROIs = ['MTL', 'Hipp', 'ATL', 'PhG']
+    # target_ROIs = ['MTL2', 'Hipp', 'ATL', 'PhG']
+    # target_ROIs = ['MTL2']
+    # target_ROIs = ['PhG']
 
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
+        if not RSA: continue
+        if not semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
@@ -785,6 +806,8 @@ def do_regr():
         for regress_row in [False]:
             for target_ROI in target_ROIs: # Occipital', 'MTL', 'PFC_ACC
                 ROI_focus = f'{target_ROI}_{conn}'
+                # ROI_focus = f'{target_ROI}_BOLD_cmb'
+
                 regions = set(prep_networks(
                     network_setting=ROI2NETWORK[target_ROI])[target_ROI])
                 ROIs_match = [ROI for region in regions
@@ -804,24 +827,56 @@ def do_regr():
                 kwargs['ROI_focus_conn'] = ROI_focus
                 kwargs['ROIs_ctrl'] = [target_name]
 
+
+                plot_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
+                               'ERS_alt': ERS_alt,
+                               'plot': len(target_ROIs) < 10}
+
                 t_ROIs_all, t_bold_all, t_conn_all, title = (
-                    plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt,
-                                      plot=len(target_ROIs) < 10))
+                    pickle_wrap(plot_stacked_bars, kwargs=plot_kwargs,
+                                verbose=0,
+                                easy_override=False))
+                                # easy_override='FuG' in target_ROI))
+                #
+                # if 'Hipp' in target_ROI:
+                #     t_conn_all = 1e10
+                quit()
+                print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
+                      f'{t_conn_all:.2f}')
+
+                # t_ROIs_all, t_bold_all, t_conn_all, title = (
+                #     plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt,
+                #                       plot=len(target_ROIs) < 10))
                 ts_ROI.append(t_ROIs_all)
                 ts_BOLD.append(t_bold_all)
                 ts_conn.append(t_conn_all)
+        # print(f'{len(t_ROIs_all)=}')
+        # print(f'{ts_ROI=}')
         if len(target_ROIs) >= 10:
+            if len(target_ROIs) > 40:
+                cbl = False
+            else:
+                cbl = True
+            # print(len(target_ROIs))
+            atlas = get_atlas(combine_regions=True, combine_bilateral=cbl)
+            assert len(atlas['tick_labels']) == len(target_ROIs)
+            # print(atlas['tick_labels'])
+            # print(ts_conn)
+            # quit()
+
+            # vmax = max(max(ts_ROI), max(ts_BOLD), max(ts_conn))
+            vmax = 4
+            thresh = 1.65
+
+
             title_ROI = title.split(':')[0] + ': ROIs'
-            my_plot_surf(ts_ROI, get_atlas(combine_regions=True), title_ROI,)
+            my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
 
             title_system = title.split(':')[0] + ': System'
-            my_plot_surf(ts_BOLD, get_atlas(combine_regions=True), title_system,)
+            my_plot_surf(ts_BOLD, atlas, title_system, vmax=vmax, thresh=thresh)
 
-            title_conn = title.split(':')[0] + ': Conn'
-            my_plot_surf(ts_conn, get_atlas(combine_regions=True), title_conn,)
-
-
-
+            title_conn = title.split(':')[0] + ': Large'
+            my_plot_surf(ts_conn, atlas, title_conn, vmax=vmax, thresh=thresh)
 
 
 import sys

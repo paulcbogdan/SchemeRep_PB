@@ -163,6 +163,8 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       org_by_region=True, cross_region=False,
                       conn=None, combine_regions=False,
                       easy_override=False):
+    # print(f'{combine_regions=}')
+    # print(f'{org_by_region=}')
     assert not (combine_regions and org_by_region)
 
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
