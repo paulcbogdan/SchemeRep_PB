@@ -154,6 +154,7 @@ def cluster_regions(ROI2vecs, networks):
             else:
                 if ROI != 'CG':
                     warnings.warn(f'ROI={ROI} not found')
+        # print(f'{ROIs} | {len(vecs_l)=}')
         vecs = np.concatenate(vecs_l, axis=1)
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new
@@ -165,6 +166,7 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       easy_override=False):
     # print(f'{combine_regions=}')
     # print(f'{org_by_region=}')
+
     assert not (combine_regions and org_by_region)
 
     ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,

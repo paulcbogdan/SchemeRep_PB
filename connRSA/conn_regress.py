@@ -150,6 +150,10 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl, fp0, fp1, trial_similarity,
     dir_focus = fr'{dir_focus}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
     with open(fp_focus, 'rb') as f:
+        age = os.path.getmtime(fp_focus)
+        from datetime import datetime
+        age = datetime.fromtimestamp(age)
+        print(f'{age} | {fp_focus=}')
         ERS_focus = np.load(f)
     flat_focus = ERS_focus.flatten()
 
@@ -797,8 +801,8 @@ def do_regr():
 
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
-        if not RSA: continue
-        if not semantic: continue
+        if RSA: continue
+        # if semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
@@ -834,13 +838,12 @@ def do_regr():
 
                 t_ROIs_all, t_bold_all, t_conn_all, title = (
                     pickle_wrap(plot_stacked_bars, kwargs=plot_kwargs,
-                                verbose=0,
-                                easy_override=False))
+                                verbose=0, easy_override=True))
                                 # easy_override='FuG' in target_ROI))
                 #
                 # if 'Hipp' in target_ROI:
                 #     t_conn_all = 1e10
-                quit()
+                # quit()
                 print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
                       f'{t_conn_all:.2f}')
 

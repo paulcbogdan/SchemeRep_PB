@@ -103,8 +103,11 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
     Path(dir_out).mkdir(parents=True, exist_ok=True)
 
     # org_by_region = (not BOLD) or (networks)
-    # org_by_region = (not BOLD) or (networks and not combine_regions)
-    org_by_region = (not BOLD) and (networks or not combine_regions)
+    org_by_region = (not BOLD) or (networks and not combine_regions)
+    # org_by_region = (not BOLD) and (networks or not combine_regions)
+
+    # print(org_by_region)
+    # quit()
 
     ROI2vecs_enc, ROI2vecs_ret = get_ROI_vecs_wrap(sn, atlas, fp0, df_sn,
                                                    fp1=fp1, networks=networks,
@@ -154,6 +157,7 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
 
         cmb = '_cmb' if (combine_regions and BOLD) else ''
         fn_matrix = f'{sn}_{ROI}_{conn}{cmb}.npy'
+        # print(f'{fn_matrix=}')
         fp_matrix = f'{dir_out}/{fn_matrix}'
         with open(fp_matrix, 'wb') as f:
             np.save(f, ERS_ar)

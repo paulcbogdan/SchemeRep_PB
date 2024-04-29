@@ -77,12 +77,12 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
         settings['RDM_method'] = None
         settings['second_order'] = 'spear'
 
-    if not settings['combine_regions']:
-
-        results_conn = pickle_wrap(run_settings, None, kwargs=settings,
-                                   easy_override=False, verbose=1,
-                                   cache_dir=dir_results)
-        report_results(results_conn, do_lmer=False)
+    # if not settings['combine_regions'] and False:
+    #
+    #     results_conn = pickle_wrap(run_settings, None, kwargs=settings,
+    #                                easy_override=False, verbose=1,
+    #                                cache_dir=dir_results)
+    #     report_results(results_conn, do_lmer=False)
         # quit()
 
     if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
@@ -92,17 +92,17 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
 
 
     settings['conn'] = 'BOLD'
-    results_bold_comb = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results)
     print(f'BOLD ' * 10)
+    results_bold_comb = pickle_wrap(run_settings, None,
+                                   kwargs=settings, easy_override=True,
+                                   verbose=1, cache_dir=dir_results)
     report_results(results_bold_comb, do_lmer=False)
 
     if settings['do_networks'] != 19: # this is covered by combine one below
         print(f'COMBINE BIG ' * 10)
         settings['combine_regions'] = True
         results_bold_cmb_big = pickle_wrap(run_settings, None,
-                                           kwargs=settings, easy_override=True,
+                                           kwargs=settings, easy_override=False,
                                            verbose=1, cache_dir=dir_results)
         report_results(results_bold_cmb_big, do_lmer=False)
 
@@ -220,7 +220,7 @@ def run_lmer_PFC_RSA():
     RSA = False
     semantic = False
     conn = 'prod'
-    trial_similarity = 'corr' # euc
+    trial_similarity = 'corr'
     second_order = 'spear'
     four_tasks = '7'
     combine_regions = False
@@ -236,13 +236,13 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'perceptual'
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
-    # target_ROI = 'SFG'
+    target_ROI = 'SFG'
     # target_ROI = 'PFC_ACC'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
-    target_ROI = 'MTL'
+    # target_ROI = 'MTL'
     # target_ROI = 'MTL2'
 
 

@@ -32,7 +32,10 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     # print(f'{networks=}')
     # print(f'{combine_regions=}')
     # org_by_region = (not BOLD) or (networks and not combine_regions)
-    org_by_region = (not BOLD) and (networks or not combine_regions)
+    # org_by_region = (not BOLD) and (networks or not combine_regions)
+    org_by_region = (not BOLD) or (networks and not combine_regions)
+
+
 
     ROI2vecs = get_ROI_vecs_wrap(sn, atlas, fp, df_sn, fp1=None,
                                  networks=networks, org_by_region=org_by_region,
