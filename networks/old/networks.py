@@ -131,8 +131,14 @@ def prep_networks(network_setting=1):
                     'Hipp': ['Hipp'], 'Str': ['Str'], 'Tha': ['Tha']}
     elif network_setting == 20:
         networks = {'MTL2': ['PhG', 'Hipp']} # 'ITG',
+    elif network_setting == 21:
+        networks = {'subcort': ['Amyg', 'Hipp', 'Str', 'Tha']}
+    elif network_setting == 22:
+        networks = {'cingulate': ['ACC', 'PCC'],
+                    'INScc': ['INS', 'ACC', 'PCC']}
     elif network_setting == -1:
         networks = {}
+
     # elif setting == 7:
     #     networks = {
     #         'dPFC_Occ': (['IFG', 'MFG', 'SFG'], ['EVC', 'LOC']),

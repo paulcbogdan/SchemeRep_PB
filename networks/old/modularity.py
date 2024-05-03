@@ -12,7 +12,7 @@ from utils import pickle_wrap
 
 import matplotlib.pyplot as plt
 
-def get_binary_matrix(matrix, threshold=.9):
+def get_binary_matrix(matrix, threshold=.9, intersect=False):
     # if threshold < 1:
     #     threshold = np.nanquantile(matrix, threshold)
     # print(f'Binary threshold: {threshold=:.3f}')
@@ -27,14 +27,12 @@ def get_binary_matrix(matrix, threshold=.9):
     for i in range(matrix.shape[0]):
         row = matrix[i]
         median = np.nanquantile(row, threshold)
-        matrix_mask[i, row > median - .0001] += 1
-        matrix_mask[row > median - .0001, i] += 1
+        matrix_mask[i, row > median - .0001] += 0.85 if intersect else 1
+        matrix_mask[row > median - .0001, i] += 0.85 if intersect else 1
     matrix_mask[matrix_mask > 1.5] = 1
     matrix_binary = matrix.copy()
     matrix_binary[matrix_mask < 1] = 0
     # corr = bool_ar
-
-
 
     return matrix_binary, matrix_mask
 
@@ -166,14 +164,13 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
                         threshold=.95, fn_str='', overlapping=False,
                         dir_out=None, dir_out_full=None, title_extra='',
                         ):
-    if coords is None:
-        coords = get_BNA_coords()
+
 
     M_conn = np.nanmean(sn_inc_conn,
                         axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
 
     matrix_binary, matrix_mask = get_binary_matrix(M_conn,
-                                                     threshold=threshold)
+                                                   threshold=threshold)
     matrix_binary[np.isnan(matrix_binary)] = 0
     M_conn_masked = M_conn * matrix_mask
     if overlapping:
@@ -182,41 +179,40 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
         partitions = get_modules(matrix_binary)
 
     if plot:
+        fn_str += f'thr{threshold}'
+        fn_str += f'_ovr{overlapping}' if overlapping else ''
+        plot_partitions(partitions, M_conn_masked, fn_str, coords=coords,
+                        dir_out=None, dir_out_full=None, title_extra='', )
 
-        for i, p in enumerate(partitions):
-            if len(p) < 5:
-                continue
-            # if i >= 2:
-            #     continue
-            print(f'Plotting partition: {i} | {p=}')
-            M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-
-            # plt.imshow(M_corr_part)
-            # plt.show()
-            # print(M_corr_part)
-            # quit()
-            # print(len(coords))
-            # quit()
-            assert M_corr_part.shape in [(246, 246), (54, 54)]
-            fn = f'{fn_str}thr{threshold}_p{i}_Feb9.png'
-            print(f'Plot: {fn=}')
-            title = f'Partition {i+1}{title_extra}'
-            # cur_dir = os.getcwd()
-            cur_dir = r'E:\PycharmProjects_E\SchemeRep'
-            if dir_out_full:
-                dir_out_ = dir_out_full
-            elif dir_out:
-                dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
-            elif overlapping:
-                dir_out_ = f'{cur_dir}/result_pics/nichord/{overlapping}'
-            else:
-                dir_out_ = f'{cur_dir}/result_pics/nichord'
-            print(f'\t{dir_out_=}')
-            plot_nichord(coords, fn, title, corr=M_corr_part,
-                         dir_out=dir_out_,)
     partitions = [p for p in partitions]
     return partitions, matrix_mask
 
+def plot_partitions(partitions, M_conn_masked, fn_str, coords=None,
+                    dir_out=None, dir_out_full=None, title_extra=''):
+    if coords is None:
+        coords = get_BNA_coords()
+    for i, p in enumerate(partitions):
+        if len(p) < 5:
+            continue
+        print(f'Plotting partition: {i} | {p=}')
+        M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
+        assert M_corr_part.shape in [(246, 246), (54, 54)]
+        fn = f'{fn_str}_p{i}_Feb9.png'
+        print(f'Plot: {fn=}')
+        title = f'Partition {i + 1}{title_extra}'
+        # cur_dir = os.getcwd()
+        cur_dir = r'E:\PycharmProjects_E\SchemeRep'
+        if dir_out_full:
+            dir_out_ = dir_out_full
+        elif dir_out:
+            dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
+        # elif overlapping:
+        #     dir_out_ = f'{cur_dir}/result_pics/nichord/{overlapping}'
+        else:
+            dir_out_ = f'{cur_dir}/result_pics/nichord'
+        print(f'\t{dir_out_=}')
+        plot_nichord(coords, fn, title, corr=M_corr_part,
+                     dir_out=dir_out_, )
 
 if __name__ == '__main__':
     from nilearn import datasets

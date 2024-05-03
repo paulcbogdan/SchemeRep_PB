@@ -23,7 +23,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      do_sort=False, fp_all=False, voxelwise=False,
                      regionwise=False, combine_regions=False, get_df_sn=False,
                      loose_sns=False, combine_bilateral=False,
-                     strict_sns=False
+                     strict_sns=False,
                      ):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
@@ -73,13 +73,17 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
                     replace('4', '').replace('7', '')
+                # if sort_obj:
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
+                # else:
+                #     df_sn.sort_values(by='obj', inplace=True)
             try:
-                ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
-                                     drop_nan_voxels=False,
-                                     org_by_region=regionwise,
-                                     easy_override=False,
-                                     combine_regions=combine_regions)
+                ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn,
+                                         nan_thresh=1.01,
+                                         drop_nan_voxels=False,
+                                         org_by_region=regionwise,
+                                         easy_override=False,
+                                         combine_regions=combine_regions)
             except TypeError as e:
                 print(f'Error missing files ({sn}):', e)
                 continue

@@ -23,8 +23,8 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
                'perceptual': 17,
                'full_frontal': 11, 'full_frontal_CG': 11,
-               'MTL': 9,
-               'MTL2': 20}
+               'MTL': 9, 'MTL2': 20, 'subcort': 21 ,
+               'INScc': 22, 'cingulate': 22}
                # 'Hipp': 18, 'PhG': 18, 'ATL': 18,
                # 'STG': 18, 'MTG': 18, 'ITG': 18}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
@@ -94,7 +94,7 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     settings['conn'] = 'BOLD'
     print(f'BOLD ' * 10)
     results_bold_comb = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=True,
+                                   kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
     report_results(results_bold_comb, do_lmer=False)
 
@@ -236,14 +236,16 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'perceptual'
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
-    target_ROI = 'SFG'
-    # target_ROI = 'PFC_ACC'
+    # target_ROI = 'SFG'
+    target_ROI = 'cingulate'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'
     # target_ROI = 'FP'
     # target_ROI = 'MTL'
     # target_ROI = 'MTL2'
+    # target_ROI = 'Occipital'
+    # target_ROI = 'FP'
 
 
     do_networks = ROI2NETWORK[target_ROI]

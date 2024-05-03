@@ -150,10 +150,10 @@ def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl, fp0, fp1, trial_similarity,
     dir_focus = fr'{dir_focus}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
     with open(fp_focus, 'rb') as f:
-        age = os.path.getmtime(fp_focus)
-        from datetime import datetime
-        age = datetime.fromtimestamp(age)
-        print(f'{age} | {fp_focus=}')
+        # age = os.path.getmtime(fp_focus)
+        # from datetime import datetime
+        # age = datetime.fromtimestamp(age)
+        # print(f'{age} | {fp_focus=}')
         ERS_focus = np.load(f)
     flat_focus = ERS_focus.flatten()
 
@@ -282,7 +282,6 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                 skips += 1
                 continue
             with open(fp_ctrl, 'rb') as f:
-                # print(f'{fp_ctrl=}')
                 RSM_ctrl = np.load(f)
                 RSM_ctrl_l.append(RSM_ctrl)
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
@@ -405,7 +404,8 @@ def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
 
 
 
-def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
+def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
+                     easy_override=True):
     fps = prep_fps(kwargs['four_tasks'])
     scores = []
     r_sqs = []
@@ -419,7 +419,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
             # kwargs['regress_row'] = regress_row
             try:
                 score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                      verbose=-1, easy_override=True)
+                                      verbose=-1, easy_override=easy_override)
             except ValueError as e:
                 print(f'Bad {kwargs["sn"]}: {e}')
                 continue
@@ -434,7 +434,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
             # kwargs['regress_row'] = regress_row
             try:
                 score, r_sq = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
-                                          verbose=-1, easy_override=True)
+                                          verbose=-1,
+                                          easy_override=easy_override)
             except ValueError as e:
                 print(f'Bad {kwargs["sn"]}: {e}')
                 continue
@@ -450,9 +451,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
                 kwargs['fp1'] = fp1
                 f = do_RSM_ERS_sn if ERS_alt else do_regr_ERS_sn
 
-                score, r_sq = pickle_wrap(f, kwargs=kwargs,
-                                          verbose=-1,
-                                          easy_override=True)
+                score, r_sq = pickle_wrap(f, kwargs=kwargs, verbose=-1,
+                                          easy_override=easy_override)
                 if isinstance(score, float) and np.isnan(score):
                     continue
                 scores.append(score)
@@ -461,7 +461,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False):
 
     return np.nanmean(scores), np.nanmean(r_sqs)
 
-def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
+def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False):
     # t_st = time()
     z_l = []
     r_sqs = []
@@ -477,7 +477,8 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
         kwargs['sn'] = sn
         try:
             # print(f'{sn=}')
-            z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt)
+            z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt,
+                                       easy_override=easy_override)
         except FileNotFoundError as e:
             # if sn == '102':
             print(f'sn: {e}')
@@ -486,7 +487,7 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt):
             continue
         z_l.append(z)
         r_sqs.append(r_sq)
-
+    print(f'{z_l=}')
     t, p = stats.ttest_1samp(z_l, 0)
     M_r_sq = np.nanmean(np.array(r_sqs))
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%}')
@@ -529,7 +530,8 @@ def get_title(RSA, ISPC, kwargs, fontsize):
     return title, fn, fontsize
 
 
-def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
+def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
+                      plot=True):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
     ROI_bold = '_'.join(kwargs['ROI_focus_conn'].split('_')[:-1]) + '_BOLD'
     #
@@ -543,9 +545,11 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = ROI_bold + '_cmb'
     kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [ROI_bold]
-    t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                              easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
-    t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                      easy_override=easy_override)
 
     t_conn_all = None
     t_conn = None
@@ -553,16 +557,20 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = kwargs_['ROIs_ctrl'][0]
     kwargs_['ROIs_ctrl'] = [ROI_bold] # kwargs['ROI_focus_conn'],
-    t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                            easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
-    t_ROIs, r_sqs_ROIs = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_ROIs, r_sqs_ROIs = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                    easy_override=easy_override)
 
     kwargs_ = kwargs.copy()
     kwargs_['ROI_focus_conn'] = ROI_bold
     kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [kwargs['ROI_focus_conn']]
-    t_bold_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_bold_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                            easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
-    t_bold, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt)
+    t_bold, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                    easy_override=easy_override)
 
     print('-')
     # print(f'{t_conn=:.3f} ({r_sqs_conn:.4f})')
@@ -621,7 +629,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, plot=True):
         fn = f'{kwargs["ROI_focus_conn"]}_{fn}'
 
         plt.gca().spines[['top', 'right']].set_visible(False)
-        max_height = max(t_ROIs, t_bold, t_large_all, 4.)
+        max_height = max(t_ROIs, t_bold, t_large, t_ROIs_all, t_bold_all,
+                         t_large_all, 4.)
         if np.isnan(max_height):
             print('NaN max_height!')
             max_height = 0
@@ -768,7 +777,7 @@ def do_regr():
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '7'
+    four_tasks = '8'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
@@ -790,18 +799,22 @@ def do_regr():
     # print(len(target_ROIs))
     # quit()
 
+    target_ROIs = ['Occipital', 'Ventral', 'Dorsal']
+
     l = [(False, False, False, False),
          (True, False, False, False),
          (False, True, False, False),
          (False, True, True, False),]
 
     # target_ROIs = ['MTL2', 'Hipp', 'ATL', 'PhG']
-    # target_ROIs = ['MTL2']
-    # target_ROIs = ['PhG']
+    target_ROIs = ['MTL2', 'FP', 'PFC', 'Occipital', 'Ventral', 'Dorsal']
+    # target_ROIs = ['Ventral']
+    # target_ROIs = ['FP']
+    target_ROIs = ['INS']
 
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
-        if RSA: continue
+        # if not RSA: continue
         # if semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
@@ -823,7 +836,8 @@ def do_regr():
                           'second_order': second_order,
                           'RDM_method': RDM_method,
                           'stdize_by_run': stdize_by_run,
-                          'regress_row': regress_row, 'four_tasks': four_tasks}
+                          'regress_row': regress_row, 'four_tasks': four_tasks,
+                          }
 
                 target_name = fr'{target_ROI}_M'
                 prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
@@ -834,11 +848,12 @@ def do_regr():
 
                 plot_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
                                'ERS_alt': ERS_alt,
+                               'easy_override': True,
                                'plot': len(target_ROIs) < 10}
 
                 t_ROIs_all, t_bold_all, t_conn_all, title = (
                     pickle_wrap(plot_stacked_bars, kwargs=plot_kwargs,
-                                verbose=0, easy_override=True))
+                                verbose=-1, easy_override=True))
                                 # easy_override='FuG' in target_ROI))
                 #
                 # if 'Hipp' in target_ROI:
@@ -847,9 +862,6 @@ def do_regr():
                 print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
                       f'{t_conn_all:.2f}')
 
-                # t_ROIs_all, t_bold_all, t_conn_all, title = (
-                #     plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt,
-                #                       plot=len(target_ROIs) < 10))
                 ts_ROI.append(t_ROIs_all)
                 ts_BOLD.append(t_bold_all)
                 ts_conn.append(t_conn_all)

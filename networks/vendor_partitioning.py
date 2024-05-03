@@ -31,13 +31,17 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
         sn_conn = sn_inc_conn.reshape(-1, 246, 246)
         trils = np.tril_indices(246, k=-1)
         sn_flat = sn_conn[:, trils[0], trils[1]]
-        # print(f'{sn_flat.shape=}')
         sn_flat = stdize(sn_flat, axis=0)
         regressors = np.array([[-1, 0, 1] * n_sn]).T
 
         XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
         XTX_invX = np.dot(XTX_inv, regressors.T)
         betas = np.dot(XTX_invX, sn_flat)
+        # print(f'{regressors.shape=}')
+        # print(f'{XTX_invX.shape=}')
+        # print(f'{sn_flat.shape=}')
+        # print(f'{betas.shape=}')
+        # quit()
 
         Y_pred = np.dot(regressors, betas)
         residual = sn_flat - Y_pred
