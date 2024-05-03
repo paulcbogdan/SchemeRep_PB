@@ -6,7 +6,7 @@ from tqdm import tqdm
 from atlas_utils import get_atlas
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
-from old.modularity import get_binary_matrix, get_modules, get_partition_matrix
+from old.modularity import get_binary_matrix, get_modules, get_partition_matrix, plot_partitions
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from stim import get_stim_RDM
@@ -143,26 +143,37 @@ def run_pairRSA(fp, within2nan=True, semantic=False, regress_global=False):
     RSM_RSM_z = stats.norm.ppf(stats.t.cdf(RSM_RSM_t, RSM_RSM_l.shape[0] - 1))
 
     # for i, row in
-    RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=.8, intersect=True)
-
-    partitions, matrix_mask = \
-        get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
-                            threshold=thr,
-                            fn_str='', overlapping=False,
-                            dir_out_full=dir_out,
-                            title_extra=title_extra,
-                            )
-
+    RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=.95,
+                                       intersect=False, rowwise=True)
     partitions = get_modules(RSM_RSM_bin)
+
+
+    # partitions, matrix_mask = \
+    #     get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
+    #                         threshold=thr,
+    #                         fn_str='', overlapping=False,
+    #                         dir_out_full=dir_out,
+    #                         title_extra=title_extra,
+    #                         )
+
     atlas = get_atlas()
 
-    for p in partitions:
-        p_mat = get_partition_matrix(RSM_RSM_bin, p, w_zeros=True)
+    for i, p in enumerate(partitions):
+        print(f'{i}: {len(p)=}')
+        if len(p) < 5:
+            continue
+        # continue
+        p_mat = get_partition_matrix(RSM_RSM_z, p, w_zeros=True)
         p_mat[p_mat < .5] = np.nan
         plot_connectivity(p_mat, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'],
                           title='pairRSA', no_avg=True, cbar_label='t-value',
-                          vmin=-4, vmax=4)
+                          vmin=-0.1, vmax=2)
+    # quit()
+    dir_out = r'pairRSA'
+    fn_str = 'first.png'
+    plot_partitions(partitions, RSM_RSM_z, fn_str, coords=None,
+                    dir_out=dir_out, title_extra='')
     quit()
 
     # print(RSM_RSM_z.shape)

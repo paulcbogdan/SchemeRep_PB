@@ -12,26 +12,29 @@ from utils import pickle_wrap
 
 import matplotlib.pyplot as plt
 
-def get_binary_matrix(matrix, threshold=.9, intersect=False):
-    # if threshold < 1:
-    #     threshold = np.nanquantile(matrix, threshold)
-    # print(f'Binary threshold: {threshold=:.3f}')
-    # matrix_binary = matrix.copy()
-    # matrix_mask = matrix > threshold
-    # matrix_binary[matrix_binary < threshold] = 0
-    # matrix_binary[matrix_binary >= threshold] = 1
-    # matrix[matrix < threshold] = 0
-    #
-    matrix_mask = np.zeros(matrix.shape)
+def get_binary_matrix(matrix, threshold=.9, rowwise=True, intersect=False):
+
     # new_corr = []
-    for i in range(matrix.shape[0]):
-        row = matrix[i]
-        median = np.nanquantile(row, threshold)
-        matrix_mask[i, row > median - .0001] += 0.85 if intersect else 1
-        matrix_mask[row > median - .0001, i] += 0.85 if intersect else 1
-    matrix_mask[matrix_mask > 1.5] = 1
-    matrix_binary = matrix.copy()
-    matrix_binary[matrix_mask < 1] = 0
+    if rowwise:
+        matrix_mask = np.zeros(matrix.shape)
+        for i in range(matrix.shape[0]):
+            row = matrix[i]
+            median = np.nanquantile(row, threshold)
+            matrix_mask[i, row > median - .0001] += 0.85 if intersect else 1
+            matrix_mask[row > median - .0001, i] += 0.85 if intersect else 1
+        matrix_mask[matrix_mask > 1.5] = 1
+        matrix_binary = matrix.copy()
+        matrix_binary[matrix_mask < 1] = 0
+    else:
+        if threshold < 1:
+            threshold = np.nanquantile(matrix, threshold)
+        print(f'Binary threshold: {threshold=:.3f}')
+        matrix_binary = matrix.copy()
+        matrix_mask = matrix > threshold
+        matrix_binary[matrix_binary < threshold] = 0
+        matrix_binary[matrix_binary >= threshold] = 1
+        matrix[matrix < threshold] = 0
+
     # corr = bool_ar
 
     return matrix_binary, matrix_mask
@@ -91,20 +94,10 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
 
     search_closest=False
     fp_idx_to_label = fr'cache/idx_to_label_{len(coords)}_{search_closest}.pkl'
-    # print(f'{fp_idx_to_label=}')
-    print(f'{coords=}')
+
     idx_to_label = pickle_wrap(lambda: get_idx_to_label(
         coords, atlas='yeo', search_closest=search_closest),
                                fp_idx_to_label, easy_override=True,)
-    # labels = get_atlas(combine_regions=False)['labels']
-    # for i in range(len(labels)):
-    #     print(f'{i} | {labels[i]} | {idx_to_label[i]} | {coords[i]}')
-    # print(idx_to_label)
-    # quit()
-
-    # print(f'{edges=}')
-    # print(f'{edge_weights=}')
-    # quit()
 
     if len(edge_weights) == 0:
         print('Zero edge weights!')
