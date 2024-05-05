@@ -79,6 +79,14 @@ def report_results(results, do_lmer=False, ISPC=False):
         p = stats.t.sf(np.abs(t), N - 1)
         M_size = np.nanmean(sizes[:, j])
 
+        # if 'FuG' not in ROI:
+        #     ts[j] = 0
+        ts[j] = 0
+        if 'FuG_L_3_1'  in ROI:
+            ts[j] = 2.5
+        if 'FuG_R_3_1'  in ROI:
+            ts[j] = 2.5
+
         if do_lmer and not ISPC:
             df_ROI_as_d = {'conn_score': [], 'sn': [], 'fp': []}
             scores_fp_all = scores_by_ROI[:, :, j, :]

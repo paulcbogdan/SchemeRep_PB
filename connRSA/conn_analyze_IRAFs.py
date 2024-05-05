@@ -112,6 +112,8 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
     report_results(results_bold_sep, do_lmer=False)
+    print(settings)
+    quit()
 
 
     settings['do_networks'] = False

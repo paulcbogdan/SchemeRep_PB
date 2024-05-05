@@ -162,6 +162,17 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
+        # if val > 1:
+        #     print(f'{i} | {val}')
+        # if i == 102:
+        #     # fix bad part of mesh, FuG appears in Hipp or PhG or w/e
+        #     idxs = np.indices(img_data.shape)
+        #     slicer = idxs[0] == 31
+        #     img_data[(atlas_data == (i + 1)) & slicer] = 0
+        # elif i == 103:
+        #     idxs = np.indices(img_data.shape)
+        #     slicer = idxs[0] == 67
+        #     img_data[(atlas_data == (i + 1)) & slicer] = 0
         # above_thresh = np.abs(val) > thresh
         continue
         # if above_thresh:
@@ -196,6 +207,18 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     # print(f'{thresh=}')
     # quit()
     img_data[img_data < thresh] = thresh - 0.1
+
+    #
+
+    # x, _, _ = image.coord_transform(-22, 0, 0,
+    #                                 np.linalg.inv(atlas['maps'].affine))
+    # x, _, _ = image.coord_transform(22, 0, 0,
+    #                                 np.linalg.inv(atlas['maps'].affine))
+    # img_data[31:32, :, :] = 0
+    # img_data[67:68, :, :] = 0
+
+    # print(x)
+    # quit()
     # img_data[img_data > thresh] *= 100
     img = image.new_img_like(atlas['maps'], img_data)
     print(f'{thresh=}')
@@ -204,7 +227,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                          cmap=cmap, title=title,
                                          vmin=-vmax, vmax=vmax,
                                          inflate=True,
-                                         # surf_mesh='fsaverage',
+                                         surf_mesh='fsaverage5',
                                          avg_method='median')
 
     if thresh > 5:
@@ -222,6 +245,21 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         fig.savefig(fp_out)
         print(f'Saving fig: {fp_out=}')
         plt.clf()
+    quit()
+
+    plotting.plot_stat_map(img,
+                           vmin=-vmax, vmax=vmax,
+                           threshold=thresh, draw_cross=False,
+                           display_mode='x',)
+                           # cut_coords=[-22, -24, -26, -28])
+    plt.show()
+    # plotting.plot_stat_map(img,
+    #                        vmin=-vmax, vmax=vmax,
+    #                        threshold=thresh, draw_cross=False,
+    #                        display_mode='x',
+    #                        cut_coords=[-30, -32, -34, -36])
+    # plt.show()
+    quit()
 
 
 

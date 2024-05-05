@@ -107,7 +107,7 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
     return RSM_RSM_l, sns
 
 def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
-                thresh=.9, intersect=True, rowwise=True,
+                thresh=.8, intersect=True, rowwise=True,
                 fps='7'):
     if not rowwise:
         assert not intersect
