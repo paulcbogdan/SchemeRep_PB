@@ -58,7 +58,8 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
                  dif=False, prod=False, take_abs=False, add=False,
-                 lifu=False, lifu_sem=False, dist='corr'):
+                 lifu=False, lifu_sem=False, dist='corr',
+                 semantic=False):
     assert obj_only or scene_only or dif or prod or add or lifu or lifu_sem, \
         'Must specify one of obj_only, scene_only, dif, prod, add, lifu'
     if lifu or lifu_sem:

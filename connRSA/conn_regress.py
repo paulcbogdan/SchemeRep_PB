@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import LeaveOneOut, KFold
 
-def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
+def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
                   fp0, fp1, trial_similarity, stdize_by_run,
                   semantic, second_order, RDM_method, fp,
                   four_tasks,
@@ -40,7 +40,7 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     RDM_method_ = 'within_nan' if RDM_method == 'double_nan' else RDM_method
     dir_focus1 = (f'{dir_in}/{fp0}_{trial_similarity}_'
                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
-    fp_focus1 = f'{dir_focus1}/{sn}_{ROI_focus_conn}.npy'
+    fp_focus1 = f'{dir_focus1}/{sn}_{ROI_focus}.npy'
 
     with open(fp_focus1, 'rb') as f:
         RSM_focus1 = np.load(f)
@@ -50,10 +50,10 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     flat_focus = RSM_focus1[np.tril_indices_from(RSM_focus1, k=-1)]
 
 
-    cmb = '_cmb' if 'cmb' in ROI_focus_conn else ''
+    cmb = '_cmb' if 'cmb' in ROI_focus else ''
     dir_focus2 = (f'{dir_in}/{fp1}_{trial_similarity}_'
                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
-    fp_focus2 = f'{dir_focus2}/{sn}_{ROI_focus_conn}{cmb}.npy'
+    fp_focus2 = f'{dir_focus2}/{sn}_{ROI_focus}{cmb}.npy'
     with open(fp_focus2, 'rb') as f:
         RSM_stim = np.load(f)
         if 'double_nan' in RDM_method:
@@ -138,12 +138,12 @@ def do_RSM_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl,
     adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - p - 1)
     return solution[1], r_sq
 
-def do_regr_ERS_sn(sn, ROI_focus_conn, ROIs_ctrl, fp0, fp1, trial_similarity,
+def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
                    stdize_by_run, semantic, second_order, RDM_method, fp,
                    four_tasks, regress_row=True):
     dir_focus = fr'cache/conn_RSA/ars/ERS'
     dir_focus = fr'{dir_focus}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
-    fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
+    fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
     with open(fp_focus, 'rb') as f:
         # age = os.path.getmtime(fp_focus)
         # from datetime import datetime
@@ -243,7 +243,7 @@ def get_ERS_scores(ERS_mat):
 
     return ERS_dif, var_explained
 
-def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
+def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
                    fp0, fp1, four_tasks, cv=False,
                    regress_row=True):
@@ -251,7 +251,7 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     dir_in = fr'cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
-    fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
+    fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
     with open(fp_focus, 'rb') as f:
         RSM_focus = np.load(f)
         if RDM_method == 'within_nan':
@@ -306,7 +306,7 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
                 solution, residuals, rank, s = np.linalg.lstsq(X, IRAFs_focus,
                                                            rcond=None)
             except np.linalg.LinAlgError as e:
-                print(f'{sn}: {fp} | {ROI_focus_conn=}, {ROIs_ctrl=} | {e=}')
+                print(f'{sn}: {fp} | {ROI_focus=}, {ROIs_ctrl=} | {e=}')
                 return np.nan, np.nan
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
 
@@ -335,13 +335,13 @@ def do_regr_RSA_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
     adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - p - 1)
     return solution[1], r_sq
 
-def do_regr_ISPC_sn(sn, ROI_focus_conn, ROIs_ctrl, fp, trial_similarity,
+def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
                    fp0, fp1, four_tasks, regress_row=False):
 
     dir_in = fr'cache/conn_RSA/ars/ISPC'
     dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
-    fp_focus = f'{dir_focus}/{sn}_{ROI_focus_conn}.npy'
+    fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
     with open(fp_focus, 'rb') as f:
         ISPC_focus = np.load(f)
     flat_focus = ISPC_focus.flatten()
@@ -416,7 +416,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
                     print(f'Bad {kwargs["sn"]}: {e}')
                 continue
             if not isinstance(r_sq, np.float64):
-                warnings.warn(f'{kwargs["sn"]}, {fp} yields no r_sq: {r_sq=}')
+                # warnings.warn(f'{kwargs["sn"]}, {fp} yields no r_sq: {r_sq=}')
                 continue
             scores.append(score)
             r_sqs.append(r_sq)
@@ -459,7 +459,7 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False):
     r_sqs = []
     sns = get_sns('all')['healthy']
     num_predictors = 1 + len(kwargs['ROIs_ctrl'])
-    preds = [kwargs['ROI_focus_conn']] + kwargs['ROIs_ctrl']
+    preds = [kwargs['ROI_focus']] + kwargs['ROIs_ctrl']
     for sn in sns:#, desc='conn regressing...', position=0, leave=False):
         if sn in ['138', '224']: continue
         kwargs['sn'] = sn
@@ -479,18 +479,21 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False):
         r_sqs.append(r_sq)
     t, p = stats.ttest_1samp(z_l, 0)
     M_r_sq = np.nanmean(np.array(r_sqs))
-    print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%}')
+    focus = kwargs['ROI_focus']
+    ctrl = kwargs['ROIs_ctrl']
+    print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
+          f': {focus=}, {ctrl=}')
     return t, np.nanmean(np.array(r_sqs))
 
 def get_title(RSA, ISPC, kwargs, fontsize):
-    if 'PFC_ACC' in kwargs['ROI_focus_conn']:
+    if 'PFC_ACC' in kwargs['ROI_focus']:
         region = 'Prefrontal'
-    elif 'MTL' in kwargs['ROI_focus_conn']:
+    elif 'MTL' in kwargs['ROI_focus']:
         region = 'Med. Temp. Lobe'
-    elif 'Occipital' in kwargs['ROI_focus_conn']:
+    elif 'Occipital' in kwargs['ROI_focus']:
         region = 'Occipital'
     else:
-        region = kwargs['ROI_focus_conn'].split('_')[0]
+        region = kwargs['ROI_focus'].split('_')[0]
         # raise ValueError
 
     regress_row_str = '_regr_row' if kwargs['regress_row'] else ''
@@ -520,28 +523,26 @@ def get_title(RSA, ISPC, kwargs, fontsize):
 
 
 def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
-                      plot=True, ctrl_ROI_w_large=True):
+                      plot=True,
+                      ctrl_large_strict=True,
+                      ctrl_large_w_avg=False,
+                      ctrl_large_strict_and_avg=False,
+
+                      ctrl_small_strict=False,
+
+                      ctrl_avg_w_large=False,
+                      ctrl_avg_strict=True,
+
+                      voxel_small_M=None, voxel_small_all=None,
+                      voxel_large=None, avg_large=None):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
-    ROI_bold = '_'.join(kwargs['ROI_focus_conn'].split('_')[:-1]) + '_BOLD'
 
     kwargs_ = kwargs.copy()
-    kwargs_['ROI_focus_conn'] = ROI_bold + '_cmb'
-    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl'] #[ROI_bold] ## +
-    t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                              easy_override=easy_override)
-    kwargs_['ROIs_ctrl'] = []
-    t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                      easy_override=easy_override)
-
-    t_conn_all = None
-    t_conn = None
-
-    kwargs_ = kwargs.copy()
-    kwargs_['ROI_focus_conn'] = kwargs_['ROIs_ctrl'][0]
-    if ctrl_ROI_w_large:
-        kwargs_['ROIs_ctrl'] = [ROI_bold + '_cmb'] # kwargs['ROI_focus_conn'],
+    kwargs_['ROI_focus'] = voxel_small_M
+    if ctrl_small_strict:
+        kwargs_['ROIs_ctrl'] = [voxel_large]
     else:
-        kwargs_['ROIs_ctrl'] = [ROI_bold] # kwargs['ROI_focus_conn'],
+        kwargs_['ROIs_ctrl'] = [avg_large]
     t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                             easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
@@ -549,41 +550,54 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                                     easy_override=easy_override)
 
     kwargs_ = kwargs.copy()
-    kwargs_['ROI_focus_conn'] = ROI_bold
-    kwargs_['ROIs_ctrl'] = kwargs_['ROIs_ctrl']# + [kwargs['ROI_focus_conn']]
-    # print(kwargs_['ROIs_ctrl'])
-    assert '_M' in kwargs_['ROIs_ctrl'][0]
-    t_bold_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+    kwargs_['ROI_focus'] = voxel_large
+    if ctrl_large_strict_and_avg:
+        kwargs_['ROIs_ctrl'] = voxel_small_all + [avg_large]
+    if ctrl_large_w_avg:
+        kwargs_['ROIs_ctrl'] = [avg_large]
+    elif ctrl_large_strict:
+        kwargs_['ROIs_ctrl'] = voxel_small_all
+    else:
+        kwargs_['ROIs_ctrl'] = [voxel_small_M]
+    t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                              easy_override=easy_override)
+    kwargs_['ROIs_ctrl'] = []
+    t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                      easy_override=easy_override)
+
+    kwargs_ = kwargs.copy()
+    kwargs_['ROI_focus'] = avg_large
+    if ctrl_avg_strict:
+        kwargs_['ROIs_ctrl'] = voxel_small_all
+    elif ctrl_avg_w_large:
+        kwargs_['ROIs_ctrl'] = [voxel_large]
+    else:
+        kwargs_['ROIs_ctrl'] = [voxel_small_M]
+
+    t_avg_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                             easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
-    t_bold, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+    t_avg, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                     easy_override=easy_override)
 
     print('-')
-    # print(f'{t_conn=:.3f} ({r_sqs_conn:.4f})')
-    # print(f'\t{t_conn_all=:.3f} ({r_sqs_conn_all:.4f})')
     print(f'{t_ROIs=:.3f} ({r_sqs_ROIs:.4f})')
     print(f'\t{t_ROIs_all=:.3f} ({r_sqs_ROIs_all:.4f})')
-    print(f'{t_bold=:.3f} ({r_sqs_bold:.4f})')
-    print(f'\t{t_bold_all=:.3f} ({r_sqs_bold_all:.4f})')
+    print(f'{t_avg=:.3f} ({r_sqs_bold:.4f})')
+    print(f'\t{t_avg_all=:.3f} ({r_sqs_bold_all:.4f})')
 
     t_ROIs_all = max(0, t_ROIs_all)
-    t_bold_all = max(0, t_bold_all)
+    t_avg_all = max(0, t_avg_all)
     t_large_all = max(0, t_large_all)
 
     t_ROIs_dif = t_ROIs - t_ROIs_all
     t_ROIs_dif = max(0, t_ROIs_dif)
-    t_bold_dif = t_bold - t_bold_all
+    t_bold_dif = t_avg - t_avg_all
     t_bold_dif = max(0, t_bold_dif)
-    # t_conn_dif = t_conn - t_conn_all
-    # t_conn_dif = max(0, t_conn_dif)
     t_large_dif = t_large - t_large_all
     t_large_dif = max(0, t_large_dif)
 
-    # t_conn_all = max(0, t_conn_all)
-
-
-    title, fn, fontsize = get_title(RSA, ISPC, kwargs, 28)
+    title, fn, fontsize = get_title(RSA, ISPC, kwargs_, 28)
     if plot:
         plt.rcParams.update({'font.size': 20})
         bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
@@ -591,37 +605,23 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         colors = ['dodgerblue', 'orange', 'crimson',]
         plt.bar(bar_names,
                 [t_ROIs_dif, t_large_dif, t_bold_dif],
-                bottom=[t_ROIs_all, t_large_all, t_bold_all],
+                bottom=[t_ROIs_all, t_large_all, t_avg_all],
                 label='2', color='darkgray',
                 linewidth=1., edgecolor='k')
         plt.bar(bar_names,
-                [t_ROIs_all, t_large_all, t_bold_all],
+                [t_ROIs_all, t_large_all, t_avg_all],
                 bottom=[0, 0, 0], label='1',
                 color=colors,
                 linewidth=1., edgecolor='k')
 
-        # plt.xticks(['ROI', 'System', 'Conn'], fontsize=28)
         plt.xticks(bar_names, fontsize=23)
-
         plt.ylabel('t-value', fontsize=28)
 
-        # if RSA and not semantic:
-        #     title = title.replace('MTL', 'Med. Temp. Lobe')
-        # else:
-        #     title = title.replace('MTL', 'Medial Temporal Lobe')
-        #
-        # title = title.replace('PFC_ACC', 'Prefrontal')
-
-
-
-        # fontsize = 28
-
-
         print(f'{title=}')
-        fn = f'{kwargs["ROI_focus_conn"]}_{fn}'
+        fn = f'{kwargs_["ROI_focus"]}_{fn}'
 
         plt.gca().spines[['top', 'right']].set_visible(False)
-        max_height = max(t_ROIs, t_bold, t_large, t_ROIs_all, t_bold_all,
+        max_height = max(t_ROIs, t_avg, t_large, t_ROIs_all, t_avg_all,
                          t_large_all, 4.)
         if np.isnan(max_height):
             print('NaN max_height!')
@@ -630,10 +630,6 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                          min(max(int(max_height*1.07) // 4, 1), 5)),
                    fontsize=26)
         plt.ylim(0, max_height * 1.07)
-        # plt.title()
-
-        # plt.bar(['conn', 'roi'], [2, 3], bottom=[0, 2],
-        #         label='2')
         plt.title(title, fontsize=fontsize, pad=15)
         plt.tight_layout()
         if 'RSA' in fn:
@@ -647,10 +643,9 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
 
         plt.savefig(fp_out, dpi=300)
-
         plt.show()
 
-    return t_ROIs_all, t_bold_all, t_large_all, title
+    return t_ROIs_all, t_avg_all, t_large_all, title
 
 
 def prep_ROI_avg(target_name, ROI_cols,
@@ -727,7 +722,7 @@ def do_regr():
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '8'
+    four_tasks = '7'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
@@ -756,12 +751,6 @@ def do_regr():
          (False, True, False, False),
          (False, True, True, False),]
 
-    # target_ROIs = ['MTL2', 'Hipp', 'ATL', 'PhG']
-    # target_ROIs = ['MTL2', 'FP', 'PFC', 'Occipital', 'Ventral', 'Dorsal']
-    # target_ROIs = ['Ventral']
-    # target_ROIs = ['FP']
-    # target_ROIs = ['INS']
-
     target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'cingulate',
                    'subcort']
 
@@ -769,7 +758,7 @@ def do_regr():
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
         if not RSA: continue
-        if not semantic: continue
+        if semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
@@ -796,7 +785,6 @@ def do_regr():
                 target_name = fr'{target_ROI}_M'
                 prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                              ERS_alt=ERS_alt, **kwargs)
-                # kwargs['ROI_focus_conn'] = ROI_focus
 
                 outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
                                'ERS_alt': ERS_alt,
@@ -806,7 +794,7 @@ def do_regr():
                 outer_kwargs['voxel_small_M'] = target_name
                 outer_kwargs['voxel_small_all'] = ROI_lvl_control
                 outer_kwargs['voxel_large'] = f'{target_ROI}_BOLD_cmb'
-                outer_kwargs['voxels_avg'] = f'{target_ROI}_BOLD'
+                outer_kwargs['avg_large'] = f'{target_ROI}_BOLD'
 
                 t_ROIs_all, t_bold_all, t_conn_all, title = (
                     pickle_wrap(plot_stacked_bars, kwargs=outer_kwargs,

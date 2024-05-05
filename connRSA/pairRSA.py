@@ -15,7 +15,7 @@ from utils import pickle_wrap
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-def pairRSA(fp, within2nan=True, semantic=True, regress_global=True):
+def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
@@ -34,6 +34,8 @@ def pairRSA(fp, within2nan=True, semantic=True, regress_global=True):
         sn_act = np.concatenate([sn_act, sn_act_M[:, None]], axis=1)
 
     d_vecs = prep_vecs(True, semantic)
+    # print(d_vecs)
+    # quit()
     RSM_RSM_l = []
     sns = []
     for sn_i, df_sn in tqdm(enumerate(df_sns_l), desc='pairRSA by sn'):
@@ -65,7 +67,10 @@ def pairRSA(fp, within2nan=True, semantic=True, regress_global=True):
 
         RSM_stim = pickle_wrap(get_stim_RDM, None,
                                kwargs={'df_sn': df_sn, 'd_vecs': d_vecs,
-                                       'obj_only': True,}, verbose=-1)
+                                       'obj_only': True,
+                                       'semantic': semantic},
+                               verbose=-1)
+
 
         RSM_stim = within_run_to_nan(RSM_stim)
         RSM_stim[np.diag_indices_from(RSM_stim)] = np.nan
@@ -101,12 +106,16 @@ def pairRSA(fp, within2nan=True, semantic=True, regress_global=True):
 
     return RSM_RSM_l, sns
 
-def run_pairRSA(fp, within2nan=True, semantic=False, regress_global=False):
+def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
+                thresh=.9, intersect=True, rowwise=True,
+                fps='7'):
+    if not rowwise:
+        assert not intersect
     # for key in ['7', '8']:
     sns_use = set()
     RSM_RSM_l_l = []
     sns_l = []
-    for i, fp in enumerate(prep_fps('7')):
+    for i, fp in enumerate(prep_fps(fps)):
         RSM_RSM_l, sns = pickle_wrap(pairRSA, None,
                                 kwargs={'fp': fp, 'within2nan': within2nan,
                                         'semantic': semantic,
@@ -122,30 +131,49 @@ def run_pairRSA(fp, within2nan=True, semantic=False, regress_global=False):
     for RSM_RSM_l, sns in zip(RSM_RSM_l_l, sns_l):
         idxs = [i for i, sn in enumerate(sns) if sn in sns_use]
         RSM_RSM_l_l_.append(np.array(RSM_RSM_l)[idxs])
-        # print(idxs)
-        # quit()
-        # sns_use.update(sns)
-        # print(f'{len(sns_use)=}')
-    # quit()
-    # print(np.array(RSM_RSM_l).shape)
-    # quit()
-    # RSM_RSM_l_l = np.array(RSM_RSM_l_l_)
+
     RSM_RSM_l = np.nanmean(np.array(RSM_RSM_l_l_), axis=0)
+
+
     # print(RSM_RSM_l_l.shape)
     # quit()
 
     RSM_RSM_l = np.array(RSM_RSM_l)
     # print(RSM_RSM_l)
     # quit()
+    # print(RSM_RSM_l[:, 0, 1])
+    # print(RSM_RSM_l[:, 1, 0])
+    #
+    # # print(RSM_RSM_l.shape)
+    # quit()
+    RSM_RSM_N = np.sum(~np.isnan(RSM_RSM_l), axis=0)
     RSM_RSM_M = np.nanmean(RSM_RSM_l, axis=0)
     RSM_RSM_SE = stats.sem(RSM_RSM_l, axis=0, nan_policy='omit')
     RSM_RSM_t = RSM_RSM_M / RSM_RSM_SE
-    RSM_RSM_z = stats.norm.ppf(stats.t.cdf(RSM_RSM_t, RSM_RSM_l.shape[0] - 1))
+    RSM_RSM_z = stats.norm.ppf(stats.t.cdf(RSM_RSM_t, RSM_RSM_N - 1))
+
+    M_rows = np.nanmean(RSM_RSM_z, axis=0)
+    M_rows_j = np.nanmean(RSM_RSM_z, axis=0)
+
+    # for i in range(RSM_RSM_z.shape[0]):
+    #     RSM_RSM_z[i] -= M_rows / 2
+    #     RSM_RSM_z[:, i] -= M_rows_j / 2
+
+
+    atlas = get_atlas()
+
 
     # for i, row in
-    RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=.95,
-                                       intersect=False, rowwise=True)
+    RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=thresh,
+                                       intersect=intersect, rowwise=rowwise)
     partitions = get_modules(RSM_RSM_bin)
+    RSM_RSM_z[RSM_RSM_bin < 1] = np.nan
+    # plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
+    #                   atlas['tick_lows'],
+    #                   title='pairRSA', no_avg=True, cbar_label='t-value',
+    #                   vmin=-4, vmax=4)
+    #
+    # quit()
 
 
     # partitions, matrix_mask = \
@@ -156,34 +184,38 @@ def run_pairRSA(fp, within2nan=True, semantic=False, regress_global=False):
     #                         title_extra=title_extra,
     #                         )
 
-    atlas = get_atlas()
 
     for i, p in enumerate(partitions):
-        print(f'{i}: {len(p)=}')
-        if len(p) < 5:
+        if len(p) < 25:
             continue
+        print(f'{i}: {len(p)=}')
         # continue
         p_mat = get_partition_matrix(RSM_RSM_z, p, w_zeros=True)
         p_mat[p_mat < .5] = np.nan
+        continue
         plot_connectivity(p_mat, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'],
                           title='pairRSA', no_avg=True, cbar_label='t-value',
                           vmin=-0.1, vmax=2)
     # quit()
-    dir_out = r'pairRSA'
-    fn_str = 'first.png'
-    plot_partitions(partitions, RSM_RSM_z, fn_str, coords=None,
-                    dir_out=dir_out, title_extra='')
-    quit()
+    sematnic_str = 'semantic_' if semantic else 'perceptual_'
+    intr_str = 'intersect_' if intersect else ''
+    thr_str = f'thr{thresh}_'
+    regr_str = f'regressGlobal_' if regress_global else ''
+    row_str = f'rowwise_' if rowwise else 'matrixwise_'
+    fn_str = f'{sematnic_str}{intr_str}{thr_str}{regr_str}{row_str}{fps}'
+    full_dir = r'result_pics/pairRSA'
 
-    # print(RSM_RSM_z.shape)
-    # quit()
-    #
     plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title='pairRSA', no_avg=True, cbar_label='t-value',
+                      title=f'pairRSA: {fn_str}', no_avg=True,
+                      cbar_label='t-value',
                       vmin=-4, vmax=4)
+    plot_partitions(partitions, RSM_RSM_z, fn_str, coords=None,
+                    dir_out_full=full_dir, title_extra='')
+    quit()
+
 
 if __name__ == '__main__':
     # run_pairRSA()
-    run_pairRSA('obj7_fMRI') # TODO: regress_global = False
+    run_pairRSA() # TODO: regress_global = False

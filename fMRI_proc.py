@@ -205,7 +205,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         for i in range(10):
             print(f'Error in loading ({fp_fMRI_col}): {e}')
             print(f'\t{sn=}')
-        quit()
+        raise TypeError
 
     n_nans = np.isnan(img).sum()
     print(f'Total number of NaNs: {n_nans/114:.1f}')
