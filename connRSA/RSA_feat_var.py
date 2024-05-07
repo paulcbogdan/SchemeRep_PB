@@ -159,20 +159,35 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
     RSMs1_all = np.array(RSMs1_all)
     RSMs1_all = stats.zscore(RSMs1_all, axis=-1, nan_policy='omit')
     t_st = time()
-    # print(RSMs1_all.shape)
-    # print(RSM_models_flat.shape)
-    # quit()
-    # print(RSM_models_flat.shape)
-    # quit()
-
 
     nan_cells = np.all(np.isnan(RSMs1_all), axis=(0, 1))
-    # print(sum(nan_cells))
-    # quit()
+
 
     RSM_models_flat = RSM_models_flat[:, ~nan_cells]
     RSMs1_all = RSMs1_all[:, :, ~nan_cells]
+
+    # num_ROI = RSMs1_all.shape[0]
+    # num_ROI2 = RSMs1_all.shape[1]
+    # num_dims = RSMs1_all.shape[0]
+    # ars = np.empty((num_ROI, num_ROI2, num_dims))
+    # print('go')
+    # for i in range(num_ROI):
+    #     for j in range(num_ROI2):
+    #         x = RSMs1_all[i, j]
+    #         for k in range(num_dims):
+    #             y = RSM_models_flat[k]
+    #             valid_indices = np.isfinite(x) & np.isfinite(y)
+    #             n = len(x)
+    #             print(f'{sum(valid_indices)/n:.3f}')
+    #             continue
+    # quit()
+
     ars = numba_super(RSMs1_all, RSM_models_flat)
+    print(f'{ars.shape=}')
+    print(f'{ars=}')
+
+
+    # ars = numba_super(RSMs1_all, RSM_models_flat)
     t_end = time()
     t_dif = t_end - t_st
     print(f'Super numba time: {t_dif=:.3f}')
@@ -245,7 +260,7 @@ def run_var_analysis():
            '136', '137', '201', '202', '203', '204', '205', '206', '207',
            '208', '209', '210', '211', '212', '214', '216', '217', '218',
            '219', '221', '222', '225', '227', '232', '233', '235']
-    sns = sns[3::4]
+    sns = sns[12::4]
 
     if regress_local:
         conn_l = get_corr_regress_local(sns, four_tasks, trial_similarity,
@@ -271,7 +286,7 @@ def run_var_analysis():
                       atlas['tick_lows'],
                       title='eh', no_avg=True, cbar_label='t-value',)
 
-from numba import jit
+from numba import jit, prange
 
 #@jit()
 @jit(nopython=True, parallel=True, fastmath=True, nogil=True)
@@ -288,28 +303,40 @@ def numba_super(a, b):
     num_ROI2 = a.shape[1]
     num_dims = b.shape[0]
     ars = np.empty((num_ROI, num_ROI2, num_dims))
-    for i in range(num_ROI):
+    for i in prange(num_ROI):
         for j in range(num_ROI2):
+            x = a[i, j]
             for k in range(num_dims):
-                x = a[i, j]
                 y = b[k]
-                ars[i, j, k] = np.nanmean(x * y)
-    # for i, x in enumerate(a):
-    #     for j, y in enumerate(b):
-    #         ar[i, j] = np.nanmean(x * y)
+                ars[i, j, k] = np.mean(x * y)
     return ars
-    # RSM_flat0_ = repeatnumba(a, 246).T
-    # print(RSM_flat0_.shape)
-    # quit()
-    # RSM_flat0_ = np.expand_dims(RSM_flat0, 0)
-    # print(RSM_flat0_.shape)
-    # RSM_flat0_ = np.repeat(RSM_flat0_, 246)
-    # print(RSM_flat0_.shape)
-    # quit()
-    # print(betas0.shape)
-    # betas0_ = repeatnumba(betas0, 6441)
-    # print(betas0_.shape)
-    # quit()
+
+def numpy_super(a, b):
+    l = []
+    b = b[None, :, :]
+    for a_ in tqdm(a, desc='numpy test'):
+        a_ = a_[:, None, :]
+        ar = np.nanmean(a_ * b, axis=-1)
+        l.append(ar)
+    ars = np.array(l)
+    # a = a[:, :, None, :]
+    # b = b[None, None, :, :]
+    # ars = np.nanmean(a * b, axis=-1)
+    return ars
+
+# @jit(nopython=True, parallel=True, fastmath=True, nogil=True)
+# def numpy_numba_super(a, b):
+#     l = []
+#     b = b[None, :, :]
+#     for i in prange(a.shape[0]):
+#         a_ = a[i, :, None, :]
+#         ar = np.nanmean(a_ * b, axis=-1)
+#         l.append(ar)
+#     ars = np.array(l)
+#     # a = a[:, :, None, :]
+#     # b = b[None, None, :, :]
+#     # ars = np.nanmean(a * b, axis=-1)
+#     return ars
 
 
 def repeatnumba(original,no_repeats):
