@@ -137,12 +137,12 @@ def analyze_var_sns(sns, ROI, four_tasks, trial_similarity, stdize_by_run,
 
 def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
                              semantic, second_order, ROIs):
-    ar = []
+    ars = []
     for ROI0 in tqdm(ROIs, desc=f'Looping local regressed ROIs for: {sn}'):
         RSMs1, status = regress_out_RSMs(sn, ROI0, fp, trial_similarity,
                                stdize_by_run, second_order, override=False)
         if not status:
-            ar.append(np.full((len(ROIs), 300 if semantic else 114),
+            ars.append(np.full((len(ROIs), 300 if semantic else 114),
                               np.nan))
             continue
 
@@ -154,7 +154,15 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
         RSMs1 = stats.zscore(RSMs1, axis=-1, nan_policy='omit')
         # print(RSMs1.shape)
         # print(RSM_models_flat.shape)
+        # t_st = time()
         ar = np.nanmean(RSMs1[:, None, :] * RSM_models_flat[None], axis=-1)
+        # ar = numba_corr(RSMs1, RSM_models_flat)
+        print(ar.shape)
+        ars.append(ar)
+        # t_end = time()
+        # t_dif = t_end - t_st
+        # print(f'{t_dif=:.3f}')
+        # quit()
         # print(ar.shape)
 
         # quit()
@@ -172,6 +180,10 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
         # print(np.array(l).shape)
         # quit()
     return ar
+
+def numba_mat_prod(a, b):
+
+    pass
 
 def get_sn_regressed_corr(sn, four_tasks, trial_similarity, stdize_by_run,
                           semantic, second_order):
@@ -264,9 +276,30 @@ def run_var_analysis():
                       atlas['tick_lows'],
                       title='eh', no_avg=True, cbar_label='t-value',)
 
-# from numba import jit
+from numba import jit
 
 #@jit()
+@jit(nopython=True, parallel=True, fastmath=True, nogil=True)
+def numba_corr(a, b):
+    ar = np.empty((a.shape[0], b.shape[0]))
+    for i, x in enumerate(a):
+        for j, y in enumerate(b):
+            ar[i, j] = np.nanmean(x * y)
+    return ar
+    # RSM_flat0_ = repeatnumba(a, 246).T
+    # print(RSM_flat0_.shape)
+    # quit()
+    # RSM_flat0_ = np.expand_dims(RSM_flat0, 0)
+    # print(RSM_flat0_.shape)
+    # RSM_flat0_ = np.repeat(RSM_flat0_, 246)
+    # print(RSM_flat0_.shape)
+    # quit()
+    # print(betas0.shape)
+    # betas0_ = repeatnumba(betas0, 6441)
+    # print(betas0_.shape)
+    # quit()
+
+
 def repeatnumba(original,no_repeats):
   repeat=original.repeat(no_repeats).reshape(*original.shape, no_repeats )
   return repeat
