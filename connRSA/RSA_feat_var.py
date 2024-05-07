@@ -138,52 +138,47 @@ def analyze_var_sns(sns, ROI, four_tasks, trial_similarity, stdize_by_run,
 def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
                              semantic, second_order, ROIs):
     ars = []
+    RSMs1_all = []
+
+    tril_idxs = np.tril_indices(114, k=-1)
+    RSMs_models = prep_w2v_feature_RSMs(sn, fp, semantic)
+    # RSMs_models = within_run_to_nan(RSMs_models)
+    RSM_models_flat = RSMs_models[:, *tril_idxs]
+    RSM_models_flat = stats.zscore(RSM_models_flat, axis=1,
+                                   nan_policy='omit')
+
     for ROI0 in tqdm(ROIs, desc=f'Looping local regressed ROIs for: {sn}'):
         RSMs1, status = regress_out_RSMs(sn, ROI0, fp, trial_similarity,
                                stdize_by_run, second_order, override=False)
-        if not status:
-            ars.append(np.full((len(ROIs), 300 if semantic else 114),
-                              np.nan))
-            continue
+        if status:
+            RSMs1_all.append(RSMs1)
+        elif not status:
+            RSMs1_all.append(np.full((246, 6441), np.nan))
+        continue
 
-        tril_idxs = np.tril_indices(114, k=-1)
-        RSMs_models = prep_w2v_feature_RSMs(sn, fp, semantic)
-        RSM_models_flat = RSMs_models[:, *tril_idxs]
-        RSM_models_flat = stats.zscore(RSM_models_flat, axis=1,
-                                       nan_policy='omit')
-        RSMs1 = stats.zscore(RSMs1, axis=-1, nan_policy='omit')
-        # print(RSMs1.shape)
-        # print(RSM_models_flat.shape)
-        # t_st = time()
-        ar = np.nanmean(RSMs1[:, None, :] * RSM_models_flat[None], axis=-1)
-        # ar = numba_corr(RSMs1, RSM_models_flat)
-        print(ar.shape)
-        ars.append(ar)
-        # t_end = time()
-        # t_dif = t_end - t_st
-        # print(f'{t_dif=:.3f}')
-        # quit()
-        # print(ar.shape)
+    RSMs1_all = np.array(RSMs1_all)
+    RSMs1_all = stats.zscore(RSMs1_all, axis=-1, nan_policy='omit')
+    t_st = time()
+    # print(RSMs1_all.shape)
+    # print(RSM_models_flat.shape)
+    # quit()
+    # print(RSM_models_flat.shape)
+    # quit()
 
-        # quit()
 
-        # l = []
-        # for RSM1 in RSMs1:
-        # # for ROI1 in ROIs:
-        #     RSM0_corrs = analyze_var_ROI(sn, ROI0, fp, trial_similarity,
-        #                                  stdize_by_run, second_order,
-        #                                  semantic, regress_global=False,
-        #                                  ROI1=None, RSM1=RSM1)
-        #     l.append(RSM0_corrs)
-        #     # print()
-        # ar.append(l)
-        # print(np.array(l).shape)
-        # quit()
-    return ar
+    nan_cells = np.all(np.isnan(RSMs1_all), axis=(0, 1))
+    # print(sum(nan_cells))
+    # quit()
 
-def numba_mat_prod(a, b):
+    RSM_models_flat = RSM_models_flat[:, ~nan_cells]
+    RSMs1_all = RSMs1_all[:, :, ~nan_cells]
+    ars = numba_super(RSMs1_all, RSM_models_flat)
+    t_end = time()
+    t_dif = t_end - t_st
+    print(f'Super numba time: {t_dif=:.3f}')
+    # quit()
+    return ars
 
-    pass
 
 def get_sn_regressed_corr(sn, four_tasks, trial_similarity, stdize_by_run,
                           semantic, second_order):
@@ -286,6 +281,23 @@ def numba_corr(a, b):
         for j, y in enumerate(b):
             ar[i, j] = np.nanmean(x * y)
     return ar
+
+@jit(nopython=True, parallel=True, fastmath=True, nogil=True)
+def numba_super(a, b):
+    num_ROI = a.shape[0]
+    num_ROI2 = a.shape[1]
+    num_dims = b.shape[0]
+    ars = np.empty((num_ROI, num_ROI2, num_dims))
+    for i in range(num_ROI):
+        for j in range(num_ROI2):
+            for k in range(num_dims):
+                x = a[i, j]
+                y = b[k]
+                ars[i, j, k] = np.nanmean(x * y)
+    # for i, x in enumerate(a):
+    #     for j, y in enumerate(b):
+    #         ar[i, j] = np.nanmean(x * y)
+    return ars
     # RSM_flat0_ = repeatnumba(a, 246).T
     # print(RSM_flat0_.shape)
     # quit()
@@ -361,7 +373,7 @@ def grab_ROI_RSM(fp, trial_similarity, second_order, stdize_by_run,
 def regress_out_RSMs(sn, ROI0, fp, trial_similarity, stdize_by_run,
                      second_order, override=False):
     atlas = get_atlas()
-    t_st = time()
+    # t_st = time()
 
     # last_ROI = atlas['ROIs'][-1]
     # dir_out = fr'cache/conn_RSA/ars/RSA_reg'
@@ -395,9 +407,9 @@ def regress_out_RSMs(sn, ROI0, fp, trial_similarity, stdize_by_run,
     regressors = regressors[~nans, :]
 
     RSMs1 = do_RSM_numba(RSMs1, RSM_focus0, regressors, nans)
-    t_end = time()
-    t_dif = t_end - t_st
-    print(f'{t_dif=:.3f} s')
+    # t_end = time()
+    # t_dif = t_end - t_st
+    # print(f'{t_dif=:.3f} s')
     return RSMs1, status
 
     # tril = np.tril_indices(114, -1)
