@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
-
+from functools import cache
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
 
@@ -214,6 +214,8 @@ def norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type, objs):
             d_all[name] = vec
     return d_all
 
+
+@cache
 def get_semantic_vectors(normalize=True):
     # fit using python 3.11
     norm_string = '_norm' if normalize else ''

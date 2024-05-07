@@ -49,7 +49,6 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
 
     flat_focus = RSM_focus1[np.tril_indices_from(RSM_focus1, k=-1)]
 
-
     cmb = '_cmb' if 'cmb' in ROI_focus else ''
     dir_focus2 = (f'{dir_in}/{fp1}_{trial_similarity}_'
                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
@@ -90,7 +89,6 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
                 RSM_stim_[new_i, new_j] = RSM_stim[i, j]
         RSM_stim = RSM_stim_
 
-
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
     flat_itr = np.array([1] * len(flat_focus))
     if len(ROIs_ctrl):
@@ -125,7 +123,6 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
         goods = ~(np.isnan(flat_focus) | np.isnan(flat_stim))
         X = X[goods, :]
         flat_stim = flat_stim[goods]
-
 
     assert np.sum(np.isnan(X)) == 0
 
@@ -490,8 +487,14 @@ def get_title(RSA, ISPC, kwargs, fontsize):
         region = 'Prefrontal'
     elif 'MTL' in kwargs['ROI_focus']:
         region = 'Med. Temp. Lobe'
+    elif 'Dorsal' in kwargs['ROI_focus']:
+        region = 'Parietal lobe'
+    elif 'Ventral' in kwargs['ROI_focus']:
+        region = 'Temporal lobe'
+    elif 'Subcort' in kwargs['ROI_focus']:
+        region = 'Subcortical'
     elif 'Occipital' in kwargs['ROI_focus']:
-        region = 'Occipital'
+        region = 'Occipital lobe'
     else:
         region = kwargs['ROI_focus'].split('_')[0]
         # raise ValueError
@@ -501,16 +504,16 @@ def get_title(RSA, ISPC, kwargs, fontsize):
     if RSA:
         if kwargs['semantic']:
             if 'Temp' in region:
-                fontsize = 21
+                fontsize = 23
             else:
-                fontsize = 26
+                fontsize = 23
             title = f'RSA (semantic): {region}'
             fn = f'RSA_semantic{regress_row_str}_{kwargs["four_tasks"]}.png'
         else:
             if 'Temp' in region:
-                fontsize = 21
+                fontsize = 23
             else:
-                fontsize = 25
+                fontsize = 23
             title = f'RSA (perceptual): {region}'
             fn = f'RSA_perceptual{regress_row_str}_{kwargs["four_tasks"]}.png'
     elif ISPC:
@@ -531,10 +534,12 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                       ctrl_small_strict=False,
 
                       ctrl_avg_w_large=False,
-                      ctrl_avg_strict=True,
+                      ctrl_avg_strict=False,
 
                       voxel_small_M=None, voxel_small_all=None,
-                      voxel_large=None, avg_large=None):
+                      voxel_large=None, avg_large=None,
+
+                      plot_two=True):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
 
     kwargs_ = kwargs.copy()
@@ -600,19 +605,35 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     title, fn, fontsize = get_title(RSA, ISPC, kwargs_, 28)
     if plot:
         plt.rcParams.update({'font.size': 20})
-        bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
-        # colors = ['forestgreen', 'crimson', 'dodgerblue']
-        colors = ['dodgerblue', 'orange', 'crimson',]
-        plt.bar(bar_names,
-                [t_ROIs_dif, t_large_dif, t_bold_dif],
-                bottom=[t_ROIs_all, t_large_all, t_avg_all],
-                label='2', color='darkgray',
-                linewidth=1., edgecolor='k')
-        plt.bar(bar_names,
-                [t_ROIs_all, t_large_all, t_avg_all],
-                bottom=[0, 0, 0], label='1',
-                color=colors,
-                linewidth=1., edgecolor='k')
+        if plot_two:
+            bar_names = ['Small\nvoxel', 'Large\naverage', ]
+            colors = ['dodgerblue', 'crimson',]
+            plt.bar(bar_names,
+                    [t_ROIs_dif, t_bold_dif],
+                    bottom=[t_ROIs_all, t_avg_all],
+                    label='2', color='darkgray',
+                    linewidth=1., edgecolor='k')
+            plt.bar(bar_names,
+                    [t_ROIs_all, t_avg_all],
+                    bottom=[0, 0], label='1',
+                    color=colors,
+                    linewidth=1., edgecolor='k')
+            max_height = max(t_ROIs, t_avg, t_ROIs_all, t_avg_all, 4.)
+        else:
+            bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
+            colors = ['dodgerblue', 'orange', 'crimson',]
+            plt.bar(bar_names,
+                    [t_ROIs_dif, t_large_dif, t_bold_dif],
+                    bottom=[t_ROIs_all, t_large_all, t_avg_all],
+                    label='2', color='darkgray',
+                    linewidth=1., edgecolor='k')
+            plt.bar(bar_names,
+                    [t_ROIs_all, t_large_all, t_avg_all],
+                    bottom=[0, 0, 0], label='1',
+                    color=colors,
+                    linewidth=1., edgecolor='k')
+            max_height = max(t_ROIs, t_avg, t_large, t_ROIs_all, t_avg_all,
+                             t_large_all, 4.)
 
         plt.xticks(bar_names, fontsize=23)
         plt.ylabel('t-value', fontsize=28)
@@ -621,8 +642,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         fn = f'{kwargs_["ROI_focus"]}_{fn}'
 
         plt.gca().spines[['top', 'right']].set_visible(False)
-        max_height = max(t_ROIs, t_avg, t_large, t_ROIs_all, t_avg_all,
-                         t_large_all, 4.)
+
         if np.isnan(max_height):
             print('NaN max_height!')
             max_height = 0
@@ -722,7 +742,7 @@ def do_regr():
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '7'
+    four_tasks = '8'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
@@ -751,14 +771,14 @@ def do_regr():
          (False, True, False, False),
          (False, True, True, False),]
 
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'cingulate',
+    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
                    'subcort']
 
 
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
-        if not RSA: continue
-        if semantic: continue
+        if RSA: continue
+        # if semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue

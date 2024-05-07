@@ -15,7 +15,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                       t=False, no_avg=True, cbar_label='', vmin=None, vmax=None,
                       xlabel=None, ylabel=None, tile=.001,
                       tick_low=None, tick_high=None, minimal=False,
-                      colorbar=True):
+                      colorbar=True, cmap='turbo'):
 
     if atlas is not None:
         ticks = atlas['ticks']
@@ -68,10 +68,11 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                        'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
                        'Tha']
 
-    plt.imshow(M_connect, vmin=vmin, vmax=vmax, cmap='turbo',
+    plt.imshow(M_connect, vmin=vmin, vmax=vmax,
+               cmap=cmap,#'turbo' if vmin < -1 else 'CMRmap',
                interpolation='none')
 
-    fontsize = 20 if len(tick_labels) < 20 else 10
+    fontsize = 20 if len(tick_labels) < 20 else 14
 
     for low in tick_lows:
         low -= 0.5
@@ -86,7 +87,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         plt.tight_layout()
         plt.show()
         return
-    plt.title(title, fontsize=fontsize)
+    plt.title(title, fontsize=fontsize * 2)
     plt.yticks(ticks, tick_labels, fontsize=fontsize)
     plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
     if colorbar:
@@ -144,7 +145,8 @@ def get_split_cmap(vabs, thresh, cmap):
 
 
 def my_plot_surf(Ms, atlas, title, fp_out=None,
-                 neg='', pos='', thresh=1.65, vmax=4):
+                 neg='', pos='', thresh=1.65, vmax=4,
+                 cmap='hot_cold'):
     from statsmodels.stats.multitest import multipletests
     import scipy.stats as stats
     from nilearn import plotting
@@ -164,15 +166,16 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         img_data[atlas_data == (i + 1)] = val
         # if val > 1:
         #     print(f'{i} | {val}')
-        # if i == 102:
-        #     # fix bad part of mesh, FuG appears in Hipp or PhG or w/e
-        #     idxs = np.indices(img_data.shape)
-        #     slicer = idxs[0] == 31
-        #     img_data[(atlas_data == (i + 1)) & slicer] = 0
-        # elif i == 103:
-        #     idxs = np.indices(img_data.shape)
-        #     slicer = idxs[0] == 67
-        #     img_data[(atlas_data == (i + 1)) & slicer] = 0
+        if i == 102:
+            # fix bad part of mesh, FuG appears in Hipp or PhG or w/e
+            idxs = np.indices(img_data.shape)
+            slicer = idxs[0] > 28
+            slicer1 = idxs[0] < 32
+            img_data[(atlas_data == (i + 1)) & slicer & slicer1] = 0
+        elif i == 103:
+            idxs = np.indices(img_data.shape)
+            slicer = idxs[0] == 67
+            img_data[(atlas_data == (i + 1)) & slicer] = 0
         # above_thresh = np.abs(val) > thresh
         continue
         # if above_thresh:
@@ -202,24 +205,14 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
 
 
 
-    cmap = get_split_cmap(vabs, thresh, 'cold_hot')
+    cmap = get_split_cmap(vabs, thresh, 'rainbow_r')
+    # cmap = get_split_cmap(vabs, thresh, cmap)
+
     # cmap = 'cold_hot'
-    # print(f'{thresh=}')
-    # quit()
+
     img_data[img_data < thresh] = thresh - 0.1
+    img_data[img_data < 0] = 0
 
-    #
-
-    # x, _, _ = image.coord_transform(-22, 0, 0,
-    #                                 np.linalg.inv(atlas['maps'].affine))
-    # x, _, _ = image.coord_transform(22, 0, 0,
-    #                                 np.linalg.inv(atlas['maps'].affine))
-    # img_data[31:32, :, :] = 0
-    # img_data[67:68, :, :] = 0
-
-    # print(x)
-    # quit()
-    # img_data[img_data > thresh] *= 100
     img = image.new_img_like(atlas['maps'], img_data)
     print(f'{thresh=}')
     print(f'{vmax=}')

@@ -107,8 +107,7 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
     return RSM_RSM_l, sns
 
 def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
-                thresh=.8, intersect=True, rowwise=True,
-                fps='7'):
+                thresh=.9, intersect=True, rowwise=True, fps='7'):
     if not rowwise:
         assert not intersect
     # for key in ['7', '8']:
@@ -162,17 +161,35 @@ def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
 
     atlas = get_atlas()
 
+    sematnic_str = 'semantic_' if semantic else 'perceptual_'
+    intr_str = 'intersect_' if intersect else ''
+    thr_str = f'thr{thresh}_'
+    regr_str = f'regressGlobal_' if regress_global else ''
+    row_str = f'rowwise_' if rowwise else 'matrixwise_'
+    fn_str = f'{sematnic_str}{intr_str}{thr_str}{regr_str}{row_str}{fps}'
+    full_dir = r'result_pics/pairRSA'
 
-    # for i, row in
+    if semantic:
+        title = r'PairRSA (semantic)'
+    else:
+        title = r'PairRSA (perceptual)'
+
+    plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'], title=title, no_avg=True,
+                      cbar_label='z-score', vmin=0, vmax=4)
+    quit()
+
     RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=thresh,
                                        intersect=intersect, rowwise=rowwise)
     partitions = get_modules(RSM_RSM_bin)
     RSM_RSM_z[RSM_RSM_bin < 1] = np.nan
-    # plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
-    #                   atlas['tick_lows'],
-    #                   title='pairRSA', no_avg=True, cbar_label='t-value',
-    #                   vmin=-4, vmax=4)
-    #
+    # RSM_RSM_z[RSM_RSM_bin < 1] = 1.65
+
+    plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      title=title, no_avg=True, cbar_label='z-score',
+                      vmin=1.65, vmax=2.85)
+
     # quit()
 
 
@@ -190,27 +207,23 @@ def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
             continue
         print(f'{i}: {len(p)=}')
         # continue
-        p_mat = get_partition_matrix(RSM_RSM_z, p, w_zeros=True)
+        p_mat = get_partition_matrix(RSM_RSM_bin, p, w_zeros=True)
         p_mat[p_mat < .5] = np.nan
-        continue
+        # p_mat[p]
+        # continue
+        # print(p_mat)
         plot_connectivity(p_mat, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'],
                           title='pairRSA', no_avg=True, cbar_label='t-value',
-                          vmin=-0.1, vmax=2)
-    # quit()
-    sematnic_str = 'semantic_' if semantic else 'perceptual_'
-    intr_str = 'intersect_' if intersect else ''
-    thr_str = f'thr{thresh}_'
-    regr_str = f'regressGlobal_' if regress_global else ''
-    row_str = f'rowwise_' if rowwise else 'matrixwise_'
-    fn_str = f'{sematnic_str}{intr_str}{thr_str}{regr_str}{row_str}{fps}'
-    full_dir = r'result_pics/pairRSA'
+                          vmin=-2, vmax=1)
+    quit()
 
-    plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      title=f'pairRSA: {fn_str}', no_avg=True,
-                      cbar_label='t-value',
-                      vmin=-4, vmax=4)
+    #
+    # plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
+    #                   atlas['tick_lows'],
+    #                   title=f'pairRSA: {fn_str}', no_avg=True,
+    #                   cbar_label='t-value',
+    #                   vmin=-4, vmax=4)
     plot_partitions(partitions, RSM_RSM_z, fn_str, coords=None,
                     dir_out_full=full_dir, title_extra='')
     quit()

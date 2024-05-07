@@ -18,7 +18,7 @@ from stim import get_semantic_vectors, get_DNN_vecs
 from utils import pickle_wrap
 from datetime import datetime
 from colorama import Fore
-from functools import partial
+from functools import partial, cache
 
 def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            conn='euc', trial_similarity='euc', second_order='spear',
@@ -90,6 +90,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
 
     return M_score_by_ROI, M_size_by_ROI, trialwise_all
 
+@cache
 def prep_vecs(RSA, semantic):
     if RSA:
         if isinstance(semantic, bool):

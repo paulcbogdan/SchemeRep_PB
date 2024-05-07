@@ -10,11 +10,11 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 def plot_single_ROI():
 
     RSA = True
-    semantic = False
+    semantic = True
     conn = 'BOLD'
     trial_similarity = 'corr'
     second_order = 'spear'
-    four_tasks = '8'
+    four_tasks = '7'
     split = False
     RDM_method = 'within_nan'
     age = 'healthy'
@@ -49,10 +49,22 @@ def plot_single_ROI():
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=kwargs, easy_override=False,
                                    verbose=1, cache_dir=dir_results)
-    scores, scores_by_fp = report_results(results_bold_sep, do_lmer=False)
+
+    do_lmer = False
+    scores, scores_by_fp = report_results(results_bold_sep, do_lmer=do_lmer)
 
     atlas = get_atlas()
-    my_plot_surf(scores, atlas, 'big', vmax=4, thresh=2)
+    if RSA and semantic:
+        title = r'Small-voxel ROI: RSA (semantic)'
+    elif RSA:
+        title = r'Small-voxel ROI: RSA (perceptual)'
+    else:
+        title = r'Small-voxel ROI: NPS'
+
+    if do_lmer: title += ' [lmer]'
+
+    my_plot_surf(scores, atlas, title, vmax=4 if RSA else 8, thresh=2,
+                 cmap='hot_cold')
 
 
 if __name__ == '__main__':
