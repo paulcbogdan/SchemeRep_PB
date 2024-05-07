@@ -84,7 +84,8 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
             mat_RSM_RSM = []
             num_nanner_rows = 0
             for j, row in enumerate(non_global_RSM):
-                regressors = np.array([RSM_stim, global_row[j]]).T
+                ones = np.ones(RSM_stim.shape)
+                regressors = np.array([RSM_stim, global_row[j], ones]).T
                 nans = np.any(np.isnan(regressors), axis=1)
                 n_non_nans = np.sum(~nans)
                 if n_non_nans < 2:
@@ -106,7 +107,7 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
 
     return RSM_RSM_l, sns
 
-def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
+def run_pairRSA(within2nan=True, semantic=True, regress_global=True,
                 thresh=.9, intersect=True, rowwise=True, fps='7'):
     if not rowwise:
         assert not intersect
