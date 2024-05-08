@@ -64,7 +64,7 @@ def run_IC_analysis():
            '208', '209', '210', '211', '212', '214', '216', '217', '218',
            '219', '221', '222', '225', '227', '232', '233', '235']
 
-    four_tasks = '7'
+    four_tasks = '8'
     fps = prep_fps(four_tasks)
 
     kwargs = {'trial_similarity': trial_similarity,
