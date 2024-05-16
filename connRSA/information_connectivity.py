@@ -2,7 +2,7 @@ from time import time
 
 import numpy as np
 from matplotlib import pyplot as plt
-from numba import jit
+from numba import jit, prange
 from scipy import spatial
 from scipy import stats
 from tqdm import tqdm
@@ -105,41 +105,36 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
             pair = [RSMs0, RSMs1]
             l.append(pair)
     l = np.array(l)
-    # print(l.shape)
-    # plt.imshow(l[0][0])
-    # plt.show()
 
     bad_cols = np.all(np.isnan(l), axis=(0, 1, 2)) # nan across all ROIs and fps
     l = l[:, :, :, ~bad_cols]
-    # print(l.shape)
     corrs = numba_fp_x_fp_RSMs(l)
-    # quit()
-    # print(bad_cols)
-    # print(np.mean(bad_cols))
-    # #
-    # bad_cols = np.any(np.isnan(l), axis=(0, 1))
-    # print(bad_cols)
-    # print(np.mean(bad_cols))
-    # quit()
-
-
-    # corrs = np.array(corrs)
     t_end = time()
     print(f'Numba corr calc: {t_end - t_st:.3f}')
-    # quit()
     return corrs
 
 @jit(nopython=True, parallel=True, fastmath=True)
-def numba_fp_x_fp_RSMs(l):
+def numba_fp_x_fp_RSMs(l): # 4 seconds first then 3 seconds vs. 9 w/ numpy below
+    num_fp_pairs = l.shape[0]
+    num_ROIs = l.shape[2]
+    out = np.empty((num_fp_pairs, num_ROIs, num_ROIs))
+    for i in prange(num_fp_pairs): # prange gives an 8x speedup??
+        RSM0 = l[i][0]
+        RSM1 = l[i][1]
+        for j0 in range(num_ROIs):
+            for j1 in range(num_ROIs):
+                out[i, j0, j1] = np.mean(RSM0[j0, :] * RSM1[j1, :])
+    return out
+
+def numpy_fp_x_fp_RSMs(l): # if numba doesn't use prange, this is same speed
     num_fp_pairs = l.shape[0]
     num_ROIs = l.shape[2]
     out = np.empty((num_fp_pairs, num_ROIs, num_ROIs))
     for i in range(num_fp_pairs):
         RSM0 = l[i][0]
         RSM1 = l[i][1]
-        for j0 in range(num_ROIs):
-            for j1 in range(num_ROIs):
-                out[i, j0, j1] = np.mean(RSM0[:, j0] * RSM1[:, j1])
+        corr = np.mean(RSM0[None, :, :] * RSM1[:, None, :], axis=-1)
+        out[i] = corr
     return out
 
 # calculate IC between tasks and normalize by an ROIs IC with itself
