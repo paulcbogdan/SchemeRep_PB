@@ -8,8 +8,11 @@ from scipy import stats
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
+from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
+from old.networks import prep_networks
 from old.plot_gen import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info
@@ -133,10 +136,17 @@ def numpy_fp_x_fp_RSMs(l): # if numba doesn't use prange, this is same speed
 #   e.g., Occipital 1 may have higher IC with occipital 2 than IPL 1 has with
 #   IPL 2, but this could be due to occipital 1 & 2 having more reliable data
 
+def get_idxs(ROI):
+    regions = set(prep_networks(
+        network_setting=ROI2NETWORK[ROI])[ROI])
+    ROIs_match = [i for region in regions
+                  for i, ROI in enumerate(get_BNA_ROIs()) if region in ROI]
+    return ROIs_match
+
 def run_IC_analysis():
     # semantic = False
     cross = True
-    trial_similarity = 'euc' # euc
+    trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'
     atlas = get_atlas()
@@ -159,6 +169,12 @@ def run_IC_analysis():
               'within_nan': True}
 
     corrs = []
+
+    ventral_idxs = get_idxs('Ventral')
+    occ_idxs = get_idxs('Occipital')
+    # print(test)
+    # quit()
+    # fps = [fp for fp in fps if 'con' not in fp]
     for i, sn in tqdm(enumerate(sns), desc=f'Looping IC: {cross=}'):
         # if i > 3:
         #     break
@@ -166,7 +182,6 @@ def run_IC_analysis():
         kwargs['sn'] = sn
         if cross:
             kwargs['fps'] = fps
-            fps = [fp for fp in fps if 'con' not in fp]
             sn_corrs = pickle_wrap(get_cross_IC_mat, kwargs=kwargs, verbose=-1,
                                    easy_override=False)
             # corr = np.nanmean(corrs, axis=0)
@@ -178,43 +193,57 @@ def run_IC_analysis():
                                    easy_override=False)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
-            print(sn_corrs.shape)
-        # corrs.append(np.nanmean(sn_corrs, axis=0))
-        corr = np.nanmedian(sn_corrs, axis=0)
-        # plt.imshow(corr)
-        # plt.show()
+        # print(sn_corrs.shape)
         # quit()
-        diag = np.diag(corr)
-        M_diag = np.nanmean(diag)
-        print(f'{M_diag=:.3f}')
+
+        # corr = stats.trim_mean(sn_corrs, 0.1, axis=0)
+        corr = np.nanmean(sn_corrs, axis=0)
+
         corr[:, 222:] = np.nan
         corr[222:, :] = np.nan
 
-        # print(diag.shape)
-        # quit()
-        # print(diag)
-        # quit()
-
         if cross:
+
+            diag = np.diag(corr)
+            M_diag = np.nanmean(diag)
+            print(f'{M_diag=:.3f}')
             diag_prod = np.sqrt(np.outer(diag, diag))
             corr -= diag_prod
-        # corrs.append(diag_prod)
-        # plt.imshow(diag_prod)
-        # plt.show()
-        # quit()
 
-        # print(diag_prod.shape)
-        # quit()
-        # print(corr)
-        # corr -= diag_prod #diag_prod
-        # corr[np.abs(corr) > 2] = np.nan
-        # corr = diag_prod
+        # corr = stats.zscore(corr, nan_policy='omit')
+        corr -= np.nanmean(corr)
+        corr /= np.nanstd(corr)
+
         corrs.append(corr)
 
     corrs = np.array(corrs)
+    # print(corrs.shape)
+    # quit()
+
+    # corrs = stats.zscore(corrs, axis=(1, 2))
+    # qu
+
+    corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
+    corrs_ventral = corrs[:, ventral_idxs][:, :, ventral_idxs]
+    M_ventral = np.nanmean(corrs_ventral, axis=(1, 2))
+    corrs_occ = corrs[:, occ_idxs][:, :, occ_idxs]
+    M_occ = np.nanmean(corrs_occ, axis=(1, 2))
+    # plt.scatter(M_ventral, M_occ)
+    # for sn in sns:
+    #     idx = sns.index(sn)
+    #     plt.text(M_ventral[idx], M_occ[idx], sn)
+    # plt.plot([-.14, 0], [-.14, 0])
+    # plt.show()
+
+    t, p = stats.ttest_rel(M_ventral, M_occ)
+    N = M_ventral.shape[0]
+    d = t / np.sqrt(N)
+    print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
 
     M = np.nanmean(corrs, axis=0)
-    print(M)
+
+
+
     SE = stats.sem(corrs, axis=0, nan_policy='omit')
     N = np.sum(~np.isnan(corrs), axis=0)
     t = M / SE
@@ -222,8 +251,8 @@ def run_IC_analysis():
     atlas = get_atlas()
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title='eh', no_avg=True,
-                      cbar_label='',)
+                      title='Cross IC' if cross else 'Traditional IC',
+                      no_avg=True, cbar_label='',)
 
 
 if __name__ == '__main__':
