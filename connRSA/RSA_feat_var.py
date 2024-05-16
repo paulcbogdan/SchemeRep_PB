@@ -42,9 +42,23 @@ def get_M_RSM(sn, fp, trial_similarity, stdize_by_run, second_order):
     RSM = np.nanmean(RSMs, axis=0)
     return RSM
 
+def shuffle_d_vecs(d_vecs, seed=0):
+    rng = np.random.default_rng(seed)
+    d_vecs_new = {}
+    keys = list(d_vecs.keys())
+    vals = list(d_vecs.values())
+    rng.shuffle(keys)
+
+    for i, key in enumerate(keys):
+        d_vecs_new[key] = vals[i]
+    return d_vecs_new
+
 @cache
-def prep_w2v_feature_RSMs(sn, fp, semantic, flat=True):
+def prep_w2v_feature_RSMs(sn, fp, semantic, flat=True,
+                          shuffle_seed=None):
     d_vecs = prep_vecs(True, semantic)
+    if shuffle_seed is not None:
+        d_vecs = shuffle_d_vecs(d_vecs, seed=shuffle_seed)
 
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').
@@ -68,33 +82,42 @@ def prep_w2v_feature_RSMs(sn, fp, semantic, flat=True):
 
 def analyze_var_ROI(sn, ROI, fp, trial_similarity, stdize_by_run,
                     second_order, semantic, regress_global=True,
-                    ROI1=None, RSM1=None):
+                    ROI1=None, RSM1=None, shuffle_seed=None):
     tril_idxs = np.tril_indices(114, k=-1)
     if RSM1 is not None:
         RSM_fMRI_flat = RSM1
     else:
-        if ROI1 is not None:
-            dir_in = fr'cache/conn_RSA/ars/RSA_reg'
-            Path(dir_in).mkdir(parents=True, exist_ok=True)
-            fp_focus1 = (f'{dir_in}/{sn}_{ROI}_{ROI1}_{trial_similarity}_'
-                         f'{second_order}_{stdize_by_run}_BOLD.npy')
-        else:
-            dir_in = fr'cache/conn_RSA/ars/RSA'
-            RDM_method_ = 'within_nan'
-            dir_focus1 = (f'{dir_in}/{fp}_{trial_similarity}_'
-                         f'{second_order}_{RDM_method_}_{stdize_by_run}')
-            fp_focus1 = f'{dir_focus1}/{sn}_{ROI}_BOLD.npy'
-        with open(fp_focus1, 'rb') as f:
-            RSM_focus1 = np.load(f)
-        RSM_focus1 = within_run_to_nan(RSM_focus1)
+        # if ROI1 is not None:
+        #     dir_in = fr'cache/conn_RSA/ars/RSA_reg'
+        #     Path(dir_in).mkdir(parents=True, exist_ok=True)
+        #     fp_focus1 = (f'{dir_in}/{sn}_{ROI}_{ROI1}_{trial_similarity}_'
+        #                  f'{second_order}_{stdize_by_run}_BOLD.npy')
+        # else:
+        #     dir_in = fr'cache/conn_RSA/ars/RSA'
+        #     RDM_method_ = 'within_nan'
+        #     dir_focus1 = (f'{dir_in}/{fp}_{trial_similarity}_'
+        #                  f'{second_order}_{RDM_method_}_{stdize_by_run}')
+        #     fp_focus1 = f'{dir_focus1}/{sn}_{ROI}_BOLD.npy'
+        # with open(fp_focus1, 'rb') as f:
+        #     RSM_focus1 = np.load(f)
+        # RSM_focus1 = within_run_to_nan(RSM_focus1)
+
+        RSM_fMRI_flat, status = grab_ROI_RSM(fp, trial_similarity,
+                                     second_order, stdize_by_run,
+                     sn, ROI, within_nan=True, flat=True, z=True)
 
 
-        RSM_fMRI_flat = RSM_focus1[tril_idxs]
-        RSM_fMRI_flat = stats.zscore(RSM_fMRI_flat, nan_policy='omit')
 
-    RSM_models_flat = prep_w2v_feature_RSMs(sn, fp, semantic, flat=True)
-    # RSM_models_flat = RSMs[:, *tril_idxs]
-    # RSM_models_flat = stats.zscore(RSM_models_flat, axis=1)
+        # RSM_fMRI_flat = RSM_focus1[tril_idxs]
+
+    kw_ = {'sn': sn, 'fp': fp, 'semantic': semantic, 'flat': True,
+           'shuffle_seed': shuffle_seed}
+    RSM_models_flat = pickle_wrap(prep_w2v_feature_RSMs, kwargs=kw_,
+                                  verbose=-1)
+
+    # RSM_models_flat = prep_w2v_feature_RSMs(sn, fp, semantic, flat=True,
+    #                                         shuffle_seed=shuffle_seed)
+
 
     if regress_global:
         kw = {'sn': sn, 'fp': fp, 'trial_similarity': trial_similarity,
@@ -112,11 +135,11 @@ def analyze_var_ROI(sn, ROI, fp, trial_similarity, stdize_by_run,
         RSM_corr = betas[0, :]
 
     else:
-        # t_st = time()
+        t_st = time()
         RSM_corr = np.nanmean(RSM_fMRI_flat[None,  :] *
                               RSM_models_flat, axis=1)
-        # t_end = time()
-        # t_dif = t_end - t_st
+        t_end = time()
+        t_dif = t_end - t_st
         # print(f'{t_dif=:.3f} s')
         # quit()
     return RSM_corr
@@ -168,19 +191,9 @@ def get_regressed_w2v_RSMs(sn, fp, semantic, trial_similarity,
         XTX_invX = np.dot(XTX_inv, regressors.T)
         betas = np.dot(XTX_invX, RSMs[:, ~nans].T)
         betas0 = betas[0, :]
-        # print(betas0.shape)
-        # print(RSMs.shape)
-        # quit()
 
-        # m, c = np.linalg.lstsq(A, RSMs, rcond=None)[0]
         RSMs_ = RSMs - betas0[:, None] * RSM_focus1[None, :]
         RSMs_l.append(RSMs_)
-        # print(RSMs_.shape)
-        # quit()
-        # print(RSMs_.shape)
-        # plt.imshow(RSMs_, aspect='auto', interpolation='none')
-        # plt.show()
-        # quit()
 
         # RSMs1.append(RSM_focus1)
     RSMs_l = np.array(RSMs_l)
@@ -202,26 +215,11 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
         kw = {'sn': sn, 'fp': fp, 'trial_similarity': trial_similarity,
               'stdize_by_run': stdize_by_run, 'semantic': semantic,
               'second_order': second_order}
-        RSMs_models_flat = pickle_wrap(get_regressed_w2v_RSMs, kwargs=kw,)
+        RSM_models_flat = pickle_wrap(get_regressed_w2v_RSMs, kwargs=kw,)
+        # print(f'{RSM_models_flat.shape=}')
+        # quit()
     else:
-        RSMs_models_flat = prep_w2v_feature_RSMs(sn, fp, semantic)
-    # print(RSMs_models_flat.shape)
-
-    # plt.imshow(RSMs_models_flat[0, :4, :], interpolation='none', aspect='auto',
-    #            )
-    # plt.colorbar()
-    # plt.show()
-    # plt.imshow(RSMs_models_flat[1, :4, :], interpolation='none', aspect='auto',
-    #            )
-    # plt.colorbar()
-    # plt.show()
-    #
-    # plt.imshow(RSMs_models_flat[0, :4, :] - RSMs_models_flat[1, :4, :],
-    #            interpolation='none', aspect='auto')
-    # plt.colorbar()
-    # plt.show()
-    # quit()
-
+        RSM_models_flat = prep_w2v_feature_RSMs(sn, fp, semantic)
 
 
     for ROI0 in tqdm(ROIs, desc=f'Looping local regressed ROIs for: {sn}'):
@@ -236,23 +234,6 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
             RSMs1_all.append(np.full((246, 6441), np.nan))
 
     RSMs1_all = np.array(RSMs1_all, dtype=np.float32)
-    # print(RSMs1_all.shape)
-    # plt.imshow(RSMs_models_flat[:, 0, :], interpolation='none', aspect='auto')
-    # plt.show()
-
-    # plt.title('fMRI')
-    # plt.imshow(RSMs1_all[:, 0, :], interpolation='none', aspect='auto')
-    # plt.show()
-    #
-    # plt.title('fMRI')
-    # plt.imshow(RSMs1_all[:, 1, :], interpolation='none', aspect='auto')
-    # plt.show()
-
-    # r, p = stats.spearmanr(RSMs1_all[0, 1, :], RSMs1_all[0, 2, :],
-    #                        nan_policy='omit')
-    # print(f'{r=:.3f}')
-    #
-    # quit()
 
 
     RSMs1_all = stats.zscore(RSMs1_all, axis=-1, nan_policy='omit')
@@ -261,14 +242,14 @@ def get_sn_regressed_corr_fp(sn, fp, trial_similarity, stdize_by_run,
     nan_cells = np.all(np.isnan(RSMs1_all), axis=(0, 1))
 
 
-    RSMs_models_flat = RSMs_models_flat[..., ~nan_cells]
+    RSM_models_flat = RSM_models_flat[..., ~nan_cells]
     RSMs1_all = RSMs1_all[:, :, ~nan_cells]
-    if len(RSMs_models_flat.shape) == 3:
+    if len(RSM_models_flat.shape) == 3:
         # print('SUPE')
         # quit()
-        ars = numba_super_alt(RSMs1_all, RSMs_models_flat) # actually like 80% more time
+        ars = numba_super_alt(RSMs1_all, RSM_models_flat) # actually like 80% more time
     else:
-        ars = numba_super(RSMs1_all, RSMs_models_flat)
+        ars = numba_super(RSMs1_all, RSM_models_flat)
 
     t_end = time()
     t_dif = t_end - t_st
@@ -379,10 +360,9 @@ def get_sn_no_regresssed_corr(sn, fps, trial_similarity, stdize_by_run,
 def get_sn_RSA_feat_conn(sn, four_tasks, trial_similarity,
                          stdize_by_run, semantic, second_order,
                          full_regress_out=True, ):
-    # do_nothing = False
-    # semantic = True
+
     fps = prep_fps(four_tasks)
-    # fps = ['bl7_fMRI']
+    fps = ['bl7_fMRI']
     kwargs = {'sn': sn, 'fps': fps,
               'trial_similarity': trial_similarity,
               'stdize_by_run': stdize_by_run,
@@ -399,35 +379,6 @@ def get_sn_RSA_feat_conn(sn, four_tasks, trial_similarity,
                                 ) # do_nothing=do_nothing
 
 
-    # print(ars.shape)
-    # # quit()
-    # plt.title(f'Covariate means: {full_regress_out}, {do_nothing}')
-    # plt.imshow(np.nanmean(ars[0, :4], axis=1), aspect='auto',
-    #            interpolation='none')
-    # plt.colorbar()
-    # plt.show()
-    # plt.title(f'ROI (predictor) means: {full_regress_out}, {do_nothing}, '
-    #           f'{semantic=}')
-    # plt.imshow(np.nanmean(ars[0, :, :4], axis=0), aspect='auto',
-    #            interpolation='none')
-    # plt.colorbar()
-    # plt.show()
-    #
-    # plt.title(f'ROI (predictor) means: {full_regress_out}, {do_nothing}, '
-    #           f'{semantic=}')
-    # corr = np.corrcoef(np.nanmean(ars[0, :, :4], axis=0))
-    # plt.imshow(corr, aspect='auto', interpolation='none')
-    # plt.show()
-    # quit()
-
-    # plt.imshow(ars[0, :, 0, :]) # analyze 1st ROI, regress each
-    # plt.colorbar()              # regressing out has almost zero effect?
-    # plt.show()
-    # plt.imshow(ars[0, 0, :, :])
-    # plt.colorbar()
-    # plt.show()
-    # quit()
-    # ars -= np.nanmean(ars, axis=1)[:, None, :, :]
     sn_l = []
     for fp_k in range(ars.shape[0]):
         conn = np.full((246, 246), np.nan)
@@ -438,9 +389,9 @@ def get_sn_RSA_feat_conn(sn, four_tasks, trial_similarity,
                 # conn[i, j] = np.mean(ars[fp_k, j, i, :] *
                 #                      ars[fp_k, i, j, :] )
         conn[np.diag_indices_from(conn)] = np.nan
-        # plt.title(f'{sn}, {fp_k}, {semantic=}')
-        # plt.imshow(conn)
-        # plt.show()
+        plt.title(f'{sn}, {fp_k}, {semantic=}')
+        plt.imshow(conn)
+        plt.show()
         # quit()
         sn_l.append(conn)
     return np.nanmean(sn_l, axis=0)
@@ -450,37 +401,20 @@ def get_corr_regress_local(sns, four_tasks, trial_similarity, stdize_by_run,
     # l = []
     conn_l = []
     for i, sn in enumerate(sns):
-        # full_regress_out = False
-        # semantic = False
+
         kw = {'sn': sn, 'four_tasks': four_tasks,
               'trial_similarity': trial_similarity,
               'stdize_by_run': stdize_by_run,
               'semantic': semantic, 'second_order': second_order,
               'full_regress_out': full_regress_out}
         conn = pickle_wrap(get_sn_RSA_feat_conn, kwargs=kw, verbose=-1,
-                           easy_override=True)
-        # plt.imshow(conn)
-        # plt.colorbar()
-        # plt.show()
-        #
-        # kw['semantic'] = True
-        # conn2 = pickle_wrap(get_sn_RSA_feat_conn, kwargs=kw, verbose=-1,
-        #                    easy_override=True)
-        # plt.imshow(conn2)
-        # plt.colorbar()
-        # plt.show()
-        #
+                           easy_override=False)
         conn_l.append(conn)
-        # # plt.title(f'{sn=}, {semantic=}')
-        # plt.imshow(conn2 - conn)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
 
     return conn_l
 
 def run_var_analysis():
-    semantic = False
+    semantic = True
     trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'
@@ -496,6 +430,8 @@ def run_var_analysis():
            '208', '209', '210', '211', '212', '214', '216', '217', '218',
            '219', '221', '222', '225', '227', '232', '233', '235']
     # sns = sns[:3]
+    sns = sns[:20]
+
 
     if regress_local:
         conn_l = get_corr_regress_local(sns, four_tasks, trial_similarity,
@@ -573,7 +509,7 @@ def numpy_super(a, b):
 
 @cache
 def grab_ROI_RSM(fp, trial_similarity, second_order, stdize_by_run,
-                 sn, ROI, within_nan=True, flat=True):
+                 sn, ROI, within_nan=True, flat=True, z=False):
     dir_in = fr'cache/conn_RSA/ars/RSA'
     RDM_method_ = 'within_nan'
     dir_focus1 = (f'{dir_in}/{fp}_{trial_similarity}_'
@@ -586,6 +522,8 @@ def grab_ROI_RSM(fp, trial_similarity, second_order, stdize_by_run,
         return None, False
     if within_nan: RSM_focus1 = within_run_to_nan(RSM_focus1)
     if flat: RSM_focus1 = RSM_focus1[np.tril_indices(RSM_focus1.shape[0], k=-1)]
+    if z: RSM_focus1 = stats.zscore(RSM_focus1, nan_policy='omit')
+
     return RSM_focus1, True
 
 
@@ -637,114 +575,14 @@ def regress_out_RSMs(sn, ROI0, fp, trial_similarity, stdize_by_run,
     XTX_invX = np.dot(XTX_inv, regressors.T)
     betas = np.dot(XTX_invX, RSMs1[:, ~nans].T)
     betas0 = betas[0, :]
-    # print(RSM_flat0[None, :].shape)
-    # print(betas0[:, None].shape)
-    # plt.imshow(RSMs1, aspect='auto', interpolation='none')
-    # plt.show()
-    #
-    # print(RSMs1.shape)
-    # quit()
-    # plt.imshow(RSMs1[:2], aspect='auto', interpolation='none')
-    # plt.colorbar()
-    # plt.show()
-
-    # print(RSM_focus0[~np.isnan(RSM_focus0)])
-    # print(RSMs1[1, ~np.isnan(RSM_focus0)])
-    # pre = RSMs1.copy()
 
     RSMs1 -= RSM_focus0[None, :] * betas0[:, None]
 
-    # print(RSM_focus0)
-    # print(RSMs1.shape)
-
-    # plt.imshow(pre[1:4] - RSMs1[1:4], aspect='auto', interpolation='none')
-    # plt.colorbar()
-    # plt.show()
-    # #
-    # # print(RSM_focus0[~np.isnan(RSM_focus0)])
-    # print(RSMs1[1, ~np.isnan(RSM_focus0)])
-    #
-    # print(betas0)
-    # plt.plot(betas0)
-    # plt.show()
-    # quit()
-    # # print(betas0.shape)
-    # quit()
-    # t_end = time()
-    # t_dif = t_end - t_st
-    # print(f'{t_dif=:.3f} s')
     return RSMs1, status
 
 
 if __name__ == '__main__':
-    # fp0 = 'cache/conn_RSA/ars/RSA/bl7_fMRI_corr_spear_within_nan_False/102_1 SFG_L_7_1_BOLD.npy'
-    # with open(fp0, 'rb') as f:
-    #     RSM1 = np.load(f)
-    # fp1 = 'cache/conn_RSA/ars/RSA/bl7_fMRI_corr_spear_within_nan_False/102_2 SFG_R_7_1_BOLD.npy'
-    # with open(fp1, 'rb') as f:
-    #     RSM2 = np.load(f)
-    # RSM1 = within_run_to_nan(RSM1)
-    # RSM2 = within_run_to_nan(RSM2)
-    # tril = np.tril_indices(RSM1.shape[0], k=-1)
-    # RSM1_flat = RSM1[tril]
-    # RSM2_flat = RSM2[tril]
-    # r, p = stats.spearmanr(RSM1_flat, RSM2_flat, nan_policy='omit')
-    # print(f'{r=:.3f}')
-    #
-    # ROIs = get_atlas()['ROIs']
-    # # # # print(ROIs[:2])
-    # RSM_focus0, status = grab_ROI_RSM('obj7_fMRI', 'corr', 'spear',
-    #                               False, '102', ROIs[0], within_nan=True,
-    #                               flat=True)
-    # RSM_focus0 = stats.zscore(RSM_focus0, nan_policy='omit')
-    # RSMs0 = np.array([RSM_focus0])
-    #
-    # RSM_focus1, status = grab_ROI_RSM('obj7_fMRI', 'corr', 'spear',
-    #                               False, '102', ROIs[2], within_nan=True,
-    #                               flat=True)
-    # RSM_focus1 = stats.zscore(RSM_focus1, nan_policy='omit')
-    #
-    # # r, p = stats.pearsonr(RSM_focus0, RSM_focus1)
-    #
-    # RSMs1 = np.array([RSM_focus1])
-    #
-    # ones = np.ones(RSM_focus0.shape)
-    # regressors = np.array([RSM_focus0, ones]).T
-    # nans = np.any(np.isnan(regressors), axis=1)
-    # regressors = regressors[~nans, :]
-    # XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
-    # XTX_invX = np.dot(XTX_inv, regressors.T)
-    # betas = np.dot(XTX_invX, RSMs1[:, ~nans].T)
-    # betas0 = betas[0, :]
-    #
-    # ones = np.ones(RSM_focus0.shape)
-    # regressors = np.array([RSM_focus1, ones]).T
-    # nans = np.any(np.isnan(regressors), axis=1)
-    # regressors = regressors[~nans, :]
-    # XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
-    # XTX_invX = np.dot(XTX_inv, regressors.T)
-    # betas1 = np.dot(XTX_invX, RSMs0[:, ~nans].T)
-    # betas1 = betas1[0, :]
-    # # print(betas0)
-    #
-    # copy = RSM_focus1.copy()
-    #
-    # RSM_focus1[None, :] -= RSM_focus0[None, :] * betas0[:, None]
-    # RSM_focus0[None, :] -= copy[None, :] * betas0[:, None]
-    #
-    # # print(betas1)
-    # # quit()
-    # # quit()
-    # # nans = np.isnan(RSM_focus0)
-    # RSM_focus0 = RSM_focus0[~nans]
-    # RSM_focus1 = RSM_focus1[~nans]
-    # r, p = stats.pearsonr(RSM_focus0, RSM_focus1)
-    #
-    #
-    # print(f'{r=:.3f}')
-    # # plt.scatter(RSM_focus0, RSM_focus1)
-    # # plt.show()
-    # quit()
+
 
     run_var_analysis()
 

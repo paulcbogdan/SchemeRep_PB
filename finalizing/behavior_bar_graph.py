@@ -50,13 +50,10 @@ if __name__ == '__main__':
                         alpha=0.65, c=inc2color[inc], s=30, linewidth=0)
             plt.scatter(inc + jitter, inc_score,
                         alpha=0.65, c='w', s=1, linewidth=0)
-
             x.append(inc + jitter)
         plt.plot(x, df_sn['per_inc'], color='k', alpha=0.25,
                  linestyle=(5, (10, 3)),
                  linewidth=0.35, zorder=-1)
-        # print(f'{inc=}, {df_inc["per_inc"].mean()}')
-
 
     # for sn, df_sn in df.groupby('sn'):
     #     # if sn != '227': continue

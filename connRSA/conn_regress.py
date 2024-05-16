@@ -90,7 +90,7 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
         RSM_stim = RSM_stim_
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
-    flat_itr = np.array([1] * len(flat_focus))
+    flat_intercept = np.array([1] * len(flat_focus))
     if len(ROIs_ctrl):
         flat_ctrls = []
         skips = 0
@@ -113,9 +113,9 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
         else:
             flat_ctrl = flat_ctrl[:, ~nan_cols]
 
-        X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrl])
+        X = np.hstack([flat_intercept[:, None], flat_focus[:, None], flat_ctrl])
     else:
-        X = np.hstack([flat_itr[:, None], flat_focus[:, None]])
+        X = np.hstack([flat_intercept[:, None], flat_focus[:, None]])
     if 'within_nan' == RDM_method:
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
@@ -312,7 +312,13 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:
-        X = np.hstack([flat_itr[:, None], flat_focus[:, None]])
+        if regress_row:
+            IRAFs_focus = get_IRAFs(RSM_stim, RSM_focus, None,
+                                    within_to_nan=RDM_method == 'within_nan',
+                                    by_run=False, second_order='corr')
+            return IRAFs_focus
+        else:
+            X = np.hstack([flat_itr[:, None], flat_focus[:, None]])
     if RDM_method == 'within_nan':
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
@@ -407,7 +413,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
             # kwargs['regress_row'] = regress_row
             try:
                 score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                      verbose=-1, easy_override=easy_override)
+                                          verbose=-1,
+                                          easy_override=easy_override)
             except ValueError as e:
                 if kwargs["sn"] != '131':
                     print(f'Bad {kwargs["sn"]}: {e}')

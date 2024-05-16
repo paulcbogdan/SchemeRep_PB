@@ -382,7 +382,7 @@ def pickle_wrap(callback: object, filepath: object = None,
                 args: object = None, kwargs: object = None,
                 easy_override: object = False,
                 verbose: object = 0, cache_dir: object = 'cache',
-                dt_max: object = None, RAM_cache: object = False) -> object:
+                dt_max: object = None, RAM_cache: object = False):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
