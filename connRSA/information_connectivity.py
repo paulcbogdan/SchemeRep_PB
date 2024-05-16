@@ -14,9 +14,15 @@ from old.plot_gen import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 from stim import get_semantic_vectors
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 from functools import cache
 from sklearn import decomposition
+
+# suppress RuntimeWarning: All-NaN slice
+from warnings import filterwarnings
+filterwarnings("ignore", category=RuntimeWarning,
+               message="All-NaN slice encountered")
+
 
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -36,15 +42,9 @@ def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
         # print('Not found!')
         RSM = np.full((114, 114), np.nan)
 
-    # plt.imshow(RSM)
-    # plt.show()
-
     if within_nan:
         RSM = within_run_to_nan(RSM)
 
-    # plt.imshow(RSM)
-    # plt.show()
-    # quit()
     if flat:
         trils = np.tril_indices(RSM.shape[0], k=-1)
         return RSM[trils]
@@ -61,12 +61,11 @@ def get_IC_mat(sn, ROIs, fp, trial_similarity, stdize_by_run, second_order,
     RSMs = np.array(RSMs)
     nan_cols = np.all(np.isnan(RSMs), axis=0)
     RSMs = RSMs[:, ~nan_cols]
-    # corr = np.corrcoef(RSMs)
     corr = np.ma.corrcoef(RSMs)
     corr[np.diag_indices_from(corr)] = np.nan
     return corr
 
-def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
+def load_fp2RSMs(sn, ROIs, fps, trial_similarity, stdize_by_run,
                      second_order, within_nan=True):
     fp2RSMs = {}
     for fp in fps:
@@ -77,25 +76,16 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
             RSMs.append(RSM)
         RSMs = np.array(RSMs)
         fp2RSMs[fp] = RSMs
+    return fp2RSMs
 
-    # corrs = []
-    # for fp0, RSMs0 in fp2RSMs.items():
-    #     RSMs0 = RSMs0[:, None, :]
-    #     # print(RSMs0.shape)
-    #     for fp1, RSMs1 in fp2RSMs.items():
-    #         if fp0 == fp1:
-    #             continue
-    #         RSMs1 = RSMs1[None, :, :]
-    #         # print(RSMs1.shape)
-    #         # quit()
-    #         corr = np.nanmean(RSMs0 * RSMs1, axis=-1)
-    #         # plt.imshow(corr)
-    #         # plt.show()
-    #         # quit()
-    #         corrs.append(corr)
-    #
-    #
-    #
+def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
+                     second_order, within_nan=True):
+    kw = {'ROIs': ROIs, 'trial_similarity': trial_similarity,
+          'stdize_by_run': stdize_by_run, 'second_order': second_order,
+          'within_nan': within_nan, 'sn': sn, 'fps': fps}
+    fp2RSMs = pickle_wrap(load_fp2RSMs, None, kwargs=kw,
+                          easy_override=False, verbose=-1)
+
     t_st = time()
     l = []
     for fp0, RSMs0 in fp2RSMs.items():
@@ -108,6 +98,7 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
 
     bad_cols = np.all(np.isnan(l), axis=(0, 1, 2)) # nan across all ROIs and fps
     l = l[:, :, :, ~bad_cols]
+    l = stdize(l, axis=-1)
     corrs = numba_fp_x_fp_RSMs(l)
     t_end = time()
     print(f'Numba corr calc: {t_end - t_st:.3f}')
@@ -145,7 +136,7 @@ def numpy_fp_x_fp_RSMs(l): # if numba doesn't use prange, this is same speed
 def run_IC_analysis():
     # semantic = False
     cross = True
-    trial_similarity = 'corr' # euc
+    trial_similarity = 'euc' # euc
     stdize_by_run = False
     second_order = 'spear'
     atlas = get_atlas()
@@ -175,8 +166,9 @@ def run_IC_analysis():
         kwargs['sn'] = sn
         if cross:
             kwargs['fps'] = fps
+            fps = [fp for fp in fps if 'con' not in fp]
             sn_corrs = pickle_wrap(get_cross_IC_mat, kwargs=kwargs, verbose=-1,
-                                   easy_override=True)
+                                   easy_override=False)
             # corr = np.nanmean(corrs, axis=0)
         else:
             sn_corrs = []
@@ -186,7 +178,39 @@ def run_IC_analysis():
                                    easy_override=False)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
-        corrs.append(np.nanmean(sn_corrs, axis=0))
+            print(sn_corrs.shape)
+        # corrs.append(np.nanmean(sn_corrs, axis=0))
+        corr = np.nanmedian(sn_corrs, axis=0)
+        # plt.imshow(corr)
+        # plt.show()
+        # quit()
+        diag = np.diag(corr)
+        M_diag = np.nanmean(diag)
+        print(f'{M_diag=:.3f}')
+        corr[:, 222:] = np.nan
+        corr[222:, :] = np.nan
+
+        # print(diag.shape)
+        # quit()
+        # print(diag)
+        # quit()
+
+        if cross:
+            diag_prod = np.sqrt(np.outer(diag, diag))
+            corr -= diag_prod
+        # corrs.append(diag_prod)
+        # plt.imshow(diag_prod)
+        # plt.show()
+        # quit()
+
+        # print(diag_prod.shape)
+        # quit()
+        # print(corr)
+        # corr -= diag_prod #diag_prod
+        # corr[np.abs(corr) > 2] = np.nan
+        # corr = diag_prod
+        corrs.append(corr)
+
     corrs = np.array(corrs)
 
     M = np.nanmean(corrs, axis=0)
@@ -199,7 +223,7 @@ def run_IC_analysis():
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title='eh', no_avg=True,
-                      cbar_label='t-value',)
+                      cbar_label='',)
 
 
 if __name__ == '__main__':
