@@ -30,110 +30,7 @@ import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import LeaveOneOut, KFold
 
-def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
-                  fp0, fp1, trial_similarity, stdize_by_run,
-                  semantic, second_order, RDM_method, fp,
-                  four_tasks,
-                  regress_row=False):
 
-    dir_in = fr'cache/conn_RSA/ars/RSA'
-    RDM_method_ = 'within_nan' if RDM_method == 'double_nan' else RDM_method
-    dir_focus1 = (f'{dir_in}/{fp0}_{trial_similarity}_'
-                 f'{second_order}_{RDM_method_}_{stdize_by_run}')
-    fp_focus1 = f'{dir_focus1}/{sn}_{ROI_focus}.npy'
-
-    with open(fp_focus1, 'rb') as f:
-        RSM_focus1 = np.load(f)
-        if 'nan' in RDM_method:
-            RSM_focus1 = within_run_to_nan(RSM_focus1)
-
-    flat_focus = RSM_focus1[np.tril_indices_from(RSM_focus1, k=-1)]
-
-    cmb = '_cmb' if 'cmb' in ROI_focus else ''
-    dir_focus2 = (f'{dir_in}/{fp1}_{trial_similarity}_'
-                 f'{second_order}_{RDM_method_}_{stdize_by_run}')
-    fp_focus2 = f'{dir_focus2}/{sn}_{ROI_focus}{cmb}.npy'
-    with open(fp_focus2, 'rb') as f:
-        RSM_stim = np.load(f)
-        if 'double_nan' in RDM_method:
-            RSM_stim = within_run_to_nan(RSM_stim)
-
-        df_sn = get_trial_info(sn, verbose=-1)
-        sess0 = fp0.split('_')[0][:-1]
-        sess1 = fp1.split('_')[0][:-1]
-        map1_to_0 = {}
-        assert RSM_stim.shape == (114, 114)
-
-        df_sn[f'{sess0}_trial'] -= 1
-        df_sn[f'{sess1}_trial'] -= 1
-        if df_sn[f'{sess1}_trial'].max() > 113:
-            df_sn_ = df_sn.sort_values(f'{sess1}_trial')
-            mapper = {}
-            for i, (_, row) in enumerate(df_sn_.iterrows()):
-                mapper[row[f'{sess1}_trial']] = i
-            df_sn[f'{sess1}_trial'] = df_sn[f'{sess1}_trial'].map(mapper)
-        if df_sn[f'{sess0}_trial'].max() > 113:
-            df_sn_ = df_sn.sort_values(f'{sess0}_trial')
-            mapper = {}
-            for i, (_, row) in enumerate(df_sn_.iterrows()):
-                mapper[row[f'{sess0}_trial']] = i
-            df_sn[f'{sess0}_trial'] = df_sn[f'{sess0}_trial'].map(mapper)
-
-        for idx, row in df_sn.iterrows():
-            map1_to_0[row[f'{sess1}_trial']] = row[f'{sess0}_trial']
-        RSM_stim_ = np.zeros((114, 114))
-        for i in range(114):
-            for j in range(114):
-                new_i = map1_to_0[i]
-                new_j = map1_to_0[j]
-                RSM_stim_[new_i, new_j] = RSM_stim[i, j]
-        RSM_stim = RSM_stim_
-
-    flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
-    flat_intercept = np.array([1] * len(flat_focus))
-    if len(ROIs_ctrl):
-        flat_ctrls = []
-        skips = 0
-        for ROI_ctrl in ROIs_ctrl:
-            cmb = '_cmb' if 'cmb' in ROIs_ctrl else ''
-            fp_ctrl = f'{dir_focus1}/{sn}_{ROI_ctrl}{cmb}.npy'
-            if not os.path.isfile(fp_ctrl):
-                skips += 1
-                continue
-            with open(fp_ctrl, 'rb') as f:
-                RSM_ctrl = np.load(f)
-            flat_ctrl = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
-            flat_ctrls.append(flat_ctrl)
-        flat_ctrl = np.array(flat_ctrls).T
-
-        nan_cols = np.isnan(flat_ctrl).any(axis=0)
-        n_nan_cols = np.sum(nan_cols) + skips
-        if n_nan_cols > 10:
-            print(f'Lots ({sn})! {n_nan_cols=}')
-        else:
-            flat_ctrl = flat_ctrl[:, ~nan_cols]
-
-        X = np.hstack([flat_intercept[:, None], flat_focus[:, None], flat_ctrl])
-    else:
-        X = np.hstack([flat_intercept[:, None], flat_focus[:, None]])
-    if 'within_nan' == RDM_method:
-        X = X[~np.isnan(flat_focus), :]
-        flat_stim = flat_stim[~np.isnan(flat_focus)]
-    elif 'double_nan' == RDM_method:
-        goods = ~(np.isnan(flat_focus) | np.isnan(flat_stim))
-        X = X[goods, :]
-        flat_stim = flat_stim[goods]
-
-    assert np.sum(np.isnan(X)) == 0
-
-    solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
-
-    p = X.shape[1] - 1
-    n = X.shape[0] - 1 # minus 1 because of the intercept
-    r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
-    r_sq = r_sq[0]
-    adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - p - 1)
-    return solution[1], r_sq
 
 def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
                    stdize_by_run, semantic, second_order, RDM_method, fp,
@@ -153,14 +50,12 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
         ERS_ctrl_l = []
         for ROI_ctrl in ROIs_ctrl:
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
-            # print(f'{fp_ctrl=}')
             with open(fp_ctrl, 'rb') as f:
                 ERSs_ctrl = np.load(f)
             ERS_ctrl_l.append(ERSs_ctrl)
         ERSs_ctrl = np.array(ERS_ctrl_l)
         flat_ctrl = ERSs_ctrl.reshape(ERSs_ctrl.shape[0], -1).T # (12996, 22)
         nan_cols = np.isnan(flat_ctrl).any(axis=0)
-        # print(flat_ctrl)
         n_nan_cols = np.sum(nan_cols)
         if n_nan_cols > 10:
             print(f'Lots! {n_nan_cols=}')
@@ -236,7 +131,6 @@ def get_ERS_scores(ERS_mat):
     var_explained = ERS_dif / (1 - ERS_elses)
     var_explained_sign = np.sign(var_explained)
     var_explained = (var_explained ** 2) * var_explained_sign
-
 
     return ERS_dif, var_explained
 

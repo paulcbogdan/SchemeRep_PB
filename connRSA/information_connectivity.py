@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.conn_regress import get_ERS_scores
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
@@ -107,6 +108,55 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     print(f'Numba corr calc: {t_end - t_st:.3f}')
     return corrs
 
+def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
+                      ):
+    dir_root = fr'cache/conn_RSA/ars/ERS'
+    # ROI2fps2iERS = {}
+    num_pairs = (len(fps) * (len(fps) - 1)) // 2
+    ROI2fps2iERS = np.full((num_pairs, len(ROIs), 114), np.nan)
+
+    M_ERS_difs = []
+    for i, ROI in enumerate(ROIs):
+        # ROI2fps2iERS[ROI] = {}
+        # l_ERS_dif_M = []
+        cnt = 0
+        for fp0 in fps:
+            for fp1 in fps:
+                if fp0 >= fp1: continue
+                dir_focus = (fr'{dir_root}/{fp0}_{fp1}_{trial_similarity}_'
+                             fr'{stdize_by_run}')
+                fp = f'{dir_focus}/{sn}_{ROI}_BOLD.npy'
+                # print(f'{fp=}')
+                with open(fp, 'rb') as f:
+                    ERS = np.load(f)
+                ERS_dif, _ = get_ERS_scores(ERS)
+                ROI2fps2iERS[cnt, i, :] = ERS_dif
+                cnt += 1
+                # l_ERS_dif_M.append(ERS_dif)
+                # ROI2fps2iERS[ROI][(fp0, fp1)] = ERS_dif
+        if np.any(np.isnan(ROI2fps2iERS[:, i, :])):
+            M_ERS_difs.append(np.nanmean(ROI2fps2iERS[:, i, :]))
+        else:
+            M_ERS_difs.append(np.mean(ROI2fps2iERS[:, i, :]))
+
+    ROI2fps2iERS = stdize(ROI2fps2iERS, axis=-1)
+    corrs = numba_fp_x_fp_ERS(ROI2fps2iERS)
+    # print(corrs.shape)
+    # quit()
+    return corrs, M_ERS_difs
+
+#@jit(nopython=True, parallel=True, fastmath=True)
+def numba_fp_x_fp_ERS(l):
+    num_fp_pairs = l.shape[0]
+    num_ROIs = l.shape[1]
+    out = np.empty((num_fp_pairs, num_ROIs, num_ROIs))
+    for i in prange(num_fp_pairs):
+        for j0 in range(num_ROIs):
+            ERS0 = l[i, j0, :]
+            for j1 in range(num_ROIs):
+                out[i, j0, j1] = np.mean(ERS0 * l[i, j1, :])
+    return out
+
 @jit(nopython=True, parallel=True, fastmath=True)
 def numba_fp_x_fp_RSMs(l): # 4 seconds first then 3 seconds vs. 9 w/ numpy below
     num_fp_pairs = l.shape[0]
@@ -145,7 +195,8 @@ def get_idxs(ROI):
 
 def run_IC_analysis():
     # semantic = False
-    cross = True
+    cross = False
+    ERS = True
     trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'
@@ -159,33 +210,58 @@ def run_IC_analysis():
            '208', '209', '210', '211', '212', '214', '216', '217', '218',
            '219', '221', '222', '225', '227', '232', '233', '235']
 
-    four_tasks = '8'
+    four_tasks = '7'
     fps = prep_fps(four_tasks)
 
     kwargs = {'trial_similarity': trial_similarity,
               'stdize_by_run': stdize_by_run,
-              'second_order': second_order,
+
               'ROIs': ROIs,
-              'within_nan': True}
+              }
 
     corrs = []
+    # TODO: maybe regress out the activation normal FC matrix?
 
     ventral_idxs = get_idxs('Ventral')
+
+    # ventral_idxs = get_idxs('MTG') + get_idxs('ITG') + get_idxs('FuG')
+
+    # ventral_idxs = get_idxs('PFC')
+    #  + get_idxs('Dorsal')
     occ_idxs = get_idxs('Occipital')
+    # occ_idxs = get_idxs('LOC') + get_idxs('sOcG')
+
     # print(test)
     # quit()
-    # fps = [fp for fp in fps if 'con' not in fp]
+    fps = [fp for fp in fps if 'con' not in fp]
+    ERS_scores_all = []
     for i, sn in tqdm(enumerate(sns), desc=f'Looping IC: {cross=}'):
         # if i > 3:
         #     break
         # sn_corrs = []
         kwargs['sn'] = sn
-        if cross:
+        if ERS:
+            kwargs['fps'] = fps
+            sn_corrs, ERS_scores = pickle_wrap(get_cross_ERS_mat,
+                                               kwargs=kwargs, verbose=-1,
+                                               easy_override=False)
+            # ERS_scores = np.array(ERS_scores)
+            # diag_prod = np.outer(ERS_scores, ERS_scores)
+            # diag_sign = np.sign(diag_prod)
+            # diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
+            # sn_corrs /= diag_prod[None, :]
+
+            ERS_scores_all.append(ERS_scores)
+        elif cross:
+            kwargs['second_order'] = second_order
+            kwargs['within_nan'] = True
             kwargs['fps'] = fps
             sn_corrs = pickle_wrap(get_cross_IC_mat, kwargs=kwargs, verbose=-1,
                                    easy_override=False)
             # corr = np.nanmean(corrs, axis=0)
         else:
+            kwargs['second_order'] = second_order
+            kwargs['within_nan'] = True
             sn_corrs = []
             for fp in fps:
                 kwargs['fp'] = fp
@@ -203,21 +279,37 @@ def run_IC_analysis():
         corr[222:, :] = np.nan
 
         if cross:
-
             diag = np.diag(corr)
-            M_diag = np.nanmean(diag)
-            print(f'{M_diag=:.3f}')
-            diag_prod = np.sqrt(np.outer(diag, diag))
+            diag_prod = (diag[:, None] + diag[None, :]) / 2
+            # diag_prod = np.outer(diag, diag)
+            # diag_sign = np.sign(diag_prod)
+            # diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
+            # corr = diag_prod
             corr -= diag_prod
 
-        # corr = stats.zscore(corr, nan_policy='omit')
-        corr -= np.nanmean(corr)
-        corr /= np.nanstd(corr)
+        # corr -= np.nanmean(corr)
+        # corr /= np.nanstd(corr)
 
         corrs.append(corr)
 
     corrs = np.array(corrs)
-    # print(corrs.shape)
+
+    # M = np.nanmean(corrs, axis=0)
+    # diag = np.diag(M)
+    # diag_prod = np.outer(diag, diag)
+    # diag_sign = np.sign(diag_prod)
+    # diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
+    # diag_prod = np.sqrt(np.outer(diag, diag))
+    # plt.plot(diag)
+    # plt.show()
+    # quit()
+    # plt.imshow(diag_prod)
+    # plt.colorbar()
+    # plt.show()
+    # quit()
+    # corrs -= diag_prod[None, :]
+
+    # print(corrs.shape)/
     # quit()
 
     # corrs = stats.zscore(corrs, axis=(1, 2))
@@ -235,6 +327,9 @@ def run_IC_analysis():
     # plt.plot([-.14, 0], [-.14, 0])
     # plt.show()
 
+
+    print(f'Ventral: {np.nanmean(M_ventral):.3f} ({np.nanstd(M_ventral):.3f})')
+    print(f'Occ: {np.nanmean(M_occ):.3f} ({np.nanstd(M_occ):.3f})')
     t, p = stats.ttest_rel(M_ventral, M_occ)
     N = M_ventral.shape[0]
     d = t / np.sqrt(N)
@@ -254,6 +349,21 @@ def run_IC_analysis():
                       title='Cross IC' if cross else 'Traditional IC',
                       no_avg=True, cbar_label='',)
 
+    if ERS:
+        M = np.nanmean(ERS_scores_all, axis=0)
+        SE = stats.sem(ERS_scores_all, axis=0, nan_policy='omit')
+        # N = np.sum(~np.isnan(ERS_scores_all), axis=0)
+        t = M / SE
+        plt.plot(t)
+        plt.xlim(0, len(t))
+    else:
+        diag = np.diag(M)
+        plt.plot(diag)
+        plt.xlim(0, len(diag))
+    plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
+               fontsize=7)
+    plt.grid()
+    plt.show()
 
 if __name__ == '__main__':
     run_IC_analysis()
