@@ -1,5 +1,4 @@
 import os
-os.chdir(r'/')
 
 from atlas_utils import get_atlas
 import numpy as np

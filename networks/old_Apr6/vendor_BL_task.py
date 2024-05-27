@@ -17,7 +17,6 @@ import scipy.stats as stats
 from warnings import filterwarnings
 import os
 
-os.chdir(r'/')
 
 def get_all_task_vendor(zscore=True, scrub=True):
     fps = ['bl7_fMRI', 'con7_fMRI', 'rs', 'vis7_fMRI', 'obj7_fMRI']

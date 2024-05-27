@@ -1,5 +1,4 @@
 import os
-os.chdir(r'/')
 import numpy as np
 from load_more import get_LSS_SchemeRep, sanity_load
 import scipy.stats as stats

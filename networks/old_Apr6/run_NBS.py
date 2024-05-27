@@ -2,7 +2,6 @@ import os
 
 from ttest_mat import get_stats_graphs
 
-os.chdir('/')
 
 from scipy import stats
 

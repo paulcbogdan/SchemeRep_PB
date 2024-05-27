@@ -76,7 +76,11 @@ def get_fMRI_ar(sn, sess, combine_regions, clean=True):
     return ar_fMRI, key2idxs
 
 def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
-                      many_ROI=True, abs_analysis=False, all_conn=True):
+                      many_ROI=True, abs_analysis=False, all_conn=True,
+                      sanity=False):
+    print({'sn': sn, 'sess': sess,
+                                  'combine_regions': combine_regions,
+                                  'clean': clean})
 
     ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
                           kwargs={'sn': sn, 'sess': sess,
@@ -98,10 +102,30 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
     # quit()
 
     ROI2idx = {ROI: [] for ROI in atlas['ROI_regions']}
+    # region_l = []
     for i, region in enumerate(atlas['ROI_regions']):
         ROI2idx[region].append(i)
+    region_l = list(ROI2idx.keys())
+    #     'else': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'pSTS', 'SPL',
+    #                      'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'Amyg', 'Hipp', 'Str',
+    #                      'Tha', 'ACC', 'PCC'],
 
-    if many_ROI:
+    if sanity:
+        rnd0 = 2
+        rnd1 = 8
+        rnd2 = 12
+        rnd3 = 20
+        # rnd0 = np.random.randint(len(region_l))
+        # rnd1 = np.random.randint(len(region_l))
+        # rnd2 = np.random.randint(len(region_l))
+        # rnd3 = np.random.randint(len(region_l))
+        print(f'{region_l[rnd0]} | {region_l[rnd1]} | '
+              f'{region_l[rnd2]} | {region_l[rnd3]}')
+        key2idxs['MFG'] = ROI2idx[region_l[rnd0]]
+        key2idxs['IPL'] = ROI2idx[region_l[rnd1]]
+        key2idxs['LOC'] = ROI2idx[region_l[rnd2]]
+        key2idxs['ATL'] = ROI2idx[region_l[rnd3]]
+    elif many_ROI:
         key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] #
         key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
         key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
@@ -175,6 +199,21 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
                          np.nanmean(low_conns, axis=0))
 
         fluc = dif_abs
+    # elif sanity:
+    #     ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
+    #                                key2idxs['MFG'])].mean(axis=(0, 1))
+    #     ATL_LOC = conn_fMRI[np.ix_(key2idxs['ATL'],
+    #                                key2idxs['LOC'])].mean(axis=(0, 1))
+    #     MFG_IPL = conn_fMRI[np.ix_(key2idxs['MFG'],
+    #                                key2idxs['IPL'])].mean(axis=(0, 1))
+    #     IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
+    #                                key2idxs['LOC'])].mean(axis=(0, 1))
+    #     ATL_MFG = stdize(ATL_MFG, axis=-1, rankdata=False)
+    #     ATL_LOC = stdize(ATL_LOC, axis=-1, rankdata=False)
+    #     MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
+    #     IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
+    #     # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
+    #     fluc = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC) ** 2
 
     elif abs_analysis:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
@@ -191,6 +230,8 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
         IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
         # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
         fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC) ** 2
+        # fluc = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC) ** 2
+
     else:
         ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'], key2idxs['MFG'])]
         ATL_MFG = np.reshape(ATL_MFG, (-1, ATL_MFG.shape[-1]))
@@ -337,7 +378,8 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      avg_before=True, high_gamma=False,
                      super_slow=False, avg_ref=True,
                      double_speed=False,
-                     excl_before=True):
+                     excl_before=True,
+                     Fz_Pz_abs_dif=False):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -350,7 +392,7 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     kw = {'sn': sn, 'sess': sess, 'num_TRs': num_TRs, 'dir_eeg': dir_eeg,
           'excl_before': excl_before}
     raw, event2true, boundary_events = pickle_wrap(load_EEG, kwargs=kw,
-                                                   easy_override=True)
+                                                   easy_override=False)
 
     if raw is None:
         return None
@@ -360,35 +402,64 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
 
     events = mne.events_from_annotations(raw, verbose=False)
     events = events[0]
-
-
     events = events[events[:, 2] == 2]
-    picks_pruned = [pick for pick in picks if pick in raw.ch_names]
-    data_eeg = raw.get_data(picks=picks_pruned)
-    if high_gamma:
-        freqs = np.arange(1, 101)
-    elif super_slow:
-        freqs = np.linspace(0.1, 1.0, 10)
-    elif double_speed:
-        freqs = np.linspace(0.5, 50, 100)
-    else:
-        freqs = np.arange(1, 51)
 
     ds1 = 1
-    if avg_before:
-        data_eeg = np.nanmean(data_eeg, axis=0)[None, None, :]
-    else:
-        data_eeg = data_eeg[None, :, :]
-    # print(data_eeg.shape)
-    # quit()
-    tfr = mne.time_frequency.tfr_array_morlet(data_eeg[..., ::ds1],
-                                              sfreq=250 // ds1, freqs=freqs,
-                                              output='power')
-    tfr = tfr[0, ...]
+    if Fz_Pz_abs_dif:
+        picks_frontal = picks[0]
+        Fz_pruned = [pick for pick in picks_frontal
+                     if pick in raw.ch_names]
+        picks_posterior = picks[1]
+        Pz_pruned = [pick for pick in picks_posterior
+                     if pick in raw.ch_names]
 
-    eeg_scores = np.full((len(picks_pruned), len(freqs), num_TRs,),
-                         np.nan)
+        data_Fz = raw.get_data(picks=Fz_pruned)
+        print(f'{data_Fz.shape=}')
+        data_Fz_M = np.mean(data_Fz, axis=0)
+        data_Pz = raw.get_data(picks=Pz_pruned)
+        data_Pz_M = np.mean(data_Pz, axis=0)
+
+        tfr = np.abs(data_Fz_M - data_Pz_M)[None, None, :]
+        eeg_scores = np.full((1, 1, num_TRs,),
+                             np.nan)
+        # print(f'{eeg_scores=}')
+        # # print(f'{tfr.shape=}')
+        # quit()
+    else:
+        picks_pruned = [pick for pick in picks if pick in raw.ch_names]
+        data_eeg = raw.get_data(picks=picks_pruned)
+        if high_gamma:
+            freqs = np.arange(1, 101)
+        elif super_slow:
+            freqs = np.linspace(0.1, 1.0, 10)
+        elif double_speed:
+            freqs = np.linspace(0.5, 50, 100)
+        else:
+            freqs = np.arange(1, 51)
+
+        if avg_before:
+            data_eeg = np.nanmean(data_eeg, axis=0)[None, None, :]
+        else:
+            data_eeg = data_eeg[None, :, :]
+
+
+        tfr = mne.time_frequency.tfr_array_morlet(data_eeg[..., ::ds1],
+                                                  sfreq=250 // ds1, freqs=freqs,
+                                                  output='power')
+        # print(f'{tfr.shape=}')
+
+        tfr = tfr[0, ...]
+        eeg_scores = np.full((len(picks_pruned), len(freqs), num_TRs,),
+                             np.nan)
+    # print(f'{tfr.shape=}')
+    # quit()
+
+
+    # print(f'')
+
+    # print(tfr)
     for idx, event in enumerate(events):
+        # true_idx = event2true[idx]
         try:
             true_idx = event2true[idx]
         except KeyError as e:
@@ -400,7 +471,8 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
         t_end = t_st + int(2.1*(250 // ds1))
         tfr_event = tfr[..., t_st:t_end].mean(axis=-1)
         eeg_scores[:, :, true_idx] = tfr_event
-
+    # print(eeg_scores.shape)
+    # quit()
     return eeg_scores#, psd_full
 
 def print_events(raw):
@@ -437,7 +509,7 @@ def get_hrf():
     onset, amplitude, duration = 0.0, 1.0, 0.1
     exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
     # time_length = 21
-    frame_times = np.arange(10) * 2.1
+    frame_times = np.arange(20) * 2.1
     # print(frame_times)
     # quit()
     signal, _labels = compute_regressor(
@@ -460,7 +532,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      super_slow=False, avg_ref=False,
                      abs_analysis=True, all_conn=False,
                      double_speed=True,
-                     ):
+                     Fz_Pz_abs_dif=False):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
 
@@ -470,21 +542,43 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                     'combine_regions': False,
                                     'abs_analysis': abs_analysis,
                                     'all_conn': all_conn,
-                                    'clean': True},
+                                    'clean': True,
+                                    'sanity': False},
                             easy_override=True, verbose=-1,)
-
+    # print(f'{fMRI_fluc.shape=}')
+    # quit()
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
         return None, None
 
     num_TRs = fMRI_fluc.shape[-1]
 
-    picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
-             'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
-             'C1', 'Cz', 'C2', 'C3', 'C4',
-             'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
-             'P1', 'Pz', 'P2', 'P3', 'P4']
+    if Fz_Pz_abs_dif:
+        picks = [['F1', 'Fz', 'F2', 'F3', 'F4',
+                 'FC1', 'FCz', 'FC2', 'FC3', 'FC4'],
+                 [ 'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+                 'P1', 'Pz', 'P2', 'P3', 'P4']]
+    else:
+        picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+                 'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
+                 'C1', 'Cz', 'C2', 'C3', 'C4',
+                 'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+                 'P1', 'Pz', 'P2', 'P3', 'P4']
 
+        # picks = ['F1', 'Fz', 'F2', 'F3', 'F4', 'F5', 'F6',
+        #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4', 'FC5', 'FC6',
+        #          'C1', 'Cz', 'C2', 'C3', 'C4', 'C5', 'C6',
+        #          'CP1', 'CPz', 'CP2', 'CP3', 'CP4', 'CP5', 'CP6',
+        #          'P1', 'Pz', 'P2', 'P3', 'P4', 'P5', 'P6',]
+
+        # picks = ['F1', 'Fz', 'F2',
+        #          'FC1', 'FCz', 'FC2',
+        #          'C1', 'Cz', 'C2',
+        #          'CP1', 'CPz', 'CP2',
+        #          'P1', 'Pz', 'P2',]
+
+
+    #
     # picks = ['Fp1', 'Fp2', 'F3', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7',
     #          'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'Oz', 'FC1', 'FC2',
     #          'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'TP9', 'TP10', 'POz',
@@ -501,68 +595,34 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
                                    'double_speed': double_speed,
-                                   'excl_before': True},
+                                   'excl_before': True,
+                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
                            easy_override=False, verbose=-1)
-    # print(EEG_fluc.shape)
-    # quit()
 
     if EEG_fluc is None:
         print(f'BAD EEG!! ({sn}; {sess})')
         return None, None
+    if Fz_Pz_abs_dif:
+        EEG_fluc = np.repeat(EEG_fluc, 100, axis=1)
+        # print(EEG_fluc.shape)
+        # quit()
     # global ELECTRODES_KEPT
     # ELECTRODES_KEPT.append(EEG_fluc.shape[0])
     # print(f'{np.mean(ELECTRODES_KEPT)=:.4f}')
 
     num_nans = np.isnan(EEG_fluc[0, 4]).sum()
-    # plt.imshow(EEG_fluc[2, :, :])
-    # plt.show()
-    # quit()
-    # print(f'{num_nans=}')
     EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
-    # plt.imshow(EEG_fluc, aspect='auto')
-    # plt.show()
-    # quit()
     EEG_fluc = EEG_fluc.T # (TR, freq)
-
     import scipy.ndimage as ndimage
     HRF = get_hrf()
-
-    # for i in range(EEG_fluc.shape[1]):
-    #     prev_val = EEG_fluc[0, i]
-    #     for j in range(EEG_fluc.shape[0]):
-    #         if np.isnan(EEG_fluc[j, i]):
-    #             EEG_fluc[j, i] = prev_val
-    #         prev_val = EEG_fluc[j, i]
-    # print(EEG_fluc.shape)
-    # quit()
-    # print(len(list(range(EEG_fluc.shape[-1]))))
-    # quit()
-    print(EEG_fluc.shape)
-
-    # plt.imshow(EEG_fluc, aspect='auto')
-    # plt.show()
     for i in range(EEG_fluc.shape[1]):
         nans, x = np.isnan(EEG_fluc[:, i]), lambda z: z.nonzero()[0]
         EEG_fluc[nans, i] = np.interp(x(nans), x(~nans), EEG_fluc[~nans, i])
 
 
-
-    # EEG_fluc = interpolate.interp1d(list(range(EEG_fluc.shape[0])),
-    #                                 EEG_fluc, kind='nearest', axis=0)
-    # EEG_fluc = np.array(EEG_fluc)
-    # print(EEG_fluc.shape)
-    # quit()
-
-    # plt.imshow(EEG_fluc, aspect='auto')
-    # plt.show()
-    # quit()
     EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
-    # plt.imshow(EEG_fluc, aspect='auto')
-    # plt.show()
-    # quit()
-
-    ranges = {'delta': (0.5, 4),
+    ranges = {'delta': (1, 4),
               'theta': (4, 8),
               'alpha': (8, 13),
               'beta': (13, 30),
@@ -571,35 +631,47 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     if double_speed:
         for key, tup in ranges.items():
             ranges[key] = (int(tup[0]*2), int(tup[1]*2))
+    # print(ranges)
+    # quit()
     if high_gamma:
         ranges['high_gamma'] = (50, 100)
 
-    # if double_speed:
-    #     ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
-    # else:
-    #     ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
+    if double_speed:
+        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
+    else:
+        ranges = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
 
     name2fluc = {}
     name2r = {}
     df = pd.DataFrame({'fMRI_fluc': fMRI_fluc})
     df['sn'] = sn
     df['sess'] = sess
+
+    # print(EEG_fluc.shape)
+    # quit()
+    # print(fMRI_fluc.shape)
+    # quit()
+
+    # can't do all at once because the nans wouldn't do well with the ranks
+    # if len(ranges) > 10:
+    #     EEG_fluc = stats.rankdata(EEG_fluc, axis=0)
+    #     EEG_fluc = stdize()
+    #     fMRI_fluc = stats.rankdata(fMRI_fluc)
+    #     # print(f'{EEG_fluc.shape=}')
+    #     # print(f'{fMRI_fluc.shape=}')
+    #     prod = EEG_fluc * fMRI_fluc[:, None]
+    #     print(prod.shape)
+    #     quit()
+
+
     for name, rng in ranges.items():
         idxs = np.arange(*rng)
-        # print(f'{name} | {len(idxs)=}')
-        # print(f'{idxs/2=}')
-
-        # print(idxs)
         idxs -= 1
         range_fluc = EEG_fluc[:, idxs].mean(axis=1)
         df[name] = range_fluc
         df_ = df.dropna()
         r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
-        # if r > .2:
-        # if name == 'beta':
-        #     plt.scatter(df_[name], df_['fMRI_fluc'])
-        #     plt.show()
-            # quit()
+
 
         name2fluc[name] = range_fluc
         # df[name] = range_fluc
@@ -712,10 +784,12 @@ if __name__ == '__main__':
             # print(np.array(PSDs).shape)
 
             NAME2L = defaultdict(list)
+            simple2l = defaultdict(list)
             for SN, d in NAME2SN2L.items():
                 # print(f'left: {SN}')
                 for key, l in d.items():
                     NAME2L[key].append(np.mean(l))
+                    simple2l[key].extend(l)
                     # print(f'{len(NAME2L[key])=}')
                 # NAME2L[]
 
@@ -736,8 +810,11 @@ if __name__ == '__main__':
                     # print(f'{res=}')
                     p_wilcox = res.pvalue * 2
 
+                    M_above = np.mean([m > 0 for m in l])
+
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
-                          f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e}')
+                          f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e} | '
+                          f'{M_above:.1%}')
             # continue
             if 'r50' not in NAME2L:
                 continue
@@ -745,6 +822,8 @@ if __name__ == '__main__':
                 # print('done')
                 if 'r1' in NAME2L:
                     plot_hz_corrs(NAME2L)
+                    # plot_hz_corrs(simple2l)
+                    plot_hz_corrs(NAME2L, effect_size=True)
                 else:
                     plot_regrs(pd.concat(dfs_l))
 

@@ -61,7 +61,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
                     cache_dir='cache')
 
     atlas = get_atlas(combine_regions=combine_regions,
-                      combine_bilateral=True)
+                      combine_bilateral=False)
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
 
@@ -94,13 +94,27 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
         _, _, _, _, _, _, z_graph = \
             get_stats_graphs(sn_inc_conn[:, 0, :, :],
                              sn_inc_conn[:, 2, :, :])
-    upper_thresh = np.nanpercentile(z_graph, 85)
+    # upper_thresh = np.nanpercentile(z_graph, 85)
+    upper_thresh = np.nanpercentile(z_graph, 50)
+
     z_graph_high = z_graph.copy()
     z_graph_high[z_graph < upper_thresh] = np.nan
+    # ticks_new = []
+    # tick_lows_new = []
+    # for tick, tick_low in zip(atlas['ticks'], atlas['tick_lows'], ):
+    #     ticks_new.append(tick)
+    #     ticks_new.append(tick + 1)
+    #     tick_lows_new.append(tick_low)
+    #     tick_lows_new.append(tick_low + 1)
+    # atlas['ticks'] = ticks_new
+    # atlas['tick_lows'] = tick_lows_new
+
     plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     #
     z_graph_low = z_graph.copy()
-    lower_thresh = np.nanpercentile(z_graph, 15)
+    # lower_thresh = np.nanpercentile(z_graph, 15)
+    lower_thresh = np.nanpercentile(z_graph, 50)
+
     #
     z_graph_low[z_graph > lower_thresh] = np.nan
     plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)

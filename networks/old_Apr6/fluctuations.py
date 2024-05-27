@@ -5,7 +5,7 @@ from old.plot_gen import plot_connectivity
 from utils import pickle_wrap, stdize
 from collections import defaultdict
 
-from vendor_lmers import get_module_trialwise_z
+from old_Apr6.vendor_lmers import get_module_trialwise_z
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from vendor_partitioning import get_vendor_partitions
 from functools import partial
 import os
-os.chdir(r'/')
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 # TODO: set up windows backups
 

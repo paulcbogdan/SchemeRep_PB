@@ -360,8 +360,12 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                       sanity=False, combine_regions=False, sns_key='loose',
                       compcor=True, clean=True, light=False, medium=False,
                       trad=False, near_OG=False, true_OG=False):
-
+    # print('test')
+    # quit()
+    # print(f'{sns_key=}')
     age2sn = get_sns(sns_key)
+    # print(age2sn)
+    # quit()
     if YA_only:
         sns = age2sn[1]
     else:
@@ -377,8 +381,10 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
+
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
         logging.debug(f'{sn=}')
+
         if sanity:
             data = pickle_wrap(sanity_load, kwargs={'sn': sn})
         elif lss_enc:
@@ -386,6 +392,8 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
+            # print('test')
+            # quit()
             data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': clean,
                                                   'compcor': compcor,
                                                   'light': light,
@@ -426,12 +434,15 @@ def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
                   RAM_cache=False):
     if f is None:
         f = load_resting_data
+        # easy_override = True
     sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override,
                                   kwargs={'YA_only': YA_only},
                                   RAM_cache=RAM_cache)
+
     # sn_roi_act = sn_roi_act[:, :, 4:] # bad trials to start?
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
+    # print(f'{sn_roi_act.shape=}')
     sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
     assert len(sn_roi_act.shape) == 3, f'More than 3 dims: {sn_roi_act.shape=}'
     if norm_std: sn_roi_act = normalize_std_over_time(sn_roi_act)

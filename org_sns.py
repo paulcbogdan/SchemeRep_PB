@@ -8,6 +8,8 @@ from organize_bhv import get_trial_info
 import warnings
 import pandas as pd
 
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
 def get_bad_sns_fp(fp):
     if 'obj_' in fp: f'Stop using an old fp: {fp=}'
@@ -52,12 +54,18 @@ def get_sns_l(fps_fMRI):
 def get_sns(fp_fMRI='loose', sh=False):
     age2sn = defaultdict(list)
     bad_sns = get_bad_sns_fp(fp_fMRI)
+    # print(bad_sns)
+    # quit()
     sh_sns = get_shenyang_subjects()
 
     # bad_sns = get_bad_sns(ret=ret)
+    # print(os.getcwd())
+    # quit()
     for age in range(1, 4):
         bhv_root = fr'behavFiles/ENC/S{age}*_run1.mat'
         fps = glob(bhv_root)
+        # print(fps)
+        # quit()
         for fp in fps:
             sn = Path(fp).stem
 
@@ -132,10 +140,10 @@ if __name__ == '__main__':
     # test_fp('bl7_fMRI')
     # test_fp('obj7_fMRI')
     # test_fp('vis7_fMRI')
-
-    test_fp('bl8_fMRI')
-    test_fp('vis8_fMRI')
-    test_fp('con8_fMRI')
+    get_sns(fp_fMRI='loose', sh=False)
+    # test_fp('bl8_fMRI')
+    # test_fp('vis8_fMRI')
+    # test_fp('con8_fMRI')
 
 
     # df_sn = get_trial_info('105', easy_override=True)

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 from functools import wraps
 from pathlib import Path
 
@@ -395,6 +396,7 @@ def pickle_wrap(callback: object, filepath: object = None,
                     and the time needed to perform the function or load the .pkl)
     :return: Returns the output of the callback or the output saved in filepath
     '''
+    kwargs = copy(kwargs) # don't want to modify outside
     if filepath is None:
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
     if RAM_cache and filepath in PICKLE_CACHE:

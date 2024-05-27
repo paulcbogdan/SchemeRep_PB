@@ -2,7 +2,6 @@ import os
 
 from fluctuations import get_df_networks
 
-os.chdir(r'/')
 
 from analyze_rs import get_rs_vendor_df
 from atlas_utils import get_atlas

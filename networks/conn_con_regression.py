@@ -26,6 +26,8 @@ warnings.filterwarnings("ignore",
                         message='Series.__getitem__ treating keys as positions')
 
 FIRST_LOAD = True
+
+N_REPEATS = 32
 def evaluate_acc_ps(accs, kernel='rbf', subj_std=False, by_run=False,
                     strict=False):
     if subj_std:
@@ -326,7 +328,7 @@ def do_ROI_clf(df, grps, cols, kernel='linear', groupkfold=True):
             X = df[cols]
             ex_grps = df['sn']
             accs = []
-            for seed in range(128):
+            for seed in range(N_REPEATS):
                 df = df.sample(frac=1)
                 Y = df['inc']
                 X = df[cols]
@@ -529,7 +531,7 @@ def conn_clf(df, combine_regions=False, nrois=54, kernel='linear',
 
 
 def plot_reg_zs(combine_regions=False, combine_bl=False, lm=True,
-                fp='obj7_fMRI', semi_combine=False, only_cortical=True):
+                fp='obj7_fMRI', semi_combine=False, only_cortical=False):
     if lm:
         z_mat, t_mat, p_l, idx2roi = \
             pickle_wrap(get_con_reg_zs, None,

@@ -1,3 +1,6 @@
+import os
+os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -12,9 +15,12 @@ from utils import pickle_wrap
 from old_Apr6.vendor_lmers import get_vendor_df, get_hemi_cross_vendor_df
 from load_more import get_hemi_vendor_df
 
+
+
 # filter PerformanceWarning
 import warnings
 # import PerformanceWarning
+
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
@@ -244,6 +250,9 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                                                      'anat_ver': anat_version,
                                                      'add_hemi': 2},
                             easy_override=False)
+        # print(df.columns)
+        # print('test')
+        # quit()
         # print(len(df['sn'].unique()))
         # quit()
     else:

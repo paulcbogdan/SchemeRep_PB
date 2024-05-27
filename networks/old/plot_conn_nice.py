@@ -5,7 +5,6 @@ from tqdm import tqdm
 from old.network_funcs import load_FC_for_Lifu
 from vendor_partitioning import get_vendor_partitions
 
-os.chdir('/')
 
 from pathlib import Path
 

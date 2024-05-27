@@ -1,3 +1,4 @@
+from collections import defaultdict
 from time import time
 
 import numpy as np
@@ -12,7 +13,7 @@ from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.conn_regress import get_ERS_scores
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_vecs, prep_fps
-from fMRI_proc import within_run_to_nan
+from fMRI_proc import within_run_to_nan, get_IRAFs
 from old.networks import prep_networks
 from old.plot_gen import plot_connectivity
 from org_sns import get_sns
@@ -30,6 +31,9 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+
+def rearrange_RSM():
+    pass
 
 @cache
 def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
@@ -107,6 +111,91 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     t_end = time()
     print(f'Numba corr calc: {t_end - t_st:.3f}')
     return corrs
+
+def get_cross_IRAF_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
+                       second_order, RDM_method, semantic):
+    dir_root = fr'cache/conn_RSA/ars/RSA'
+    # ROI2fps2iERS = {}
+    num_pairs = (len(fps) * (len(fps) - 1)) // 2
+    ROI2fps2iERS = np.full((num_pairs, len(ROIs), 114), np.nan)
+
+    M_ERS_difs = []
+
+    fp2stim_RSM = {}
+
+    for fp0 in fps:
+        ROI = ROIs[0]
+        dir0_focus = (f'{dir_root}/{fp0}_{trial_similarity}_'
+                      f'{second_order}_{RDM_method}_{stdize_by_run}')
+        fp_stim = f'{dir0_focus}/{sn}_stim_{semantic}.npy'
+        with open(fp_stim, 'rb') as f:
+            RSM_stim = np.load(f)
+        if RDM_method == 'within_nan':
+            RSM_stim = within_run_to_nan(RSM_stim)
+        fp2stim_RSM[fp0] = RSM_stim
+
+    df_sn = get_trial_info(sn)
+
+    ROI2fp2IRAFs = defaultdict(dict)
+
+    # ar = np.empty((246, 4, 114))
+    ar = np.full((246, len(fps), 114), np.nan)
+
+    for i, ROI in enumerate(ROIs):
+        # ROI2fps2iERS[ROI] = {}
+        # l_ERS_dif_M = []
+        cnt = 0
+        for j, fp0 in enumerate(fps):
+            dir0_focus = (f'{dir_root}/{fp0}_{trial_similarity}_'
+                          f'{second_order}_{RDM_method}_{stdize_by_run}')
+            fp0_focus = f'{dir0_focus}/{sn}_{ROI}_BOLD.npy'
+            try:
+                with open(fp0_focus, 'rb') as f:
+                    RSM0_focus = np.load(f)
+                if RDM_method == 'within_nan':
+                    RSM0_focus = within_run_to_nan(RSM0_focus)
+            except FileNotFoundError:
+                # print(f'Missing: {ROI}, {fp0=}')
+                ar[i, j, :] = np.full(114, np.nan)
+                continue
+
+            RSM_stim = fp2stim_RSM[fp0]
+            # get_IRAFs sorts by df_sn['obj']
+            IRAFs = get_IRAFs(RSM0_focus, RSM_stim, df_sn, within_to_nan=True,
+                              by_run=False, second_order='corr')
+            ROI2fp2IRAFs[ROI][fp0] = IRAFs
+            ar[i, j, :] = IRAFs
+
+    t_st = time()
+    mats = numba_IRAF_x_IRAF(ar)
+    t_end = time()
+    print(f'Numba IRAF x IRAF calc: {t_end - t_st:.3f} s')
+    return mats
+
+@jit(nopython=True, parallel=True, fastmath=True)
+def numba_IRAF_x_IRAF(ar):
+    # ar.shape = (246, 4, 114)
+    num_ROIs = ar.shape[0]
+    num_fps = ar.shape[1]
+    # num_trials = ar.shape[2]
+    num_prods = num_fps * (num_fps - 1) // 2
+    # ar_out = np.full((num_prods, num_ROIs, num_ROIs), np.nan)
+    ar_out = np.empty((num_prods, num_ROIs, num_ROIs)
+                      ) # 0.2s faster than np.full(..., nan). i live for danger.
+
+    lookup = {(1, 0): 0, (2, 0): 1, (2, 1): 2,
+              (3, 0): 3, (3, 1): 4, (3, 2): 5}
+    for ROI_i in prange(num_ROIs):
+        for ROI_j in range(ROI_i):
+            for fp0 in range(num_fps):
+                IRAFs0 = ar[ROI_i, fp0, :]
+                for fp1 in range(fp0):
+                    IRAFs1 = ar[ROI_j, fp1, :]
+                    r = np.mean(IRAFs0 * IRAFs1)
+                    ar_out[lookup[(fp0, fp1)], ROI_i, ROI_j, ] = r
+                    ar_out[lookup[(fp0, fp1)], ROI_j, ROI_i, ] = r
+    return ar_out
+
 
 def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                       ):
@@ -195,8 +284,10 @@ def get_idxs(ROI):
 
 def run_IC_analysis():
     # semantic = False
-    cross = False
-    ERS = True
+    cross = True
+    IRAF = True
+    ERS = False
+    semantic = True
     trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'
@@ -215,7 +306,6 @@ def run_IC_analysis():
 
     kwargs = {'trial_similarity': trial_similarity,
               'stdize_by_run': stdize_by_run,
-
               'ROIs': ROIs,
               }
 
@@ -240,11 +330,20 @@ def run_IC_analysis():
         #     break
         # sn_corrs = []
         kwargs['sn'] = sn
-        if ERS:
+        if IRAF:
+            kwargs['fps'] = fps
+            kwargs['second_order'] = 'spear'
+            kwargs['RDM_method'] = 'within_nan'
+            kwargs['semantic'] = semantic
+            sn_corrs = pickle_wrap(get_cross_IRAF_mat,
+                                   kwargs=kwargs, verbose=-1,
+                                   easy_override=True)
+        elif ERS:
             kwargs['fps'] = fps
             sn_corrs, ERS_scores = pickle_wrap(get_cross_ERS_mat,
                                                kwargs=kwargs, verbose=-1,
                                                easy_override=False)
+
             # ERS_scores = np.array(ERS_scores)
             # diag_prod = np.outer(ERS_scores, ERS_scores)
             # diag_sign = np.sign(diag_prod)
@@ -274,18 +373,22 @@ def run_IC_analysis():
 
         # corr = stats.trim_mean(sn_corrs, 0.1, axis=0)
         corr = np.nanmean(sn_corrs, axis=0)
+        # print(corr.shape)
+        # plt.imshow(corr)
+        # plt.show()
+        # quit()
 
-        corr[:, 222:] = np.nan
-        corr[222:, :] = np.nan
+        # corr[:, 222:] = np.nan
+        # corr[222:, :] = np.nan
 
         if cross:
             diag = np.diag(corr)
-            diag_prod = (diag[:, None] + diag[None, :]) / 2
-            # diag_prod = np.outer(diag, diag)
-            # diag_sign = np.sign(diag_prod)
-            # diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
+            # diag_prod = (diag[:, None] + diag[None, :]) / 2
+            diag_prod = np.outer(diag, diag)
+            diag_sign = np.sign(diag_prod)
+            diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
             # corr = diag_prod
-            corr -= diag_prod
+            # corr -= diag_prod
 
         # corr -= np.nanmean(corr)
         # corr /= np.nanstd(corr)
@@ -344,26 +447,27 @@ def run_IC_analysis():
     t = M / SE
 
     atlas = get_atlas()
+    title = 'ERS connectivity' if ERS else ('Cross IC' if cross else 'Traditional IC')
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title='Cross IC' if cross else 'Traditional IC',
+                      title=title,
                       no_avg=True, cbar_label='',)
 
-    if ERS:
-        M = np.nanmean(ERS_scores_all, axis=0)
-        SE = stats.sem(ERS_scores_all, axis=0, nan_policy='omit')
-        # N = np.sum(~np.isnan(ERS_scores_all), axis=0)
-        t = M / SE
-        plt.plot(t)
-        plt.xlim(0, len(t))
-    else:
-        diag = np.diag(M)
-        plt.plot(diag)
-        plt.xlim(0, len(diag))
-    plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
-               fontsize=7)
-    plt.grid()
-    plt.show()
+    # if ERS:
+    #     M = np.nanmean(ERS_scores_all, axis=0)
+    #     SE = stats.sem(ERS_scores_all, axis=0, nan_policy='omit')
+    #     # N = np.sum(~np.isnan(ERS_scores_all), axis=0)
+    #     t = M / SE
+    #     plt.plot(t)
+    #     plt.xlim(0, len(t))
+    # else:
+    #     diag = np.diag(M)
+    #     plt.plot(diag)
+    #     plt.xlim(0, len(diag))
+    # plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
+    #            fontsize=7)
+    # plt.grid()
+    # plt.show()
 
 if __name__ == '__main__':
     run_IC_analysis()

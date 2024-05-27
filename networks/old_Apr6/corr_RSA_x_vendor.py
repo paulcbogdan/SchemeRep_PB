@@ -6,7 +6,7 @@ from organize_bhv import get_trial_info
 from old.trialwise_graph_theory import get_df_trial_graphs
 # from vendor_lmers import get_vendor_df
 
-os.chdir('/')
+os.chdir('E:\PycharmProjects_E\SchemeRep')
 
 import numpy as np
 import pandas as pd
@@ -98,7 +98,6 @@ def get_plain_df_sn(bad_sns=None, incl_lures=False):
                                     easy_override=False,
                                     verbose=-1) for sn in sns])
     df_sns = pd.concat(df_sns_l)
-    # print(df_sns['sn'].unique())
 
     df_sns['age'] = df_sns['sn'].apply(lambda sn: int(str(sn)[0]))
     return df_sns, df_sns_l

@@ -275,17 +275,31 @@ def sort_df_sn(df_sn, fp):
     return df_sn
 
 def get_trial_info(sn, easy_override=False, ret=True, incl_lures=False,
-                   verbose=0):
+                   verbose=0, only_one=False):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
     # fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
 
-    kwargs = {'sn': sn, 'ret': ret, 'incl_lures': incl_lures}
 
     # dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)
 
-    df_sn = pickle_wrap(get_trial_info_, None, kwargs=kwargs,
-                        verbose=verbose, easy_override=easy_override)
+    if only_one:
+        if only_one == 'con':
+            kwargs = {'df_sn': None, 'sn': sn}
+            df_sn = pickle_wrap(include_conceptual, None, kwargs=kwargs,
+                                verbose=verbose, easy_override=easy_override)
+            df_sn['sn'] = sn
+        elif only_one == 'vis':
+            kwargs = {'df_sn': None, 'sn': sn}
+            df_sn = pickle_wrap(include_vis, None, kwargs=kwargs,
+                                verbose=verbose, easy_override=easy_override)
+            df_sn['sn'] = sn
+            # print(df_sn)
+            # quit()
+    else:
+        kwargs = {'sn': sn, 'ret': ret, 'incl_lures': incl_lures}
+        df_sn = pickle_wrap(get_trial_info_, None, kwargs=kwargs,
+                            verbose=verbose, easy_override=easy_override)
 
 
     # df_sn = pickle_wrap(lambda: get_trial_info_(sn, ret), fp,
@@ -548,7 +562,7 @@ def include_conceptual(df_sn, sn):
     obj2fp7 = {}
     obj2fp8 = {}
     obj2trial = {}
-
+    obj_l = []
     for run in range(1, 4):
         # if sn == '231': # TODO: use their data if I can
         #     continue
@@ -570,11 +584,12 @@ def include_conceptual(df_sn, sn):
             if sn == '231' and run == 1: continue
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
+            obj_l.append(obj)
             obj2run[obj] = run
             obj2trial[obj] = trial + (run - 1) * 48
             old_new = mat_enc['pdata'][0][0][8][0][i][0][0]
             assert old_new in [0, 1], f'Old new not 0 or 1: {old_new=}'
-            obj2old_new[obj] =' new' if old_new else 'old'
+            obj2old_new[obj] ='new' if old_new else 'old'
             resp = mat_enc['pdata'][0][0][9][0][i][0]
             obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][10][0][i][0]
@@ -597,6 +612,12 @@ def include_conceptual(df_sn, sn):
                 if len(glob_conc8) < 1:
                     obj2fp8[obj] = None
     else:
+        if df_sn is None:
+            df_sn = pd.DataFrame({'obj': obj_l})
+            df_sn['old_new'] = df_sn['obj'].map(obj2old_new)
+        # else:
+        # print(len(obj2resp))
+        # quit()
         df_sn['con_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['con_hit'] = df_sn['con_resp'].apply(
             lambda x: np.nan if pd.isna(x) else x >= 3)
@@ -620,7 +641,7 @@ def include_vis(df_sn, sn, incl_lures=False):
     obj2rt = {}
     obj2run = {}
     obj2trial = {}
-
+    obj_l = []
     for run in range(1, 4):
         fp_bhv = fr'behavFiles/RET_vis/S{sn}_run{run}_RV.mat'
         try:
@@ -633,6 +654,7 @@ def include_vis(df_sn, sn, incl_lures=False):
         for i in range(42):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
+            obj_l.append(obj)
             obj2run[obj] = run
             obj2trial[obj] = trial + 42 * (run - 1)
             resp = mat_enc['pdata'][0][0][8][0][i][0]
@@ -664,6 +686,9 @@ def include_vis(df_sn, sn, incl_lures=False):
             else:
                 obj2fp8[obj] = None
     else:
+        if df_sn is None:
+            df_sn = pd.DataFrame({'obj': obj_l})
+
         df_sn['vis_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['vis_type'] = df_sn['obj'].map(obj2type)
         f = lambda row: np.nan if pd.isna(row['vis_resp']) else \
@@ -796,7 +821,9 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    df_sn = get_trial_info_('239')
+    df_sn = include_conceptual(None, '239')
+    # print(df_sn)
+    # df_sn = get_trial_info_('239')
     # print(df_sn['inc_hit_hit'])
-    print(df_sn['obj8_fMRI'])
+    # print(df_sn['con8_fMRI'])
     # print(df_sn['scn7_fMRI'])

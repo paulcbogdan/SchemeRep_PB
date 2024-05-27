@@ -1,5 +1,4 @@
 import os
-os.chdir('/')
 
 from pathlib import Path
 

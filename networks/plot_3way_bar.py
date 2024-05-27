@@ -136,7 +136,10 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
     #                  ('vv', 'dv_ant'),
 
     # cond_sets = [('Within', 'Between')]
-    plt.rcParams.update({'font.size': 18,})
+    plt.rcParams.update({'font.size': 20,
+                         'font.sans-serif': 'Arial'})
+
+    # plt.rcParams['font.sans-serif'] = 'Arial'
 
     # sns.set_theme(rc={'figure.figsize': (11.7, 8.27)})
 
