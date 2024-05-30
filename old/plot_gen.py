@@ -75,7 +75,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
     fontsize = 20 if len(tick_labels) < 20 else 14
 
     for low in tick_lows:
-        print(f'{low=}')
+        # print(f'{low=}')
         low -= 0.5
         plt.plot([-0.5, M_connect.shape[0]], [low, low], 'k', linewidth=0.5)
         plt.plot([low, low], [-0.5, M_connect.shape[0]], 'k', linewidth=0.5)

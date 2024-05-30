@@ -26,7 +26,7 @@ def run_IRAF_connRSA_ROI(kwargs, RSA, ISPC, easy_override, plot,
         for fp in fps:
             foci = ['small_M', 'voxel_large', 'avg_large']
             df_sn = get_trial_info(sn, verbose=-1)
-            df_sn = sort_df_sn(df_sn, fp)
+            df_sn, _ = sort_df_sn(df_sn, fp)
             sess = (fp.split('_')[0].replace('2', '').replace('3', '').
                     replace('4', '').replace('7', '').replace('8', ''))
             df_sn['sess'] = sess
@@ -104,7 +104,6 @@ def run_IRAF_connRSA():
         outer_kwargs['voxel_small_all'] = ROI_lvl_control
         outer_kwargs['voxel_large'] = f'{target_ROI}_BOLD_cmb'
         outer_kwargs['avg_large'] = f'{target_ROI}_BOLD'
-
 
         df = pickle_wrap(run_IRAF_connRSA_ROI, None, kwargs=outer_kwargs,
                          verbose=0, easy_override=True)

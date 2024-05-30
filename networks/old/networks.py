@@ -136,6 +136,13 @@ def prep_networks(network_setting=1):
     elif network_setting == 22:
         networks = {'cingulate': ['ACC', 'PCC'],
                     'INScc': ['INS', 'ACC', 'PCC']}
+    elif network_setting == 23:
+        networks = {'cortical': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
+                                 'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
+                                 'CG', 'ACC', 'PCC',
+                                 'EVC', 'LOC', 'sOcG',
+                                 'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
+                                 'SPL', 'IPL', 'Pcun', 'pSTS']}
     elif network_setting == -1:
         networks = {}
 

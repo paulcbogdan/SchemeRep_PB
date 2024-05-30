@@ -228,12 +228,19 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
     #
     # return score, var_explained
 
-def get_ERS_scores(ERS_mat):
+def get_ERS_scores(ERS_mat, get_same=False):
     ERS_sames = np.diag(ERS_mat)
+
+    if get_same:
+        return ERS_sames, None
     ERS_focus_ = ERS_mat.copy()
     ERS_focus_[np.eye(len(ERS_focus_), dtype=bool)] = np.nan
     ERS_elses = np.nanmean(ERS_focus_, axis=1)
     ERS_dif = ERS_sames - ERS_elses
+    # M = np.nanmean(ERS_dif)
+    # print(f'{M=:.3f}')
+    # test = stats.spearmanr(ERS_sames, ERS_elses, nan_policy='omit')
+    # print(f'{test=}')
 
     var_explained = ERS_dif / (1 - ERS_elses)
     var_explained_sign = np.sign(var_explained)
@@ -780,6 +787,7 @@ def do_regr():
 
     target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
                    'subcort']
+    target_ROIs = ['ATL']
 
 
     for (ISPC, RSA, semantic, ERS_alt) in l:

@@ -24,7 +24,8 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
                'perceptual': 17,
                'full_frontal': 11, 'full_frontal_CG': 11,
                'MTL': 9, 'MTL2': 20, 'subcort': 21 ,
-               'INScc': 22, 'cingulate': 22}
+               'INScc': 22, 'cingulate': 22,
+               'cortical': 23}
                # 'Hipp': 18, 'PhG': 18, 'ATL': 18,
                # 'STG': 18, 'MTG': 18, 'ITG': 18}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,

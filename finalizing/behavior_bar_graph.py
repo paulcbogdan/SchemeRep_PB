@@ -58,7 +58,7 @@ def per_inc_bar(key='per_inc'):
     if key == 'per_inc':
         plt.ylim(1, 4)
         plt.yticks([1, 2, 3, 4])
-        plt.ylabel('Likelihood response', labelpad=8)
+        plt.ylabel('Perceived likelihood', labelpad=8)
         fp_out = r'result_pics/other/behavior_bar_graph.png'
 
     elif key == 'con_hit':
