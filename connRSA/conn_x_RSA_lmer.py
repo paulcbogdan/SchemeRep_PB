@@ -2,7 +2,10 @@ import scipy.stats as stats
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from pandas.errors import PerformanceWarning
+from tqdm import tqdm
 
+from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.conn_regress import prep_ROI_avg, do_regr_RSA_sn
 from connRSA.conn_utils import get_BNA_ROIs
@@ -19,6 +22,10 @@ os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 # disable settingswithcopyerror
 pd.options.mode.chained_assignment = None
 
+
+# suppress
+import warnings
+warnings.filterwarnings("ignore", category=PerformanceWarning)
 
 def run_IRAF_connRSA_ROI(kwargs, RSA, ISPC, easy_override, plot,
                          voxel_small_M, voxel_small_all, voxel_large,
@@ -67,18 +74,22 @@ def run_connRSA_lmer(df):
     print(model.summary())
 
 
-def run_conn_x_RSA(df):
+def run_conn_x_RSA(df, target_ROI):
     pd.set_option('display.max_columns', None)
     # stop pd wrap
+
+    print(list(df.columns))
 
     df['IRAF_dif'] = df['IRAF_avg_large'] - df['IRAF_small_M']
 
     cols = ['IRAF_avg_large', 'IRAF_small_M', 'IRAF_dif',
-            'M_v', 'M_o', 'M_c', 'M_pfc',
+            'M_', 'M_o', 'M_c', 'M_pfc',
             'FC_v', 'FC_o', 'FC_pfc', 'FC_c']
+    cols = ['IRAF_avg_large', 'IRAF_small_M', 'IRAF_dif',
+            f'M_{target_ROI}', f'SD_{target_ROI}', f'FC_{target_ROI}']
     df_sn = df.groupby('sn')[cols].mean()
-    # corr = df_sn.corr()
-    # print(corr)
+    corr = df_sn.corr()
+    print(corr)
 
     from pymer4.models import Lmer
 
@@ -86,18 +97,13 @@ def run_conn_x_RSA(df):
     # df = df[df['sess'] != 'obj']
 
     # IRAF_small_M + FC_v +
-    df['FC_v'] = df['FC_v'] - df['FC_c']
-    df.dropna(subset=['IRAF_dif', 'FC_o', 'FC_v'], inplace=True)
+    # df['FC_v'] = df['FC_v'] - df['FC_c']
 
-    # print(df['IRAF_dif'])
-    # FC_o +
-
-
-
-    formula = f'IRAF_dif ~ 1 + FC_v + (1 | sn)'
+    formula = f'IRAF_avg_large ~ 1 + SD_{target_ROI} + (1 | sn)'
     # plt.scatter(df['IRAF_small_M'], df['IRAF_avg_large'])
     # plt.show()
     cols = get_formula_cols(df, formula)
+    df.dropna(subset=cols, inplace=True)
     for col in cols:
         try:
             df[col] = stats.zscore(df[col])
@@ -124,9 +130,18 @@ def run_IRAF_connRSA():
 
     target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC',  # 'cingulate',
                    'subcort']
-    target_ROIs = ['FuG', 'ITG', 'PhG', 'MTG', 'ATL']
+    # target_ROIs = ['FuG', 'ITG', 'PhG', 'MTG', 'ATL']
+    # atlas = get_atlas()
+    # target_ROIs = list(set(atlas['tick_labels']))
+    # print(target_ROIs)
+    # quit()
 
-    for target_ROI in target_ROIs:
+    df_all = None
+
+    M_IRAFs = []
+    M_FCs = []
+
+    for target_ROI in tqdm(target_ROIs, desc='ROIs IRAF x conn'):
 
         kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
                   'fp1': None, 'trial_similarity': trial_similarity,
@@ -158,25 +173,45 @@ def run_IRAF_connRSA():
         if not 'sess' in df.columns:
             df = pickle_wrap(run_IRAF_connRSA_ROI, None, kwargs=outer_kwargs,
                              verbose=-1, easy_override=True)
+
+        df[f'IRAFs_{target_ROI}_al'] = df[f'IRAF_avg_large']
+
         sns = df['sn'].unique()
-        # print(df.columns)
-        # quit()
+
 
         conn_kwargs = {'drop_con': False, 'four_tasks': four_tasks,
-                       'sns': sns}
+                       'sns': sns, 'do_base': False, 'target_ROI': target_ROI}
         df_conn = pickle_wrap(get_df_single_trial_conn, None,
                               kwargs=conn_kwargs,
-                              verbose=-1, easy_override=False)
-        print(df_conn.columns)
+                              verbose=-1, easy_override=True)
+
+        print(f'{len(df_conn)=}')
+        print(f'{len(df)=}')
 
         df = pd.merge(df, df_conn, on=['sn', 'sess', 'obj'])
+        if df_all is None:
+            df_all = df
+        else:
+            df_all[f'IRAFs_{target_ROI}_al'] = df[f'IRAF_avg_large']
+            df_all[f'IRAFs_{target_ROI}_sm'] = df[f'IRAF_small_M']
+            df_all[f'IRAFs_{target_ROI}_dif'] = (df[f'IRAF_avg_large'] -
+                                                 df[f'IRAF_small_M'])
+            df_all[f'FC_{target_ROI}'] = df[f'FC_{target_ROI}']
+            df_all[f'M_{target_ROI}'] = df[f'M_{target_ROI}']
+            M_FC = df_all[f'FC_{target_ROI}'].mean()
+            key_IRAF = f'IRAFs_{target_ROI}_al'
+            key_IRAF = f'IRAFs_{target_ROI}_dif'
+            M_IRAF = df_all[key_IRAF].mean() * 1000
+            print(f'{target_ROI}, {M_FC=:.3f}, {M_IRAF=:.3f}')
+            M_FCs.append(M_FC)
+            M_IRAFs.append(M_IRAF)
+        run_conn_x_RSA(df, target_ROI)
 
-
-        # df = run_IRAF_connRSA_ROI(**outer_kwargs)
-        print('\n')
-        print(f'- {target_ROI} -*' * 10)
-        # run_conn_x_RSA(df)
-        # quit()
+    print(f'{M_FCs=}')
+    print(f'{M_IRAFs=}')
+    r, p = stats.pearsonr(M_FCs, M_IRAFs)
+    n_ROIs = len(target_ROIs)
+    print(f'FC x IRAF (n = {n_ROIs}): {r=:.3f}, {p=:.3f}')
 
 def get_idxs(ROI):
     regions = set(prep_networks(
@@ -221,28 +256,30 @@ def get_df_single_trial_conn(sns, drop_con=False, four_tasks='7',
 
         sn_st_target = sn_single_trial_conn[:, *np.ix_(target_idxs,
                                                        target_idxs), :]
+        sn_sd_target = np.nanstd(sn_st_target, axis=(1, 2))
+        sn_st_target = np.nanmean(sn_st_target, axis=(1, 2))
 
-        if do_base:
-            sn_act_ventral = np.nanmean(sn_inc_activity[:, ventral_idxs, :], axis=1)
-            sn_act_occ = np.nanmean(sn_inc_activity[:, occ_idxs, :], axis=1)
-            sn_act_cort = np.nanmean(sn_inc_activity[:, cort_idxs, :], axis=1)
-            sn_act_PFC = np.nanmean(sn_inc_activity[:, PFC_idxs, :], axis=1)
-
-            sn_st_ventral = sn_single_trial_conn[:, *np.ix_(ventral_idxs,
-                                                            ventral_idxs), :]
-            sn_st_ventral = np.nanmean(sn_st_ventral, axis=(1, 2))
-
-            sn_st_occipital = sn_single_trial_conn[:, *np.ix_(occ_idxs,
-                                                              occ_idxs), :]
-            sn_st_occipital = np.nanmean(sn_st_occipital, axis=(1, 2))
-
-            sn_st_cort = sn_single_trial_conn[:, *np.ix_(cort_idxs,
-                                                         cort_idxs), :]
-            sn_st_cort = np.nanmean(sn_st_cort, axis=(1, 2))
-
-            sn_st_PFC = sn_single_trial_conn[:, *np.ix_(PFC_idxs,
-                                                         PFC_idxs), :]
-            sn_st_PFC = np.nanmean(sn_st_PFC, axis=(1, 2))
+        # if do_base:
+        #     sn_act_ventral = np.nanmean(sn_inc_activity[:, ventral_idxs, :], axis=1)
+        #     sn_act_occ = np.nanmean(sn_inc_activity[:, occ_idxs, :], axis=1)
+        #     sn_act_cort = np.nanmean(sn_inc_activity[:, cort_idxs, :], axis=1)
+        #     sn_act_PFC = np.nanmean(sn_inc_activity[:, PFC_idxs, :], axis=1)
+        #
+        #     sn_st_ventral = sn_single_trial_conn[:, *np.ix_(ventral_idxs,
+        #                                                     ventral_idxs), :]
+        #     sn_st_ventral = np.nanmean(sn_st_ventral, axis=(1, 2))
+        #
+        #     sn_st_occipital = sn_single_trial_conn[:, *np.ix_(occ_idxs,
+        #                                                       occ_idxs), :]
+        #     sn_st_occipital = np.nanmean(sn_st_occipital, axis=(1, 2))
+        #
+        #     sn_st_cort = sn_single_trial_conn[:, *np.ix_(cort_idxs,
+        #                                                  cort_idxs), :]
+        #     sn_st_cort = np.nanmean(sn_st_cort, axis=(1, 2))
+        #
+        #     sn_st_PFC = sn_single_trial_conn[:, *np.ix_(PFC_idxs,
+        #                                                  PFC_idxs), :]
+        #     sn_st_PFC = np.nanmean(sn_st_PFC, axis=(1, 2))
 
 
 
@@ -251,21 +288,24 @@ def get_df_single_trial_conn(sns, drop_con=False, four_tasks='7',
 
         for i, df_sn in enumerate(df_sns):
             if df_sn['sn'].iloc[0] not in sns: continue
-            if do_base:
-                df_sn['FC_v'] = sn_st_ventral[i]
-                df_sn['FC_o'] = sn_st_occipital[i]
-                df_sn['FC_c'] = sn_st_cort[i]
-                df_sn['FC_pfc'] = sn_st_PFC[i]
-
-                df_sn['M_v'] = sn_act_ventral[i]
-                df_sn['M_o'] = sn_act_occ[i]
-                df_sn['M_c'] = sn_act_cort[i]
-                df_sn['M_pfc'] = sn_act_PFC[i]
+            # if do_base:
+            #     df_sn['FC_v'] = sn_st_ventral[i]
+            #     df_sn['FC_o'] = sn_st_occipital[i]
+            #     df_sn['FC_c'] = sn_st_cort[i]
+            #     df_sn['FC_pfc'] = sn_st_PFC[i]
+            #
+            #     df_sn['M_v'] = sn_act_ventral[i]
+            #     df_sn['M_o'] = sn_act_occ[i]
+            #     df_sn['M_c'] = sn_act_cort[i]
+            #     df_sn['M_pfc'] = sn_act_PFC[i]
             df_sn[f'FC_{target_ROI}'] = sn_st_target[i]
             df_sn[f'M_{target_ROI}'] = sn_act_target[i]
-            cols = ['sn', 'obj', f'FC_{target_ROI}', f'M_{target_ROI}']
+            df_sn[f'SD_{target_ROI}'] = sn_sd_target[i]
+            cols = ['sn', 'obj', f'FC_{target_ROI}', f'M_{target_ROI}',
+                    f'SD_{target_ROI}']
             if do_base:
-                cols += ['FC_v', 'FC_o', 'FC_c', 'FC_pfc', 'M_v', 'M_o', 'M_c', 'M_pfc']
+                cols += ['FC_v', 'FC_o', 'FC_c', 'FC_pfc',
+                         'M_v', 'M_o', 'M_c', 'M_pfc']
             df_sn_pruned = df_sn[cols]
             df_sn_pruned['sess'] = sess
             df_sn_l.append(df_sn_pruned)
