@@ -124,7 +124,7 @@ def run_IRAF_connRSA():
     trial_similarity = 'corr'  # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '8'
+    four_tasks = '7'
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
 
@@ -170,7 +170,7 @@ def run_IRAF_connRSA():
 
         df = pickle_wrap(run_IRAF_connRSA_ROI, None, kwargs=outer_kwargs,
                          verbose=-1, easy_override=False)
-        if not 'sess' in df.columns:
+        if not 'sess' in df.columns: # ????
             df = pickle_wrap(run_IRAF_connRSA_ROI, None, kwargs=outer_kwargs,
                              verbose=-1, easy_override=True)
 
@@ -250,14 +250,17 @@ def get_df_single_trial_conn(sns, drop_con=False, four_tasks='7',
         sn_inc_activity = np.nanmean(sn_inc_activity, axis=1)
         sn_inc_activity = stdize(sn_inc_activity, axis=-1, nans=True)
         sn_act_target = np.nanmean(sn_inc_activity[:, target_idxs, :], axis=1)
+        sn_sd_target = np.nanstd(sn_inc_activity[:, target_idxs, :], axis=1)
+
+
         sn_single_trial_conn = (sn_inc_activity[:, :, None] *
                                 sn_inc_activity[:, None, :])
         sn_single_trial_conn[:, *np.diag_indices(246), :] = np.nan
 
-        sn_st_target = sn_single_trial_conn[:, *np.ix_(target_idxs,
+        sn_fc_target = sn_single_trial_conn[:, *np.ix_(target_idxs,
                                                        target_idxs), :]
-        sn_sd_target = np.nanstd(sn_st_target, axis=(1, 2))
-        sn_st_target = np.nanmean(sn_st_target, axis=(1, 2))
+        sn_sd_fc = np.nanstd(sn_fc_target, axis=(1, 2))
+        sn_fc_target = np.nanmean(sn_fc_target, axis=(1, 2))
 
         # if do_base:
         #     sn_act_ventral = np.nanmean(sn_inc_activity[:, ventral_idxs, :], axis=1)
@@ -298,11 +301,13 @@ def get_df_single_trial_conn(sns, drop_con=False, four_tasks='7',
             #     df_sn['M_o'] = sn_act_occ[i]
             #     df_sn['M_c'] = sn_act_cort[i]
             #     df_sn['M_pfc'] = sn_act_PFC[i]
-            df_sn[f'FC_{target_ROI}'] = sn_st_target[i]
+            df_sn[f'FC_{target_ROI}'] = sn_fc_target[i]
             df_sn[f'M_{target_ROI}'] = sn_act_target[i]
             df_sn[f'SD_{target_ROI}'] = sn_sd_target[i]
+            df_sn[f'SD_FC_{target_ROI}'] = sn_sd_fc[i]
+
             cols = ['sn', 'obj', f'FC_{target_ROI}', f'M_{target_ROI}',
-                    f'SD_{target_ROI}']
+                    f'SD_{target_ROI}', f'SD_FC_{target_ROI}']
             if do_base:
                 cols += ['FC_v', 'FC_o', 'FC_c', 'FC_pfc',
                          'M_v', 'M_o', 'M_c', 'M_pfc']

@@ -145,12 +145,16 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
     dir_focus = fr'cache/conn_RSA/ars/ERS'
     dir_focus = fr'{dir_focus}/{fp0}_{fp1}_{trial_similarity}_{stdize_by_run}'
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
-    with open(fp_focus, 'rb') as f:
-        # age = os.path.getmtime(fp_focus)
-        # from datetime import datetime
-        # age = datetime.fromtimestamp(age)
-        # print(f'{age} | {fp_focus=}')
-        ERS_focus = np.load(f)
+    try:
+        with open(fp_focus, 'rb') as f:
+            # age = os.path.getmtime(fp_focus)
+            # from datetime import datetime
+            # age = datetime.fromtimestamp(age)
+            # print(f'{age} | {fp_focus=}')
+            ERS_focus = np.load(f)
+    except ValueError:
+        print(f'Bad {sn}: {fp_focus=}')
+        return np.nan, np.nan
     flat_focus = ERS_focus.flatten()
 
     if len(ROIs_ctrl):
@@ -406,7 +410,7 @@ def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     return ERS_dif, var_explained
 
 def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
-                     easy_override=True):
+                     easy_override=False):
     fps = prep_fps(kwargs['four_tasks'])
     scores = []
     r_sqs = []
@@ -464,7 +468,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
 
     return np.nanmean(scores), np.nanmean(r_sqs)
 
-def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False):
+def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
+               skip_sns_bonus=None):
     # t_st = time()
     z_l = []
     r_sqs = []
@@ -473,6 +478,8 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False):
     preds = [kwargs['ROI_focus']] + kwargs['ROIs_ctrl']
     for sn in sns:#, desc='conn regressing...', position=0, leave=False):
         if sn in ['138', '224']: continue
+        if skip_sns_bonus and sn in skip_sns_bonus:
+            continue
         kwargs['sn'] = sn
         try:
             # print(f'{sn=}')
@@ -541,19 +548,19 @@ def get_title(RSA, ISPC, kwargs, fontsize):
 
 def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                       plot=True,
-                      ctrl_large_strict=True,
+                      ctrl_large_strict=True, # control mega-ROI with separate ROI
                       ctrl_large_w_avg=False,
-                      ctrl_large_strict_and_avg=False,
+                      ctrl_large_strict_and_avg=True,
 
                       ctrl_small_strict=False,
 
                       ctrl_avg_w_large=False,
-                      ctrl_avg_strict=False,
+                      ctrl_avg_strict=True,
 
                       voxel_small_M=None, voxel_small_all=None,
                       voxel_large=None, avg_large=None,
 
-                      plot_two=True):
+                      plot_two=False):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
 
     kwargs_ = kwargs.copy()
@@ -564,6 +571,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         kwargs_['ROIs_ctrl'] = [avg_large]
     t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                             easy_override=easy_override)
+
     kwargs_['ROIs_ctrl'] = []
     t_ROIs, r_sqs_ROIs = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                     easy_override=easy_override)
@@ -572,7 +580,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     kwargs_['ROI_focus'] = voxel_large
     if ctrl_large_strict_and_avg:
         kwargs_['ROIs_ctrl'] = voxel_small_all + [avg_large]
-    if ctrl_large_w_avg:
+    elif ctrl_large_w_avg:
         kwargs_['ROIs_ctrl'] = [avg_large]
     elif ctrl_large_strict:
         kwargs_['ROIs_ctrl'] = voxel_small_all
@@ -756,7 +764,7 @@ def do_regr():
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '8'
+    four_tasks = '7'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
@@ -778,22 +786,22 @@ def do_regr():
     # print(len(target_ROIs))
     # quit()
 
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal']
+    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal']
 
     l = [(False, False, False, False),
          (True, False, False, False),
          (False, True, False, False),
          (False, True, True, False),]
 
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
-                   'subcort']
-    target_ROIs = ['ATL']
+    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
+    #                'subcort']
+    # target_ROIs = ['Ventral',]
 
 
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
-        if RSA: continue
-        # if semantic: continue
+        if not RSA: continue
+        if not semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
@@ -859,7 +867,7 @@ def do_regr():
             vmax = 4
             thresh = 1.65
 
-
+            print(f'{ts_ROI=}')
             title_ROI = title.split(':')[0] + ': ROIs'
             my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
 
@@ -869,11 +877,88 @@ def do_regr():
             title_conn = title.split(':')[0] + ': Large'
             my_plot_surf(ts_conn, atlas, title_conn, vmax=vmax, thresh=thresh)
 
+def plot_basic():
+    ISPC = False
+    RSA = False
+    semantic = False
+    ERS_alt = False
+    conn = 'prod'
+    trial_similarity = 'corr' # euc
+    second_order = 'spear'
+    RDM_method = 'within_nan'
+    four_tasks = '7'
+    regress_row = False
+    stdize_by_run = True if trial_similarity == 'euc' else False
+    # stdize_by_run = False
+    # TODO: update ISPC to have stdize_by_run as a toggle
+    # target_ROI = 'Occipital'
+    # target_ROI = 'FP'
+    target_ROI = 'Hipp'
+    target_ROI = 'SFG'
+    # target_ROI = 'MTL2'
+
+    # TODO: loop over every anatomical region and plot system vs ROI bias
+
+    # ['Hipp', 'ATL', 'PhG', 'STG', 'MTG', 'ITG']
+
+    target_ROIs = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
+                   'MTG', 'ITG', 'FuG', 'PhG', 'pSTS', 'SPL', 'IPL', 'Pcun',
+                   'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg',
+                   'Hipp', 'Str', 'Tha']
+
+
+    l = [(False, False, False, False),
+         (True, False, False, False),
+         (False, True, False, False),
+         (False, True, True, False),]
+
+    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
+                   'subcort']
+    # target_ROIs = ['Ventral',]
+
+    ROI_foci = [f'{ROI}_BOLD' for ROI in get_BNA_ROIs()]
+
+    for (ISPC, RSA, semantic, ERS_alt) in l:
+        if ISPC: continue
+        if not RSA: continue
+        # if semantic: continue
+        # ts_ROI, ts_BOLD, ts_conn = [], [], []
+        # if not semantic: continue
+        # if not RSA or ISPC: continue
+        ts_ROI, ts_BOLD, ts_conn = [], [], []
+        kwargs_ = None
+        for ROI_focus in ROI_foci:
+            kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+                      'fp1': None, 'trial_similarity': trial_similarity,
+                      'second_order': second_order,
+                      'RDM_method': RDM_method,
+                      'stdize_by_run': stdize_by_run,
+                      'regress_row': regress_row, 'four_tasks': four_tasks,
+                      }
+
+            kwargs_ = kwargs.copy()
+            kwargs_['ROI_focus'] = ROI_focus
+            kwargs_['ROIs_ctrl'] = []
+            t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                                    easy_override=False,
+                                                    skip_sns_bonus=('131',
+                                                                    '132'))
+            # print(t_ROIs_all)
+            ts_ROI.append(t_ROIs_all)
+
+        title, fn, fontsize = get_title(RSA, ISPC, kwargs_, 28)
+        print(f'{ts_ROI=}')
+        vmax = 4
+        thresh = 1.65
+        title_ROI = title.split(':')[0] + ': ROIs'
+        atlas = get_atlas()
+        my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
+
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
     do_regr()
-
+    # plot_basic()
 

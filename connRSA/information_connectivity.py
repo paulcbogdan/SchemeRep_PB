@@ -467,7 +467,7 @@ def run_IC_analysis():
 
     semantic = False
     drop_con = False
-    same_RSM_corr = True
+    same_RSM_corr = False
     trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'

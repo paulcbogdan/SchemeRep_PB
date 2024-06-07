@@ -15,7 +15,8 @@ from utils import pickle_wrap
 import os
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
 
-def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
+def pairRSA(fp, within2nan=True, semantic=False, regress_global=True,
+            itr=False):
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
@@ -42,10 +43,15 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
         sn = df_sn['sn'].iloc[0]
         act = sn_act[sn_i]
         act_std = stats.zscore(act, axis=-1)
-        act_std0 = act_std[:, None, :]
-        act_std1 = act_std[None, :, :]
 
-        binary_corr = act_std0 > act_std1
+        if itr:
+            act_std0 = act_std[:, None, :] > 0
+            act_std1 = act_std[None, :, :] > 0
+            binary_corr = np.logical_xor(act_std0, act_std1)
+        else:
+            act_std0 = act_std[:, None, :]
+            act_std1 = act_std[None, :, :]
+            binary_corr = act_std0 > act_std1
         binary_corr0 = binary_corr[..., None]
         binary_corr1 = binary_corr[..., None, :]
 
@@ -107,8 +113,9 @@ def pairRSA(fp, within2nan=True, semantic=False, regress_global=True):
 
     return RSM_RSM_l, sns
 
-def run_pairRSA(within2nan=True, semantic=True, regress_global=True,
-                thresh=.9, intersect=True, rowwise=True, fps='7'):
+def run_pairRSA(within2nan=True, semantic=True, regress_global=False,
+                thresh=.9, intersect=True, rowwise=True, fps='8',
+                itr=False):
     if not rowwise:
         assert not intersect
     # for key in ['7', '8']:
@@ -119,7 +126,8 @@ def run_pairRSA(within2nan=True, semantic=True, regress_global=True,
         RSM_RSM_l, sns = pickle_wrap(pairRSA, None,
                                 kwargs={'fp': fp, 'within2nan': within2nan,
                                         'semantic': semantic,
-                                        'regress_global': regress_global},
+                                        'regress_global': regress_global,
+                                        'itr': itr},
                                 verbose=1, easy_override=False)
         if i == 0:
             sns_use = set(sns)
@@ -155,10 +163,10 @@ def run_pairRSA(within2nan=True, semantic=True, regress_global=True,
     M_rows = np.nanmean(RSM_RSM_z, axis=0)
     M_rows_j = np.nanmean(RSM_RSM_z, axis=0)
 
-    # for i in range(RSM_RSM_z.shape[0]):
-    #     RSM_RSM_z[i] -= M_rows / 2
-    #     RSM_RSM_z[:, i] -= M_rows_j / 2
-
+    for i in range(RSM_RSM_z.shape[0]):
+        RSM_RSM_z[i] -= M_rows / 2
+        RSM_RSM_z[:, i] -= M_rows_j / 2
+    # RSM_RSM_z += 2
 
     atlas = get_atlas()
 
@@ -177,7 +185,7 @@ def run_pairRSA(within2nan=True, semantic=True, regress_global=True,
 
     plot_connectivity(RSM_RSM_z, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'], title=title, no_avg=True,
-                      cbar_label='z-score', vmin=0, vmax=4)
+                      cbar_label='z-score', vmin=-2, vmax=4)
     quit()
 
     RSM_RSM_bin, _ = get_binary_matrix(RSM_RSM_z, threshold=thresh,

@@ -220,12 +220,12 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
-    semantic = False
+    RSA = True
+    semantic = True
     conn = 'prod'
-    trial_similarity = 'corr'
+    trial_similarity = 'euc'
     second_order = 'spear'
-    four_tasks = '7'
+    four_tasks = '8'
     combine_regions = False
     split = False
     # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
@@ -240,7 +240,7 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
     # target_ROI = 'SFG'
-    target_ROI = 'cingulate'
+    target_ROI = 'Ventral'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'full_frontal_CG'

@@ -22,6 +22,8 @@ if __name__ == '__main__':
                  'ENC_rerun3',
                  ]
 
+    drop_dirs = ['ENC_LSS2', 'ENC_LSS1b', 'ENC_LSS1']
+
     dir_in = Path('fMRI_in')
     sns = dir_in.glob('*')
     for sn_dir in sns:

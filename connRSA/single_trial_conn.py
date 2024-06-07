@@ -213,12 +213,9 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
-    sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
-    sns = [sn for sn in sns if int(sn) != 239]
-    sns = [sn for sn in sns if int(sn) != 131] # gives errors for BOLD_avg? False | False
-    # sns = [239] # 230, 234,
-    # sns = [138]
-    # print(f'{sns=}')
+    # sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
+    # sns = [sn for sn in sns if int(sn) != 239]
+    # sns = [sn for sn in sns if int(sn) != 131] # gives errors for BOLD_avg? False | False
 
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')
