@@ -52,7 +52,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     IRAFs_all_ROI = []
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
-
+    print('RSA_sn')
     if 'norm' in conn and 'avg' in conn:
         networks = {'MTL': ['Hipp', 'PhG', 'ATL'],
                     'Occipital': ['EVC', 'LOC', 'sOcG'],
@@ -169,6 +169,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         cmb = '_cmb' if (combine_regions and BOLD) else ''
         fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
+        print(f'{fp_RSM=}')
 
 
         with open(fp_RSM, 'wb') as f:

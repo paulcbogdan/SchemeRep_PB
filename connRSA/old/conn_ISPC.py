@@ -23,7 +23,7 @@ from utils import stdize
 from pathlib import Path
 
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 
 
 def ISPC(atlas, sns, fp='bl2_fMRI', conn='euc', combine_regions=False,

@@ -132,7 +132,6 @@ def add_ROI_info(atlas):
 # @cache
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
-    # print('Getting atlas')
     if shenyang:
         fp_atlas = r'E:\PycharmProjects_E\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
@@ -141,8 +140,12 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
         img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
         # print('Defunct atlas')
 
-    fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    fp_labels = r'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
+    if lifu_labels:
+        fp_labels = r'cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
+    else:
+        fp_labels = r'cache/BNA_labels.txt'
+    # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
+    # fp_labels = r'E:\PycharmProjects_E\SchemeRep\cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()
@@ -166,7 +169,7 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
 
 
 def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
-                        HCP=False, natview=False):
+                        HCP=False, natview=False, lifu_labels=True):
     assert not (HCP and natview), 'HCP= and natview= are mutually exclusive'
     if new_space:
         # fp_ref = r'E:\PycharmProjects_E\SchemeRep/' \
@@ -182,7 +185,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
         #          r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
     img = image.load_img(fp_ref)
     atlas = get_BN_atlas(combine_bilaterally=combine_bilateral,
-                         shenyang=shenyang)
+                         shenyang=shenyang, lifu_labels=lifu_labels)
     if HCP:
         affine = [[-2., 0., 0., 90.],
                   [0., 2., 0., -126.],
@@ -215,14 +218,11 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
     return atlas
 
 def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
-                     natview=False):
+                     natview=False, lifu_labels=True):
     atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                 new_space=new_space, HCP=HCP,
-                                natview=natview)
-    # print(f'{combine_bilateral=}')
-    # quit()
-    # print('lee:', len(atlas['ROIs']))
-    # quit()
+                                natview=natview, lifu_labels=lifu_labels)
+
     region_to_new_number = {}
     cnt = 1
     atlas_data = atlas['maps'].get_fdata()
@@ -252,9 +252,9 @@ def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
     # quit()
     return atlas
 
-def split_BNA(new_space=True, split_code='xyz'):
-    atlas = get_BN_and_resample(combine_bilateral=False,
-                                new_space=new_space)
+def split_BNA(new_space=True, split_code='xyz', lifu_labels=True):
+    atlas = get_BN_and_resample(combine_bilateral=False, new_space=new_space,
+                                lifu_labels=lifu_labels)
 
     atlas_data = atlas['maps'].get_fdata()
     atlas_data_new = np.zeros_like(atlas_data)
@@ -353,23 +353,24 @@ def split_BNA(new_space=True, split_code='xyz'):
 
 def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
               new_space=True, split_code='xyz', schaefer=False, shenyang=True,
-              HCP=False, natview=False):
+              HCP=False, natview=False, lifu_labels=True):
     if schaefer:
         atlas = get_Schaefer_atlas()
     elif split:
         assert not combine_regions, 'split and combine_regions are mutually exclusive'
-        atlas = split_BNA(new_space=new_space, split_code=split_code)
+        atlas = split_BNA(new_space=new_space, split_code=split_code,
+                          lifu_labels=lifu_labels)
     elif combine_regions:
         atlas = get_combined_BNA(combine_bilateral=combine_bilateral,
                                  new_space=new_space, HCP=HCP,
-                                 natview=natview)
+                                 natview=natview, lifu_labels=lifu_labels)
         # print('test:', len(atlas['ROIs']))
         # quit()
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
-                                    new_space=new_space,
-                                    shenyang=shenyang, HCP=HCP,
-                                    natview=natview)
+                                    new_space=new_space, shenyang=shenyang,
+                                    HCP=HCP, natview=natview,
+                                    lifu_labels=lifu_labels)
     return atlas
 
 def org_BNA_coords():

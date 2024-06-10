@@ -3,7 +3,6 @@ from collections import defaultdict
 
 import numpy as np
 
-from atlas_utils import get_BN_and_resample, get_combined_BNA
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 from nilearn import image

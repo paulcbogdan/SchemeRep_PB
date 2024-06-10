@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from time import time
 
 import numpy as np
@@ -49,10 +50,14 @@ def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
     fp_focus1 = f'{dir_focus1}/{sn}_{ROI}_BOLD.npy'
     try:
         with open(fp_focus1, 'rb') as f:
-            RSM = np.load(f)
+            RSM = np.load(f, )
     except FileNotFoundError:
         # print('Not found!')
         RSM = np.full((114, 114), np.nan)
+    except ValueError as e:
+        print(f'{fp_focus1=}')
+        print(f'allow_pickl=False ({sn}, {ROI}, {fp}): {e=}')
+        quit()
 
     if within_nan:
         RSM = within_run_to_nan(RSM)
@@ -267,22 +272,18 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                 dir_focus = (fr'{dir_root}/{fp0}_{fp1}_{trial_similarity}_'
                              fr'{stdize_by_run}')
                 fp = f'{dir_focus}/{sn}_{ROI}_BOLD.npy'
-                # print(f'{fp=}')
-
-
-                # print(list(df_sn[f'{sess1}_trial']))
-                # print('-'*100)
-                # continue
 
                 if nan_block:
                     if fp1 not in fp12block2objs:
                         df_sn = get_trial_info(sn, verbose=-1)
                         df_sn.sort_values(by='obj', inplace=True)
-                        sess1 = (fp1.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
+                        sess1 = (fp1.split('_')[0].replace('2', '').
+                                 replace('3', '').replace('4', '').
                                  replace('7', '').replace('8', ''))
                         df_sn[f'{sess1}_trial'] = (
                             stats.rankdata(df_sn[f'{sess1}_trial']))
-                        df_sn[f'{sess1}_trial'] = df_sn[f'{sess1}_trial'].astype(int)
+                        df_sn[f'{sess1}_trial'] = (df_sn[f'{sess1}_trial'].
+                                                   astype(int))
                         obj2block_l = []
                         block2objs = defaultdict(list)
                         for j in range(len(df_sn)):
@@ -294,18 +295,9 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                         block2objs[1] = set(block2objs[1])
                         block2objs[2] = set(block2objs[2])
                         fp12block2objs[fp1] = block2objs
-
-
-                    # obj2block[row['obj']] = row[f'{sess0}_trial'] // 38
-                # print(block2objs)
                 try:
                     with open(fp, 'rb') as f:
                         ERS = np.load(f)
-                        # print(ERS.shape)
-                    # print(ERS.shape)
-                    # quit()
-                    # ERS_dif2, _ = get_ERS_scores(ERS, get_same=do_same)
-                    # print(f'{ERS_dif2=}')
 
                     if nan_block:
                         for j in range(len(obj2block_l)):
@@ -313,17 +305,13 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                                 if (k in block2objs[obj2block_l[j]]):
                                     continue
 
-                                # print(f'{j}, {k}')
-                                # ERS[j, k] = np.nan
                                 ERS[k, j] = np.nan
 
                     ERS_dif, _ = get_ERS_scores(ERS, get_same=do_same)
 
                 except EOFError:
                     ERS_dif = np.full(114, np.nan)
-                    # print(f'Missing: {f}')
-                    # ERS = np
-                    # continue
+
                 except FileNotFoundError:
                     ERS_dif = np.full(114, np.nan)
 
@@ -459,7 +447,10 @@ def run_IC_analysis():
     # semantic = False
     regress_FC = True
 
-    ERS = True
+    dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
+
+
+    ERS = False
     ERS_nan_block = False
 
     cross = False
@@ -473,18 +464,21 @@ def run_IC_analysis():
     second_order = 'spear'
     atlas = get_atlas()
     ROIs = atlas['ROIs']
-
+    # print(f'{ROIs=}')
+    # quit()
     if cross and ERS:
         assert not drop_con
 
     sns = ['102', '103', '104', '105', '106', '107', '108', '109', '110',
-           '111', '112', '113', '114', '115', '117', '118', '119', '120',
-           '123', '124', '126', '127', '128', '129', '130', '134', '135',
-           '136', '137', '201', '202', '203', '204', '205', '206', '207',
-           '208', '209', '210', '211', '212', '214', '216', '217', '218',
-           '219', '221', '222', '225', '227', '232', '233', '235']
+           '111', '112', '113', '114', '115', '117',
+           '118', '119', '120', '123', '124', '126', '127', '128', '129',
+           '130', '131', '132', '134', '135', '136',
+           '137', '138', '201', '202', '203', '204', '205', '206', '207',
+           '208', '209', '210', '211', '212', '214',
+           '216', '217', '218', '219', '221', '222', '224', '225', '227',
+           '230', '232', '233', '234', '235', '239']
 
-    four_tasks = '8'
+    four_tasks = '7'
     fps = prep_fps(four_tasks)
 
     kwargs = {'trial_similarity': trial_similarity,
@@ -514,7 +508,8 @@ def run_IC_analysis():
             kwargs['semantic'] = semantic
             sn_corrs = pickle_wrap(get_cross_IRAF_mat,
                                    kwargs=kwargs, verbose=-1,
-                                   easy_override=False)
+                                   easy_override=False,
+                                   dt_max=dt_max)
 
         elif ERS:
             kwargs['fps'] = fps
@@ -523,7 +518,8 @@ def run_IC_analysis():
 
             sn_corrs, ERS_scores = pickle_wrap(get_cross_ERS_mat,
                                                kwargs=kwargs, verbose=-1,
-                                               easy_override=False)
+                                               easy_override=False,
+                                               dt_max=dt_max)
 
 
             ERS_scores_all.append(ERS_scores)
@@ -533,7 +529,7 @@ def run_IC_analysis():
             kwargs['fps'] = fps
             kwargs['same_RSM_corr'] = same_RSM_corr
             sn_corrs = pickle_wrap(get_cross_IC_mat, kwargs=kwargs, verbose=-1,
-                                   easy_override=False)
+                                   easy_override=False, dt_max=dt_max)
         else:
             kwargs['second_order'] = second_order
             kwargs['within_nan'] = True
@@ -541,26 +537,11 @@ def run_IC_analysis():
             for fp in fps:
                 kwargs['fp'] = fp
                 corr = pickle_wrap(get_IC_mat, kwargs=kwargs, verbose=-1,
-                                   easy_override=False)
+                                   easy_override=False, dt_max=dt_max)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
 
         corr = np.nanmean(sn_corrs, axis=0)
-        # if cross: # nothing good
-        #     diag = np.diag(corr)
-        #     # diag_prod = (diag[:, None] + diag[None, :]) / 2
-        #     # diag_sq_sgn = diag
-        #     # diag_sq_sgn = np.sqrt(np.abs(diag)) * np.sign(diag)
-        #     # diag_prod = np.outer(diag_sq_sgn, diag_sq_sgn)
-        #     # diag_prod = np.outer(diag, diag)
-        #     # diag_sign = np.sign(diag_prod)
-        #     # diag_prod = np.sqrt(np.abs(diag_prod)) * diag_sign
-        #     # corr /= diag_prod
-        #     # corr[*np.diag_indices(corr.shape[0])] *= 1000
-        #     # plt.imshow(corr)
-        #     # plt.colorbar()
-        #     # plt.show()
-        #     # quit()
 
         corrs.append(corr)
 
@@ -568,18 +549,19 @@ def run_IC_analysis():
     corrs = np.array(corrs)
     M = np.nanmean(corrs, axis=0)
     diag = np.diag(M)
-    if np.sum(diag) > 0:
-        plt.plot(diag)
-        plt.xlim(0, len(diag))
-        plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
-                   fontsize=7)
-        plt.grid()
-        plt.show()
+    # if np.sum(diag) > 0:
+    #     # plt.plot(diag)
+    #     plt.xlim(0, len(diag))
+    #     plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
+    #                fontsize=7)
+    #     plt.grid()
+    #     plt.show()
 
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
 
     corrs_FC, M_ventral_FC, M_occ_FC, sns_FC = pickle_wrap(plot_FC_mat, None,
-                                                   easy_override=False)
+                                                   easy_override=False,
+                                                           dt_max=dt_max)
     M_FC = np.nanmean(corrs_FC, axis=0)
     if regress_FC:
         plot_connectivity(M_FC, atlas['ticks'], atlas['tick_labels'],
@@ -638,9 +620,6 @@ def run_IC_analysis():
     print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
 
 
-    # quit()
-
-
     IC = np.concatenate([M_ventral, M_occ])
     FC = M_ventral_FC + M_occ_FC
     try:
@@ -658,7 +637,7 @@ def run_IC_analysis():
 
     M = np.nanmean(corrs, axis=0)
 
-
+    SD = np.nanstd(corrs, axis=0)
     SE = stats.sem(corrs, axis=0, nan_policy='omit')
     N = np.sum(~np.isnan(corrs), axis=0)
     t = M / SE
@@ -668,10 +647,28 @@ def run_IC_analysis():
     title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'
     if regress_FC:
         title += ' (FC regressed)'
+
+    for i in range(N.shape[-1]):
+        val = 60 - N[i, 0]
+        if i == 0 or val == 0:
+            continue
+        print(f'{i}, {ROIs[i]}: {val}')
+    # quit()
+
+    M[N <= 48] = np.nan
+
+    M[230:, :] = np.nan # drop thalamus
+    M[:, 230:] = np.nan
+
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title,
                       no_avg=True, cbar_label='',)
+
+    plot_connectivity(M / SD, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'],
+                      title=title + ' effect (d)',
+                      no_avg=True, cbar_label='d',)
 
 
 
@@ -695,7 +692,11 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
             pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache',
                         RAM_cache=True)
+        # print(len(df_sns))
+        # quit()
         sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]
+        # print(f'{sns=}')
+        # quit()
         if prev_sns is None:
             prev_sns = sns
         else:
@@ -714,13 +715,35 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
     N = np.sum(~np.isnan(corrs), axis=0)
     t = M / SE
 
+    # plt.imshow(N == 60)
+    # # plt.colorbar()
+    # plt.show()
+    #
+    # plt.imshow(N == 59)
+    # # plt.colorbar()
+    # plt.show()
+    #
+    # plt.imshow(N == 58)
+    # # plt.colorbar()
+    # plt.show()
+    # quit()
+
+
+    # quit()
+
+
+
     atlas = get_atlas()
+
     title = 'Basic connectivity'
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title,
                       no_avg=True, cbar_label='',)
 
+
+
+    # quit()
     ventral_idxs = get_idxs('Ventral')
     occ_idxs = get_idxs('Occipital')
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
@@ -735,10 +758,32 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
     N = M_ventral.shape[0]
     d = t / np.sqrt(N)
     print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
-
+    print(f'{len(sns)=}')
     return corrs, M_ventral, M_occ, sns
 
 
 if __name__ == '__main__':
+    # M = np.linspace(0, 1, 246)
+    # M = M[None, :] * M[:, None]
+    #
+    # atlas = get_atlas(lifu_labels=False)
+    # ROI2i = defaultdict(list)
+    # for i, (ROI, region) in enumerate(zip(atlas['ROIs'], atlas['ROI_regions'])):
+    #     # print(f'{i}: {ROI}')
+    #     ROI2i[region].append(i)
+    #
+    # for j, (tick, tick_label, tick_low) in enumerate(zip(atlas['ticks'],
+    #                                                       atlas['tick_labels'],
+    #                                                       atlas['tick_lows'])):
+    #     idxs = ROI2i[tick_label]
+    #     print(f'{j}: {tick}, {tick_label}, {tick_low} | {idxs}')
+    #
+    # # atlas['ticks'][20] = 210.5
+    # # atlas['ticks'][21] = 216.5
+    #
+    # plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
+    #                   atlas['tick_lows'], title='random', no_avg=True,
+    #                   cbar_label='',)
+    # quit()
     run_IC_analysis()
     # plot_FC_mat()

@@ -1,24 +1,10 @@
-from pathlib import Path
-
 import numpy as np
-from matplotlib import pyplot as plt
-from scipy import spatial
 from scipy import stats
-from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from connRSA.RSA_feat_var import analyze_var_ROI
-from connRSA.single_trial_conn import prep_vecs, prep_fps
-from fMRI_proc import within_run_to_nan
-from old.plot_gen import plot_connectivity
-from org_sns import get_sns
-from organize_bhv import get_trial_info
-from stim import get_semantic_vectors, get_stim_RDM
-from utils import pickle_wrap
-from functools import cache
-from sklearn import decomposition
-from time import time
-from numba import jit, prange
+from connRSA.old.RSA_feat_var import analyze_var_ROI
+from connRSA.single_trial_conn import prep_fps
+
 
 def scratch():
     cov = [[1, 0.99, 0.1],

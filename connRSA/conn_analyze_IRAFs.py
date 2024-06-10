@@ -1,8 +1,7 @@
 import os
 from datetime import datetime
 
-from atlas_utils import get_atlas
-from connRSA.conn_plot import pie_charts
+from connRSA.old.conn_plot import pie_charts
 from connRSA.conn_report import lmer_stats
 
 os.chdir(r'E:\PycharmProjects_E\SchemeRep')
@@ -121,7 +120,7 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                    kwargs=settings, easy_override=True,
                                    verbose=1, cache_dir=dir_results,
                                    dt_max=dt_max)
-    report_results(results_bold_sep, do_lmer=False)
+    # report_results(results_bold_sep, do_lmer=False)
     print(settings)
     quit()
 
@@ -229,7 +228,7 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
+    RSA = True
     semantic = False
     conn = 'prod'
     trial_similarity = 'corr'

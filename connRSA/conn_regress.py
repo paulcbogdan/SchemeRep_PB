@@ -175,7 +175,7 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
 
         n_nan_cols = np.sum(nan_cols)
         if n_nan_cols > 10:
-            print(f'Lots! {n_nan_cols=}')
+            print(f'Lots ({sn})! {n_nan_cols=}')
             return np.nan, np.nan
         else:
             flat_ctrl = flat_ctrl[:, ~nan_cols]
@@ -517,13 +517,9 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             continue
         kwargs['sn'] = sn
         try:
-            # print(f'{sn=}')
             z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt,
                                        easy_override=easy_override)
         except FileNotFoundError as e:
-            # if sn == '102':
-            # if '230' in str(e) or '234' in str(e) or '239' in str(e):
-            #     continue
             print(f'sn: {e}')
             continue
         if np.isnan(z):
@@ -816,7 +812,7 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
-    easy_override = False
+    easy_override = True
     ctrl_strict = False
 
     ISPC = False

@@ -38,6 +38,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
 
     age2sn = get_sns('all' if strict_sns else fp, sh=False)
     # print(f'{age2sn=}')
+    # quit()
     for age, sns in age2sn.items():
         print(f'{age=}, {len(sns)=}')
 

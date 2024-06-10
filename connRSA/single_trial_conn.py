@@ -8,7 +8,7 @@ from atlas_utils import get_atlas
 from conn_RSA import RSA_sn
 from conn_ERS import ERS_sn
 from conn_report import report_results
-from connRSA.conn_old import visualize_region_matrix, visualize_ROIs, RSA_ROI, RSA_ROI_pairwise, RSA_edgewise
+from connRSA.old.conn_old import visualize_region_matrix, visualize_ROIs, RSA_ROI, RSA_ROI_pairwise, RSA_edgewise
 from conn_utils import get_BNA_ROIs
 from old.networks import prep_networks
 from org_sns import get_sns
@@ -30,6 +30,7 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     for fp0 in fps:
         # if fp0 != 'obj7_fMRI':
         #     continue
+
         if RSA:
             if plotting is None:
                 f = RSA_sn
@@ -196,7 +197,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
-    sns = ['123']
+    sns = ['126']
     # sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
     # sns = [sn for sn in sns if int(sn) != 239]
     # sns = [sn for sn in sns if int(sn) != 131] # gives errors for BOLD_avg? False | False

@@ -10,7 +10,7 @@ from organize_bhv import get_trial_info, sort_df_sn
 from utils import pickle_wrap, get_formula_cols
 
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'/')
 
 
 

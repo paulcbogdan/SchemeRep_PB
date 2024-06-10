@@ -15,12 +15,15 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                       t=False, no_avg=True, cbar_label='', vmin=None, vmax=None,
                       xlabel=None, ylabel=None, tile=.001,
                       tick_low=None, tick_high=None, minimal=False,
-                      colorbar=True, cmap='turbo'):
+                      colorbar=True, cmap='turbo', adjust_HC_AMY=True):
 
     if atlas is not None:
         ticks = atlas['ticks']
         tick_labels = atlas['tick_labels']
         tick_lows = atlas['tick_lows']
+    if adjust_HC_AMY and len(ticks[-1] > 100):
+        ticks[20] = 210.5
+        ticks[21] = 216.5
 
     font = {'size': 14}
     matplotlib.rc('font', **font)
