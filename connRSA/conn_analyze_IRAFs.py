@@ -80,6 +80,7 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
         settings['second_order'] = 'spear'
 
     dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
+    # dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
 
     # if not settings['combine_regions'] and False:
     #
@@ -112,7 +113,7 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
                                            dt_max=dt_max)
         report_results(results_bold_cmb_big, do_lmer=False)
 
-    dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
+    # dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
 
     settings['do_networks'] = False
     settings['combine_regions'] = False
@@ -228,8 +229,8 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
-    semantic = True
+    RSA = False
+    semantic = False
     conn = 'prod'
     trial_similarity = 'corr'
     second_order = 'spear'

@@ -161,8 +161,13 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
         ERS_ctrl_l = []
         for ROI_ctrl in ROIs_ctrl:
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
-            with open(fp_ctrl, 'rb') as f:
-                ERSs_ctrl = np.load(f)
+            try:
+                with open(fp_ctrl, 'rb') as f:
+                    ERSs_ctrl = np.load(f)
+            except ValueError as e:
+                print(f'Bad allow_pickle problem {sn}: {fp_ctrl=}')
+                quit()
+                return np.nan, np.nan
             ERS_ctrl_l.append(ERSs_ctrl)
         ERSs_ctrl = np.array(ERS_ctrl_l)
         flat_ctrl = ERSs_ctrl.reshape(ERSs_ctrl.shape[0], -1).T # (12996, 22)
@@ -283,7 +288,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
             if not os.path.isfile(fp_ctrl):
                 n_skip_cols += 1
-                print(f'Missing ({sn}): {fp_ctrl=}')
+                print(f'Missing ctrl ({sn}): {fp_ctrl=}')
                 continue
             with open(fp_ctrl, 'rb') as f:
                 RSM_ctrl = np.load(f)
@@ -298,18 +303,23 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         n_good_cols = len(ROIs_ctrl) - n_bad_cols
         n_ctrls = len(ROIs_ctrl)
 
-        if n_good_cols == 0:
+        if n_good_cols == 0: # accommodate the sns with missing runs
             print(f'No good columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
-            # plt.imshow(flat_ctrls, aspect='auto', interpolation='none')
-            # plt.show()
-            # quit()
+            good_rows = ~np.isnan(flat_ctrls).any(axis=1)
+            print(f'\t{np.sum(good_rows)=}')
+            flat_ctrls = flat_ctrls[good_rows, :]
+            flat_stim = flat_stim[good_rows]
+            nan_cols = np.isnan(flat_ctrls).any(axis=0)
+            n_good_cols = np.sum(~nan_cols)
+            print(f'\tAfter dropping rows: {n_good_cols=}')
+            flat_ctrls = flat_ctrls[:, ~nan_cols]
         elif n_bad_cols > 10:
             print(f'Lots of bad columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
-        #     flat_ctrls = flat_ctrls[:, ~nan_cols]
-        # else:
-        #     flat_ctrls = flat_ctrls[:, ~nan_cols]
+            flat_ctrls = flat_ctrls[:, ~nan_cols]
+        else:
+            flat_ctrls = flat_ctrls[:, ~nan_cols]
 
 
         if regress_row:
@@ -347,6 +357,15 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     if RDM_method == 'within_nan':
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
+
+    # if np.sum(np.isnan(X)) > 0:
+    #     plt.title(f'X, {sn}')
+    #     plt.imshow(X, aspect='auto', interpolation='none')
+    #     plt.show()
+    #
+    #     plt.plot(flat_stim)
+    #     plt.show()
+
     assert np.sum(np.isnan(X)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
 
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
@@ -529,7 +548,7 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             continue
         if sn not in successful_sns:
             print(f'Not in DistRep: {sn}')
-            raise ValueError(f'Missing ({sn}): {kwargs=}')
+            raise ValueError(f'Failed conn_regress ({sn}): {kwargs=}')
 
     # print(f'{successful_sns=}')
     # print(f'{schemePE_sns=}')
@@ -797,6 +816,9 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
+    easy_override = False
+    ctrl_strict = False
+
     ISPC = False
     RSA = False
     semantic = False
@@ -815,7 +837,8 @@ def do_regr():
     target_ROI = 'Hipp'
     target_ROI = 'SFG'
     # target_ROI = 'MTL2'
-
+    # atlas = get_atlas()
+    # print(atlas['ROIs'])
     # TODO: loop over every anatomical region and plot system vs ROI bias
 
     # ['Hipp', 'ATL', 'PhG', 'STG', 'MTG', 'ITG']
@@ -839,84 +862,86 @@ def do_regr():
     # target_ROIs = ['Ventral',]
 
 
-    for (ISPC, RSA, semantic, ERS_alt) in l:
-        if ISPC: continue
-        if not RSA: continue
-        if not semantic: continue
+    # for (ISPC, RSA, semantic, ERS_alt) in l:
+    #     if ISPC: continue
+    #     if not RSA: continue
+    #     if not semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
-        ts_ROI, ts_BOLD, ts_conn = [], [], []
-        for regress_row in [False]:
-            for target_ROI in target_ROIs: # Occipital', 'MTL', 'PFC_ACC
-                # ROI_focus = f'{target_ROI}_{conn}'
-                # ROI_focus = f'{target_ROI}_BOLD_cmb'
+    ts_ROI, ts_BOLD, ts_conn = [], [], []
+    for regress_row in [False]:
+        for target_ROI in target_ROIs: # Occipital', 'MTL', 'PFC_ACC
+            # ROI_focus = f'{target_ROI}_{conn}'
+            # ROI_focus = f'{target_ROI}_BOLD_cmb'
 
-                regions = set(prep_networks(
-                    network_setting=ROI2NETWORK[target_ROI])[target_ROI])
-                ROIs_match = [ROI for region in regions
-                                  for ROI in get_BNA_ROIs() if region in ROI]
-                ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
+            regions = set(prep_networks(
+                network_setting=ROI2NETWORK[target_ROI])[target_ROI])
+            ROIs_match = [ROI for region in regions
+                              for ROI in get_BNA_ROIs() if region in ROI]
+            ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
 
-                kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
-                          'fp1': None, 'trial_similarity': trial_similarity,
-                          'second_order': second_order,
-                          'RDM_method': RDM_method,
-                          'stdize_by_run': stdize_by_run,
-                          'regress_row': regress_row, 'four_tasks': four_tasks,
-                          }
+            kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+                      'fp1': None, 'trial_similarity': trial_similarity,
+                      'second_order': second_order,
+                      'RDM_method': RDM_method,
+                      'stdize_by_run': stdize_by_run,
+                      'regress_row': regress_row, 'four_tasks': four_tasks,
+                      }
 
-                target_name = fr'{target_ROI}_M'
-                prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
-                             ERS_alt=ERS_alt, **kwargs)
+            target_name = fr'{target_ROI}_M'
+            prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
+                         ERS_alt=ERS_alt, **kwargs)
 
-                outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
-                               'ERS_alt': ERS_alt,
-                               'easy_override': True,
-                               'plot': len(target_ROIs) < 10}
+            outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
+                           'ERS_alt': ERS_alt,
+                           'easy_override': easy_override,
+                           'plot': len(target_ROIs) < 10,
+                           'ctrl_large_strict': ctrl_strict,
+                           'ctrl_avg_strict': ctrl_strict}
 
-                outer_kwargs['voxel_small_M'] = target_name
-                outer_kwargs['voxel_small_all'] = ROI_lvl_control
-                outer_kwargs['voxel_large'] = f'{target_ROI}_BOLD_cmb'
-                outer_kwargs['avg_large'] = f'{target_ROI}_BOLD'
+            outer_kwargs['voxel_small_M'] = target_name
+            outer_kwargs['voxel_small_all'] = ROI_lvl_control
+            outer_kwargs['voxel_large'] = f'{target_ROI}_BOLD_cmb'
+            outer_kwargs['avg_large'] = f'{target_ROI}_BOLD'
 
-                t_ROIs_all, t_bold_all, t_conn_all, title = (
-                    pickle_wrap(plot_stacked_bars, kwargs=outer_kwargs,
-                                verbose=-1, easy_override=True))
+            t_ROIs_all, t_bold_all, t_conn_all, title = (
+                pickle_wrap(plot_stacked_bars, kwargs=outer_kwargs,
+                            verbose=-1, easy_override=easy_override))
 
-                print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
-                      f'{t_conn_all:.2f}')
+            print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
+                  f'{t_conn_all:.2f}')
 
-                ts_ROI.append(t_ROIs_all)
-                ts_BOLD.append(t_bold_all)
-                ts_conn.append(t_conn_all)
-        # print(f'{len(t_ROIs_all)=}')
-        # print(f'{ts_ROI=}')
-        if len(target_ROIs) >= 10:
-            if len(target_ROIs) > 40:
-                cbl = False
-            else:
-                cbl = True
-            # print(len(target_ROIs))
-            atlas = get_atlas(combine_regions=True, combine_bilateral=cbl)
-            assert len(atlas['tick_labels']) == len(target_ROIs)
-            # print(atlas['tick_labels'])
-            # print(ts_conn)
-            # quit()
+            ts_ROI.append(t_ROIs_all)
+            ts_BOLD.append(t_bold_all)
+            ts_conn.append(t_conn_all)
+    # print(f'{len(t_ROIs_all)=}')
+    # print(f'{ts_ROI=}')
+    if len(target_ROIs) >= 10:
+        if len(target_ROIs) > 40:
+            cbl = False
+        else:
+            cbl = True
+        # print(len(target_ROIs))
+        atlas = get_atlas(combine_regions=True, combine_bilateral=cbl)
+        assert len(atlas['tick_labels']) == len(target_ROIs)
+        # print(atlas['tick_labels'])
+        # print(ts_conn)
+        # quit()
 
-            # vmax = max(max(ts_ROI), max(ts_BOLD), max(ts_conn))
-            vmax = 4
-            thresh = 1.65
+        # vmax = max(max(ts_ROI), max(ts_BOLD), max(ts_conn))
+        vmax = 4
+        thresh = 1.65
 
-            print(f'{ts_ROI=}')
-            title_ROI = title.split(':')[0] + ': ROIs'
-            my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
+        print(f'{ts_ROI=}')
+        title_ROI = title.split(':')[0] + ': ROIs'
+        my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
 
-            title_system = title.split(':')[0] + ': System'
-            my_plot_surf(ts_BOLD, atlas, title_system, vmax=vmax, thresh=thresh)
+        title_system = title.split(':')[0] + ': System'
+        my_plot_surf(ts_BOLD, atlas, title_system, vmax=vmax, thresh=thresh)
 
-            title_conn = title.split(':')[0] + ': Large'
-            my_plot_surf(ts_conn, atlas, title_conn, vmax=vmax, thresh=thresh)
+        title_conn = title.split(':')[0] + ': Large'
+        my_plot_surf(ts_conn, atlas, title_conn, vmax=vmax, thresh=thresh)
 
 def plot_basic():
     ISPC = False
@@ -937,6 +962,8 @@ def plot_basic():
     target_ROI = 'Hipp'
     target_ROI = 'SFG'
     # target_ROI = 'MTL2'
+
+
 
     # TODO: loop over every anatomical region and plot system vs ROI bias
 
