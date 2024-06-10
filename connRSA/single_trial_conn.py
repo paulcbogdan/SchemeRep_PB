@@ -28,6 +28,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
     sizes_all = []
     trialwise_all = []
     for fp0 in fps:
+        # if fp0 != 'obj7_fMRI':
+        #     continue
         if RSA:
             if plotting is None:
                 f = RSA_sn
@@ -120,25 +122,6 @@ def prep_fps(four_tasks):
         raise NotImplementedError
     return fps
 
-    # if four_tasks == '3b_4':
-    #     fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    # elif four_tasks == '3b_3':
-    #     fps = ['bl3_fMRI', 'cmb3_fMRI', 'vis3_fMRI']
-    # elif four_tasks == '3_4':
-    #     fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    # elif four_tasks == '3_3':
-    #     fps = ['bl3_fMRI', 'obj3_fMRI', 'vis3_fMRI']
-    # elif four_tasks == '4_3':
-    #     fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI']
-    # elif four_tasks == '4_4':
-    #     fps = ['bl3_fMRI', 'obj4_fMRI', 'vis3_fMRI', 'con3_fMRI']
-    # elif four_tasks and isinstance(four_tasks, bool):
-    #     fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI', 'con2_fMRI']
-    # else:
-    #     raise ValueError
-    #     # fps = ['bl2_fMRI', 'obj2_fMRI', 'vis2_fMRI']
-    # return fps
-
 def prep_results_d(settings, networks, atlas, sns):
     if networks is None:
         if 'BOLD' in settings['conn']:
@@ -213,6 +196,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
+    sns = ['131']
     # sns = [sn for sn in sns if int(sn) not in [230, 234]] # TODO: ask SH to re-run
     # sns = [sn for sn in sns if int(sn) != 239]
     # sns = [sn for sn in sns if int(sn) != 131] # gives errors for BOLD_avg? False | False
@@ -224,7 +208,7 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
 
     trialwise_all = []
     for i, sn in tqdm(enumerate(sns), desc='run_settings, looping subjects'):
-        # print(f'{sn=}')
+        print(f'connRSA: {sn=}')
         ers_sn_by_comparison = []
         scores, sizes, scores_trialwise = \
             run_sn(fps, RSA, sn, atlas, d_vecs, networks=networks,
@@ -232,7 +216,6 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
                    second_order=second_order, RDM_method=RDM_method,
                    combine_regions=combine_regions, plotting=plotting,
                    stdize_by_run=stdize_by_run, semantic=semantic)
-        # quit()
         results['scores'].append(scores)
         results['sizes'].append(sizes)
         trialwise_all.append(scores_trialwise)

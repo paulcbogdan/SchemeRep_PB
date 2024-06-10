@@ -129,8 +129,14 @@ def ERS_sn(sn, atlas, fp0='bl2_fMRI', fp1='obj2_fMRI',
         assert vecs_enc_BOLD.shape == vecs_ret_BOLD.shape, \
             (f'{sn=} ({ROI=}, {fp0}; {fp1}) | {vecs_enc_BOLD.shape=}, '
              f'{vecs_ret_BOLD.shape=}')
-        keeps = np.logical_and(~np.isnan(vecs_enc_BOLD).any(axis=0),
-                               ~np.isnan(vecs_ret_BOLD).any(axis=0))
+
+        # keep sns missing 1 run
+        keeps_enc = np.isnan(vecs_enc_BOLD).sum(axis=0) < 39
+        keeps_ret = np.isnan(vecs_ret_BOLD).sum(axis=0) < 39
+        keeps = np.logical_and(keeps_enc, keeps_ret)
+
+        # keeps = np.logical_and(~np.isnan(vecs_enc_BOLD).any(axis=0),
+        #                        ~np.isnan(vecs_ret_BOLD).any(axis=0))
         vecs_enc_BOLD = vecs_enc_BOLD[:, keeps]
         vecs_ret_BOLD = vecs_ret_BOLD[:, keeps]
 

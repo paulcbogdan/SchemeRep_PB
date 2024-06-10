@@ -87,30 +87,32 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                f'{second_order}_{RDM_method}_{stdize_by_run}')
     Path(dir_out).mkdir(parents=True, exist_ok=True)
     for i, (ROI, vecs) in enumerate(ROI2vecs.items()):
+        # print('A')
         t_st = time()
         vecs_BOLD = ROI2vecs[ROI]
         # TODO: Implement toggle to disable connectivity
-        keeps = ~np.isnan(vecs_BOLD).any(axis=0)
-        if np.sum(keeps) < 2 and sn != 138: # 138 is missing run 3
+        # if sn == '132' and ('obj' in fp or 'scn' in fp): # corrupted run 3
+        #     keeps = ~np.isnan(vecs_BOLD[:76]).any(axis=0)
+        # else:
+        #     keeps = ~np.isnan(vecs_BOLD).any(axis=0)
+        # print(vecs_BOLD.shape)
+        # print(keeps.shape)
+        keeps = np.isnan(vecs_BOLD).sum(axis=0) < 39 # keep sns missing 1 run
+
+        if np.sum(keeps) < 2:
             sizes.append(0)
             scores.append(np.nan)
             IRAFs_all_ROI.append(np.full(len(df_sn), np.nan))
+            print(f'No keeps ({ROI}): {sn}')
             continue
 
         vecs_BOLD = vecs_BOLD[:, keeps]
-        # print(vecs_BOLD.shape)
         sizes.append(np.sum(keeps))
 
         vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
         if BOLD or cross_region:
-
-            # quit()
             vecs = stdize(vecs_BOLD, axis=0, nans=True,
                           stdize_by_run=stdize_by_run)
-            # plt.imshow(vecs)
-            # plt.show()
-            # print(vecs_BOLD.shape)
-            # vecs = vecs_BOLD
         else:
             vecs = get_conn_vecs(vecs_BOLD, conn=conn,
                                  stdize_by_run=stdize_by_run)
@@ -120,30 +122,17 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = np.nanmean(vecs, axis=-1)[..., None]
 
         if '_norm' in conn:
-            # print('TEST')
             if 'avg' in conn:
-                # print('TOAST')
                 if i in i2network:
-                # if i2network[i] in network2M:
                     network = i2network[i]
-                    # print(vecs.shape)
-                    # print(network2M[network].shape)
-                    # plt.imshow(vecs)
-                    # plt.show()
+
                     if 'half' in conn:
                         vecs = vecs - (network2M[network] / 2)
                     else:
                         vecs = (vecs - network2M[network])# / network2SD[network]
-                    # print(vecs.shape)
-                    # print(f'subtracting {ROI}')
-                    # plt.imshow(vecs)
-                    # plt.show()
-                    # quit()
-                    # print(vecs.shape)
+
             else:
                 vecs = stdize(vecs, axis=1, nans=True)
-            # print(vecs.shape)
-        # quit()
 
         if RDM_method == 'by_run':
             RSM_fMRI = get_trial_x_trial(vecs,
@@ -162,28 +151,13 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         elif RDM_method == 'within_nan':
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
-            # plt.imshow(RSM_fMRI)
-            # plt.show()
-            # print(vecs.shape)
-            # vecs = stdize(vecs, axis=1, nans=True)
-            # RSM_fMRI2 = get_trial_x_trial(vecs,
-            #                              trial_similarity='euc')
-            # plt.imshow(RSM_fMRI2)
-            # plt.show()
-            #
-            # z = RDM_x_RDM(RSM_fMRI, RSM_fMRI2, corr=second_order,
-            #               within_to_nan=True)
-            # print(f'{z=}')
-            # quit()
+
 
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
         else:
             raise ValueError(f'{RDM_method=} not supported')
-        # plt.imshow(RSM_fMRI)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
+
         scores.append(z)
 
         RSM_fmri_l.append(RSM_fMRI)
@@ -191,19 +165,14 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                           within_to_nan=RDM_method == 'within_nan',
                           by_run=RDM_method == 'by_run')
         IRAFs_all_ROI.append(IRAFs)
-        t_processing = time() - t_st
 
         cmb = '_cmb' if (combine_regions and BOLD) else ''
         fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
-        # print(f'{fp_RSM=}')
-        # quit()
 
-        t_st = time()
+
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)
-        # t_save = time() - t_st
-        # p_processing = t_processing / (t_processing + t_save)
 
     fn_RSM = f'{sn}_stim_{semantic}.npy'
     fp_RSM = f'{dir_out}/{fn_RSM}'

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from atlas_utils import get_atlas
 from connRSA.conn_plot import pie_charts
@@ -78,6 +79,8 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
         settings['RDM_method'] = None
         settings['second_order'] = 'spear'
 
+    dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
+
     # if not settings['combine_regions'] and False:
     #
     #     results_conn = pickle_wrap(run_settings, None, kwargs=settings,
@@ -96,7 +99,8 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     print(f'BOLD ' * 10)
     results_bold_comb = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results)
+                                   verbose=1, cache_dir=dir_results,
+                                   dt_max=dt_max)
     report_results(results_bold_comb, do_lmer=False)
 
     if settings['do_networks'] != 19: # this is covered by combine one below
@@ -104,14 +108,18 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
         settings['combine_regions'] = True
         results_bold_cmb_big = pickle_wrap(run_settings, None,
                                            kwargs=settings, easy_override=False,
-                                           verbose=1, cache_dir=dir_results)
+                                           verbose=1, cache_dir=dir_results,
+                                           dt_max=dt_max)
         report_results(results_bold_cmb_big, do_lmer=False)
+
+    dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
 
     settings['do_networks'] = False
     settings['combine_regions'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results)
+                                   kwargs=settings, easy_override=True,
+                                   verbose=1, cache_dir=dir_results,
+                                   dt_max=dt_max)
     report_results(results_bold_sep, do_lmer=False)
     print(settings)
     quit()
@@ -223,9 +231,9 @@ def run_lmer_PFC_RSA():
     RSA = True
     semantic = True
     conn = 'prod'
-    trial_similarity = 'euc'
+    trial_similarity = 'corr'
     second_order = 'spear'
-    four_tasks = '8'
+    four_tasks = '7'
     combine_regions = False
     split = False
     # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
@@ -240,15 +248,11 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
     # target_ROI = 'SFG'
-    target_ROI = 'Ventral'
+    # target_ROI = 'Ventral'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
-    # target_ROI = 'full_frontal_CG'
-    # target_ROI = 'FP'
-    # target_ROI = 'MTL'
-    # target_ROI = 'MTL2'
-    # target_ROI = 'Occipital'
-    # target_ROI = 'FP'
+    # target_ROI = 'PFC'
+    target_ROI = 'subcort'
 
 
     do_networks = ROI2NETWORK[target_ROI]
@@ -263,7 +267,7 @@ def run_lmer_PFC_RSA():
     results_conn, results_bold_comb, results_bold_sep_big, results_bold_sep \
         = pickle_wrap(load_for_lmer, None, kwargs=kwargs,
                       easy_override=True)
-    quit()
+    # quit()
 
     report_results(results_conn, do_lmer=False)#True)
     print('BOLD')

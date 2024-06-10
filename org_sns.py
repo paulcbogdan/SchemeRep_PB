@@ -138,9 +138,9 @@ if __name__ == '__main__':
 
 
     # test_fp('bl7_fMRI')
-    # test_fp('obj7_fMRI')
+    test_fp('obj7_fMRI')
     # test_fp('vis7_fMRI')
-    get_sns(fp_fMRI='loose', sh=False)
+    # get_sns(fp_fMRI='loose', sh=False)
     # test_fp('bl8_fMRI')
     # test_fp('vis8_fMRI')
     # test_fp('con8_fMRI')

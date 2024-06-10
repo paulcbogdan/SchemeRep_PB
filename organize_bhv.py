@@ -310,11 +310,11 @@ def get_trial_info(sn, easy_override=False, ret=True, incl_lures=False,
 def get_trial_info_(sn, ret=True, incl_lures=False):
     renamer = NAME_RENAMER
 
-    obj_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/objects'
-    scn_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/scenes'
-    obj_root3 = fr'fMRI_in/{sn}/ENC_rerun3/OBJ'
-    scn_root3 = fr'fMRI_in/{sn}/ENC_rerun3/SCN'
-    cmb_root3 = fr'fMRI_in/{sn}/ENC_rerun3/CMB'
+    # obj_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/objects'
+    # scn_root = fr'fMRI_in/{sn}/all_ENCruns_sorted/scenes'
+    # obj_root3 = fr'fMRI_in/{sn}/ENC_rerun3/OBJ'
+    # scn_root3 = fr'fMRI_in/{sn}/ENC_rerun3/SCN'
+    # cmb_root3 = fr'fMRI_in/{sn}/ENC_rerun3/CMB'
     # obj_root2 = fr'fMRI_in/{sn}/Enc_rerun/obj'
     # LSS1b_root4 = fr'fMRI_in/{sn}/ENC_LSS1b/OBJ'
     # LSS1_root5 = fr'fMRI_in/{sn}/ENC_LSS1/OBJ'
@@ -454,7 +454,7 @@ def get_trial_info_(sn, ret=True, incl_lures=False):
     matches1234 = df_sn['inc_match'].astype(np.float64).sum() # Gives wrong number for 102 if i dont astype??
     matches14 = df_sn['inc_match14'].astype(np.float64).sum()
     matches14_strict = df_sn['inc_match14_strict'].astype(np.float64).sum()
-    print(f'{matches1234=}, {matches14=}, {matches14_strict=}')
+    # print(f'{matches1234=}, {matches14=}, {matches14_strict=}')
 
     df_sn = include_BL(df_sn, sn)
     if ret:
@@ -497,6 +497,11 @@ def get_trial_info_(sn, ret=True, incl_lures=False):
 
     add_fns(df_sn, sn)
     df_sn['sn'] = sn
+
+    for key in ['obj', 'scn', 'con', 'vis']:
+        num_nans = df_sn[f'{key}_trial'].isna().sum()
+        assert num_nans == 0, f'Bad _trial {num_nans=}, {key=}, {sn=}'
+
     return df_sn
 
 def add_fns(df_sn, sn):
@@ -623,9 +628,24 @@ def include_conceptual(df_sn, sn):
             lambda x: np.nan if pd.isna(x) else x >= 3)
         df_sn['con7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['con8_fMRI'] = df_sn['obj'].map(obj2fp8)
+
+        obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
+
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
     return df_sn
+
+def fill_obj2trial_obj2run(obj2trial, obj2run):
+    contained_runs = set(obj2run.values())
+    missing_runs = set(range(1, 4)) - contained_runs
+    assert len(missing_runs) <= 1
+    obj2run_ = defaultdict(lambda: list(missing_runs)[0])
+    obj2run_.update(obj2run)
+    obj2run = obj2run_
+    obj2trial_ = defaultdict(lambda: list(missing_runs)[0] * 48) #cover 38 or 48
+    obj2trial_.update(obj2trial)
+    obj2trial = obj2trial_
+    return obj2trial, obj2run
 
 def include_vis(df_sn, sn, incl_lures=False):
     # TODO: investigate why 138 is missing run3 visual retrieval
@@ -699,6 +719,7 @@ def include_vis(df_sn, sn, incl_lures=False):
         df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['vis7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['vis8_fMRI'] = df_sn['obj'].map(obj2fp8)
+        obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
 
@@ -821,9 +842,14 @@ def prep_dif(df, sn):
     return df
 
 if __name__ == '__main__':
-    df_sn = include_conceptual(None, '239')
+    # df_sn = include_conceptual(None, '239')
     # print(df_sn)
-    # df_sn = get_trial_info_('239')
-    # print(df_sn['inc_hit_hit'])
-    # print(df_sn['con8_fMRI'])
-    # print(df_sn['scn7_fMRI'])
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_rows', None)
+    df_sn = get_trial_info_('131')
+    df_sn.sort_values(by='vis_trial', inplace=True)
+    print(df_sn[['vis7_fMRI', 'vis_trial']])
+
+    # df_sn = get_trial_info_('132')
+    # df_sn.sort_values(by='obj_trial', inplace=True)
+    # print(df_sn[['obj7_fMRI', 'obj_trial']])

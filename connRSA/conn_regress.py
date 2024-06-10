@@ -167,6 +167,7 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
         ERSs_ctrl = np.array(ERS_ctrl_l)
         flat_ctrl = ERSs_ctrl.reshape(ERSs_ctrl.shape[0], -1).T # (12996, 22)
         nan_cols = np.isnan(flat_ctrl).any(axis=0)
+
         n_nan_cols = np.sum(nan_cols)
         if n_nan_cols > 10:
             print(f'Lots! {n_nan_cols=}')
@@ -277,11 +278,12 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     if len(ROIs_ctrl):
         flat_ctrl_l = []
         RSM_ctrl_l = []
-        skips = 0
+        n_skip_cols = 0
         for ROI_ctrl in ROIs_ctrl:
             fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
             if not os.path.isfile(fp_ctrl):
-                skips += 1
+                n_skip_cols += 1
+                print(f'Missing ({sn}): {fp_ctrl=}')
                 continue
             with open(fp_ctrl, 'rb') as f:
                 RSM_ctrl = np.load(f)
@@ -291,11 +293,23 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         flat_ctrls = np.array(flat_ctrl_l).T
 
         nan_cols = np.isnan(flat_ctrls).any(axis=0)
-        n_nan_cols = np.sum(nan_cols) + skips
-        if n_nan_cols > 10:
-            print(f'Lots ({sn})! {n_nan_cols=}')
-        else:
-            flat_ctrls = flat_ctrls[:, ~nan_cols]
+        n_nans_cols = np.sum(nan_cols)
+        n_bad_cols = n_nans_cols + n_skip_cols
+        n_good_cols = len(ROIs_ctrl) - n_bad_cols
+        n_ctrls = len(ROIs_ctrl)
+
+        if n_good_cols == 0:
+            print(f'No good columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
+                  f'{n_skip_cols=}')
+            # plt.imshow(flat_ctrls, aspect='auto', interpolation='none')
+            # plt.show()
+            # quit()
+        elif n_bad_cols > 10:
+            print(f'Lots of bad columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
+                  f'{n_skip_cols=}')
+        #     flat_ctrls = flat_ctrls[:, ~nan_cols]
+        # else:
+        #     flat_ctrls = flat_ctrls[:, ~nan_cols]
 
 
         if regress_row:
@@ -333,7 +347,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     if RDM_method == 'within_nan':
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
-    assert np.sum(np.isnan(X)) == 0
+    assert np.sum(np.isnan(X)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
 
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
 
@@ -474,10 +488,12 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     z_l = []
     r_sqs = []
     sns = get_sns('all')['healthy']
+    # print(f'{sns=}')
     num_predictors = 1 + len(kwargs['ROIs_ctrl'])
     preds = [kwargs['ROI_focus']] + kwargs['ROIs_ctrl']
+    successful_sns = []
     for sn in sns:#, desc='conn regressing...', position=0, leave=False):
-        if sn in ['138', '224']: continue
+        # if sn in ['138', '224']: continue
         if skip_sns_bonus and sn in skip_sns_bonus:
             continue
         kwargs['sn'] = sn
@@ -487,20 +503,45 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                                        easy_override=easy_override)
         except FileNotFoundError as e:
             # if sn == '102':
-            if '230' in str(e) or '234' in str(e) or '239' in str(e):
-                continue
+            # if '230' in str(e) or '234' in str(e) or '239' in str(e):
+            #     continue
             print(f'sn: {e}')
             continue
         if np.isnan(z):
             continue
+        # print(f'Did: {sn}')
         z_l.append(z)
         r_sqs.append(r_sq)
+        successful_sns.append(sn)
+    # print(kwargs)
+    schemePE_sns = ['102', '103', '104', '105', '106', '107', '108', '109',
+                    '110', '111', '112', '113', '114', '115', '116', '117',
+                    '118', '119', '120', '123', '124', '125', '126', '127',
+                    '128', '129', '130', '131', '132', '133', '134', '135',
+                    '136', '137', '138', '201', '202', '203', '204', '205',
+                    '206', '207', '208', '209', '210', '211', '212', '213',
+                    '214', '215', '216', '217', '218', '219', '221', '222',
+                    '224', '225', '227', '230', '231', '232', '233', '234',
+                    '235', '239']
+    acceptable_failures = ['116', '125', '133', '213', '215', '231']
+    for sn in schemePE_sns:
+        if sn in acceptable_failures:
+            continue
+        if sn not in successful_sns:
+            print(f'Not in DistRep: {sn}')
+            raise ValueError(f'Missing ({sn}): {kwargs=}')
+
+    # print(f'{successful_sns=}')
+    # print(f'{schemePE_sns=}')
+    # quit()
     t, p = stats.ttest_1samp(z_l, 0)
     M_r_sq = np.nanmean(np.array(r_sqs))
     focus = kwargs['ROI_focus']
     ctrl = kwargs['ROIs_ctrl']
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
           f': {focus=}, {ctrl=}')
+    assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
+    # quit()
     return t, np.nanmean(np.array(r_sqs))
 
 def get_title(RSA, ISPC, kwargs, fontsize):
@@ -793,8 +834,8 @@ def do_regr():
          (False, True, False, False),
          (False, True, True, False),]
 
-    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
-    #                'subcort']
+    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
+                   'subcort']
     # target_ROIs = ['Ventral',]
 
 
@@ -831,7 +872,7 @@ def do_regr():
 
                 outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
                                'ERS_alt': ERS_alt,
-                               'easy_override': False,
+                               'easy_override': True,
                                'plot': len(target_ROIs) < 10}
 
                 outer_kwargs['voxel_small_M'] = target_name
@@ -921,7 +962,7 @@ def plot_basic():
     for (ISPC, RSA, semantic, ERS_alt) in l:
         if ISPC: continue
         if not RSA: continue
-        # if semantic: continue
+        if not semantic: continue
         # ts_ROI, ts_BOLD, ts_conn = [], [], []
         # if not semantic: continue
         # if not RSA or ISPC: continue
