@@ -161,17 +161,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
                 match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
                 df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
-                # df_set.loc[match, 'vals'] /= df_set.loc[match, 'vals'].std()
-                # print(sn)
-                # quit()
-            # print(df_set.loc[df_set['within_between'] == wb, 'vals'])
-            # df_set.loc[df_set['within_between'] == wb, 'vals'] -= \
-            #     df_set.loc[df_set['within_between'] == wb, 'vals'].mean()
-            # print(df_set.loc[df_set['within_between'] == wb, 'vals'])
-            # quit()
-
         pd.set_option('display.max_rows', None)
-
 
         df_inc = df_set[df_set['inc'] == 'Inc']
         df_inc_w = df_inc[df_inc['within_between'] == 'Within'].reset_index()

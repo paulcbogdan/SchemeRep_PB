@@ -96,7 +96,8 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
     plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
     if colorbar:
         cbar = plt.colorbar(shrink=0.77, aspect=20*0.7, label=cbar_label,
-                            pad=0.018,)
+                            pad=0.04,
+                            )
 
         # test = cbar.ax.get_yticklabels()
         # print(f'{test=}')
@@ -105,7 +106,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         tick_tests = cbar.ax.get_yticklabels()[1:-1]  # ends aren't shown for some reason
         lowest_val = tick_tests[0]._y
         not_neg = lowest_val >= 0
-        cbar.set_label(cbar_label, rotation=-90, labelpad=12 + not_neg * 15,
+        cbar.set_label(cbar_label, rotation=-90, labelpad=15 + not_neg * 15,
                        fontsize=fontsize * 1.5)
 
     if tick_low is not None or tick_high is not None:
@@ -120,12 +121,12 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
     # print(test[0]._y)
     # quit()
     # cbar.ax.tick_params(rotation=45, fontsize=12)
+    plt.gca().invert_yaxis()
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
         # plt.tight_layout()
         plt.savefig(fp)
     if ax is None:
-        plt.gca().invert_yaxis()
         # plt.tight_layout()
         plt.show()
 

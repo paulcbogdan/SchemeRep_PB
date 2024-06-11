@@ -26,6 +26,7 @@ from utils import pickle_wrap, stdize
 from functools import cache
 from sklearn import decomposition
 import statsmodels.formula.api as smf
+import seaborn as sns
 
 
 # suppress RuntimeWarning: All-NaN slice
@@ -441,16 +442,163 @@ def get_idxs(ROI):
     return ROIs_match
 
 
+def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
+
+    # ventral_idxs = get_idxs('ITL')
+    # occ_idxs = get_idxs('Occipital')
+    # corrs_FC[:, *np.diag_indices(corrs_FC.shape[1])] = np.nan
+    # corrs_ventral = corrs_FC[:, ventral_idxs][:, :, ventral_idxs]
+    # M_ventral_FC = np.nanmean(corrs_ventral, axis=(1, 2))
+    # corrs_occ = corrs_FC[:, occ_idxs][:, :, occ_idxs]
+    # M_occ_FC = np.nanmean(corrs_occ, axis=(1, 2))
+    #
+    # print(f'Ventral: {np.nanmean(M_ventral_FC):.3f} '
+    #       f'({np.nanstd(M_ventral_FC):.3f})')
+    # print(f'Occ: {np.nanmean(M_occ_FC):.3f} ({np.nanstd(M_occ_FC):.3f})')
+    # t, p = stats.ttest_rel(M_ventral_FC, M_occ_FC)
+    # N = M_ventral_FC.shape[0]
+    # d = t / np.sqrt(N)
+    # print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
+    # print(f'{len(sns_FC)=}')
+    # M_ventral_FC = [M_ventral_FC[sns_FC.index(sn)] for sn in sns]
+    # M_occ_FC = [M_occ_FC[sns_FC.index(sn)] for sn in sns]
+    # t_FC, p_FC = stats.ttest_rel(M_ventral_FC, M_occ_FC)
+    # print(f'vetral vs. occ FC: {t_FC=:.3f}, {p_FC=:.3f}')
+
+    networks = ['Occipital', 'ITL', 'Parietal', 'PFC']
+    network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
+                    'Parietal': 'Parietal', 'PFC': 'PFC'}
+    names = [network2name[net] for net in networks]
+    net2idxs = {}
+    df_as_l = defaultdict(list)
+
+    colors = ['dodgerblue', 'darkorange', 'crimson', 'limegreen']
+    # plt.gcf().add_axes([0.1,0.1, 0.35,0.8])
+
+    for net in networks:
+        idxs = get_idxs(net)
+        net2idxs[net] = idxs
+        net_corr = corrs[:, idxs][:, :, idxs]
+        net_sn_vals = np.nanmean(net_corr, axis=(1, 2))
+        net_M = np.nanmean(net_sn_vals)
+        net_SD = np.nanstd(net_sn_vals, ddof=1)
+        net_SE = net_SD / np.sqrt(np.sum(~np.isnan(net_sn_vals)))
+        df_as_l['net'].extend([network2name[net]]*len(sns_FC))
+        df_as_l['sn'].extend(sns_FC)
+        df_as_l['val'].extend(net_sn_vals)
+
+    df = pd.DataFrame(df_as_l)
+    plt.figure(figsize=(3.5, 4))
+    plt.rcParams.update({'font.size': 14})
+    bp = sns.stripplot(x='net', y='val', #hue='net', #palette=colors,
+                       alpha=0.5, linewidth=.7,
+                       data=df, order=names,
+                       palette=colors)
+    plt.ylabel('Mean correlation', fontsize=14)
+    plt.xlabel('')
+    # plt.xticks([0, 1, 2, 3], networks, color=colors)
+    plt.xticks([0, 1, 2, 3], ['', '', '', ''])
+    plt.xlim(-0.5, 3.65)
+    plt.tick_params(bottom=False)
+    # plt.gca().spines[['top', 'right']].set_visible(False)
+    plt.gca().spines[['top', 'left', 'bottom']].set_visible(False)
+    plt.gca().yaxis.set_label_position('right')
+    plt.gca().set_ylabel('Mean correlation', rotation=270, labelpad=20)
+    plt.gca().yaxis.tick_right()
+
+    colors = ['dodgerblue', 'darkorange', 'crimson', 'green']
+    for i, name in enumerate(names):
+        # plt.gca().get_xticklabels()[i].set_color(colors[i])
+        df_net = df[df['net'] == name]
+        # lowest_net = df_net['val'].min()
+        highest_net = df_net['val'].max()
+        # plt.text(i, lowest_net - 0.025, f'{name}', ha='center',
+        #          color=colors[i])
+        plt.text(i, highest_net + 0.0175, f'{name}', ha='center',
+                 fontsize=14, color=colors[i])
+
+    df_OC = df[df['net'] == 'Occipital']['val'].values
+    df_ITL = df[df['net'] == 'Temporal']['val'].values
+    t, p = stats.ttest_rel(df_OC, df_ITL)
+    d = t / np.sqrt(len(df_OC))
+    print(f'{fn_out}: {d=:.3f}')
 
 
-def run_IC_analysis():
+    # plt.text(0)
+    # plt.title(title)
+    if 'regressed' in fn_out:
+        pass
+    else:
+        if 'NPS' in fn_out:
+            plt.ylim(0.0, 0.345)
+        elif 'RSM' in fn_out:
+            plt.ylim(0, None)
+        else:
+            plt.ylim(0, None)
+            # plt.ylim(0.02, 0.62)
+
+    plt.yticks(fontsize=14)
+
+    # plt.axis([-0.5, 3.5, 0, 0.25])
+    # plt.axis('equal')
+    # plt.axis([-0.5, 3.5, 0, 0.25], frameon=False)
+    # plt.show()
+
+    # ax2 = plt.gcf().add_axes([0.2, 0.2, 0.1, 0.8])
+    # ax2 = plt.gcf().add_axes([0.1, 0.1, 0.01, 0.8])
+    # ax2.set_ylabel('Mean correlation')
+    # ax2.set_ylim(0.05, 0.35)
+
+    # ax2.spines[['top', 'right', 'bottom']].set_visible(False)
+    # ax2.set_ylim(0, 0.25)
+    plt.tight_layout()
+    fp_fig = fr'connRSA/FC_figs/M_{fn_out}'
+    plt.savefig(fp_fig, dpi=300)
+    plt.show()
+
+    # quit()
+
+        # print(f'{net}: {net_M=:.3f} [{net_SE:.3f}]')
+    # quit()
+
+    # ventral_idxs = get_idxs('ITL')
+    # occ_idxs = get_idxs('Occipital')
+    # corrs_ventral = corrs[:, ventral_idxs][:, :, ventral_idxs]
+    # M_ventral = np.nanmean(corrs_ventral, axis=(1, 2))
+    # corrs_occ = corrs[:, occ_idxs][:, :, occ_idxs]
+    # M_occ = np.nanmean(corrs_occ, axis=(1, 2))
+
+    # print(f'Ventral: {np.nanmean(M_ventral):.3f} ({np.nanstd(M_ventral):.3f})')
+    # print(f'Occ: {np.nanmean(M_occ):.3f} ({np.nanstd(M_occ):.3f})')
+    # t, p = stats.ttest_rel(M_ventral, M_occ)
+    # N = M_ventral.shape[0]
+    # d = t / np.sqrt(N)
+    # print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
+
+
+    # IC = np.concatenate([M_ventral, M_occ])
+    # FC = M_ventral_FC + M_occ_FC
+    # try:
+    #     df = pd.DataFrame({'IC': IC, 'FC': FC,
+    #                        'location': ['Ventral'] * len(M_ventral) +
+    #                                    ['Occipital'] * len(M_occ),
+    #                        'sn': sns_FC + sns_FC})
+    #     formula = r'IC ~ sn + location + FC' # FC + FC +
+    #     mod = smf.ols(formula=formula, data=df)
+    #     res = mod.fit()
+    #     print(res.summary())
+    # except ValueError as e:
+    #     print(f'{e=}')
+
+
+def run_IC_analysis(ERS=True, regress_FC=True):
     # semantic = False
-    regress_FC = True
+    # regress_FC = False
 
     dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
 
 
-    ERS = True
+    # ERS = False
     ERS_nan_block = False
 
     cross = False
@@ -490,16 +638,14 @@ def run_IC_analysis():
     # TODO: maybe regress out the activation normal FC matrix?
 
 
-    ventral_idxs = get_idxs('Ventral')
-    occ_idxs = get_idxs('Occipital')
+
 
     if drop_con:
         fps = [fp for fp in fps if 'con' not in fp]
     ERS_scores_all = []
 
     for i, sn in tqdm(enumerate(sns), desc=f'Looping IC: {cross=}'):
-        # if i > 3:
-        #     break
+
         kwargs['sn'] = sn
         if IRAF:
             kwargs['fps'] = fps
@@ -520,8 +666,6 @@ def run_IC_analysis():
                                                kwargs=kwargs, verbose=-1,
                                                easy_override=False,
                                                dt_max=dt_max)
-
-
             ERS_scores_all.append(ERS_scores)
         elif cross:
             kwargs['second_order'] = second_order
@@ -547,33 +691,20 @@ def run_IC_analysis():
 
 
     corrs = np.array(corrs)
-    M = np.nanmean(corrs, axis=0)
-    diag = np.diag(M)
-    # if np.sum(diag) > 0:
-    #     # plt.plot(diag)
-    #     plt.xlim(0, len(diag))
-    #     plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
-    #                fontsize=7)
-    #     plt.grid()
-    #     plt.show()
-
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
 
-    corrs_FC, M_ventral_FC, M_occ_FC, sns_FC = pickle_wrap(plot_FC_mat, None,
-                                                   easy_override=False,
-                                                           dt_max=dt_max)
-    M_FC = np.nanmean(corrs_FC, axis=0)
-    atlas = get_atlas(lifu_labels=False)
+    corrs_FC, M_ventral_FC, M_occ_FC, sns_FC = (
+        pickle_wrap(plot_FC_mat, None, easy_override=False, dt_max=dt_max))
 
+    title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'
     if regress_FC:
-        plot_connectivity(M_FC, atlas['ticks'], atlas['tick_labels'],
-                          atlas['tick_lows'], tile=.01,
-                          title='Functional connectivity',
-                          no_avg=True, cbar_label='',)
+        title += ' (FC regressed)'
+    fn_out = r'NPS' if ERS else 'RSM'
+    fn_out += '_regressed' if regress_FC else ''
+    fn_out += '.png'
+    plot_network_M(corrs, corrs_FC, sns_FC, fn_out)
 
-
-    # print(f'{corrs.shape=}')
-    # print(f'{corrs.shape=}')
+    atlas = get_atlas(lifu_labels=False)
 
     if regress_FC:
         for sn_i in range(corrs.shape[0]):
@@ -584,10 +715,6 @@ def run_IC_analysis():
             nans = np.isnan(corr_flat) | np.isnan(corr_FC_flat)
             corr_flat_ = corr_flat[~nans]
             corr_FC_flat_ = corr_FC_flat[~nans]
-
-            highs = np.percentile(corr_FC_flat_, 95)
-            # corr_flat_ = corr_flat_[corr_FC_flat_ > highs]
-            # corr_FC_flat_ = corr_FC_flat_[corr_FC_flat_ > highs]
             slope, intercept, r, p, se = (
                 stats.linregress(corr_FC_flat_, y=corr_flat_,
                                  alternative='two-sided'))
@@ -597,86 +724,28 @@ def run_IC_analysis():
             corr = corr_flat.reshape(corr.shape)
             corrs[sn_i] = corr
 
-
-    M_ventral_FC = [M_ventral_FC[sns_FC.index(sn)] for sn in sns]
-    M_occ_FC = [M_occ_FC[sns_FC.index(sn)] for sn in sns]
-
-    t_FC, p_FC = stats.ttest_rel(M_ventral_FC, M_occ_FC)
-    print(f'vetral vs. occ FC: {t_FC=:.3f}, {p_FC=:.3f}')
-
-
-
-
-    corrs_ventral = corrs[:, ventral_idxs][:, :, ventral_idxs]
-    M_ventral = np.nanmean(corrs_ventral, axis=(1, 2))
-    corrs_occ = corrs[:, occ_idxs][:, :, occ_idxs]
-    M_occ = np.nanmean(corrs_occ, axis=(1, 2))
-
-    # print(f'{M_ventral=}')
-
-    print(f'Ventral: {np.nanmean(M_ventral):.3f} ({np.nanstd(M_ventral):.3f})')
-    print(f'Occ: {np.nanmean(M_occ):.3f} ({np.nanstd(M_occ):.3f})')
-    t, p = stats.ttest_rel(M_ventral, M_occ)
-    N = M_ventral.shape[0]
-    d = t / np.sqrt(N)
-    print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
-
-
-    IC = np.concatenate([M_ventral, M_occ])
-    FC = M_ventral_FC + M_occ_FC
-    try:
-        df = pd.DataFrame({'IC': IC, 'FC': FC,
-                           'location': ['Ventral'] * len(M_ventral) +
-                                       ['Occipital'] * len(M_occ),
-                           'sn': sns + sns})
-
-        formula = r'IC ~ sn + location + FC' # FC + FC +
-        mod = smf.ols(formula=formula, data=df)
-        res = mod.fit()
-        print(res.summary())
-    except ValueError as e:
-        print(f'{e=}')
-
     M = np.nanmean(corrs, axis=0)
-
-    SD = np.nanstd(corrs, axis=0)
     SE = stats.sem(corrs, axis=0, nan_policy='omit')
     N = np.sum(~np.isnan(corrs), axis=0)
-    t = M / SE
 
-    # title = 'ERS connectivity' if ERS else ('Cross IC' if cross else 'Traditional IC')
-    title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'
-    if regress_FC:
-        title += ' (FC regressed)'
+
 
     for i in range(N.shape[-1]):
         val = 60 - N[i, 0]
         if i == 0 or val == 0:
             continue
         print(f'{i}, {ROIs[i]}: {val}')
-    # quit()
 
     M[N <= 48] = np.nan
 
-    # M[230:, :] = np.nan # drop thalamus
-    # M[:, 230:] = np.nan
-    # plt.plot(np.nanmean(M, axis=0))
-    # plt.show()
-    # MM = np.nanmean(M, axis=0)
-    # sub = (MM[:, None] + MM[None, :]) / 2
-    # M -= sub
-    # M -= np.nanmean(M, axis=0)
+    fn_out = r'NPS' if ERS else 'RSM'
+    fn_out += '_regressed' if regress_FC else ''
+    fn_out += '.png'
+    fp_fig = fr'connRSA/FC_figs/{fn_out}'
 
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      title=title, tile=.01,
-                      no_avg=True, cbar_label='NPS x NPS correlation (r)',)
-    quit()
-    plot_connectivity(M / SD, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
-                      title=title + ' effect (d)', tile=.01,
-                      no_avg=True, cbar_label='Cohen\'s d',)
-
+                      atlas['tick_lows'], title=title, tile=.01,
+                      no_avg=True, cbar_label='Correlation (r)', fp=fp_fig)
 
 
 def plot_FC_mat(drop_con=False, four_tasks='7'):
@@ -706,57 +775,25 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
             assert tuple(prev_sns) == tuple(sns)
         corrs.append(sn_conn)
 
-
     corrs = np.nanmean(corrs, axis=0)
     M = np.nanmean(corrs, axis=0)
     atlas = get_atlas(lifu_labels=False)
+    fn_out = r'basic_FC.png'
+    fp_fig = fr'connRSA/FC_figs/{fn_out}'
+    plot_network_M(corrs, None, sns, fn_out)
 
-    title = 'Basic connectivity'
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title=title,
-                      no_avg=True, cbar_label='Pearson correlation (r)',)
+                      title='Functional connectivity', fp=fp_fig,
+                      no_avg=True, cbar_label='Correlation (r)',)
 
-    ventral_idxs = get_idxs('Ventral')
-    occ_idxs = get_idxs('Occipital')
-    corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
-    corrs_ventral = corrs[:, ventral_idxs][:, :, ventral_idxs]
-    M_ventral = np.nanmean(corrs_ventral, axis=(1, 2))
-    corrs_occ = corrs[:, occ_idxs][:, :, occ_idxs]
-    M_occ = np.nanmean(corrs_occ, axis=(1, 2))
 
-    print(f'Ventral: {np.nanmean(M_ventral):.3f} ({np.nanstd(M_ventral):.3f})')
-    print(f'Occ: {np.nanmean(M_occ):.3f} ({np.nanstd(M_occ):.3f})')
-    t, p = stats.ttest_rel(M_ventral, M_occ)
-    N = M_ventral.shape[0]
-    d = t / np.sqrt(N)
-    print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
-    print(f'{len(sns)=}')
-    return corrs, M_ventral, M_occ, sns
+    return corrs, sns
 
 
 if __name__ == '__main__':
-    # M = np.linspace(0, 1, 246)
-    # M = M[None, :] * M[:, None]
-    #
-    # atlas = get_atlas(lifu_labels=False)
-    # ROI2i = defaultdict(list)
-    # for i, (ROI, region) in enumerate(zip(atlas['ROIs'], atlas['ROI_regions'])):
-    #     # print(f'{i}: {ROI}')
-    #     ROI2i[region].append(i)
-    #
-    # for j, (tick, tick_label, tick_low) in enumerate(zip(atlas['ticks'],
-    #                                                       atlas['tick_labels'],
-    #                                                       atlas['tick_lows'])):
-    #     idxs = ROI2i[tick_label]
-    #     print(f'{j}: {tick}, {tick_label}, {tick_low} | {idxs}')
-    #
-    # # atlas['ticks'][20] = 210.5
-    # # atlas['ticks'][21] = 216.5
-    #
-    # plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
-    #                   atlas['tick_lows'], title='random', no_avg=True,
-    #                   cbar_label='',)
-    # quit()
-    run_IC_analysis()
-    # plot_FC_mat()
+    plt.rcParams.update({'font.sans-serif': 'Arial'})
+
+    run_IC_analysis(ERS=True, regress_FC=False)
+    run_IC_analysis(ERS=False, regress_FC=False)
+    plot_FC_mat()

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from information_connectivity import get_idxs
 
 
-def plot_large_avg_ROIs(system):
+def plot_large_avg_ROIs(system, cmap='turbo'): # 'turbo'
     atlas = get_atlas(combine_regions=False)
     atlas_OG = get_atlas(combine_regions=False, lifu_labels=False)
     # for ROI, region, region_OG in zip(atlas['ROIs'],
@@ -19,16 +19,23 @@ def plot_large_avg_ROIs(system):
     data = prune2rois(data, rois)
 
     img = image.new_img_like(atlas['maps'], data)
-    plotting.plot_glass_brain(img, cmap=plt.get_cmap('turbo'),
+
+    # test = plt.get_cmap(cmap)
+    # vals_colored = cmap(np.linspace(0.05, .9, n_colored))
+
+
+    plotting.plot_glass_brain(img,
+                              cmap=plt.get_cmap(cmap),
                               black_bg=False, vmin=0.5,
                               resampling_interpolation='nearest',
                               display_mode='x',
                               alpha=0.7)
 
-    plt.savefig(f'result_pics/other/connRSA_anat_{system}.png',
-                dpi=600)
+    # plt.savefig(f'result_pics/other/connRSA_anat_{system}.png',
+    #             dpi=600)
 
     plt.show()
+
 
 def prune2rois(data, rois):
     rois = np.array(rois) + 1
@@ -55,6 +62,9 @@ def do_slicing(data):
 
 
 if __name__ == '__main__':
+    plot_large_avg_ROIs('subcort')
+    quit()
+
     plot_large_avg_ROIs('ITL')
     plot_large_avg_ROIs('Occipital')
     plot_large_avg_ROIs('Parietal')

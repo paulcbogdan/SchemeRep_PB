@@ -508,7 +508,7 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     ctrl = kwargs['ROIs_ctrl']
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
           f': {focus=}, {ctrl=}')
-    # assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
+    assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
     return t, np.nanmean(np.array(r_sqs))
 
 def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
@@ -583,6 +583,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         kwargs_['ROIs_ctrl'] = [voxel_large]
     else:
         kwargs_['ROIs_ctrl'] = [avg_large]
+
+    # kwargs_['ROIs_ctrl'] = [voxel_large]
     t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                             easy_override=easy_override)
 
@@ -601,10 +603,12 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     # else:
     #     kwargs_['ROIs_ctrl'] = [voxel_small_M]
     kwargs_['ROIs_ctrl'] = [voxel_small_M]
+    # kwargs_['ROIs_ctrl'] = voxel_small_all
+
     t_large_all, r_sqs_large_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                               easy_override=easy_override)
 
-    kwargs_['ROIs_ctrl'] = voxel_small_all
+    kwargs_['ROIs_ctrl'] = voxel_small_all + [avg_large]
     t_large_strict, _ = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                    easy_override=easy_override)
 
@@ -701,6 +705,12 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                     label='2', color='darkgray',
                     linewidth=1., edgecolor='k')
 
+            print(f'{t_avg=}')
+            print(f'{t_avg_dif=}')
+            print(f'{t_avg_all=}')
+            print(f'{t_avg_strict=}')
+            print(f'{t_avg_dif2=}')
+
             print(f'{t_large=}')
             print(f'{t_large_dif=}')
             print(f'{t_large_all=}')
@@ -768,7 +778,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             fp_out = rf'connRSA/stacked_bar/ERS/{fn}'
             Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
 
-        # plt.savefig(fp_out, dpi=300)
+        plt.savefig(fp_out, dpi=300)
         plt.show()
 
     return t_ROIs_all, t_avg_all, t_large_all, title
@@ -840,12 +850,12 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
-    easy_override = False
+    easy_override = True
     ctrl_strict = False
 
     ISPC = False
     RSA = True
-    semantic = True
+    semantic = False
     ERS_alt = False
     trial_similarity = 'corr' # euc
     second_order = 'spear'
@@ -853,10 +863,12 @@ def do_regr():
     four_tasks = '7'
     stdize_by_run = True if trial_similarity == 'euc' else False
 
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
-                   'subcort']
-    target_ROIs = ['Dorsal', 'Parietal', 'pSTS']
-    target_ROIs = ['ITL']#, 'IT', 'Ventral']
+    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'subcort']
+    target_ROIs = ['Dorsal', 'pSTS', 'Parietal']
+    # target_ROIs = ['Parietal']
+    # , 'IT', 'Ventral']
+
+    # target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC', 'subcort']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
