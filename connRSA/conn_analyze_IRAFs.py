@@ -18,16 +18,11 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1,
-               'else_cortical': 2,
-               'PFC': 16, 'PFC_ACC': 14, 'FP': 14,
-               'perceptual': 17,
-               'full_frontal': 11, 'full_frontal_CG': 11,
-               'MTL': 9, 'MTL2': 20, 'subcort': 21 ,
-               'INScc': 22, 'cingulate': 22,
-               'cortical': 23}
-               # 'Hipp': 18, 'PhG': 18, 'ATL': 18,
-               # 'STG': 18, 'MTG': 18, 'ITG': 18}
+ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
+               'PFC': 16, 'PFC_ACC': 14, 'FP': 14, 'perceptual': 17,
+               'full_frontal': 11, 'full_frontal_CG': 11, 'MTL': 9, 'MTL2': 20,
+               'subcort': 21 , 'INScc': 22, 'cingulate': 22, 'cortical': 23,
+               'IT': 24, 'ITL': 25, 'Parietal': 26}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'PCL': 19, 'ATL': 19, 'STG': 19, 'MTG': 19, 'ITG': 19,
                     'FuG': 19, 'PhG': 19, 'pSTS': 19, 'SPL': 19, 'IPL': 19,
@@ -35,19 +30,6 @@ ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'EVC': 19, 'LOC': 19, 'sOcG': 19, 'Amyg': 19, 'Hipp': 19,
                     'Str': 19, 'Tha': 19}
 ROI2NETWORK.update(ROI2network_anat)
-
-# atlas = get_atlas()
-# labels = atlas['tick_labels']
-# d = {}
-# d2 = {}
-# for label in atlas['tick_labels']:
-#     d[label] = 19
-#     d2[label] = [label]
-#
-# print(d)
-# print(d2)
-# print(atlas['tick_labels'])
-# quit()
 
 def get_idx_from_key(l, substring):
     idxs = []
@@ -117,12 +99,12 @@ def load_for_lmer(RSA=True, semantic=False, do_networks=False,
     settings['do_networks'] = False
     settings['combine_regions'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=True,
+                                   kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results,
                                    dt_max=dt_max)
     # report_results(results_bold_sep, do_lmer=False)
-    print(settings)
-    quit()
+    # print(settings)
+    # quit()
 
 
     settings['do_networks'] = False
@@ -228,8 +210,8 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = False
-    semantic = False
+    RSA = True
+    semantic = True
     conn = 'prod'
     trial_similarity = 'corr'
     second_order = 'spear'
@@ -247,7 +229,8 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'perceptual'
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
-    target_ROI = 'SFG'
+    # target_ROI = 'Parietal'
+    target_ROI = 'pSTS'
     # target_ROI = 'Ventral'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
@@ -267,10 +250,9 @@ def run_lmer_PFC_RSA():
     results_conn, results_bold_comb, results_bold_sep_big, results_bold_sep \
         = pickle_wrap(load_for_lmer, None, kwargs=kwargs,
                       easy_override=True)
-    # quit()
+    quit()
 
     report_results(results_conn, do_lmer=False)#True)
-    print('BOLD')
     report_results(results_bold_comb, do_lmer=False)#True)
 
     df, ROI_cols = organize_df(results_conn, results_bold_sep,

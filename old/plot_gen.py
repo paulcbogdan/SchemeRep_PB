@@ -134,7 +134,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
 # def plot_surf(combine_regions=True, bilateral=False):
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
-def get_split_cmap(vabs, thresh, cmap):
+def get_split_cmap(vabs, thresh, cmap, blue_half=False):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
@@ -144,15 +144,30 @@ def get_split_cmap(vabs, thresh, cmap):
         prop_black = 1
         # raise ValueError(f'{prop_black=}')
     n_black = int(n * prop_black)
-    vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
+    # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
+    #                      axis=1).T
+    vals_black = np.repeat(np.array([0.5, 0.5, 0.5, 1])[:, None], n_black,
                          axis=1).T
     prop_colored = 1 - prop_black
     n_colored = int(n * prop_colored)
-    vals_colored = cmap(np.linspace(0., 1., n))
-    vals_low = vals_colored[int(n/10):int(n/2)]
-    vals_high = vals_colored[int(n/2):n-int(n/10)]
-    vals = np.concatenate([vals_low, vals_black, vals_high])
+    vals_colored = cmap(np.linspace(0.05, .9, n_colored))
 
+    #I don't like the purple...
+    vals_low = vals_colored[:int(n_colored/2)]
+    vals_high = vals_colored[int(n_colored/2):]
+    # print(n_colored)
+    # quit()
+
+    # vals_low = vals_colored[int(n/10):int(n/2)]
+    # vals_high = vals_colored[int(n/2):n-int(n/10)]
+    vals = np.concatenate([vals_low, vals_black, vals_high])
+    if blue_half:
+        vals = vals[vals.shape[0] // 2:, :]
+
+    # plt.plot(vals[:, 0])
+    # plt.show()
+    # print(vals[:, 0])
+    # quit()
 
     cmap = ListedColormap(vals)
 
@@ -237,7 +252,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                          cmap=cmap, title=title,
                                          vmin=-vmax, vmax=vmax,
                                          inflate=True,
-                                         surf_mesh='fsaverage5',
+                                         surf_mesh='fsaverage7',
                                          avg_method='median')
 
     if thresh > 5:

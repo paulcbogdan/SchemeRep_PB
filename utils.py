@@ -417,8 +417,9 @@ def pickle_wrap(callback: object, filepath: object = None,
         dt = datetime.fromtimestamp(made)
         if dt < dt_max and dt > dt_min:
             easy_override = True
-            print(f'File ({fn}) was made: {made}')
-            print('\tFile is old, overriding')
+            if verbose >= 0:
+                print(f'File ({fn}) was made: {made}')
+                print('\tFile is old, overriding')
 
     if os.path.isfile(filepath) and not easy_override:
         try:

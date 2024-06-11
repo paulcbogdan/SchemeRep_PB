@@ -142,11 +142,22 @@ def cluster_regions(ROI2vecs, networks):
         # print(list(ROI2vecs))
         # print(ROIs)
         # quit()
+
+
         vecs_l = []
         for ROI in ROIs:
-            if ROI in ROI2vecs:
-                # print(f'{ROI} | {ROI2vecs[ROI].shape=}')
+            if ROI == 'ATL_L_7_3':
+                ROI_vec = ROI2vecs['ATL'][:, -2]
+                # print(ROI_vec.shape)
                 # quit()
+                vecs_l.append(ROI_vec[:, None])
+
+            elif ROI == 'ATL_R_7_3':
+                ROI_vec = ROI2vecs['ATL'][:, -1]
+                vecs_l.append(ROI_vec[:, None])
+
+                # vecs_l.append([ROI2vecs['ATL'][:, -2]])
+            elif ROI in ROI2vecs:
                 vecs_l.append(ROI2vecs[ROI])
             elif f'{ROI}_L' in ROI2vecs:
                 vecs_l.append(ROI2vecs[f'{ROI}_L'])
@@ -154,8 +165,8 @@ def cluster_regions(ROI2vecs, networks):
             else:
                 if ROI != 'CG':
                     warnings.warn(f'ROI={ROI} not found')
-        # print(f'{ROIs} | {len(vecs_l)=}')
         vecs = np.concatenate(vecs_l, axis=1)
+
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new
 

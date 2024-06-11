@@ -99,15 +99,6 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
 
     z_graph_high = z_graph.copy()
     z_graph_high[z_graph < upper_thresh] = np.nan
-    # ticks_new = []
-    # tick_lows_new = []
-    # for tick, tick_low in zip(atlas['ticks'], atlas['tick_lows'], ):
-    #     ticks_new.append(tick)
-    #     ticks_new.append(tick + 1)
-    #     tick_lows_new.append(tick_low)
-    #     tick_lows_new.append(tick_low + 1)
-    # atlas['ticks'] = ticks_new
-    # atlas['tick_lows'] = tick_lows_new
 
     plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     #
@@ -118,10 +109,9 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
     #
     z_graph_low[z_graph > lower_thresh] = np.nan
     plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
-    #
     plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=True)
 
-    quit()
+    # quit()
 
     # 16 MFG
     # 142 IPL
@@ -129,10 +119,6 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
     # 77 ATL
     i = 77
 
-    # 30 = IFG
-    # 76 = ATL
-    # 142 = IPL
-    # 188 = EVC
 
     # for i in [30, 76, 142, 202]:
     for i in [78, 79]:
