@@ -228,7 +228,7 @@ def rsum(row):
 
 
 def run_lmer_PFC_RSA():
-    RSA = True
+    RSA = False
     semantic = False
     conn = 'prod'
     trial_similarity = 'corr'
@@ -247,12 +247,12 @@ def run_lmer_PFC_RSA():
     # target_ROI = 'perceptual'
     # target_ROI = 'Occipital'
     # target_ROI = 'Hipp'
-    # target_ROI = 'SFG'
+    target_ROI = 'SFG'
     # target_ROI = 'Ventral'
     # target_ROI = 'MTL'
     # target_ROI = 'Dorsal'
     # target_ROI = 'PFC'
-    target_ROI = 'subcort'
+    # target_ROI = 'subcort'
 
 
     do_networks = ROI2NETWORK[target_ROI]

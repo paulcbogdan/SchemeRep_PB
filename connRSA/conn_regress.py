@@ -1,5 +1,6 @@
 import os
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -147,10 +148,6 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
     try:
         with open(fp_focus, 'rb') as f:
-            # age = os.path.getmtime(fp_focus)
-            # from datetime import datetime
-            # age = datetime.fromtimestamp(age)
-            # print(f'{age} | {fp_focus=}')
             ERS_focus = np.load(f)
     except ValueError:
         print(f'Bad {sn}: {fp_focus=}')
@@ -222,22 +219,6 @@ def do_regr_ERS_sn(sn, ROI_focus, ROIs_ctrl, fp0, fp1, trial_similarity,
     ERS_dif, var_explained = get_ERS_scores(ERS_focus)
     return ERS_dif, var_explained
 
-    # ERS_sames = np.diag(ERS_focus)
-    # ERS_focus_ = ERS_focus.copy()
-    # ERS_focus_[np.eye(len(ERS_focus_), dtype=bool)] = np.nan
-    # ERS_elses = np.nanmean(ERS_focus_, axis=1)
-    # ERS_dif = ERS_sames - ERS_elses
-    #
-    # score = np.nanmean(ERS_dif)
-    #
-    # # same_M = np.nanmean(ERS_sames)
-    # else_M = np.nanmean(ERS_elses)
-    # var_explained = score / (1 - else_M)
-    # var_explained_sign = np.sign(var_explained)
-    # var_explained = (var_explained ** 2) * var_explained_sign
-    #
-    # return score, var_explained
-
 def get_ERS_scores(ERS_mat, get_same=False):
     ERS_sames = np.diag(ERS_mat)
 
@@ -247,10 +228,6 @@ def get_ERS_scores(ERS_mat, get_same=False):
     ERS_focus_[np.eye(len(ERS_focus_), dtype=bool)] = np.nan
     ERS_elses = np.nanmean(ERS_focus_, axis=1)
     ERS_dif = ERS_sames - ERS_elses
-    # M = np.nanmean(ERS_dif)
-    # print(f'{M=:.3f}')
-    # test = stats.spearmanr(ERS_sames, ERS_elses, nan_policy='omit')
-    # print(f'{test=}')
 
     var_explained = ERS_dif / (1 - ERS_elses)
     var_explained_sign = np.sign(var_explained)
@@ -267,10 +244,14 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
+    # try:
     with open(fp_focus, 'rb') as f:
         RSM_focus = np.load(f)
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
+    # except ValueError as e:
+    #     print(f'{e=}')
+    #     quit()
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 
@@ -444,6 +425,8 @@ def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
 def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
                      easy_override=False):
+    dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
+
     fps = prep_fps(kwargs['four_tasks'])
     scores = []
     r_sqs = []
@@ -458,7 +441,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
             try:
                 score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1,
-                                          easy_override=easy_override)
+                                          easy_override=easy_override,
+                                          dt_max=dt_max)
             except ValueError as e:
                 if kwargs["sn"] != '131':
                     print(f'Bad {kwargs["sn"]}: {e}')
@@ -475,7 +459,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
             try:
                 score, r_sq = pickle_wrap(do_regr_ISPC_sn, kwargs=kwargs,
                                           verbose=-1,
-                                          easy_override=easy_override)
+                                          easy_override=easy_override,
+                                          dt_max=dt_max)
             except ValueError as e:
                 print(f'Bad {kwargs["sn"]}: {e}')
                 continue
@@ -492,7 +477,8 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
                 f = do_RSM_ERS_sn if ERS_alt else do_regr_ERS_sn
 
                 score, r_sq = pickle_wrap(f, kwargs=kwargs, verbose=-1,
-                                          easy_override=easy_override)
+                                          easy_override=easy_override,
+                                          dt_max=dt_max)
                 if isinstance(score, float) and np.isnan(score):
                     continue
                 scores.append(score)
@@ -511,16 +497,23 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     num_predictors = 1 + len(kwargs['ROIs_ctrl'])
     preds = [kwargs['ROI_focus']] + kwargs['ROIs_ctrl']
     successful_sns = []
+    acceptable_failures = ['116', '125', '133', '213', '215', '231']
+
     for sn in sns:#, desc='conn regressing...', position=0, leave=False):
+        # print(f'{sn=}')
+        # print(f'{skip_sns_bonus=}')
         # if sn in ['138', '224']: continue
         if skip_sns_bonus and sn in skip_sns_bonus:
             continue
+        if sn in acceptable_failures: continue
         kwargs['sn'] = sn
         try:
             z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt,
                                        easy_override=easy_override)
+        # print(f'{sn}, {z=}')
         except FileNotFoundError as e:
-            print(f'sn: {e}')
+            print(f'sn: {e}, {kwargs["ROI_focus"]=}, '
+                  f'{kwargs["ROIs_ctrl"]=}')
             continue
         if np.isnan(z):
             continue
@@ -528,35 +521,14 @@ def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         z_l.append(z)
         r_sqs.append(r_sq)
         successful_sns.append(sn)
-    # print(kwargs)
-    schemePE_sns = ['102', '103', '104', '105', '106', '107', '108', '109',
-                    '110', '111', '112', '113', '114', '115', '116', '117',
-                    '118', '119', '120', '123', '124', '125', '126', '127',
-                    '128', '129', '130', '131', '132', '133', '134', '135',
-                    '136', '137', '138', '201', '202', '203', '204', '205',
-                    '206', '207', '208', '209', '210', '211', '212', '213',
-                    '214', '215', '216', '217', '218', '219', '221', '222',
-                    '224', '225', '227', '230', '231', '232', '233', '234',
-                    '235', '239']
-    acceptable_failures = ['116', '125', '133', '213', '215', '231']
-    for sn in schemePE_sns:
-        if sn in acceptable_failures:
-            continue
-        if sn not in successful_sns:
-            print(f'Not in DistRep: {sn}')
-            raise ValueError(f'Failed conn_regress ({sn}): {kwargs=}')
 
-    # print(f'{successful_sns=}')
-    # print(f'{schemePE_sns=}')
-    # quit()
     t, p = stats.ttest_1samp(z_l, 0)
     M_r_sq = np.nanmean(np.array(r_sqs))
     focus = kwargs['ROI_focus']
     ctrl = kwargs['ROIs_ctrl']
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
           f': {focus=}, {ctrl=}')
-    assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
-    # quit()
+    # assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
     return t, np.nanmean(np.array(r_sqs))
 
 def get_title(RSA, ISPC, kwargs, fontsize):
@@ -812,64 +784,25 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
-    easy_override = True
+    easy_override = False
     ctrl_strict = False
 
     ISPC = False
     RSA = False
     semantic = False
     ERS_alt = False
-    conn = 'prod'
     trial_similarity = 'corr' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
     four_tasks = '7'
-    regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
-    # stdize_by_run = False
-    # TODO: update ISPC to have stdize_by_run as a toggle
-    # target_ROI = 'Occipital'
-    # target_ROI = 'FP'
-    target_ROI = 'Hipp'
-    target_ROI = 'SFG'
-    # target_ROI = 'MTL2'
-    # atlas = get_atlas()
-    # print(atlas['ROIs'])
-    # TODO: loop over every anatomical region and plot system vs ROI bias
-
-    # ['Hipp', 'ATL', 'PhG', 'STG', 'MTG', 'ITG']
-
-    target_ROIs = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
-                   'MTG', 'ITG', 'FuG', 'PhG', 'pSTS', 'SPL', 'IPL', 'Pcun',
-                   'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg',
-                   'Hipp', 'Str', 'Tha']
-    # print(len(target_ROIs))
-    # quit()
-
-    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal']
-
-    l = [(False, False, False, False),
-         (True, False, False, False),
-         (False, True, False, False),
-         (False, True, True, False),]
 
     target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
                    'subcort']
-    # target_ROIs = ['Ventral',]
 
-
-    # for (ISPC, RSA, semantic, ERS_alt) in l:
-    #     if ISPC: continue
-    #     if not RSA: continue
-    #     if not semantic: continue
-        # ts_ROI, ts_BOLD, ts_conn = [], [], []
-        # if not semantic: continue
-        # if not RSA or ISPC: continue
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
-        for target_ROI in target_ROIs: # Occipital', 'MTL', 'PFC_ACC
-            # ROI_focus = f'{target_ROI}_{conn}'
-            # ROI_focus = f'{target_ROI}_BOLD_cmb'
+        for target_ROI in target_ROIs:
 
             regions = set(prep_networks(
                 network_setting=ROI2NETWORK[target_ROI])[target_ROI])
@@ -911,21 +844,15 @@ def do_regr():
             ts_ROI.append(t_ROIs_all)
             ts_BOLD.append(t_bold_all)
             ts_conn.append(t_conn_all)
-    # print(f'{len(t_ROIs_all)=}')
-    # print(f'{ts_ROI=}')
+
     if len(target_ROIs) >= 10:
         if len(target_ROIs) > 40:
             cbl = False
         else:
             cbl = True
-        # print(len(target_ROIs))
         atlas = get_atlas(combine_regions=True, combine_bilateral=cbl)
         assert len(atlas['tick_labels']) == len(target_ROIs)
-        # print(atlas['tick_labels'])
-        # print(ts_conn)
-        # quit()
 
-        # vmax = max(max(ts_ROI), max(ts_BOLD), max(ts_conn))
         vmax = 4
         thresh = 1.65
 
@@ -940,9 +867,10 @@ def do_regr():
         my_plot_surf(ts_conn, atlas, title_conn, vmax=vmax, thresh=thresh)
 
 def plot_basic():
+    easy_override = False
     ISPC = False
-    RSA = False
-    semantic = False
+    RSA = True
+    semantic = True
     ERS_alt = False
     conn = 'prod'
     trial_similarity = 'corr' # euc
@@ -951,78 +879,40 @@ def plot_basic():
     four_tasks = '7'
     regress_row = False
     stdize_by_run = True if trial_similarity == 'euc' else False
-    # stdize_by_run = False
-    # TODO: update ISPC to have stdize_by_run as a toggle
-    # target_ROI = 'Occipital'
-    # target_ROI = 'FP'
-    target_ROI = 'Hipp'
-    target_ROI = 'SFG'
-    # target_ROI = 'MTL2'
-
-
-
-    # TODO: loop over every anatomical region and plot system vs ROI bias
-
-    # ['Hipp', 'ATL', 'PhG', 'STG', 'MTG', 'ITG']
-
-    target_ROIs = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
-                   'MTG', 'ITG', 'FuG', 'PhG', 'pSTS', 'SPL', 'IPL', 'Pcun',
-                   'PoG', 'INS', 'PCC', 'ACC', 'EVC', 'LOC', 'sOcG', 'Amyg',
-                   'Hipp', 'Str', 'Tha']
-
-
-    l = [(False, False, False, False),
-         (True, False, False, False),
-         (False, True, False, False),
-         (False, True, True, False),]
-
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', #'cingulate',
-                   'subcort']
-    # target_ROIs = ['Ventral',]
 
     ROI_foci = [f'{ROI}_BOLD' for ROI in get_BNA_ROIs()]
 
-    for (ISPC, RSA, semantic, ERS_alt) in l:
-        if ISPC: continue
-        if not RSA: continue
-        if not semantic: continue
-        # ts_ROI, ts_BOLD, ts_conn = [], [], []
-        # if not semantic: continue
-        # if not RSA or ISPC: continue
-        ts_ROI, ts_BOLD, ts_conn = [], [], []
-        kwargs_ = None
-        for ROI_focus in ROI_foci:
-            kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
-                      'fp1': None, 'trial_similarity': trial_similarity,
-                      'second_order': second_order,
-                      'RDM_method': RDM_method,
-                      'stdize_by_run': stdize_by_run,
-                      'regress_row': regress_row, 'four_tasks': four_tasks,
-                      }
+    ts_ROI, ts_BOLD, ts_conn = [], [], []
+    kwargs_ = None
+    for ROI_focus in ROI_foci:
+        kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+                  'fp1': None, 'trial_similarity': trial_similarity,
+                  'second_order': second_order,
+                  'RDM_method': RDM_method,
+                  'stdize_by_run': stdize_by_run,
+                  'regress_row': regress_row, 'four_tasks': four_tasks,
+                  }
 
-            kwargs_ = kwargs.copy()
-            kwargs_['ROI_focus'] = ROI_focus
-            kwargs_['ROIs_ctrl'] = []
-            t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                                    easy_override=False,
-                                                    skip_sns_bonus=('131',
-                                                                    '132'))
-            # print(t_ROIs_all)
-            ts_ROI.append(t_ROIs_all)
+        kwargs_ = kwargs.copy()
+        kwargs_['ROI_focus'] = ROI_focus
+        kwargs_['ROIs_ctrl'] = []
+        t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+                                                easy_override=easy_override,
+                                                )
+        ts_ROI.append(t_ROIs_all)
 
-        title, fn, fontsize = get_title(RSA, ISPC, kwargs_, 28)
-        print(f'{ts_ROI=}')
-        vmax = 4
-        thresh = 1.65
-        title_ROI = title.split(':')[0] + ': ROIs'
-        atlas = get_atlas()
-        my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
-
+    title, fn, fontsize = get_title(RSA, ISPC, kwargs_, 28)
+    print(f'{ts_ROI=}')
+    vmax = 4
+    thresh = 2
+    title_ROI = title.split(':')[0] + ': ROIs'
+    atlas = get_atlas()
+    my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    do_regr()
-    # plot_basic()
+    # do_regr()
+    plot_basic()
 

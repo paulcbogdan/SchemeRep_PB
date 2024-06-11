@@ -21,7 +21,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         ticks = atlas['ticks']
         tick_labels = atlas['tick_labels']
         tick_lows = atlas['tick_lows']
-    if adjust_HC_AMY and len(ticks[-1] > 100):
+    if adjust_HC_AMY and ticks[-1] > 100:
         ticks[20] = 210.5
         ticks[21] = 216.5
 
@@ -91,14 +91,22 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         plt.tight_layout()
         plt.show()
         return
-    plt.title(title, fontsize=fontsize * 2)
+    plt.title(title, fontsize=fontsize * 1.75, pad=12)
     plt.yticks(ticks, tick_labels, fontsize=fontsize)
     plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
     if colorbar:
-        cbar = plt.colorbar(shrink=0.7, aspect=20*0.7, label=cbar_label,)
-        cbar.set_label(cbar_label, y=1.05, labelpad=-55, rotation=0,
-                       fontsize=fontsize)
-        cbar.ax.tick_params(labelsize=fontsize)
+        cbar = plt.colorbar(shrink=0.77, aspect=20*0.7, label=cbar_label,
+                            pad=0.018,)
+
+        # test = cbar.ax.get_yticklabels()
+        # print(f'{test=}')
+        cbar.ax.tick_params(labelsize=fontsize * 1.2)
+
+        tick_tests = cbar.ax.get_yticklabels()[1:-1]  # ends aren't shown for some reason
+        lowest_val = tick_tests[0]._y
+        not_neg = lowest_val >= 0
+        cbar.set_label(cbar_label, rotation=-90, labelpad=12 + not_neg * 15,
+                       fontsize=fontsize * 1.5)
 
     if tick_low is not None or tick_high is not None:
         ticks = list(cbar.get_ticks())[1:-1]
@@ -106,17 +114,22 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         tick_labels[0] = f'{tick_labels[0]} {tick_low}'
         tick_labels[-1] = f'{tick_labels[-1]} {tick_high}'
         cbar.set_ticks(ticks, labels=tick_labels)
-    # quit()
 
+    # print(f'{test=}')
+    # print(vars(test[0]))
+    # print(test[0]._y)
+    # quit()
     # cbar.ax.tick_params(rotation=45, fontsize=12)
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
-        plt.tight_layout()
+        # plt.tight_layout()
         plt.savefig(fp)
     if ax is None:
         plt.gca().invert_yaxis()
-        plt.tight_layout()
+        # plt.tight_layout()
         plt.show()
+
+
 
 # def plot_surf(combine_regions=True, bilateral=False):
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)

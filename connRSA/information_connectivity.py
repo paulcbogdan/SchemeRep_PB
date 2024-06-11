@@ -450,7 +450,7 @@ def run_IC_analysis():
     dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
 
 
-    ERS = False
+    ERS = True
     ERS_nan_block = False
 
     cross = False
@@ -563,15 +563,17 @@ def run_IC_analysis():
                                                    easy_override=False,
                                                            dt_max=dt_max)
     M_FC = np.nanmean(corrs_FC, axis=0)
+    atlas = get_atlas(lifu_labels=False)
+
     if regress_FC:
         plot_connectivity(M_FC, atlas['ticks'], atlas['tick_labels'],
-                          atlas['tick_lows'],
+                          atlas['tick_lows'], tile=.01,
                           title='Functional connectivity',
                           no_avg=True, cbar_label='',)
 
 
-    print(f'{corrs.shape=}')
-    print(f'{corrs.shape=}')
+    # print(f'{corrs.shape=}')
+    # print(f'{corrs.shape=}')
 
     if regress_FC:
         for sn_i in range(corrs.shape[0]):
@@ -642,7 +644,6 @@ def run_IC_analysis():
     N = np.sum(~np.isnan(corrs), axis=0)
     t = M / SE
 
-    atlas = get_atlas()
     # title = 'ERS connectivity' if ERS else ('Cross IC' if cross else 'Traditional IC')
     title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'
     if regress_FC:
@@ -657,18 +658,24 @@ def run_IC_analysis():
 
     M[N <= 48] = np.nan
 
-    M[230:, :] = np.nan # drop thalamus
-    M[:, 230:] = np.nan
+    # M[230:, :] = np.nan # drop thalamus
+    # M[:, 230:] = np.nan
+    # plt.plot(np.nanmean(M, axis=0))
+    # plt.show()
+    # MM = np.nanmean(M, axis=0)
+    # sub = (MM[:, None] + MM[None, :]) / 2
+    # M -= sub
+    # M -= np.nanmean(M, axis=0)
 
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title=title,
-                      no_avg=True, cbar_label='',)
-
+                      title=title, tile=.01,
+                      no_avg=True, cbar_label='NPS x NPS correlation (r)',)
+    quit()
     plot_connectivity(M / SD, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
-                      title=title + ' effect (d)',
-                      no_avg=True, cbar_label='d',)
+                      title=title + ' effect (d)', tile=.01,
+                      no_avg=True, cbar_label='Cohen\'s d',)
 
 
 
@@ -692,58 +699,24 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
             pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache',
                         RAM_cache=True)
-        # print(len(df_sns))
-        # quit()
         sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]
-        # print(f'{sns=}')
-        # quit()
         if prev_sns is None:
             prev_sns = sns
         else:
             assert tuple(prev_sns) == tuple(sns)
-        # print(sns)
-        # quit()
         corrs.append(sn_conn)
-        # print(sn_inc_conn.shape)
-        # quit()
+
 
     corrs = np.nanmean(corrs, axis=0)
-
     M = np.nanmean(corrs, axis=0)
-
-    SE = stats.sem(corrs, axis=0, nan_policy='omit')
-    N = np.sum(~np.isnan(corrs), axis=0)
-    t = M / SE
-
-    # plt.imshow(N == 60)
-    # # plt.colorbar()
-    # plt.show()
-    #
-    # plt.imshow(N == 59)
-    # # plt.colorbar()
-    # plt.show()
-    #
-    # plt.imshow(N == 58)
-    # # plt.colorbar()
-    # plt.show()
-    # quit()
-
-
-    # quit()
-
-
-
-    atlas = get_atlas()
+    atlas = get_atlas(lifu_labels=False)
 
     title = 'Basic connectivity'
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'],
                       title=title,
-                      no_avg=True, cbar_label='',)
+                      no_avg=True, cbar_label='Pearson correlation (r)',)
 
-
-
-    # quit()
     ventral_idxs = get_idxs('Ventral')
     occ_idxs = get_idxs('Occipital')
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
