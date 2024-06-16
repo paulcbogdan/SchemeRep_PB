@@ -45,9 +45,7 @@ def get_beta_graph(sn_inc_conn):
     z_graph[trils[1], trils[0]] = z
     return z_graph
 
-
-def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
-                   all_black=False, only_cortical=True):
+def plot_matrix_Fig3():
     kwargs = {'fp': fp,
               'split': False,
               'key': 'inc',
@@ -88,6 +86,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
                           zip(atlas[key], atlas['tick_labels'])
                           if region not in bad_rois]
 
+
     if regr:
         z_graph = get_beta_graph(sn_inc_conn)
     else:
@@ -100,7 +99,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
     z_graph_high = z_graph.copy()
     z_graph_high[z_graph < upper_thresh] = np.nan
 
-    plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    # plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     #
     z_graph_low = z_graph.copy()
     # lower_thresh = np.nanpercentile(z_graph, 15)
@@ -108,20 +107,40 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
 
     #
     z_graph_low[z_graph > lower_thresh] = np.nan
-    plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
-    plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=True)
+    # plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    # plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=True)
 
-    # quit()
 
-    # 16 MFG
-    # 142 IPL
-    # 198 LOC
-    # 77 ATL
+def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
+                   all_black=False, only_cortical=True):
+    kwargs = {'fp': fp,
+              'split': False,
+              'key': 'inc',
+              'key_vals': (1, 2, 3),
+              }
+    if combine_regions:
+        kwargs['combine_regions'] = True
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1,
+                    cache_dir='cache')
+
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=False)
+
+    if regr:
+        z_graph = get_beta_graph(sn_inc_conn)
+    else:
+        _, _, _, _, _, _, z_graph = \
+            get_stats_graphs(sn_inc_conn[:, 0, :, :],
+                             sn_inc_conn[:, 2, :, :])
+
     i = 77
 
 
-    # for i in [30, 76, 142, 202]:
-    for i in [78, 79]:
+
+    for i in [30, 76, 142, 202]:
+    # for i in [78, 79]:
         all_black = False
         fig = plt.figure(figsize=(3.5, 3.5))
 
@@ -155,7 +174,9 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=True, regr=True,
             figure=fig,
             # title=atlas['ROIs'][i] + f' {atlas["coords"][i]}',
         )
-        fp_out = fr'result_pics/other/hub_spoke/{atlas["ROIs"][i]}.png'
+        # abs_max = np.nanmax(np.abs(z_graph_))
+        # print(f'{i}: {abs_max=:.3f}')
+        fp_out = fr'result_pics/other/hub_spoke/_{atlas["ROIs"][i]}.png'
         plt.savefig(fp_out, dpi=300)
         plt.show()
 

@@ -43,15 +43,11 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
-    sns = [df['sn'].unique()[0] for df in df_sns]
-    print(f'{sns=}')
-    quit()
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
                               flip=True, thr=.9, scrub=False, anat_ver=anat_ver)
     n_rois = sn_inc_activity.shape[2]
-
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
     matrix_mask[~matrix_mask] = np.nan
 
@@ -125,7 +121,7 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
             # print(f'{i=}')
             print_list_stats(ps)
 
-def plot_con_vs_inc(df_agg, skip_plot=False):
+def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -141,7 +137,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
     #                  ('vv', 'dv_ant'),
 
     # cond_sets = [('Within', 'Between')]
-    plt.rcParams.update({'font.size': 20,
+    plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
 
     # plt.rcParams['font.sans-serif'] = 'Arial'
@@ -159,7 +155,8 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
                 # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
                 match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
-                df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+                if mean_norm:
+                    df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
         pd.set_option('display.max_rows', None)
 
@@ -204,18 +201,36 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
         g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
-                        kind='bar', ci=None,
-                        # errorbar=None,
+                        kind='bar', ci=86,
+                        # errorbar=('se', 1),
                         # errwidth=1.5,
                         edgecolor='k',
                         # capsize=0.1, height=4,
-                        alpha=0.5, linewidth=.7,
+                        alpha=0.5, linewidth=.7,#.7,
+                        errwidth=1.2,
+                        capsize=0.05,
                         # palette=sns.color_palette()
                         palette=['dodgerblue', 'red'],
                         height=5, aspect=0.8
                         )
-        # plt.show()
-        # quit()
+        #
+        # g = sns.barplot(x=plot_params["x"], y=plot_params["y"],
+        #                 hue=plot_params['hue'],
+        #                 data=df_set[['inc', 'vals', 'within_between']],
+        #                 # ci=None,
+        #                 # errorbar=('se', 1),
+        #                 errorbar='se',
+        #
+        #                 # # errwidth=1.5,
+        #                 # # edgecolor='k',
+        #                 # # capsize=0.1, height=4,
+        #                 # # alpha=0.5,
+        #                 # linewidth=.7,
+        #                 # # palette=sns.color_palette()
+        #                 # palette=['dodgerblue', 'red'],
+        #                 # # height=5,
+        #                 # # aspect=0.8
+        #                 )
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['wb_num'] = df_set['within_between'].map(
@@ -239,11 +254,11 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
 
         # sns.color_palette()
 
-        g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
-              hue=plot_params['hue'], alpha=.35,
-              data=df_set[['inc', 'vals', 'within_between']],
-              palette=['dodgerblue', 'red'], dodge=True, edgecolor='k',
-              linewidth=0.7)
+        # g.map(sns.stripplot, x=plot_params["x"], y=plot_params["y"],
+        #       hue=plot_params['hue'], alpha=.35,
+        #       data=df_set[['inc', 'vals', 'within_between']],
+        #       palette=['dodgerblue', 'red'], dodge=True, edgecolor='k',
+        #       linewidth=0.7)
         # plt.legend([], [], frameon=False)
 
         if cond_set == ('Within', 'Between'):
@@ -268,12 +283,9 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
             #     title=None, frameon=False,
             # )
         g._legend.remove()
+        # g.legend.remove()
 
-        #     pairs = [
-        #         [('Inc', 'Between'), ('Con', 'Between')],
-        #         [('Inc', 'Within'), ('Con', 'Within')],
-        #     ]
-        # else:
+
         pairs = [[('Inc', c), ('Con', c)] for c in cond_set]
         # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
 
@@ -288,7 +300,11 @@ def plot_con_vs_inc(df_agg, skip_plot=False):
         # annot.apply_and_annotate()
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
         plt.xlim(-.5, 2.5)
-        plt.ylim(-.11, .11)
+        # plt.ylim(-.11, .11)
+        plt.tick_params(axis='x', which='both', bottom=False, top=False)
+        if mean_norm:
+            plt.ylim(-.02, .02)
+
         g.set_xticklabels(['High PE', 'Med. PE', 'Low PE'])
         plt.gca().spines['bottom'].set_visible(False)
         plt.xlabel('')

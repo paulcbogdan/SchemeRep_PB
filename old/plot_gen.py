@@ -150,14 +150,22 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False):
     vals_black = np.repeat(np.array([0.5, 0.5, 0.5, 1])[:, None], n_black,
                          axis=1).T
     prop_colored = 1 - prop_black
+    # print(f'{prop_colored=}')
     n_colored = int(n * prop_colored)
-    vals_colored = cmap(np.linspace(0.05, .9, n_colored))
-
+    print(f'{n_colored=}')
+    if blue_half:
+        vals_colored = cmap(np.linspace(0.05, .9, n_colored))
+    else:
+        vals_colored = cmap(np.linspace(0.05, .9, n))
     #I don't like the purple...
     vals_low = vals_colored[:int(n_colored/2)]
-    vals_high = vals_colored[int(n_colored/2):]
-    # print(n_colored)
+    # print(len(vals_low))
     # quit()
+    vals_high = vals_colored[-int(n_colored/2):]
+
+    # vals_low = vals_colored[:500]
+    # vals_high = vals_colored[500:]
+
 
     # vals_low = vals_colored[int(n/10):int(n/2)]
     # vals_high = vals_colored[int(n/2):n-int(n/10)]

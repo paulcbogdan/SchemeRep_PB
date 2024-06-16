@@ -12,6 +12,8 @@ try:
 except OSError:
     # Can't get this to work on my py3.11
     pass
+except ModuleNotFoundError:
+    pass
 
 import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
