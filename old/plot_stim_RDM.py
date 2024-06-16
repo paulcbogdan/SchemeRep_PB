@@ -258,7 +258,7 @@ if __name__ == '__main__':
         # imgs.append(img)
         # vecs.append(vec)
     vecs = np.array(vecs)
-    mds = MDS(n_components=2, random_state=1)
+    mds = MDS(n_components=2, random_state=1, metric=False)
     coords = mds.fit_transform(vecs)
     print(f'{coords.shape=}')
     idxs = list(range(coords.shape[0]))

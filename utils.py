@@ -9,7 +9,7 @@ from scipy import stats as stats
 from datetime import datetime
 from pickle import UnpicklingError
 import pandas as pd
-from nilearn import image
+# from nilearn import image
 import inspect
 import functools
 from functools import cache

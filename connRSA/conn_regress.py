@@ -574,7 +574,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                       voxel_small_M=None, voxel_small_all=None,
                       voxel_large=None, avg_large=None,
 
-                      plot_two=False):
+                      plot_two=True):
     print(f'{RSA=} ({kwargs["semantic"]}) | {ISPC=}')
 
     kwargs_ = kwargs.copy()
@@ -679,23 +679,49 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
 
     if plot:
         plt.rcParams.update({'font.size': 20})
-        fig = plt.figure(figsize=(5.6, 5))
-        fig.subplots_adjust(bottom=0.18, left=0.21, right=0.85, top=0.85)
+
         if plot_two:
+            fig = plt.figure(figsize=(4.2, 5))
+            fig.subplots_adjust(bottom=0.18, left=0.24, right=0.85, top=0.85)
             bar_names = ['Small\nvoxel', 'Large\naverage', ]
             colors = ['dodgerblue', 'crimson',]
+            # plt.bar(bar_names,
+            #         [t_ROIs_dif, t_avg_dif],
+            #         bottom=[t_ROIs_all, t_avg_all],
+            #         label='2', color='darkgray',
+            #         linewidth=1., edgecolor='k')
+            # plt.bar(bar_names,
+            #         [t_ROIs_all, t_avg_all],
+            #         bottom=[0, 0], label='1',
+            #         color=colors,
+            #         linewidth=1., edgecolor='k')
+            # max_height = max(t_ROIs, t_avg, t_ROIs_all, t_avg_all, 4.)
+
+            # bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
+            # colors = ['dodgerblue', 'orange', 'crimson', ]
+            colors_strict = ['dodgerblue', 'darkred']
             plt.bar(bar_names,
                     [t_ROIs_dif, t_avg_dif],
                     bottom=[t_ROIs_all, t_avg_all],
                     label='2', color='darkgray',
                     linewidth=1., edgecolor='k')
+
             plt.bar(bar_names,
-                    [t_ROIs_all, t_avg_all],
-                    bottom=[0, 0], label='1',
+                    [t_ROIs_all, t_avg_dif2],
+                    bottom=[0, t_avg_strict], label='1',
                     color=colors,
                     linewidth=1., edgecolor='k')
-            max_height = max(t_ROIs, t_avg, t_ROIs_all, t_avg_all, 4.)
+
+            plt.bar(bar_names,
+                    [0, t_avg_strict],
+                    bottom=[0, 0], label='1',
+                    color=colors_strict,
+                    linewidth=1., edgecolor='k')
+            max_height = max(t_ROIs, t_avg, t_avg_all, 4.)
+
         elif True:
+            fig = plt.figure(figsize=(5.6, 5))
+            fig.subplots_adjust(bottom=0.18, left=0.21, right=0.85, top=0.85)
             bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
             colors = ['dodgerblue', 'orange', 'crimson', ]
             colors_strict = ['dodgerblue', 'chocolate', 'darkred']
@@ -731,6 +757,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             max_height = max(t_ROIs, t_avg, t_large, t_ROIs_all, t_avg_all,
                              t_large_all, 4.)
         else:
+            fig = plt.figure(figsize=(5.6, 5))
+            fig.subplots_adjust(bottom=0.18, left=0.21, right=0.85, top=0.85)
             bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
             colors = ['dodgerblue', 'orange', 'crimson',]
 
@@ -750,8 +778,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         plt.xticks(bar_names, fontsize=22)
         plt.ylabel('t-value', fontsize=26, labelpad=10)
 
-        print(f'{title=}')
         fn = f'{kwargs_["ROI_focus"]}_{fn}'
+        if plot_two: fn = fn.replace('.png', '_two.png')
 
         plt.gca().spines[['top', 'right']].set_visible(False)
 
@@ -850,12 +878,12 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
-    easy_override = True
+    easy_override = False
     ctrl_strict = False
 
     ISPC = False
     RSA = True
-    semantic = False
+    semantic = True
     ERS_alt = False
     trial_similarity = 'corr' # euc
     second_order = 'spear'
@@ -863,12 +891,12 @@ def do_regr():
     four_tasks = '7'
     stdize_by_run = True if trial_similarity == 'euc' else False
 
-    target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'subcort']
-    target_ROIs = ['Dorsal', 'pSTS', 'Parietal']
+    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'subcort']
+    # target_ROIs = ['Dorsal', 'pSTS', 'Parietal']
     # target_ROIs = ['Parietal']
     # , 'IT', 'Ventral']
 
-    # target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC', 'subcort']
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC', 'subcort']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:

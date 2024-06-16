@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 from time import time
 
-from nilearn import image
+# from nilearn import image
 
 from utils import pickle_wrap
 from scipy import io

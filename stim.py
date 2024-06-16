@@ -6,12 +6,12 @@ import pandas as pd
 from PIL import Image
 from utils import pickle_wrap
 from sklearn import decomposition
-# try:
-#     from torchvision import models as models, transforms as transforms
-#     import torch
-# except OSError:
-#     # Can't get this to work on my py3.11
-#     pass
+try:
+    from torchvision import models as models, transforms as transforms
+    import torch
+except OSError:
+    # Can't get this to work on my py3.11
+    pass
 
 import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
