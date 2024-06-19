@@ -782,6 +782,8 @@ def include_BL(df_sn, sn):
             obj2trial[obj] = trial + 38 * (run - 1)
             do_BL_move(bl_root, run, trial)
 
+            print(f'BL: {obj}')
+
             glob_BL7 = fr'{bl_root}/BL_rerun7/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL7 = glob(glob_BL7)
             if len(glob_BL7):
@@ -846,9 +848,9 @@ if __name__ == '__main__':
     # print(df_sn)
     pd.set_option('display.width', None)
     pd.set_option('display.max_rows', None)
-    df_sn = get_trial_info_('131')
-    df_sn.sort_values(by='vis_trial', inplace=True)
-    print(df_sn[['vis7_fMRI', 'vis_trial']])
+    df_sn = get_trial_info_('115')
+    df_sn.sort_values(by='obj_trial', inplace=True)
+    print(df_sn[['obj_trial', 'bl_trial', 'obj']])
 
     # df_sn = get_trial_info_('132')
     # df_sn.sort_values(by='obj_trial', inplace=True)

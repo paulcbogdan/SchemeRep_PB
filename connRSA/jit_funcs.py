@@ -42,7 +42,8 @@ def evaluate_models_searchlight_spear(fMRI_RDMs, stim_RDM):
     num_centers = fMRI_RDMs.shape[0]
     rs = np.empty(num_centers)
     for i in range(num_centers):
-        r = np.corrcoef(np.argsort(fMRI_RDMs[i]), stim_RDM)[0, 1]
+        r = np.corrcoef(np.argsort(np.argsort(fMRI_RDMs[i])),
+                        stim_RDM)[0, 1]
         rs[i] = r
     return rs
 
@@ -70,12 +71,21 @@ def jit_searchlight_RDMs(data_2d, neighbors):
             sphere_data[j] = data_2d[j, neighbors_i]
 
         sphere_RDM = np.corrcoef(sphere_data)
+        # plt.imshow(sphere_RDM)
+        # plt.colorbar()
+        # plt.show()
+        # quit()
         RDM_flat = np.empty(RDM_size)
         cnt = 0
-        for j in range(RDM_size):
-            for k in range(j+1, num_trials):
+        for j in range(114):
+            for k in range(j):
                 RDM_flat[cnt] = sphere_RDM[j, k]
                 cnt += 1
+        # print(f'{RDM_size=}')
+        # print(f'{cnt=}')
+        # plt.hist(RDM_flat, bins=100)
+        # plt.show()
+        # quit()
         out[i] = RDM_flat
     return out
 
