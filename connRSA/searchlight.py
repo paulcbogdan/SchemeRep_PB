@@ -21,6 +21,8 @@ import scipy.stats as stats
 
 config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba'
 
+NAN_VAL = 10001
+
 def np_searchlight(img, nan_mask, radius, RSM, skip_step=1):
     X_len = img.shape[0]
     Y_len = img.shape[1]
@@ -50,18 +52,13 @@ def np_searchlight(img, nan_mask, radius, RSM, skip_step=1):
     return out
 
 
-# sig = nb.types.Array(nb.float64, 3, 'C')(nb.float64[:, :, :, :],
-#                                          nb.boolean[:, :, :], nb.int64,
-#                                          nb.float64[:, :], nb.int64)
-
 sig = nb.float64[:, :, :](nb.float64[:, :, :, :], nb.boolean[:, :, :], nb.int64,
                           nb.float64[:, :], nb.int32[:, :], nb.int64, nb.int64)
 
-# @njit(sig, parallel=True, fastmath=True, nopython=True, cache=True)
+# @njit(sig, parallel=True, fastmath=True, nopython=True)#, cache=True)
 def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
                     skip_step=1, downsample=1,):
-    # print(len(tril_mask[0]))
-    # quit()
+
     X_len = img.shape[0]
     Y_len = img.shape[1]
     Z_len = img.shape[2]
@@ -80,10 +77,11 @@ def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
 
     # downsample = 2
 
+    # TODO: change to a sphere. Just predefine the sphere
+
     x_vals = np.array([x for x in range(radius, X_len-radius, skip_step)])
     x_vals_len = x_vals.shape[0]
     for x in prange(radius, X_len-radius):
-    # for x in range(60, 65):
         for y in range(radius, Y_len-radius, skip_step):
             for z in range(radius, Z_len-radius, skip_step):
                 if nan_mask[x, y, z]:
@@ -92,7 +90,6 @@ def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
                 square_flat = np.full((114, size), np.nan)
                 cnt = 0
 
-                # TODO: change to a sphere. Just predefine the sphere
 
                 if downsample == 1:
                     for di in range(-radius, radius+1):
@@ -105,29 +102,25 @@ def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
                         for dj in range(-radius, radius+1, downsample):
                             for dk in range(-radius, radius+1, downsample):
                                 for n in range(114):
-                                    val = img[x+di:x+di+downsample,
-                                              y+dj:y+dj+downsample,
-                                              z+dk:z+dk+downsample, n]
-                                    # print(val)
-                                    val = val[val != 10001]
-                                    if len(val) == 0:
-                                        square_flat[n, cnt] = 10001
+                                    vec = np.zeros(downsample ** 3)
+                                    cnt2 = 0
+                                    for dii in range(x+di, x+di+downsample):
+                                        for djj in range(y+dj, y+dj+downsample):
+                                            for dkk in range(z+dk, z+dk+downsample):
+                                                if not nan_mask[dii, djj, dkk]:
+                                                    vec[cnt2] = img[dii, djj, dkk, n]
+                                                    cnt2 += 1
+                                    if cnt2 == downsample ** 3:
+                                        square_flat[n, cnt] = np.sum(vec) / cnt2
                                     else:
-                                        square_flat[n, cnt] = np.mean(val)
-
-                                    # square_flat[n, cnt] \
-                                    #     = np.mean(img[x+di:x+di+downsample,
-                                    #                   y+dj:y+dj+downsample,
-                                    #                   z+dk:z+dk+downsample, n])
+                                        square_flat[n, cnt] = NAN_VAL
 
                                 cnt += 1
-
-                # print(square_flat)
 
                 # TODO: I could memoize this??
                 nans_flat = np.full(size, False)
                 for i in range(size): # NaNs dont work or something??
-                    nans_flat[i] = np.any(square_flat[:, i] == 10001)
+                    nans_flat[i] = np.any(square_flat[:, i] == NAN_VAL)
                 square_flat = square_flat[:, ~nans_flat] # split spheres are fine
                 # print(square_flat)
                 fMRI_RSM = np.corrcoef(square_flat)
@@ -135,31 +128,38 @@ def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
                 for cnt in range(4332):
                     fMRI_flat[cnt] = fMRI_RSM[tril_mask[0][cnt],
                                               tril_mask[1][cnt]]
-                # plt.scatter(stim_flat, fMRI_flat)
-                # plt.show()
-                # print(fMRI_flat)
-                # quit()
 
                 out[x, y, z] = np.corrcoef(stim_flat, fMRI_flat)[0, 1]
+                # plt.scatter(stim_flat, fMRI_flat)
+                # plt.show()
+                # quit()
                 num_do += 1
 
     return out
 
-def do_downsample(img, downsample, method='linear'):
+def do_downsample(img, downsample, method='linear', target_shape=None):
     x = np.linspace(0, img.shape[0] - 1, img.shape[0], endpoint=True)
     y = np.linspace(0, img.shape[1] - 1, img.shape[1], endpoint=True)
     z = np.linspace(0, img.shape[2] - 1, img.shape[2], endpoint=True)
     interp = RegularGridInterpolator((x, y, z), img, method=method)
 
-    x_new = np.linspace(0, img.shape[0] - 1, int(img.shape[0] / downsample),
-                        endpoint=True)
-    y_new = np.linspace(0, img.shape[1] - 1, int(img.shape[1] / downsample),
-                        endpoint=True)
-    z_new = np.linspace(0, img.shape[2] - 1, int(img.shape[2] / downsample),
-                        endpoint=True)
+    if target_shape is not None:
+        x_new = np.linspace(0, img.shape[0] - 1, target_shape[0], endpoint=True)
+        y_new = np.linspace(0, img.shape[1] - 1, target_shape[1], endpoint=True)
+        z_new = np.linspace(0, img.shape[2] - 1, target_shape[2], endpoint=True)
+    else:
+        x_new = np.linspace(0, img.shape[0] - 1, int(img.shape[0] / downsample),
+                            endpoint=True)
+        y_new = np.linspace(0, img.shape[1] - 1, int(img.shape[1] / downsample),
+                            endpoint=True)
+        z_new = np.linspace(0, img.shape[2] - 1, int(img.shape[2] / downsample),
+                            endpoint=True)
     x_new, y_new, z_new = np.meshgrid(x_new, y_new, z_new, indexing='ij')
     img = interp((x_new, y_new, z_new))
     return img
+
+
+
 
 def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
                             downsample=1, resample=2):
@@ -170,14 +170,12 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
     # print(img.shape)
     # quit()
 
-    img[np.isnan(img)] = 10001
+    img[np.isnan(img)] = NAN_VAL
 
-    # nans = np.all(np.isnan(img), axis=3)
-    nans = np.all(img == 10001, axis=3)
+    nans = np.all(img == NAN_VAL, axis=3)
     d_vecs = prep_vecs(True, semantic)
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist='corr')
-    # print(RSM_stim)
-    # quit()
+
 
     tril_mask = make_tril_mask_within_nan()
 
@@ -191,8 +189,8 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
     return searched, nans
 
 @cache
-def make_tril_mask_within_nan():
-    RSM = np.ones((114, 114))
+def make_tril_mask_within_nan(RSM_pre):
+    RSM = np.ones((RSM_pre.shape[0], RSM_pre.shape[0]))
     RSM = within_run_to_nan(RSM)
     tril_mask = np.tril_indices_from(RSM, k=-1)
     tril_mask_ = ([], [])
@@ -228,13 +226,13 @@ def test_interpolate(array):
                                method='nearest')
     return GD1
 
-def test_searchlight(semantic=True, radius=4, skip_step=4, downsample=2):
+def test_searchlight(semantic=True, radius=3, skip_step=1, downsample=1):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     fps = prep_fps('7')
     searched_all = []
     # sns = sns[2:]
-    sns = sns[:10]
+    sns = sns[:30]
     t_last_plot = 0
     for sn in sns:
         sn_l = []
@@ -244,14 +242,14 @@ def test_searchlight(semantic=True, radius=4, skip_step=4, downsample=2):
             fp_save = (f'{dir_save}/{sn}_{fp_fMRI_col}_{radius}_{semantic}_'
                        f'{skip_step}_{downsample}.pkl')
 
-            t_st = time()
+            # t_st = time()
 
             kw = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
                   'radius': radius, 'skip_step': skip_step,
                   'downsample': downsample}
             searched, nan_mask = utils.pickle_wrap(
                 lambda: wrapped_jit_searchlight(**kw), fp_save,
-                verbose=-1, easy_override=True)
+                verbose=-1, easy_override=False)
 
             for i in range(searched.shape[0]):
                 searched[i] = test_interpolate(searched[i])
@@ -259,17 +257,12 @@ def test_searchlight(semantic=True, radius=4, skip_step=4, downsample=2):
 
             t_end = time()
             if t_end - t_last_plot > 10:
-                # searched = np.apply_along_axis(pad, 2, searched)
 
-                # searched[mask == 10001] = np.nan
-                # searched = test_interpolate(searched)
-
-                vabs = np.nanmax(np.abs(searched[40, :, :]))
-                plt.imshow(searched[40, :, :], vmin=-vabs, vmax=vabs,
+                vabs = np.nanmax(np.abs(searched[30, :, :]))
+                plt.imshow(searched[30, :, :], vmin=-vabs, vmax=vabs,
                            cmap='cold_hot')
                 plt.colorbar()
                 plt.show()
-                # quit()
                 t_last_plot = t_end
 
             t_needed = t_end - t_st
@@ -300,17 +293,18 @@ def test_searchlight(semantic=True, radius=4, skip_step=4, downsample=2):
     # t_img = image.threshold_img(t_img, threshold=0.01, cluster_threshold=20)
     # plotting.plot_stat_map(t_img, threshold=0.01, vmin=-6, vmax=6)
     plotting.plot_stat_map(t_img,
-                           display_mode="x",
-                           vmin=-6, vmax=6, threshold=0
+                           display_mode="y",
+                           vmin=-6, vmax=6, threshold=2
                            # cmap='turbo'
                            )#, threshold=0.01, vmin=-6, vmax=6)
 
     plt.show()
 
 # from numba import njit, prange, set_num_threads
-set_num_threads(2)
 
 if __name__ == '__main__':
+    set_num_threads(2)
+
     test_searchlight()
 
 
