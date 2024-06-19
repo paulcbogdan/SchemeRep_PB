@@ -71,21 +71,12 @@ def jit_searchlight_RDMs(data_2d, neighbors):
             sphere_data[j] = data_2d[j, neighbors_i]
 
         sphere_RDM = np.corrcoef(sphere_data)
-        # plt.imshow(sphere_RDM)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
         RDM_flat = np.empty(RDM_size)
         cnt = 0
         for j in range(114):
             for k in range(j):
                 RDM_flat[cnt] = sphere_RDM[j, k]
                 cnt += 1
-        # print(f'{RDM_size=}')
-        # print(f'{cnt=}')
-        # plt.hist(RDM_flat, bins=100)
-        # plt.show()
-        # quit()
         out[i] = RDM_flat
     return out
 
@@ -144,7 +135,6 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     good_neighbors = np.full((centers.shape[0], max_cnt), -1, dtype=np.int32)
     good_centers = np.full(centers.shape, -1, dtype=np.int32)
     thresh_int = int(threshold * max_cnt)
-
 
     cnt_good_center = 0
     for cnt_center, center in enumerate(centers):

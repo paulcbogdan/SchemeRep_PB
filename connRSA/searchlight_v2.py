@@ -225,7 +225,7 @@ def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
     fps = ['obj7_fMRI']
     searched_all = []
     # sns = sns[2:]
-    sns = sns[:30]
+    sns = sns[:20]
     t_last_plot = 0
     for sn in sns:
         sn_l = []
@@ -240,7 +240,7 @@ def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
                   'downsample': downsample, 'second_level': second_level}
             searched, nan_mask = utils.pickle_wrap(
                 lambda: wrapped_jit_searchlight(**kw), fp_save,
-                verbose=-1, easy_override=True)
+                verbose=-1, easy_override=False)
 
             max_val = np.nanmax(searched)
             min_val = np.nanmin(searched)
@@ -272,22 +272,31 @@ def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
     # t = np.array(t)
     # M = np.nanmean(searched_all, axis=0)
     M = np.nanmedian(searched_all, axis=0)
+    M_M = np.nanmean(M)
+    print(f'{M_M=:.6f}')
 
     SD = np.nanstd(searched_all, axis=0)
-    N = np.sum(~np.isnan(searched_all), axis=0)
+    N = np.nansum(~np.isnan(searched_all), axis=0)
     SE = SD / np.sqrt(N)
     t = M / SE
+    biggest_N = np.nanmax(N)
+    t[N < int(biggest_N * 0.8)] = np.nan
     t_M = np.nanmean(t)
+
+    # plt.imshow(t[30, :, :])#, vmin=-0.05, vmax=0.05, cmap='cold_hot')
+    # plt.colorbar()
+    # plt.show()
+    # quit()
     print(f'{t_M=:.3f}')
     # print(t.shape)
     atlas = get_atlas()
     # print(atlas['maps'].shape)
-    t_img = image.new_img_like(atlas['maps'], M)
+    t_img = image.new_img_like(atlas['maps'], t)
     # M_img = image.new_img_like(atlas['maps'], M)
     # t_img = image.threshold_img(t_img, threshold=0.01, cluster_threshold=20)
     # plotting.plot_stat_map(t_img, threshold=0.01, vmin=-6, vmax=6)
     plotting.plot_stat_map(t_img,
-                           display_mode="y",
+                           display_mode="x",
                            vmin=-6, vmax=6, threshold=2
                            # cmap='turbo'
                            )#, threshold=0.01, vmin=-6, vmax=6)
