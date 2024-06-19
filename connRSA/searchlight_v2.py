@@ -97,9 +97,9 @@ def do_int_upsample(img, upsample, mask):
                 img_bigger[x, y, z] = img[x_orig, y_orig, z_orig]
     return img_bigger
 
-def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
-                            downsample=1, resample=2, second_level='spear',
-                            drop_prop=1):
+def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
+                            downsample=1, resample=1, second_level='spear',
+                            flip=False):
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
 
@@ -108,16 +108,27 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
 
     if downsample != 1:
         img = do_int_downsample(img, downsample, mask_pre)
+    else:
+        img[np.isnan(img)] = NAN_VAL
 
+    mask_downsample_pre = np.all(img != NAN_VAL, axis=-1)
     img = np.transpose(img, (3, 0, 1, 2))
     print(f'{img.shape=}')
 
     mask = np.all(img != NAN_VAL, axis=0) & np.all(~np.isnan(img), axis=0)
-    print(f'{mask.shape=}')
     t_st = time()
     centers, neighbors = jit_volume_searchlight(mask, radius=radius,
                                                 threshold=0.25)
 
+    if resample > 1:
+        idxs = np.arange(0, len(centers))
+        idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
+        centers = centers[idxs, :]
+        neighbors = neighbors[idxs, :]
+
+    if len(neighbors) == 0:
+        return None, None
+    assert np.max(neighbors) < 1e7
     t_end = time()
     print(f'Time needed to get neighbors: {t_end - t_st=:.2f}')
 
@@ -131,13 +142,27 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
     t_st = time()
     d_vecs = prep_vecs(True, semantic)
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist='corr')
-    tril_mask, kept_in = make_tril_mask_within_nan()
+    if not flip: RSM_stim = within_run_to_nan(RSM_stim)
+    tril_mask, kept_in = make_tril_mask_within_nan(flip=flip) # TODO: ???
     RSM_stim_flat = RSM_stim[*tril_mask]
+    num_nans = np.sum(np.isnan(RSM_stim_flat))
+    assert num_nans == 0, f'RSM stim flat still has nans{num_nans=}'
     fMRI_RDMs = fMRI_RDMs[:, kept_in]
 
     if second_level == 'spear':
+        # for i in range(0, 10000, 1000):
+        #     plt.scatter(fMRI_RDMs[i], RSM_stim_flat)
+        #     plt.show()
+        # quit()
+
         eval_results = evaluate_models_searchlight_spear(fMRI_RDMs,
                                                          RSM_stim_flat)
+        # plt.hist(eval_results, bins=100)
+        # M = np.mean(eval_results)
+        # median = np.median(eval_results)
+        # plt.title(f'{M=}, {median=}')
+        # plt.show()
+        # quit()
         # fMRI_RDMs = stats.rankdata(fMRI_RDMs, axis=1)
         # eval_results = evaluate_models_searchlight(fMRI_RDMs, RSM_stim_flat)
     else:
@@ -151,8 +176,12 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
     t_taken = t_end - t_st
     print(f'Time needed to evaluate_models ({second_level}): {t_taken=:.3f} s')
 
-
+    print(f'{mask_downsample_pre.shape=}')
     searched = convert_back_to_img(eval_results, mask, centers)
+    print(f'{searched.shape=}')
+    if resample > 1:
+        searched = interpolate_nearest_3D(searched)
+        searched[~mask_downsample_pre] = NAN_VAL
 
     if downsample != 1:
         searched = do_int_upsample(searched, downsample, mask)
@@ -162,7 +191,7 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius, skip_step,
     return searched, ~mask
 
 @cache
-def make_tril_mask_within_nan():
+def make_tril_mask_within_nan(flip=False):
     RSM = np.ones((114, 114))
     RSM = within_run_to_nan(RSM)
     tril_mask = ([], [])
@@ -170,27 +199,22 @@ def make_tril_mask_within_nan():
     kept_in = np.zeros(114*113//2, dtype=np.bool_)
     for x in range(114): # matches in jit_searchlight_RDMs
         for y in range(x):
-            if np.isnan(RSM[x, y]):
+            if flip:
+                if np.isnan(RSM[x, y]):
+                    tril_mask[0].append(x)
+                    tril_mask[1].append(y)
+                    kept_in[cnt] = True
                 cnt += 1
-                continue
-            tril_mask[0].append(x)
-            tril_mask[1].append(y)
-            kept_in[cnt] = True
-            cnt += 1
+            else:
+                if np.isnan(RSM[x, y]):
+                    cnt += 1
+                    continue
+                tril_mask[0].append(x)
+                tril_mask[1].append(y)
+                kept_in[cnt] = True
+                cnt += 1
 
     tril_mask_ = np.array(tril_mask)
-
-    # for i, (x, y) in enumerate(zip(tril_mask[0], tril_mask[1])):
-    #     if np.isnan(RSM[x, y]):
-    #         continue
-    #     tril_mask_[0].append(x)
-    #     tril_mask_[1].append(y)
-    #     kept_in[i] = True
-    # tril_mask_ = np.array(tril_mask_)
-    # for x, y in zip(*tril_mask_):
-    #     # if np.isnan(RSM[x, y]):
-    #     print(f'{x=}, {y=}')
-    # quit()
     return tril_mask_, kept_in
 
 def pad(data):
@@ -217,30 +241,36 @@ def interpolate_missing(array):
                                method='nearest')
     return GD1
 
-def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
-                     second_level='corr'):
+def test_searchlight(semantic=True, radius=8, downsample=4,
+                     second_level='corr', resample=10, flip=False):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     fps = prep_fps('7')
-    fps = ['obj7_fMRI']
+    # fps = ['obj7_fMRI']
     searched_all = []
-    # sns = sns[2:]
-    sns = sns[:20]
+    sns = sns[:30]
     t_last_plot = 0
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
-            dir_save = f'cache/searchlight_v2'
-            Path(dir_save).mkdir(parents=True, exist_ok=True)
-            fp_save = (f'{dir_save}/{sn}_{fp_fMRI_col}_{radius}_{semantic}_'
-                       f'{skip_step}_{downsample}.pkl')
+            # dir_save = f'cache/searchlight_v2'
+            # Path(dir_save).mkdir(parents=True, exist_ok=True)
+            # fp_save = (f'{dir_save}/{sn}_{fp_fMRI_col}_{radius}_{semantic}_'
+            #            f'{skip_step}_{downsample}.pkl')
             t_st = time()
             kw = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
-                  'radius': radius, 'skip_step': skip_step,
-                  'downsample': downsample, 'second_level': second_level}
-            searched, nan_mask = utils.pickle_wrap(
-                lambda: wrapped_jit_searchlight(**kw), fp_save,
-                verbose=-1, easy_override=False)
+                  'radius': radius, #'skip_step': skip_step,
+                  'downsample': downsample, 'second_level': second_level,
+                  'resample': resample, 'flip': flip}
+            # searched, nan_mask = utils.pickle_wrap(
+            #     lambda: wrapped_jit_searchlight(**kw), fp_save,
+            #     verbose=-1, easy_override=True)
+
+            searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
+                                                   kwargs=kw, verbose=-1,
+                                                   easy_override=False)
+
+            if searched is None: continue
 
             max_val = np.nanmax(searched)
             min_val = np.nanmin(searched)
@@ -248,20 +278,18 @@ def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
             subj_M = np.nanmean(searched)
             print(f'{sn}: {subj_M=:.3f}')
             t_end = time()
-            if t_end - t_last_plot > 10:
-
-                # vabs = np.nanmax(np.abs(searched[30, :, :]))
-                vabs = 0.05
-                plt.imshow(searched[30, :, :], vmin=-vabs, vmax=vabs,
-                           cmap='cold_hot')
-                plt.colorbar()
-                plt.show()
-                t_last_plot = t_end
+            # if t_end - t_last_plot > 60:
+            #     vabs = 0.05
+            #     plt.imshow(searched[30, :, :], vmin=-vabs, vmax=vabs,
+            #                cmap='cold_hot')
+            #     plt.colorbar()
+            #     plt.show()
+            #     t_last_plot = t_end
 
             t_needed = t_end - t_st
             print(f'{t_needed=:.2f}, {searched.shape} | {kw=}')
             sn_l.append(searched)
-            break
+            # break
         searched = np.nanmean(sn_l, axis=0)
         searched_all.append(searched)
 
@@ -297,15 +325,48 @@ def test_searchlight(semantic=True, radius=4, skip_step=1, downsample=1,
     # plotting.plot_stat_map(t_img, threshold=0.01, vmin=-6, vmax=6)
     plotting.plot_stat_map(t_img,
                            display_mode="x",
-                           vmin=-6, vmax=6, threshold=2
+                           # vmin=-10, vmax=10, threshold=.01
                            # cmap='turbo'
                            )#, threshold=0.01, vmin=-6, vmax=6)
-
+    plt.title(f'{flip=}, {downsample=}, {radius=}')
     plt.show()
 
-# from numba import njit, prange, set_num_threads
-# set_num_threads(2)
+def interpolate_nearest_3D(ar):
+    from scipy import interpolate
+    # val = ar.ravel()
+    x = np.arange(0, ar.shape[1])
+    y = np.arange(0, ar.shape[0])
+    z = np.arange(0, ar.shape[2])
+    X, Y, Z = np.meshgrid(x, y, z)
+
+    x_pre, y_pre, z_pre = [], [], []
+    vals = []
+    for i in range(0, ar.shape[0]):
+        for j in range(0, ar.shape[1]):
+            for k in range(0, ar.shape[2]):
+                if not np.isnan(ar[i, j, k]) and ar[i, j, k] != NAN_VAL:
+                    x_pre.append(j)
+                    y_pre.append(i)
+                    z_pre.append(k)
+                    vals.append(ar[i, j, k])
+
+    interp = interpolate.NearestNDInterpolator((x_pre, y_pre, z_pre), vals)
+
+    val_interp = interp(X, Y, Z)
+    return val_interp
+
+from numba import njit, prange, set_num_threads
+set_num_threads(2)
 t_end = time()
+
+# test = np.full((9, 10, 11), np.nan)
+# test[3, 4, 8] = 1
+# test[3, 5, 8] = 2
+# a = interpolate_nearest_3D(test)
+# print(a.shape)
+# print(a)
+# quit()
+
 print(f'Startup time: {t_end - t_st:.2f}')
 if __name__ == '__main__':
     test_searchlight()

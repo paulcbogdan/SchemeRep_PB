@@ -226,6 +226,8 @@ def test_interpolate(array):
                                method='nearest')
     return GD1
 
+
+
 def test_searchlight(semantic=True, radius=3, skip_step=1, downsample=1):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
