@@ -35,8 +35,7 @@ def evaluate_models_searchlight(fMRI_RDMs, stim_RDM):
         r = np.corrcoef(fMRI_RDMs[i], stim_RDM)[0, 1]
         rs[i] = r
     return rs
-# 
-# sig = nb.float64[:](nb.float64[:, :], nb.float64[:])
+
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def evaluate_models_searchlight_spear(fMRI_RDMs, stim_RDM):
     stim_RDM = np.argsort(stim_RDM)
@@ -48,9 +47,32 @@ def evaluate_models_searchlight_spear(fMRI_RDMs, stim_RDM):
         rs[i] = r
     return rs
 
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def evaluate_regresslight(fMRI_RDMs1, fMRI_RDMs2, stim_RDM):
+    num_centers = fMRI_RDMs1.shape[0]
+    ones = np.ones(fMRI_RDMs1.shape[1])
+    betas = np.empty((num_centers, 3))
+    for i in range(num_centers):
+        X = np.vstack((ones, fMRI_RDMs1[i], fMRI_RDMs2[i])).T
+        solution, residuals, rank, s = np.linalg.lstsq(X, stim_RDM)
+        betas[i, :] = solution
+    return betas
 
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def evaluate_regresslight_std(fMRI_RDMs1, fMRI_RDMs2, stim_RDM):
+    stim_RDM_ = (stim_RDM - np.mean(stim_RDM)) / np.std(stim_RDM)
+    num_centers = fMRI_RDMs1.shape[0]
+    ones = np.ones(fMRI_RDMs1.shape[1])
+    betas = np.empty((num_centers, 3))
+    for i in range(num_centers):
+        X = np.vstack((ones,
+                       (fMRI_RDMs1[i] - np.mean(fMRI_RDMs1[i])) / np.std(fMRI_RDMs1[i]),
+                       (fMRI_RDMs2[i] - np.mean(fMRI_RDMs2[i])) / np.std(fMRI_RDMs2[i])
+                       )).T
+        solution, residuals, rank, s = np.linalg.lstsq(X, stim_RDM_)
+        betas[i, :] = solution
+    return betas
 
-# sig = nb.float64[:, :](nb.float64[:, :], nb.int32[:, :])
 @njit(parallel=True, fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_searchlight_RDMs(data_2d, neighbors):
     num_trials = data_2d.shape[0]
@@ -89,6 +111,20 @@ def jit_searchlight_RDMs(data_2d, neighbors):
         out[i] = RDM_flat
     return out
 
+# def jit_volume_searchlight_premade_centers(mask, good_centers,
+#                                            radius=2, threshold=0.5):
+#     radius_sq = radius * radius
+#     rel_points = np.full(((radius * 2) ** 3, 3), NAN_VAL, dtype=np.int32)
+#     cnt = 0
+#     for x in range(-radius, radius+1):
+#         for y in range(-radius, radius+1):
+#             for z in range(-radius, radius+1):
+#                 if x*x + y*y + z*z <= radius_sq:
+#                     rel_points[cnt, :] = [x, y, z]
+#                     cnt += 1
+#     rel_points = rel_points[:cnt]
+#     max_cnt = rel_points.shape[0]
+
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     X_len = mask.shape[0]
@@ -106,8 +142,7 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
                     cnt += 1
                 voxel2idx[x, y, z] = cnt_all
                 cnt_all += 1
-    # max_neighbors = np.max(voxel2idx)
-    # print(max_neighbors)
+
 
     centers = centers[:cnt]
 
@@ -118,31 +153,11 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     for x in range(-radius, radius+1):
         for y in range(-radius, radius+1):
             for z in range(-radius, radius+1):
-                # if x == 0 and y == 0 and z == 0:
-                #     continue
-                # if (x < 0 or y < 0 or z < 0 or
-                #         x >= X_len or y >= Y_len or z >= Z_len):
-                #     continue
                 if x*x + y*y + z*z <= radius_sq:
                     rel_points[cnt, :] = [x, y, z]
                     cnt += 1
     rel_points = rel_points[:cnt]
     max_cnt = rel_points.shape[0]
-
-    # if threshold == 1:
-    #     neighbors = np.full((centers.shape[0], max_cnt), -1, dtype=np.int32)
-    #     for cnt_center, center in enumerate(centers):
-    #         cnt = 0
-    #         for rel_point in rel_points:
-    #             if mask[center[0] + rel_point[0],
-    #                     center[1] + rel_point[1],
-    #                     center[2] + rel_point[2]]:
-    #                 neighbors[cnt_center, cnt] = (
-    #                     voxel2idx)[center[0] + rel_point[0],
-    #                                center[1] + rel_point[1],
-    #                                center[2] + rel_point[2]]
-    #                 cnt += 1
-    #     return centers, neighbors
 
     # Below messes up
     neighbors = np.full((centers.shape[0], max_cnt), NAN_VAL, dtype=np.int32)
@@ -170,8 +185,6 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
                     voxel2idx)[center[0] + rel_point[0],
                                center[1] + rel_point[1],
                                center[2] + rel_point[2]]
-                # if neighbors[cnt_center, cnt] > 1e7:
-                #     print(neighbors[cnt_center, cnt])
                 cnt += 1
 
         if cnt >= thresh_int:
@@ -181,3 +194,75 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     good_centers = good_centers[:cnt_good_center]
     good_neighbors = good_neighbors[:cnt_good_center, :]
     return good_centers, good_neighbors
+
+
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def do_int_downsample(img, downsample, mask):
+    img_smaller = np.zeros((img.shape[0] // downsample,
+                            img.shape[1] // downsample,
+                            img.shape[2] // downsample,
+                            img.shape[3]))
+    X_len_ = img_smaller.shape[0]
+    Y_len_ = img_smaller.shape[1]
+    Z_len_ = img_smaller.shape[2]
+    n_samples = img.shape[3]
+    size = downsample ** 3
+    for x in range(X_len_):
+        x_orig = x * downsample
+        for y in range(Y_len_):
+            y_orig = y * downsample
+            for z in range(Z_len_):
+                z_orig = z * downsample
+                for n in range(n_samples):
+                    vec = np.zeros(size)
+                    cnt2 = 0
+                    for dii in range(x_orig, x_orig + downsample):
+                        for djj in range(y_orig, y_orig + downsample):
+                            for dkk in range(z_orig, z_orig + downsample):
+                                if mask[dii, djj, dkk]:
+                                    vec[cnt2] = img[dii, djj, dkk, n]
+                                    cnt2 += 1
+                    if cnt2 == 0:
+                        img_smaller[x, y, z, n] = NAN_VAL
+                    else:
+                        img_smaller[x, y, z, n] = np.sum(vec)# / cnt2
+
+    return img_smaller
+
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def do_int_upsample(img, upsample, mask):
+    img_bigger = np.zeros((img.shape[0] * upsample,
+                           img.shape[1] * upsample,
+                           img.shape[2] * upsample,
+                           ))
+    X_len_ = img_bigger.shape[0]
+    Y_len_ = img_bigger.shape[1]
+    Z_len_ = img_bigger.shape[2]
+    for x in range(X_len_):
+        x_orig = x // upsample
+        for y in range(Y_len_):
+            y_orig = y // upsample
+            for z in range(Z_len_):
+                z_orig = z // upsample
+                img_bigger[x, y, z] = img[x_orig, y_orig, z_orig]
+    return img_bigger
+
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def get_closest_dists(centers1, centers2, mult1):
+    idx0to2 = np.full(len(centers1), NAN_VAL, dtype=np.int32)
+    for i, center1 in enumerate(centers1):
+        dists = np.empty(len(centers2))
+        center1 *= mult1
+        for j, center2 in enumerate(centers2):
+            dists[j] = np.linalg.norm(center2 - center1)
+        # dists = np.linalg.norm(centers2 - center1, axis=1)
+        idx0to2[i] = np.argmin(dists)
+    return idx0to2
+
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def convert_back_to_img(eval_results, mask, centers):
+    img = np.full(mask.shape, NAN_VAL, dtype=np.float64)
+    for i in range(centers.shape[0]):
+        center = centers[i]
+        img[center[0], center[1], center[2]] = eval_results[i]
+    return img

@@ -223,7 +223,7 @@ def get_semantic_vectors(normalize=True):
     norm_string = '_norm' if normalize else ''
     fp_vecs = rf'E:\PycharmProjects_E\SchemeRep\cache/schemerep_sem_vecs{norm_string}.pkl'
     d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs,
-                         easy_override=False)
+                         easy_override=False, verbose=-1)
     return d_vecs
 
 
