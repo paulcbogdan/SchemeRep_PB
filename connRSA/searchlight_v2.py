@@ -1,9 +1,13 @@
 from time import time
 
+from matplotlib import pyplot as plt
+
 from atlas_utils import get_atlas
+from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
     jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img
 from connRSA.searchlight_plot import plot_t
+from old.networks import prep_networks
 
 t_st = time()
 from functools import cache
@@ -28,18 +32,33 @@ NAN_VAL = 10001
 
 CACHE_NUMBA = False
 
-def get_ROIs():
-    pass
+np.random.seed(0)
+
+def get_singular_ROIs(target_ROI):
+    regions = set(prep_networks(
+        network_setting=ROI2NETWORK[target_ROI])[target_ROI])
+    atlas = get_atlas()
+    ROIs_match = []
+    for ROI in atlas['ROIs']:
+        for region in regions:
+            if region in ROI:
+                ROIs_match.append(ROI)
+                break
+    return ROIs_match
+
 
 def mask_img(img, ROIs):
     t_st = time()
     ROIs = set(ROIs)
     atlas = get_atlas()
-    img[atlas == 0] = np.nan # Needed to basically get only ROIs and no non-ROI
+    atlas_data = atlas['maps'].get_fdata()
+    img[atlas_data == 0] = np.nan # Needed to basically get only ROIs and no non-ROI
+    atlas_remove = np.zeros(atlas['maps'].shape, dtype=np.bool_)
     for ROI, ROI_num in zip(atlas['ROIs'], atlas['ROI_nums']):
         if ROI not in ROIs:
-            img[img == ROI_num] = np.nan
-    print(f'Time needed to mask ROIs: {time() - t_st=:.2f}')
+            atlas_remove[atlas_data == ROI_num] = True
+    img[atlas_remove, :] = np.nan
+    print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
     return img
 
 def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
@@ -50,7 +69,6 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
     img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
     if mask_ROIs is not None:
         img = mask_img(img, mask_ROIs)
-
     mask_pre = np.all(~np.isnan(img), axis=-1)
 
     if downsample != 1:
@@ -70,20 +88,20 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
         idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
         centers = centers[idxs, :]
         neighbors = neighbors[idxs, :]
-    print(f'Number of centers: {len(centers)}, {neighbors.shape=}')
+    print(f'\t\tNumber of centers: {len(centers)}, {neighbors.shape=}')
 
     if len(neighbors) == 0:
         return None, None
     assert np.max(neighbors) < 1e7
     t_end = time()
-    print(f'Time needed to get neighbors: {t_end - t_st=:.2f}')
+    print(f'\tTime needed to get neighbors: {t_end - t_st:.2f} s')
 
     t_st = time()
     data_2d = img.reshape([img.shape[0], -1])
     fMRI_RDMs = jit_searchlight_RDMs(data_2d, neighbors)
     t_end = time()
     t_taken = t_end - t_st
-    print(f'Time needed to get RDMs: {t_taken=:.3f} s')
+    print(f'\tTime needed to get RDMs: {t_taken:.2f} s')
 
     d_vecs = prep_vecs(True, semantic)
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist='corr')
@@ -112,11 +130,17 @@ def results2img(eval_results, second_level, mask, centers, mask_downsample_pre,
 
 def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
                             downsample=1, resample=1, second_level='spear',
-                            flip=False):
+                            flip=False, mask_ROIs=None):
 
+    # fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
+    #     full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=downsample,
+    #                   resample=resample, flip=flip, mask_ROIs=mask_ROIs))
+
+    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+           'flip': flip, 'radius': radius, 'downsample': downsample,
+           'resample': resample, 'mask_ROIs': mask_ROIs}
     fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
-        full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=downsample,
-                      resample=resample, flip=flip))
+        utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0))
 
     t_st = time()
     if second_level == 'spear':
@@ -126,8 +150,8 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
         eval_results = evaluate_models_searchlight(fMRI_RDMs, RSM_stim_flat)
     t_end = time()
     t_taken = t_end - t_st
-    print(f'Time needed to evaluate_models ({second_level}): '
-          f'{t_taken=:.3f} s\n')
+    print(f'\tTime needed to evaluate_models ({second_level}): '
+          f'{t_taken=:.2f} s\n')
     searched = results2img(eval_results, second_level, mask, centers,
                            mask_downsample_pre, resample, downsample)
 
@@ -164,28 +188,33 @@ def make_tril_mask_within_nan(flip=False):
 
 
 def test_searchlight(semantic=False, radius=2, downsample=1,
-                     second_level='corr', resample=10, flip=False):
+                     second_level='corr', resample=10, flip=False,
+                     network=None):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     fps = prep_fps('7')
     # fps = ['obj7_fMRI']
     searched_all = []
-    # sns = sns[:20]
+    # sns = sns[:10]
+
+    if network is not None:
+        mask_ROIs = get_singular_ROIs(network)
+    else:
+        mask_ROIs = None
+
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
             t_st = time()
             kw = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
-                  'radius': radius, #'skip_step': skip_step,
-                  'downsample': downsample, 'second_level': second_level,
-                  'resample': resample, 'flip': flip}
+                  'radius': radius, 'downsample': downsample,
+                  'second_level': second_level, 'resample': resample,
+                  'flip': flip, 'mask_ROIs': mask_ROIs}
+
             searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
                                                    kwargs=kw, verbose=-1,
-                                                   easy_override=True)
+                                                   easy_override=False)
             if searched is None: continue
-            max_val = np.nanmax(searched)
-            min_val = np.nanmin(searched)
-            print(f'{max_val=}, {min_val=}')
             subj_M = np.nanmean(searched)
             print(f'{sn}: {subj_M=:.3f}')
             t_end = time()
@@ -199,11 +228,12 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
             t_needed = t_end - t_st
             print(f'Total searchlight time: {t_needed=:.2f}, {searched.shape} '
                   f'| {kw=}')
-            # quit()
             sn_l.append(searched)
-        searched = np.nanmean(sn_l, axis=0)
-        searched_all.append(searched)
+            break
+        searched_all.append(sn_l)
     searched_all_ = np.array(searched_all)
+    sample_size = searched_all_.shape[:2]
+    searched_all_ = np.nanmean(searched_all_, axis=1)
     M = np.nanmedian(searched_all_, axis=0)
     SD = np.nanstd(searched_all_, axis=0)
     N = np.nansum(~np.isnan(searched_all_), axis=0)
@@ -212,7 +242,16 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
     biggest_N = np.nanmax(N)
     t[N < int(biggest_N * 0.8)] = np.nan
 
-    plot_t(t, title=f'{flip=}, {downsample=}, {radius=}')
+
+    flip_str = ' flip' if flip else ''
+    flip_str_ = '_flip' if flip else ''
+    semantic_str = 'semantic' if semantic else 'visual'
+    network_str = f'_{network}' if network is not None else ''
+    title =  (f'Corr, {semantic_str}, N={sample_size}. '
+              f'Down: {downsample}, radius: {radius} ') + flip_str
+    fn = (f'd{downsample}-r{radius}{flip_str_}_'
+          f'{semantic_str}_{sample_size}{network_str}_Reg1')
+    plot_t(t, title=title, fn=fn)
 
 
 def interpolate_nearest_3D(ar):
@@ -246,8 +285,16 @@ t_end = time()
 
 print(f'Startup time: {t_end - t_st:.2f}')
 if __name__ == '__main__':
-    for RADIUS in [3]:
-        test_searchlight(downsample=1, radius=RADIUS, flip=False,
-                         semantic=True, resample=10)
+    # test_searchlight(downsample=6, radius=2, flip=False,
+    #                  semantic=True, resample=1,
+    #                  network='OC_IT')
+
+    test_searchlight(downsample=1, radius=12, flip=False,
+                     semantic=True, resample=1,
+                     network='OC_IT')
+    # for RADIUS in [6]:
+    #     test_searchlight(downsample=1, radius=RADIUS, flip=False,
+    #                      semantic=True, resample=10,
+    #                      network='OC_IT')
 
 

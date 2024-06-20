@@ -149,6 +149,10 @@ def prep_networks(network_setting=1):
         networks = {'ITL': ['ITG', 'FuG', 'PhG', 'ATL']}
     elif network_setting == 26:
         networks = {'Parietal': ['SPL', 'IPL', 'Pcun']}
+    elif network_setting == 27:
+        networks = {'OC_IT': ['EVC', 'LOC', 'sOcG', 'ITG', 'FuG', 'PhG', 'ATL'],
+                    'OC_T': ['EVC', 'LOC', 'sOcG', 'ITG', 'FuG', 'PhG', 'ATL'
+                             'MTG', ],}
     elif network_setting == -1:
         networks = {}
 
