@@ -241,14 +241,14 @@ def interpolate_missing(array):
                                method='nearest')
     return GD1
 
-def test_searchlight(semantic=True, radius=8, downsample=4,
+def test_searchlight(semantic=False, radius=2, downsample=1,
                      second_level='corr', resample=10, flip=False):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     fps = prep_fps('7')
     # fps = ['obj7_fMRI']
     searched_all = []
-    sns = sns[:30]
+    sns = sns[:20]
     t_last_plot = 0
     for sn in sns:
         sn_l = []
@@ -319,17 +319,66 @@ def test_searchlight(semantic=True, radius=8, downsample=4,
     # print(t.shape)
     atlas = get_atlas()
     # print(atlas['maps'].shape)
+
+    x_pre_pad = atlas['maps'].shape[0] - t.shape[0]
+    y_pre_pad = atlas['maps'].shape[1] - t.shape[1]
+    y_post_pad = y_pre_pad // 2
+    y_pre_pad -= y_post_pad
+    z_pre_pad = atlas['maps'].shape[2] - t.shape[2]
+    t = np.pad(t, ((x_pre_pad, 0), (y_pre_pad, y_post_pad), (z_pre_pad, 0)))
+
+    # for dim in range(3): # pad
+    #     if t.shape[dim] < atlas['maps'].shape[dim]:
+    #         t = np.pad(t, 0)
+
+
+            # t = np.pad(t, ((0, atlas['maps'].shape[dim] - t.shape[dim]),
+            #                (0, 0), (0, 0)))
+
+
     t_img = image.new_img_like(atlas['maps'], t)
+    # t = t_img.get_fdata()
     # M_img = image.new_img_like(atlas['maps'], M)
     # t_img = image.threshold_img(t_img, threshold=0.01, cluster_threshold=20)
     # plotting.plot_stat_map(t_img, threshold=0.01, vmin=-6, vmax=6)
-    plotting.plot_stat_map(t_img,
-                           display_mode="x",
-                           # vmin=-10, vmax=10, threshold=.01
-                           # cmap='turbo'
-                           )#, threshold=0.01, vmin=-6, vmax=6)
+
+    ROIs = atlas['ROIs']
+    ROI_nums = atlas['ROI_nums']
+    ROI_regions = atlas['ROI_regions']
+    ROI2vecs = {}
+    # region2vecs = defaultdict(list)
+    l_Ms = []
+    for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
+        atlas_roi = atlas['maps'].get_fdata() == ROI_num
+
+        t_roi = t[atlas_roi]
+        M_r_M = np.nanmean(t_roi)
+        l_Ms.append(M_r_M)
+    plt.plot(l_Ms)
+    plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
+               fontsize=10)
+    plt.plot([0, len(atlas['ROIs'])], [0, 0], 'k--')
+    plt.show()
+
+    tile = np.nanquantile(t, 0.999)
+    print(f'{tile=}')
+
+    # plotting.plot_stat_map(t_img, display_mode="x",
+    #                        vmin=-tile, vmax=tile,
+    #                        # vmin=-10, vmax=10, threshold=.01
+    #                        )
+
+    t_img = image.threshold_img(t_img, threshold=2,
+                                cluster_threshold=40)
+
+    plotting.plot_glass_brain(t_img, display_mode="x",
+                              vmin=-tile, vmax=tile, colorbar=True,
+                              cmap='cold_hot',)
+
     plt.title(f'{flip=}, {downsample=}, {radius=}')
     plt.show()
+    quit()
+
 
 def interpolate_nearest_3D(ar):
     from scipy import interpolate
@@ -359,16 +408,10 @@ from numba import njit, prange, set_num_threads
 set_num_threads(2)
 t_end = time()
 
-# test = np.full((9, 10, 11), np.nan)
-# test[3, 4, 8] = 1
-# test[3, 5, 8] = 2
-# a = interpolate_nearest_3D(test)
-# print(a.shape)
-# print(a)
-# quit()
 
 print(f'Startup time: {t_end - t_st:.2f}')
 if __name__ == '__main__':
-    test_searchlight()
+    for RADIUS in [8, 12]:
+        test_searchlight(downsample=2, radius=RADIUS, flip=False)
 
 
