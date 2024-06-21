@@ -25,10 +25,14 @@ from stim import get_stim_RDM
 from nilearn import plotting, image
 import scipy.stats as stats
 
-def plot_t(t, title, vabs=None, fn=''):
+def plot_t(t, title, vabs=None, fn='', only_positive=True):
     t_M = np.nanmean(t)
 
     print(f'{t_M=:.3f}')
+    t_min = np.nanmin(t)
+    print(f'\t{t_min=:.2f}')
+    t_max = np.nanmax(t)
+    print(f'\t{t_max=:.2f}')
 
     atlas = get_atlas()
 
@@ -39,7 +43,10 @@ def plot_t(t, title, vabs=None, fn=''):
     z_pre_pad = atlas['maps'].shape[2] - t.shape[2]
     t = np.pad(t, ((x_pre_pad, 0), (y_pre_pad, y_post_pad), (z_pre_pad, 0)))
 
+    if only_positive:
+        t = np.maximum(t, 0)
     t_img = image.new_img_like(atlas['maps'], t)
+
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
@@ -50,31 +57,25 @@ def plot_t(t, title, vabs=None, fn=''):
         t_roi = t[atlas_roi]
         M_r_M = np.nanmean(t_roi)
         l_Ms.append(M_r_M)
-    # plt.plot(l_Ms)
-    # plt.xticks(atlas['ticks'], atlas['tick_labels'], rotation=45,
-    #            fontsize=10)
-    # plt.plot([0, len(atlas['ROIs'])], [0, 0], 'k--')
-    # plt.show()
 
-
-    # plotting.plot_stat_map(t_img, display_mode="x",
-    #                        vmin=-tile, vmax=tile,
-    #                        # vmin=-10, vmax=10, threshold=.01
-    #                        )
 
     # t_img = image.threshold_img(t_img, threshold=3,
     #                             cluster_threshold=40)
     if vabs is None:
-        vabs = np.nanquantile(np.abs(t), 0.99)
+        vabs = np.nanquantile(np.abs(t), 0.995)
+
 
     fp_out = fr'E:\PycharmProjects_E\SchemeRep\result_pics\searchlight\{fn}.png'
-
-    # 'cold_hot'
-    plotting.plot_glass_brain(t_img, vmin=0, vmax=vabs, output_file=fp_out,
+    cmap = 'inferno' if only_positive else 'turbo'
+    plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
+                              vmax=vabs, output_file=fp_out, plot_abs=False,
                               threshold=0, title=title,
-                              colorbar=True, cmap='inferno',)
-    plotting.plot_glass_brain(t_img, vmin=0, vmax=vabs, threshold=0,
-                              title=title, colorbar=True, cmap='inferno',)
+                              colorbar=True, cmap=cmap,)
+
+    plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
+                              vmax=vabs, plot_abs=False,
+                              threshold=0, title=title,
+                              colorbar=True, cmap=cmap,
+                              )
 
     plt.show()
-

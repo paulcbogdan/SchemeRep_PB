@@ -463,6 +463,7 @@ def pickle_wrap(callback: object, filepath: object = None,
             pickle.dump(output, new_file)
     if verbose > 0: print(f'\tDump time: {time()-start:.3f} s')
     if RAM_cache: PICKLE_CACHE[filepath] = output
+
     return output
 
 def timing(f):

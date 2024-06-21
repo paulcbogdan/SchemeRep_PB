@@ -12,7 +12,7 @@ from old.networks import prep_networks
 t_st = time()
 from functools import cache
 
-from numba import config
+from numba import config, set_num_threads
 
 import utils
 from connRSA.single_trial_conn import prep_vecs, prep_fps
@@ -91,7 +91,8 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
     print(f'\t\tNumber of centers: {len(centers)}, {neighbors.shape=}')
 
     if len(neighbors) == 0:
-        return None, None
+        print('NO NEIGHBORS')
+        return None, None, None, None, None
     assert np.max(neighbors) < 1e7
     t_end = time()
     print(f'\tTime needed to get neighbors: {t_end - t_st:.2f} s')
@@ -117,13 +118,19 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
 def results2img(eval_results, second_level, mask, centers, mask_downsample_pre,
                 resample, downsample):
     M_eval_results = np.nanmean(eval_results)
+    t_st = time()
+
     searched = convert_back_to_img(eval_results, mask, centers)
     if resample > 1:
         searched = interpolate_nearest_3D(searched)
         searched[~mask_downsample_pre] = NAN_VAL
+    print(f'\tTime needed to interpolate: {time() - t_st:.2f} s')
 
+    t_st = time()
     if downsample != 1:
         searched = do_int_upsample(searched, downsample, mask)
+    print(f'\tTime needed to upscale: {time() - t_st:.2f} s')
+
     searched[searched == NAN_VAL] = np.nan
     return searched
 
@@ -141,6 +148,8 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
            'resample': resample, 'mask_ROIs': mask_ROIs}
     fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
         utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0))
+    if fMRI_RDMs is None:
+        return None, None
 
     t_st = time()
     if second_level == 'spear':
@@ -202,6 +211,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
     else:
         mask_ROIs = None
 
+    base_shape = None
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -214,22 +224,18 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
             searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
                                                    kwargs=kw, verbose=-1,
                                                    easy_override=False)
-            if searched is None: continue
-            subj_M = np.nanmean(searched)
-            print(f'{sn}: {subj_M=:.3f}')
-            t_end = time()
-            # if t_end - t_last_plot > 60:
-            #     vabs = 0.05
-            #     plt.imshow(searched[30, :, :], vmin=-vabs, vmax=vabs,
-            #                cmap='cold_hot')
-            #     plt.colorbar()
-            #     plt.show()
-            #     t_last_plot = t_end
-            t_needed = t_end - t_st
-            print(f'Total searchlight time: {t_needed=:.2f}, {searched.shape} '
+            if searched is None:
+                assert base_shape is not None
+                print(f'\tNONE NONE NONE: {sn}, {fp_fMRI_col}')
+                searched = np.full(base_shape, np.nan)
+            else:
+                assert base_shape is None or searched.shape == base_shape
+                base_shape = searched.shape
+
+
+            print(f'Total searchlight time: {time() - t_st:.2f} s, {searched.shape} '
                   f'| {kw=}')
             sn_l.append(searched)
-            break
         searched_all.append(sn_l)
     searched_all_ = np.array(searched_all)
     sample_size = searched_all_.shape[:2]
@@ -278,20 +284,24 @@ def interpolate_nearest_3D(ar):
     val_interp = interp(X, Y, Z)
     return val_interp
 
-from numba import set_num_threads
-set_num_threads(2)
-t_end = time()
+
 
 
 print(f'Startup time: {t_end - t_st:.2f}')
 if __name__ == '__main__':
+    set_num_threads(1)
+    t_end = time()
     # test_searchlight(downsample=6, radius=2, flip=False,
     #                  semantic=True, resample=1,
     #                  network='OC_IT')
+    #
+    # test_searchlight(downsample=1, radius=12, flip=False,
+    #                  semantic=True, resample=1,
+    #                  network='OC_IT')
 
-    test_searchlight(downsample=1, radius=12, flip=False,
-                     semantic=True, resample=1,
-                     network='OC_IT')
+    test_searchlight(radius=8, downsample=1, flip=False,
+                     semantic=True, resample=10,
+                     network='OC_T')
     # for RADIUS in [6]:
     #     test_searchlight(downsample=1, radius=RADIUS, flip=False,
     #                      semantic=True, resample=10,
