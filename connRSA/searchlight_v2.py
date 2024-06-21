@@ -104,6 +104,14 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
     t_taken = t_end - t_st
     print(f'\tTime needed to get RDMs: {t_taken:.2f} s')
 
+
+    fMRI_RDMs = fMRI_RDMs[:, kept_in]
+
+    return fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre
+
+def get_RSM_stim_flat(semantic, sn, fp_fMRI_col, flip):
+    df_sn = get_trial_info(sn)
+    df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
     d_vecs = prep_vecs(True, semantic)
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist='corr')
     if not flip: RSM_stim = within_run_to_nan(RSM_stim)
@@ -111,9 +119,8 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
     RSM_stim_flat = RSM_stim[*tril_mask]
     num_nans = np.sum(np.isnan(RSM_stim_flat))
     assert num_nans == 0, f'RSM stim flat still has nans{num_nans=}'
-    fMRI_RDMs = fMRI_RDMs[:, kept_in]
 
-    return fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre
+    pass
 
 def results2img(eval_results, second_level, mask, centers, mask_downsample_pre,
                 resample, downsample):

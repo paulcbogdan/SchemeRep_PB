@@ -236,6 +236,11 @@ if __name__ == '__main__':
     # for NETWORK in ['OC_T', 'OC_IT']:
     for NETWORK in ['OC_T', 'IT']:
         for SEMANTIC in [False, True]:
+            test_regresslight(semantic=SEMANTIC,
+                              radius1=6, downsample1=1, resample1=10,
+                              radius2=3, downsample2=3, resample2=1,
+                              network=NETWORK)
+
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=1, resample1=10,
             #                   radius2=6, downsample2=4, resample2=1,
@@ -276,10 +281,7 @@ if __name__ == '__main__':
             #                   radius2=2, downsample2=6, resample2=1,
             #                   network=NETWORK)
 
-            test_regresslight(semantic=SEMANTIC,
-                              radius1=6, downsample1=1, resample1=10,
-                              radius2=3, downsample2=3, resample2=1,
-                              network=NETWORK)
+
 
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=2, resample1=10,
