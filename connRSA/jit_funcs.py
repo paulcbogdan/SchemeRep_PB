@@ -23,10 +23,9 @@ import scipy.stats as stats
 
 config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba_test'
 
-NAN_VAL = 10001
+NAN_VAL = 10000001
 
 CACHE_NUMBA = True
-# sig = nb.float64[:](nb.float64[:, :], nb.float64[:])
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def evaluate_models_searchlight(fMRI_RDMs, stim_RDM):
     num_centers = fMRI_RDMs.shape[0]
@@ -73,7 +72,7 @@ def evaluate_regresslight_std(fMRI_RDMs1, fMRI_RDMs2, stim_RDM):
         betas[i, :] = solution
     return betas
 
-@njit(parallel=True, fastmath=True, nopython=True, cache=CACHE_NUMBA)
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_searchlight_RDMs(data_2d, neighbors):
     num_trials = data_2d.shape[0]
     num_centers = neighbors.shape[0]
@@ -81,24 +80,16 @@ def jit_searchlight_RDMs(data_2d, neighbors):
     RDM_size = (num_trials - 1) * num_trials // 2
     out = np.full((num_centers, RDM_size), np.nan, dtype=np.float64)
 
-    for i in prange(num_centers):
+    for i in range(num_centers):
         for k in range(neighbor_len):
             if neighbors[i, k] == NAN_VAL:
-                cutoff = k# + 1
+                cutoff = k
                 break
         else:
             cutoff = neighbor_len
         neighbors_i = neighbors[i, :cutoff]
         sphere_data = np.empty((num_trials, cutoff))
         for j in range(num_trials): # TODO: change data 2d to have nans
-            # print(f'{j=}')
-            # print(f'{neighbors_i=}')
-            # if np.max(neighbors_i) > 1e7:
-            #     print(f'{neighbors_i=}')
-            #     quit()
-            # if np.min(neighbors_i) < -2:
-            #     print(f'{neighbors_i=}')
-            #     quit()
             sphere_data[j] = data_2d[j, neighbors_i]
 
         sphere_RDM = np.corrcoef(sphere_data)
@@ -110,20 +101,6 @@ def jit_searchlight_RDMs(data_2d, neighbors):
                 cnt += 1
         out[i] = RDM_flat
     return out
-
-# def jit_volume_searchlight_premade_centers(mask, good_centers,
-#                                            radius=2, threshold=0.5):
-#     radius_sq = radius * radius
-#     rel_points = np.full(((radius * 2) ** 3, 3), NAN_VAL, dtype=np.int32)
-#     cnt = 0
-#     for x in range(-radius, radius+1):
-#         for y in range(-radius, radius+1):
-#             for z in range(-radius, radius+1):
-#                 if x*x + y*y + z*z <= radius_sq:
-#                     rel_points[cnt, :] = [x, y, z]
-#                     cnt += 1
-#     rel_points = rel_points[:cnt]
-#     max_cnt = rel_points.shape[0]
 
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_volume_searchlight(mask, radius=2, threshold=0.5):
@@ -142,7 +119,6 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
                     cnt += 1
                 voxel2idx[x, y, z] = cnt_all
                 cnt_all += 1
-
 
     centers = centers[:cnt]
 
@@ -177,7 +153,6 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
                     center[1] + rel_point[1] >= Y_len or
                     center[2] + rel_point[2] >= Z_len):
                 continue
-            # print(rel_point)
             if mask[center[0] + rel_point[0],
                     center[1] + rel_point[1],
                     center[2] + rel_point[2]]:
@@ -255,7 +230,6 @@ def get_closest_dists(centers1, centers2, mult1):
         center1 *= mult1
         for j, center2 in enumerate(centers2):
             dists[j] = np.linalg.norm(center2 - center1)
-        # dists = np.linalg.norm(centers2 - center1, axis=1)
         idx0to2[i] = np.argmin(dists)
     return idx0to2
 

@@ -514,6 +514,12 @@ HCP_CACHE = r'F:\HCP_Preprocessing\HCP\HCP_cache'
 HCP_RS_ROOT = r'E:\HCP_RS'
 
 if __name__ == '__main__':
+
+    fp_in = r'E:\PycharmProjects_E\SchemeRep\fMRI_in\102\resting\rs.nii.gz'
+    img = image.load_img(fp_in)
+    print(f'{img.shape=}')
+    quit()
+
     test = [[-300, 1, 3, 4, 5], [-300, 3, 3, 4, 5]]
     test = np.array(test)
     test = stdize(test, rankdata=True)

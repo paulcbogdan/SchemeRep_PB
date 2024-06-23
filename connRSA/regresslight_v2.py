@@ -8,7 +8,7 @@ import utils
 
 from connRSA.jit_funcs import evaluate_regresslight, get_closest_dists, evaluate_regresslight_std
 from connRSA.searchlight_plot import plot_t
-from connRSA.searchlight_v2 import full_get_RDMs, NAN_VAL, results2img, get_singular_ROIs
+from connRSA.searchlight_v2 import full_get_RDMs, NAN_VAL, results2img, get_singular_ROIs, get_RSM_stim_flat
 from connRSA.single_trial_conn import prep_fps
 from org_sns import get_sns
 import matplotlib.pyplot as plt
@@ -20,36 +20,35 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
                              second_level='spear', flip=False, std=True,
                              mask_ROIs=None):
     print()
-    # TODO: could take the RSM stim out of this... so then it doesn't need to be
-    #   separately calculated for semantic and visual
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+           'flip': flip,}
+    RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
+                                      verbose=0, easy_override=False)
+    assert np.sum(np.isnan(RSM_stim_flat)) == 0, \
+        f'{np.sum(np.isnan(RSM_stim_flat))=}'
+
+    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius1, 'downsample': downsample1,
            'resample': resample1, 'mask_ROIs': mask_ROIs}
-    fMRI_RDMs1, RSM_stim_flat, mask, centers1, mask_downsample_pre = (
+    fMRI_RDMs1, mask, centers1, mask_downsample_pre = (
         utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
                           easy_override=False))
     if fMRI_RDMs1 is None:
         return None, None, None
 
-    # fMRI_RDMs1, RSM_stim_flat, mask, centers1, mask_downsa,mple_pre = (
-    #     full_get_RDMs(sn, fp_fMRI_col, semantic, flip=flip, radius=radius1,
-    #                   downsample=downsample1, resample=resample1,
-    #                   mask_ROIs=mask_ROIs))
-
-    kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+    kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
            'resample': resample2, 'mask_ROIs': mask_ROIs}
-    fMRI_RDMs2, _, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
-                                                      kwargs=kw2, verbose=0)
+    fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
+                                                   kwargs=kw2, verbose=0,
+                                                   easy_override=False)
     if fMRI_RDMs2 is None:
         return None, None, None
 
-    # fMRI_RDMs2, _, _, centers2, _ = (
-    #     full_get_RDMs(sn, fp_fMRI_col, semantic, flip=flip, radius=radius2,
-    #                   downsample=downsample2, resample=resample2,
-    #                   mask_ROIs=mask_ROIs))
-
-    # assert len(centers1) > len(centers2), f'{len(centers1)=} | {len(centers2)=}'
+    prop_nan1 = np.sum(np.isnan(fMRI_RDMs1)) / fMRI_RDMs1.size
+    prop_nan2 = np.sum(np.isnan(fMRI_RDMs2)) / fMRI_RDMs2.size
+    assert prop_nan1 == 0, f'{prop_nan1=}'
+    assert prop_nan2 == 0, f'{prop_nan2=}'
 
     t_st = time()
     idx0to2 = get_closest_dists(centers1.astype(np.float32),
@@ -60,10 +59,11 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
 
     fMRI_RDMs2_in_1space = fMRI_RDMs2[idx0to2]
     assert fMRI_RDMs2_in_1space.shape == fMRI_RDMs1.shape
-    assert np.sum(np.isnan(RSM_stim_flat)) == 0, \
-        f'{np.sum(np.isnan(RSM_stim_flat))=}'
+
 
     t_st = time()
+    assert np.sum(np.isnan(fMRI_RDMs2_in_1space)) == 0, \
+        f'{np.sum(np.isnan(fMRI_RDMs2_in_1space))=}'
     if std:
         betas = evaluate_regresslight_std(fMRI_RDMs1, fMRI_RDMs2_in_1space,
                                           RSM_stim_flat)
@@ -102,8 +102,7 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
 
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
-    sns = sns[:20]
-
+    # sns = sns[:20]
 
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, (60, 4), downsample1, radius1,
@@ -115,13 +114,9 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
         plot_searchlight_fn(fn3)
         return
 
-
     fps = prep_fps('7')
-    # # fps = ['bl7_fMRI']
     searched_all1 = []
     searched_all2 = []
-    # print(len(sns))
-    # quit()
 
     # t_last_plot = 0
     if network is not None:
@@ -228,114 +223,43 @@ def get_t(searched_all):
     t[N < int(biggest_N * 0.8)] = np.nan
     return t
 
+def primary_analyses():
+    pass
+
 if __name__ == '__main__':
     # TODO: calculate number of voxels contributing to each searchlight
     #   percentage filled by location...
 
     set_num_threads(1)
     # for NETWORK in ['OC_T', 'OC_IT']:
-    for NETWORK in ['OC_T', 'IT']:
+    # for NETWORK in ['OC_T', 'IT']:
+    for NETWORK in [None, 'OC_T', 'IT', 'Occipital']: #
         for SEMANTIC in [False, True]:
+            # test_regresslight(semantic=SEMANTIC,
+            #                   radius1=8, downsample1=1, resample1=10,
+            #                   radius2=4, downsample2=4, resample2=1,
+            #                   network=NETWORK)
+
             test_regresslight(semantic=SEMANTIC,
                               radius1=6, downsample1=1, resample1=10,
                               radius2=3, downsample2=3, resample2=1,
                               network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=1, resample1=10,
-            #                   radius2=6, downsample2=4, resample2=1,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=12, downsample1=1, resample1=40,
-            #                   radius2=4, downsample2=6, resample2=1,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=12, downsample1=1, resample1=40,
-            #                   radius2=4, downsample2=6, resample2=1,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=3, downsample1=1, resample1=10,
-            #                   radius2=3, downsample2=3, resample2=10,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=12, downsample1=1, resample1=40,
-            #                   radius2=4, downsample2=4, resample2=1,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=4, resample1=1,
-            #                   radius2=8, downsample2=1, resample2=10,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=6, resample1=1,
-            #                   radius2=12, downsample2=1, resample2=40,
-            #                   network=NETWORK)
+            test_regresslight(semantic=SEMANTIC,
+                              radius1=3, downsample1=1, resample1=10,
+                              radius2=3, downsample2=3, resample2=1,
+                              network=NETWORK)
 
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=2, resample1=10,
             #                   radius2=2, downsample2=6, resample2=1,
             #                   network=NETWORK)
-
-
-
+            #
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=2, resample1=10,
-            #                   radius2=12, downsample2=1, resample2=40,
-            #                   network=NETWORK)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=1, resample1=10,
-            #                   radius2=12, downsample2=1, resample2=40,
-            #                   network=NETWORK)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample2=10,
-            #                   radius2=4, downsample2=4, resample1=1,
+            #                   radius2=4, downsample2=6, resample2=1,
             #                   network=NETWORK)
 
-            # TODO:
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=1, resample2=10,
-            #                   radius2=4, downsample2=2, resample1=1,
-            #                   network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=2, resample1=1,
-            #                   radius2=4, downsample2=4, resample2=10,
-            #                   network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=4, downsample2=4, resample2=1,
-            #                   network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=4, resample1=1,
-            #                   radius2=8, downsample2=1, resample2=10,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=2, downsample1=1, resample1=10,
-            #                   radius2=4, downsample2=1, resample2=10,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=1, resample1=10,
-            #                   radius2=8, downsample2=1, resample2=10,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=4, downsample2=2, resample2=10,
-            #                   network=NETWORK)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=16, downsample2=1, resample2=40,
-            #                   network=NETWORK)
-        quit()

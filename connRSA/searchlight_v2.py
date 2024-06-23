@@ -28,7 +28,7 @@ print(f'Import time: {t_end - t_st:.2f}')
 
 config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba'
 
-NAN_VAL = 10001
+NAN_VAL = 10000001
 
 CACHE_NUMBA = False
 
@@ -61,7 +61,7 @@ def mask_img(img, ROIs):
     print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
     return img
 
-def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
+def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
                   resample=1, flip=False, mask_ROIs=None):
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
@@ -81,8 +81,12 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
 
     mask = np.all(img != NAN_VAL, axis=0) & np.all(~np.isnan(img), axis=0)
     t_st = time()
+    assert np.sum(np.isnan(img)) == 0, 'img has nans'
     centers, neighbors = jit_volume_searchlight(mask, radius=radius,
                                                 threshold=0.25)
+    assert np.sum(np.isnan(centers)) == 0, 'centers has nans'
+    assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
+
     if resample > 1:
         idxs = np.arange(0, len(centers))
         idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
@@ -92,35 +96,43 @@ def full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=1,
 
     if len(neighbors) == 0:
         print('NO NEIGHBORS')
-        return None, None, None, None, None
-    assert np.max(neighbors) < 1e7
+        return None, None, None, None
+    assert (np.max(neighbors) < 1e7 or np.max(neighbors) == NAN_VAL), \
+        f'{np.max(neighbors)=}'
     t_end = time()
     print(f'\tTime needed to get neighbors: {t_end - t_st:.2f} s')
 
     t_st = time()
     data_2d = img.reshape([img.shape[0], -1])
+
+    assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
+    assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
     fMRI_RDMs = jit_searchlight_RDMs(data_2d, neighbors)
+
+    assert np.sum(np.isnan(fMRI_RDMs)) == 0, 'fMRI_RDMs has nans'
+
     t_end = time()
     t_taken = t_end - t_st
     print(f'\tTime needed to get RDMs: {t_taken:.2f} s')
 
-
+    tril_mask, kept_in = make_tril_mask_within_nan(flip=flip)
     fMRI_RDMs = fMRI_RDMs[:, kept_in]
 
-    return fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre
+    return fMRI_RDMs, mask, centers, mask_downsample_pre
 
 def get_RSM_stim_flat(semantic, sn, fp_fMRI_col, flip):
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
     d_vecs = prep_vecs(True, semantic)
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True, dist='corr')
+    # print(RSM_stim)
     if not flip: RSM_stim = within_run_to_nan(RSM_stim)
     tril_mask, kept_in = make_tril_mask_within_nan(flip=flip)
     RSM_stim_flat = RSM_stim[*tril_mask]
     num_nans = np.sum(np.isnan(RSM_stim_flat))
     assert num_nans == 0, f'RSM stim flat still has nans{num_nans=}'
+    return RSM_stim_flat
 
-    pass
 
 def results2img(eval_results, second_level, mask, centers, mask_downsample_pre,
                 resample, downsample):
@@ -150,25 +162,39 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
     #     full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=downsample,
     #                   resample=resample, flip=flip, mask_ROIs=mask_ROIs))
 
-    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+    # kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+    #        'flip': flip, 'radius': radius, 'downsample': downsample,
+    #        'resample': resample, 'mask_ROIs': mask_ROIs}
+    # fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
+    #     utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0))
+    # if fMRI_RDMs is None:
+    #     return None, None
+
+    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius, 'downsample': downsample,
            'resample': resample, 'mask_ROIs': mask_ROIs}
-    fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
-        utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0))
-    if fMRI_RDMs is None:
+    fMRI_RDMs1, mask, centers1, mask_downsample_pre = (
+        utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
+                          easy_override=False))
+    if fMRI_RDMs1 is None:
         return None, None
+
+    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
+           'flip': flip,}
+    RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
+                                      verbose=0)
 
     t_st = time()
     if second_level == 'spear':
-        eval_results = evaluate_models_searchlight_spear(fMRI_RDMs,
+        eval_results = evaluate_models_searchlight_spear(fMRI_RDMs1,
                                                          RSM_stim_flat)
     else:
-        eval_results = evaluate_models_searchlight(fMRI_RDMs, RSM_stim_flat)
+        eval_results = evaluate_models_searchlight(fMRI_RDMs1, RSM_stim_flat)
     t_end = time()
     t_taken = t_end - t_st
     print(f'\tTime needed to evaluate_models ({second_level}): '
           f'{t_taken=:.2f} s\n')
-    searched = results2img(eval_results, second_level, mask, centers,
+    searched = results2img(eval_results, second_level, mask, centers1,
                            mask_downsample_pre, resample, downsample)
 
     mask = ~np.isnan(searched)
