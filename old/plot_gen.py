@@ -71,6 +71,9 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                        'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
                        'Tha']
 
+    # tick_labels = tick_labels[::-1]
+
+
     plt.imshow(M_connect, vmin=vmin, vmax=vmax,
                cmap=cmap,#'turbo' if vmin < -1 else 'CMRmap',
                interpolation='none')

@@ -782,7 +782,7 @@ def include_BL(df_sn, sn):
             obj2trial[obj] = trial + 38 * (run - 1)
             do_BL_move(bl_root, run, trial)
 
-            print(f'BL: {obj}')
+            # print(f'BL: {obj}')
 
             glob_BL7 = fr'{bl_root}/BL_rerun7/BL/BL_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_BL7 = glob(glob_BL7)

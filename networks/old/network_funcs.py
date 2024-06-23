@@ -70,7 +70,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
 
         for sn in sns:
             print(f'Prepping FC: {sn=} (idx: {sn_idx})')
-            df_sn = get_trial_info(sn, easy_override=True)
+            df_sn = get_trial_info(sn, easy_override=False)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
                     replace('4', '').replace('7', '')

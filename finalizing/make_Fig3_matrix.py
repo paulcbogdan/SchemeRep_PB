@@ -41,22 +41,33 @@ def get_beta_graph(sn_inc_conn):
     z_graph[trils[1], trils[0]] = z
     return z_graph
 
-
-def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True):
+#
+def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
+                     rotate=True):
     kwargs = {'fp': 'obj7_fMRI',
               'split': False,
               'key': 'inc',
               'key_vals': (1, 2, 3),
               }
+
+    # kwargs = {'fp': fp,
+    #           'split': False,
+    #           'key': 'inc',
+    #           'key_vals': (1, 2, 3),
+    #           'combine_regions': combine_regions,
+    #           'combine_bilateral': comb_bl if combine_regions else False
+    #           }
+
     if combine_regions:
         kwargs['combine_regions'] = True
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1,
                     cache_dir='cache')
+    print(f'{sn_inc_conn.shape=}')
 
     atlas = get_atlas(combine_regions=combine_regions,
-                      combine_bilateral=False, lifu_labels=False)
+                      combine_bilateral=False, lifu_labels=True)
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
 
@@ -74,8 +85,6 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True):
         sn_inc_conn = sn_inc_conn[:, :, good_j, :]
         sn_inc_conn = sn_inc_conn[:, :, :, good_j]
 
-        # sn_inc_conn[..., bad_j, :] = np.nan
-        # sn_inc_conn[..., :, bad_j] = np.nan
         print('Pruned subcortical')
 
         for key in ['ticks', 'tick_lows', 'tick_labels', ]:
@@ -102,14 +111,21 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True):
                              sn_inc_conn[:, 2, :, :])
     # upper_thresh = np.nanpercentile(z_graph, 85)
     upper_thresh = np.nanpercentile(z_graph, 85)
+    # print(z_graph.shape)
+    # quit()
 
-    z_graph = z_graph[::-1, ::-1]
+    if rotate:
+        z_graph = z_graph[::-1, ::-1]
+        atlas['ticks'] = atlas['ticks'][::-1]
+        atlas['tick_lows'] = atlas['tick_lows'][::-1]
+        atlas['tick_labels'] = atlas['tick_labels'][::-1]
 
     z_graph_high = z_graph.copy()
     z_graph_high[z_graph < upper_thresh] = np.nan
 
     plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
-    # plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=False)
+
+
 
     #
     z_graph_low = z_graph.copy()
@@ -118,8 +134,19 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True):
 
     #
     z_graph_low[z_graph > lower_thresh] = np.nan
+    #
+    # plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=False)
+    # quit()
     plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    # quit()
     plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=True)
+    plot_connectivity(z_graph, atlas=atlas, vmin=-3.5, vmax=3.5, minimal=False)
+
 
 if __name__ == '__main__':
     plot_matrix_Fig3()
+
+
+
+
+
