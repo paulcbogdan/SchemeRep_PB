@@ -272,6 +272,13 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
     # quit()
     p_v_pos = labels2idxs(p_v_pos_labels)
 
+    print(f'{len(p_d_ant)=}')
+    print(f'{len(p_d_pos)=}')
+    print(f'{len(p_v_ant)=}')
+    print(f'{len(p_v_pos)=}')
+    total = len(p_d_ant) + len(p_d_pos) + len(p_v_ant) + len(p_v_pos)
+    print(f'{total=}')
+
     p_dorsal = p_d_ant + p_d_pos
     p_ventral = p_v_ant + p_v_pos
     matrix_mask = np.ones((246, 246), dtype=bool)
@@ -383,10 +390,10 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
 if __name__ == '__main__':
     # THRESHOLD = 0.99 #  0.95, 0.975, 1.65, 2.0, 2.32
 
-    # get_vendor_partitions(age='healthy', flip=True, plot=True,
-    #                       scrub=True, easy_override=True, anat=True,
-    #                       anat_ver=3)
-    # quit()
+    get_vendor_partitions(age='healthy', flip=True, plot=True,
+                          scrub=True, easy_override=True, anat=True,
+                          anat_ver=3)
+    quit()
     REGRESS = True
     for THRESHOLD in [.95]:
         get_vendor_partitions(age='healthy', flip=True, plot=True,

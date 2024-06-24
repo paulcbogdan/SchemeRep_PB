@@ -756,6 +756,7 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
     corrs = []
     sns = None
     prev_sns = None
+    fps = ['obj7_fMRI']
     for fp in fps:
         kwargs = {'fp': fp,
                   'split': False,
@@ -792,6 +793,9 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
 
 if __name__ == '__main__':
+    plot_FC_mat(drop_con=False, four_tasks='7')
+    quit()
+
     plt.rcParams.update({'font.sans-serif': 'Arial'})
 
     run_IC_analysis(ERS=True, regress_FC=False)

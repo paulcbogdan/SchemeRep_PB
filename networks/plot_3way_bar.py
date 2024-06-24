@@ -121,7 +121,7 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
             # print(f'{i=}')
             print_list_stats(ps)
 
-def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
+def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -131,7 +131,9 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
         'kind': 'bar'
     }
 
-    cond_sets = [('Within', 'Between'),
+    # cond_sets = [('Within', 'Between'),
+    #              ]
+    cond_sets = [('dv_pos', 'dv_ant'),
                  ]
     # ('dd', 'dv_pos'),
     #                  ('vv', 'dv_ant'),
@@ -140,15 +142,11 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
 
-    # plt.rcParams['font.sans-serif'] = 'Arial'
-
-    # sns.set_theme(rc={'figure.figsize': (11.7, 8.27)})
-
 
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
         # extreme sns (53 for inc between, 53 for inc within)
-        df_set = df_set[df_set['sn'] != 53]
+        # df_set = df_set[df_set['sn'] != 53]
         for wb in ['Within', 'Between']:
             for sn in df_set['sn'].unique():
                 # match = (df_set['sn'] == sn) # (df_set['within_between'] == wb) &
@@ -156,7 +154,23 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
 
                 match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
                 if mean_norm:
-                    df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+                    # middle =
+
+                    match_middle = ((df_set['sn'] == sn) &
+                                    (df_set['within_between'] == wb) &
+                                    (df_set['inc'] == 'Neu'))
+                    # print(len(match))
+                    # print(len(match_middle))
+                    # quit()
+                    # print(df_set.loc[match, 'vals'])
+                    # quit()
+
+
+                    df_set.loc[match, 'vals'] -= df_set.loc[match_middle, 'vals'].mean()
+
+                    # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+
+                    # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
         pd.set_option('display.max_rows', None)
 
@@ -201,7 +215,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
         g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
-                        kind='bar', ci=86,
+                        kind='bar', ci=68,
                         # errorbar=('se', 1),
                         # errwidth=1.5,
                         edgecolor='k',
@@ -213,23 +227,19 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
                         palette=['dodgerblue', 'red'],
                         height=5, aspect=0.8
                         )
-        #
-        # g = sns.barplot(x=plot_params["x"], y=plot_params["y"],
+
+        # g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
         #                 hue=plot_params['hue'],
         #                 data=df_set[['inc', 'vals', 'within_between']],
-        #                 # ci=None,
-        #                 # errorbar=('se', 1),
-        #                 errorbar='se',
-        #
-        #                 # # errwidth=1.5,
-        #                 # # edgecolor='k',
-        #                 # # capsize=0.1, height=4,
-        #                 # # alpha=0.5,
-        #                 # linewidth=.7,
-        #                 # # palette=sns.color_palette()
-        #                 # palette=['dodgerblue', 'red'],
-        #                 # # height=5,
-        #                 # # aspect=0.8
+        #                 kind='bar', ci=None,
+        #                 # errorbar=None,
+        #                 # errwidth=1.5,
+        #                 edgecolor='k',
+        #                 # capsize=0.1, height=4,
+        #                 alpha=0.5, linewidth=.7,
+        #                 # palette=sns.color_palette()
+        #                 palette=['dodgerblue', 'red'],
+        #                 height=5, aspect=0.8
         #                 )
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
@@ -310,7 +320,8 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
         plt.xlabel('')
         plt.ylabel('Mean connectivity')
         plt.tight_layout()
-        fp = r'result_pics/other/inc_vendor_FC.png'
+        M_norm_str = '_no_M_norm' if not mean_norm else ''
+        fp = fr'result_pics/other/inc_vendor_FC{M_norm_str}.png'
         plt.savefig(fp, dpi=600)
         plt.show()
         # quit()

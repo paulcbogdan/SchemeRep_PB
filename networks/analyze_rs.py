@@ -305,6 +305,9 @@ def analyze_vendor():
     df['dd_vv'] = df['dd'] + df['vv']
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
 
+    print(df)
+    quit()
+
     # formula = ('dd_vv ~ dv_dv + ' # dpva + vpda +
     #            'FC_all + ' #  dd_else + # pd_else + ad_else +
     #            'dp + da + vp + va + '

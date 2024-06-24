@@ -32,6 +32,11 @@ def plot_quadrant_conn():
     rois = [0, 3, 24, 30, 31, 43, 51, 73, 76, 81, 99, 123, 142, 152, 173, 188,
             198, 202, 206, 207]
 
+    # good_regions = ['LOC']
+    # rois = [i for i, roi in enumerate(atlas['ROI_regions']) if 'LOC' in roi]
+    rois = [i for i, roi in enumerate(atlas['ROI_regions']) if 'STG' in roi]
+    rois = [i for i, roi in enumerate(atlas['ROI_regions']) if 'MTG' in roi]
+
 
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
