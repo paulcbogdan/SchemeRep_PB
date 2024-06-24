@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from analyze_rs import analyze_vendor
+from analyze_rs import generate_Figure_5A_correlation
 from org_sns import get_sns
 
 # def get_rs_vendor_df():

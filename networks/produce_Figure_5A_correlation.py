@@ -1,0 +1,1 @@
+# see fluctuations.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd

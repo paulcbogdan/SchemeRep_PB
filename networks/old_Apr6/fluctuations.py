@@ -219,7 +219,10 @@ def analyze_networks(fp='rs_medium', anat_ver=2, combine_regions=False):
     networks = ['dd', 'vv', 'dv_ant', 'dv_pos',
                 'dd_vv', 'dv_dv']
 
+
+
     networks += ['no_no']
+    networks += ['pd_no', 'ad_no', 'av_no', 'pv_no']
     print(df[networks].corr())
 
 

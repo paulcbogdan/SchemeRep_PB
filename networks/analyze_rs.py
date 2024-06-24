@@ -274,10 +274,11 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
     df = pd.DataFrame(df_as_d)
     return df, conn_keys
 
-def analyze_vendor():
-    df, conn_keys = pickle_wrap(get_rs_vendor_df, kwargs={'roiwise': False,
-                                                          'do_hemi': False,
-                                                          'zscore': False,
+def generate_Figure_5A_correlation():
+    df, conn_keys = pickle_wrap(get_rs_vendor_df,
+                                kwargs={'roiwise': False,
+                                        'do_hemi': False,
+                                        'zscore': False,
                                 'high_var_confounds': False},
                                 easy_override=False)
 
@@ -335,4 +336,4 @@ def analyze_vendor():
     print(model.summary())
 
 if __name__ == '__main__':
-    analyze_vendor()
+    generate_Figure_5A_correlation()
