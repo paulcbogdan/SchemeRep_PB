@@ -38,7 +38,8 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
 
     kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
-           'resample': resample2, 'mask_ROIs': mask_ROIs}
+           'resample': resample2, 'mask_ROIs': mask_ROIs,
+           'center_filterer': centers1, 'resample_filterer': resample1}
     fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
                                                    kwargs=kw2, verbose=0,
                                                    easy_override=False)
@@ -51,13 +52,14 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
     assert prop_nan2 == 0, f'{prop_nan2=}'
 
     t_st = time()
-    idx0to2 = get_closest_dists(centers1.astype(np.float32),
+    idx1to2 = get_closest_dists(centers1.astype(np.float32),
                                 centers2.astype(np.float32),
                                 mult1=downsample1/downsample2)
+    used_twos = np.unique(idx1to2)
     t_taken = time() - t_st
     print(f'\tTime needed to find closest: {t_taken:.2f} s')
 
-    fMRI_RDMs2_in_1space = fMRI_RDMs2[idx0to2]
+    fMRI_RDMs2_in_1space = fMRI_RDMs2[idx1to2]
     del fMRI_RDMs2
     assert fMRI_RDMs2_in_1space.shape == fMRI_RDMs1.shape
 
@@ -237,12 +239,12 @@ if __name__ == '__main__':
     for NETWORK in [None, 'Occipital']: # 'OC_T', 'IT',
         for SEMANTIC in [False, True]:
             test_regresslight(semantic=SEMANTIC,
-                              radius1=4, downsample1=3, resample2=1,
-                              radius2=12, downsample2=1, resample1=40,
+                              radius1=4, downsample1=3, resample1=1,
+                              radius2=12, downsample2=1, resample2=40,
                               network=NETWORK)
 
             # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=4, downsample1=3, resample2=1,
+            #                   radius1=3, downsample1=4, resample2=1,
             #                   radius2=12, downsample2=1, resample1=40,
             #                   network=NETWORK)
 

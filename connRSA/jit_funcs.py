@@ -224,14 +224,14 @@ def do_int_upsample(img, upsample, mask):
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def get_closest_dists(centers1, centers2, mult1):
-    idx0to2 = np.full(len(centers1), NAN_VAL, dtype=np.int32)
+    idx1to2 = np.full(len(centers1), NAN_VAL, dtype=np.int32)
     for i, center1 in enumerate(centers1):
         dists = np.empty(len(centers2))
         center1 *= mult1
         for j, center2 in enumerate(centers2):
             dists[j] = np.linalg.norm(center2 - center1)
-        idx0to2[i] = np.argmin(dists)
-    return idx0to2
+        idx1to2[i] = np.argmin(dists)
+    return idx1to2
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def convert_back_to_img(eval_results, mask, centers):
@@ -240,3 +240,14 @@ def convert_back_to_img(eval_results, mask, centers):
         center = centers[i]
         img[center[0], center[1], center[2]] = eval_results[i]
     return img
+
+# if __name__ == '__main__':
+#     a = [[2, 1, 2], [100, 10, 100], [-1000, -100, -10]]
+#     # [3, 1, 2]
+#
+#     b = [[100, 10, 100], [-1000, -100, -10], [1, 2, 1]]
+#     b_vals = np.array([1, 2, 3])
+#     idx1to2 = get_closest_dists(np.array(a),  np.array(b),  1)
+#     print(idx1to2)
+#     print(b_vals[idx1to2])
+#

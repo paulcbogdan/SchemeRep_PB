@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
-    jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img
+    jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img, get_closest_dists
 from connRSA.searchlight_plot import plot_t
 from old.networks import prep_networks
 
@@ -62,7 +62,8 @@ def mask_img(img, ROIs):
     return img
 
 def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
-                  resample=1, flip=False, mask_ROIs=None):
+                  resample=1, flip=False, mask_ROIs=None,
+                  center_filterer=None, resample_filterer=None):
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
 
@@ -80,7 +81,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     img = np.transpose(img, (3, 0, 1, 2))
     t_st = time()
     img = img.astype(np.float32)
-    print(f'Time to change to np.float32: {time() - t_st:.2f} s')
+    print(f'\tTime to change to np.float32: {time() - t_st:.2f} s')
 
     mask = np.all(img != NAN_VAL, axis=0) & np.all(~np.isnan(img), axis=0)
     t_st = time()
@@ -93,11 +94,24 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     assert np.sum(np.isnan(centers)) == 0, 'centers has nans'
     assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
 
+    if center_filterer is not None:
+        print(f'{center_filterer.shape=}')
+        idx1to2 = get_closest_dists(center_filterer.astype(np.float32),
+                                    centers.astype(np.float32),
+                                    mult1=resample_filterer/resample)
+        print(f'Pre {centers.shape=}')
+
+        centers = centers[idx1to2, :]
+        neighbors = neighbors[idx1to2, :]
+        print(f'{centers.shape=}')
+        quit()
+
     if resample > 1:
         idxs = np.arange(0, len(centers))
         idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
         centers = centers[idxs, :]
         neighbors = neighbors[idxs, :]
+
     print(f'\t\tNumber of centers: {len(centers)}, {neighbors.shape=}')
 
     if len(neighbors) == 0:
@@ -121,6 +135,10 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
 
     tril_mask, kept_in = make_tril_mask_within_nan(flip=flip)
     fMRI_RDMs = fMRI_RDMs[:, kept_in]
+    print(f'{fMRI_RDMs.dtype=}')
+    print(f'{mask.dtype=}')
+    print(f'{centers.dtype=}')
+    print(f'{mask_downsample_pre.dtype=}')
 
     return fMRI_RDMs, mask, centers, mask_downsample_pre
 
