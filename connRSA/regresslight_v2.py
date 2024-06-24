@@ -58,6 +58,7 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
     print(f'\tTime needed to find closest: {t_taken:.2f} s')
 
     fMRI_RDMs2_in_1space = fMRI_RDMs2[idx0to2]
+    del fMRI_RDMs2
     assert fMRI_RDMs2_in_1space.shape == fMRI_RDMs1.shape
 
 
@@ -233,17 +234,17 @@ if __name__ == '__main__':
     set_num_threads(1)
     # for NETWORK in ['OC_T', 'OC_IT']:
     # for NETWORK in ['OC_T', 'IT']:
-    for NETWORK in ['OC_T', 'IT', None, 'Occipital']: #
+    for NETWORK in [None, 'Occipital']: # 'OC_T', 'IT',
         for SEMANTIC in [False, True]:
             test_regresslight(semantic=SEMANTIC,
-                              radius1=12, downsample1=1, resample1=40,
-                              radius2=4, downsample2=3, resample2=1,
+                              radius1=4, downsample1=3, resample2=1,
+                              radius2=12, downsample2=1, resample1=40,
                               network=NETWORK)
 
-            test_regresslight(semantic=SEMANTIC,
-                              radius1=12, downsample1=1, resample1=40,
-                              radius2=3, downsample2=4, resample2=1,
-                              network=NETWORK)
+            # test_regresslight(semantic=SEMANTIC,
+            #                   radius1=4, downsample1=3, resample2=1,
+            #                   radius2=12, downsample2=1, resample1=40,
+            #                   network=NETWORK)
 
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=8, downsample1=1, resample1=10,

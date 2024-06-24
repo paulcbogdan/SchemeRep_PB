@@ -226,9 +226,9 @@ def analyze_networks(fp='rs_medium', anat_ver=2, combine_regions=False):
     print(df[networks].corr())
 
 
-    # 'no_no', 'pd_no', 'ad_no', 'av_no', 'pv_no'
-    partial_corr_df(df, networks, cov=[#'FC_all',
-                                       'pd_no', 'ad_no', 'av_no', 'pv_no'])
+    partial_corr_df(df, networks, cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])
+
+    # 'FC_all',
     quit()
 
     # 'dd', 'vv', 'dv_ant', 'dv_pos'

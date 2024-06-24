@@ -78,7 +78,7 @@ def jit_searchlight_RDMs(data_2d, neighbors):
     num_centers = neighbors.shape[0]
     neighbor_len = neighbors.shape[1]
     RDM_size = (num_trials - 1) * num_trials // 2
-    out = np.full((num_centers, RDM_size), np.nan, dtype=np.float64)
+    out = np.full((num_centers, RDM_size), NAN_VAL, dtype=np.float32)
 
     for i in range(num_centers):
         for k in range(neighbor_len):
@@ -235,7 +235,7 @@ def get_closest_dists(centers1, centers2, mult1):
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def convert_back_to_img(eval_results, mask, centers):
-    img = np.full(mask.shape, NAN_VAL, dtype=np.float64)
+    img = np.full(mask.shape, NAN_VAL, dtype=np.float32)
     for i in range(centers.shape[0]):
         center = centers[i]
         img[center[0], center[1], center[2]] = eval_results[i]

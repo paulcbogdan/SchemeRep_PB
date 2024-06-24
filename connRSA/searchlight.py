@@ -28,7 +28,7 @@ def np_searchlight(img, nan_mask, radius, RSM, skip_step=1):
     Y_len = img.shape[1]
     Z_len = img.shape[2]
     num_do = 0
-    out = np.full((X_len, Y_len, Z_len), np.nan, dtype=np.float64)
+    out = np.full((X_len, Y_len, Z_len), np.nan, dtype=np.float32)
     trils = np.tril_indices_from(RSM, k=-1)
     stim_flat = RSM[trils]
 
@@ -63,7 +63,7 @@ def jit_searchlight(img, nan_mask, radius, RSM, tril_mask,
     Y_len = img.shape[1]
     Z_len = img.shape[2]
     num_do = 0
-    out = np.full((X_len, Y_len, Z_len), np.nan, dtype=np.float64)
+    out = np.full((X_len, Y_len, Z_len), np.nan, dtype=np.float32)
     # tril_mask = np.tril_indices_from(RSM, k=-1)
 
     stim_flat = np.full(4332, np.nan)

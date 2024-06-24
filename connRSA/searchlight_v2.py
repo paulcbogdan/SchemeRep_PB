@@ -78,10 +78,16 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
 
     mask_downsample_pre = np.all(img != NAN_VAL, axis=-1)
     img = np.transpose(img, (3, 0, 1, 2))
+    t_st = time()
+    img = img.astype(np.float32)
+    print(f'Time to change to np.float32: {time() - t_st:.2f} s')
 
     mask = np.all(img != NAN_VAL, axis=0) & np.all(~np.isnan(img), axis=0)
     t_st = time()
-    assert np.sum(np.isnan(img)) == 0, 'img has nans'
+    data_2d = img.reshape([img.shape[0], -1])
+    del img
+    assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
+
     centers, neighbors = jit_volume_searchlight(mask, radius=radius,
                                                 threshold=0.25)
     assert np.sum(np.isnan(centers)) == 0, 'centers has nans'
@@ -103,12 +109,10 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     print(f'\tTime needed to get neighbors: {t_end - t_st:.2f} s')
 
     t_st = time()
-    data_2d = img.reshape([img.shape[0], -1])
 
-    assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
     assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
     fMRI_RDMs = jit_searchlight_RDMs(data_2d, neighbors)
-
+    del data_2d, neighbors
     assert np.sum(np.isnan(fMRI_RDMs)) == 0, 'fMRI_RDMs has nans'
 
     t_end = time()
