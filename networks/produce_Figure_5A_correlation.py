@@ -59,11 +59,11 @@ def produce_Fig5A(fp='rs_medium', anat_ver=2, combine_regions=False):
 
     rs = []
     for sn, df_sn in df.groupby('sn'):
-        key0 = 'dd_vv'
-        key1 = 'vv'
-        df_sn.dropna(subset=[key0, key1], inplace=True)
-        vals = df_sn[key0].sample(frac=1, ignore_index=True)
-        df_sn[key0] = vals.tolist()
+        # key0 = 'dd_vv'
+        # key1 = 'vv'
+        # df_sn.dropna(subset=[key0, key1], inplace=True)
+        # vals = df_sn[key0].sample(frac=1, ignore_index=True)
+        # df_sn[key0] = vals.tolist()
 
         ar = partial_corr_df(df_sn, networks,
                              cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])

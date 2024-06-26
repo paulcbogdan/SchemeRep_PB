@@ -91,7 +91,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                                                    easy_override=False)
 
     if raw is None:
-        return None, None, None
+        return [None] * 5
 
     if avg_ref:
         raw = raw.set_eeg_reference('average')
@@ -119,13 +119,21 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     # eeg_scores = np.full((1, 1, num_TRs,),
     #                      np.nan)
 
+    data_Pz_M_padded = np.pad(data_Pz_M, pad_width=62, mode='constant',
+                              constant_values=np.nan)
+    abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124])
+    abs_M_backward = np.abs(data_Fz_M - data_Pz_M_padded[124:])
+
+    # print(data_Pz_M_forward.shape)
     abs_M = np.abs(data_Fz_M - data_Pz_M)
-    # print(f'{abs_M=}')
-    # quit()
+
+
 
     Fz_scores = np.full(num_TRs, np.nan)
     Pz_scores = np.full(num_TRs, np.nan)
     abs_scores = np.full(num_TRs, np.nan)
+    abs_scores_fwd = np.full(num_TRs, np.nan)
+    abs_scores_bwd = np.full(num_TRs, np.nan)
 
     for idx, event in enumerate(events):
         # true_idx = event2true[idx]
@@ -133,7 +141,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
             true_idx = event2true[idx]
         except KeyError as e:
             print(f'{e=}')
-            return None, None, None
+            return [None] * 5
         if true_idx in boundary_events:
             continue
         t_st = event[0]
@@ -141,10 +149,10 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
         Fz_scores[true_idx] = np.mean(data_Fz_M[t_st:t_end])
         Pz_scores[true_idx] = np.mean(data_Pz_M[t_st:t_end])
         abs_scores[true_idx] = np.mean(abs_M[t_st:t_end])
+        abs_scores_fwd[true_idx] = np.mean(abs_M_forward[t_st:t_end])
+        abs_scores_bwd[true_idx] = np.mean(abs_M_backward[t_st:t_end])
 
-
-
-    return Fz_scores, Pz_scores, abs_scores
+    return Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd
 
 def conv(EEG_fluc):
     EEG_fluc = EEG_fluc.T # (TR, freq)
@@ -171,7 +179,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                 'abs_analysis': abs_analysis,
                                 'all_conn': all_conn,
                                 'clean': True},
-                            easy_override=False, verbose=-1,)
+                            easy_override=True, verbose=-1,)
 
 
 
@@ -190,7 +198,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
              ['CP1', 'CPz', 'CP2', 'CP3', 'CP4',
               'P1', 'Pz', 'P2', 'P3', 'P4']]
 
-    Fz_scores, Pz_scores, abs_scores = pickle_wrap(get_ERP_sn,
+    Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd = (
+        pickle_wrap(get_ERP_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
                                    'picks': picks,
@@ -201,7 +210,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
-                           easy_override=False, verbose=-1)
+                           easy_override=True, verbose=-1))
     if Fz_scores is None:
         return None
     # Fz_scores = conv(Fz_scores)
@@ -213,12 +222,14 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     names_conn = ['ATL_MFG', 'ATL_LOC', 'MFG_IPL', 'IPL_LOC',
                   'fluc',
                   'AP_bias', 'AP',  'VD']
-    names_eeg = ['Fz', 'Pz', 'abs', 'dif']
+    names_eeg = ['Fz', 'Pz', 'abs', 'abs_fwd', 'abs_bwd', 'dif']
     for name_conn, conn in zip(names_conn, [ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC,
                                             FC_fluc,
                                             AP_bias, AP,  VD]):
         for name_eeg, eeg in zip(names_eeg,
-                                 [Fz_scores, Pz_scores, abs_scores, dif_scores]):
+                                 [Fz_scores, Pz_scores, abs_scores,
+                                  abs_scores_fwd, abs_scores_bwd,
+                                  dif_scores]):
             df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
             df.dropna(inplace=True)
             r, p = stats.spearmanr(df[name_conn], df[name_eeg])

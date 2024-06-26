@@ -75,7 +75,8 @@ def plot_just_cbar():
     plt.show()
 
 def plot_just_cbar2():
-    cmap = get_split_cmap(4, 1, 'turbo', blue_half=False)
+    # cmap = get_split_cmap(4, 1, 'turbo', blue_half=False)
+    cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
     from matplotlib import rcParams, cm
 
@@ -87,12 +88,15 @@ def plot_just_cbar2():
     cax = plt.axes([0.15, 0.5, 0.7, 0.25])
     # norm = cm.colors.Normalize(vmax=5, vmin=0)
     cbar = plt.colorbar(orientation="horizontal", cax=cax,)
-    cbar.ax.set_xticks([0, 0.375, 0.625, 1],
-                       ['-4\nLow PE', '-1', '1', '4\nHigh PE'],
-                       fontsize=47)
+    # cbar.ax.set_xticks([0, 0.375, 0.625, 1],
+    #                    ['-4\nLow PE', '-1', '1', '4\nHigh PE'],
+    #                    fontsize=47)
+
+    cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
     cbar.outline.set_visible(False)
-    cbar.ax.set_title('t-value', fontsize=47, pad=15)
-    # cbar.ax.xaxis.set_tick_params(width=2)
+    # cbar.ax.set_title('t-value', fontsize=47, pad=15)
+
+    cbar.ax.xaxis.set_tick_params(width=2)
     # plt.tight_layout(rect=(0, 0.1, 1, 0.1))
     plt.show()
 

@@ -1,7 +1,6 @@
 import os.path
 from time import time
 import numpy as np
-from matplotlib import pyplot as plt
 
 import utils
 
@@ -13,11 +12,11 @@ from connRSA.single_trial_conn import prep_fps
 from org_sns import get_sns
 from numba import set_num_threads
 
-def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
-                             radius1=2, downsample1=1, resample1=1,
-                             radius2=2, downsample2=1, resample2=1,
-                             second_level='spear', flip=False, std=True,
-                             mask_ROIs=None, center_filter=False):
+def wrapped_jit_eightlight(sn, fp_fMRI_col, semantic,
+                           radius1=2, downsample1=1, resample1=1,
+                           radius2=2, downsample2=1, resample2=1,
+                           second_level='spear', flip=False, std=True,
+                           mask_ROIs=None, center_filter=False):
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
@@ -43,7 +42,9 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
         kw2['resample_filterer'] = resample1
     fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
                                                    kwargs=kw2, verbose=0,
-                                                   easy_override=False)
+                                                   easy_override=True)
+    print(centers2)
+    quit()
     if fMRI_RDMs2 is None:
         return None, None, None
 
@@ -52,16 +53,34 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
     assert prop_nan1 == 0, f'{prop_nan1=}'
     assert prop_nan2 == 0, f'{prop_nan2=}'
 
-    t_st = time()
-    idx1to2 = get_closest_dists(centers1.astype(np.float32),
-                                centers2.astype(np.float32),
-                                mult1=downsample1/downsample2)
 
-    used_twos = np.unique(idx1to2)
+    t_st = time()
+    idx1to_center = get_closest_dists(centers1.astype(np.float32),
+                                      centers2.astype(np.float32),
+                                      mult1=downsample1/downsample2)
+    print(idx1to_center)
+    print(idx1to_center[200:220])
+    off = int(radius2*1.5)
+    mod2idxs = {}
+    for x_mod in [-off, off]:
+        for y_mod in [-off, off]:
+            for z_mod in [-off, off]:
+                mod2idxs[(np.sign(x_mod), np.sign(y_mod), np.sign(z_mod))] = (
+                    get_closest_dists(centers1.astype(np.float32) +
+                                      [x_mod, y_mod, z_mod],
+                                      centers2.astype(np.float32),
+                                      mult1=downsample1/downsample2))
+
+    print(mod2idxs)
+    quit()
+
+
+
+    # used_twos = np.unique(idx1to2)
     t_taken = time() - t_st
     print(f'\tTime needed to find closest: {t_taken:.2f} s')
 
-    fMRI_RDMs2_in_1space = fMRI_RDMs2[idx1to2]
+    fMRI_RDMs2_in_1space = fMRI_RDMs2[idx1t_center]
     del fMRI_RDMs2
     assert fMRI_RDMs2_in_1space.shape == fMRI_RDMs1.shape
 
@@ -95,24 +114,21 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
                       radius1=2, downsample1=1, resample1=1,
                       radius2=2, downsample2=1, resample2=1,
                       std=True, network=None, center_filter=True,
-                      do_con=True):
+                      do_con=True, eightlight=True):
 
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     # sns = sns[:20]
 
-    title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
+    title1, fn1, _, _, _, _ = get_titles_fns(
         flip, semantic, network, (60, 4 if do_con else 3), downsample1,
-        radius1, downsample2, radius2)
-    fp3 = rf'result_pics/searchlight/{fn3}.png'
-    if os.path.isfile(fp3):
+        radius1, downsample2, radius2, eightlight)
+    fp1 = rf'result_pics/searchlight/{fn1}.png'
+    if os.path.isfile(fp1):
         plot_searchlight_fn(fn1)
-        plot_searchlight_fn(fn2)
-        plot_searchlight_fn(fn3)
         return
 
     fps = prep_fps('7')
-    if not do_con: fps = [fp for fp in fps if 'con' not in fp]
     searched_all1 = []
     searched_all2 = []
 
@@ -135,7 +151,7 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
                   'second_level': second_level, 'flip': flip, 'std': std,
                   'mask_ROIs': mask_ROIs, 'center_filter': center_filter}
             searched1, searched2, mask = utils.pickle_wrap(
-                wrapped_jit_regresslight, kwargs=kw, verbose=-1,
+                wrapped_jit_eightlight, kwargs=kw, verbose=-1,
                 easy_override=False)
             if searched1 is None:
                 assert base_shape is not None
@@ -186,7 +202,7 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
     plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False)
 
 def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
-               downsample2, radius2):
+               downsample2, radius2, eightlight=False):
     flip_str = ' flip' if flip else ''
     flip_str_ = '_flip' if flip else ''
     semantic_str = 'semantic' if semantic else 'visual'
@@ -195,8 +211,14 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
     title1 =  (f'Reg 1, {semantic_str}, N={sample_size}. '
                f'Down: {downsample1}, radius: {radius1}. '
                f'Control: ({downsample2}, {radius2})') + flip_str
+
     fn1 = (f'd{downsample1}-r{radius1}_d{downsample2}-r{radius2}{flip_str_}_'
            f'{semantic_str}_{sample_size}{network_str}_Reg1')
+    if eightlight:
+        title1 = title1.replace('Reg 1', 'Seven')
+        fn1 = fn1.replace('Reg1', 'Seven')
+        return title1, fn1, None, None, None, None
+
 
     fn2 = (f'd{downsample1}-r{radius1}_d{downsample2}-r{radius2}{flip_str_}_'
            f'{semantic_str}_{sample_size}{network_str}_Reg2')
@@ -231,25 +253,23 @@ if __name__ == '__main__':
     set_num_threads(1)
     # for NETWORK in ['OC_T', 'OC_IT']:
     # for NETWORK in ['OC_T', 'IT']:
-    DO_CON = False
-    for NETWORK in ['IT',]: # None, 'Occipital', 'OC_T',
+    for NETWORK in [None, 'Occipital', 'OC_T', 'IT',]: #
         for SEMANTIC in [False, True]:
             test_regresslight(semantic=SEMANTIC,
                               radius1=4, downsample1=3, resample1=1,
                               radius2=12, downsample2=1,
                               resample2=40 if NETWORK is None else 10,
-                              network=NETWORK, center_filter=False,
-                              do_con=DO_CON)
+                              network=NETWORK, center_filter=True)
             #
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=3, downsample1=4, resample2=1,
             #                   radius2=12, downsample2=1, resample1=40,
             #                   network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=4, downsample2=2, resample2=1,
-            #                   network=NETWORK, center_filter=True)
+            test_regresslight(semantic=SEMANTIC,
+                              radius1=8, downsample1=1, resample1=10,
+                              radius2=4, downsample2=2, resample2=1,
+                              network=NETWORK, center_filter=True)
             #
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=8, downsample1=1, resample1=10,

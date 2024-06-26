@@ -73,6 +73,24 @@ def evaluate_regresslight_std(fMRI_RDMs1, fMRI_RDMs2, stim_RDM):
     return betas
 
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def evaluate_multilight_std(fMRI_RDMs1, regressors, stim_RDM):
+    stim_RDM_ = (stim_RDM - np.mean(stim_RDM)) / np.std(stim_RDM)
+    num_centers = fMRI_RDMs1.shape[0]
+    ones = np.ones(fMRI_RDMs1.shape[1])
+    betas = np.empty((num_centers, 2 + regressors.shape[1]))
+    for i in range(num_centers):
+        X = np.empty((fMRI_RDMs1.shape[1], 2 + regressors.shape[1]))
+        X[:, 0] = ones
+        X[:, 1] = (fMRI_RDMs1[i] - np.mean(fMRI_RDMs1[i])) / np.std(fMRI_RDMs1[i])
+        for j in range(regressors.shape[1]):
+            X[:, 2 + j] = ((regressors[i, j] - np.mean(regressors[i, j])) /
+                           np.std(regressors[i, j]))
+        solution, residuals, rank, s = np.linalg.lstsq(X, stim_RDM_)
+        betas[i, :] = solution
+    return betas
+
+
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_searchlight_RDMs(data_2d, neighbors):
     num_trials = data_2d.shape[0]
     num_centers = neighbors.shape[0]
@@ -222,7 +240,7 @@ def do_int_upsample(img, upsample, mask):
                 img_bigger[x, y, z] = img[x_orig, y_orig, z_orig]
     return img_bigger
 
-@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+# @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def get_closest_dists(centers1, centers2, mult1):
     idx1to2 = np.full(len(centers1), NAN_VAL, dtype=np.int32)
     for i, center1 in enumerate(centers1):
@@ -230,7 +248,11 @@ def get_closest_dists(centers1, centers2, mult1):
         center1 *= mult1
         for j, center2 in enumerate(centers2):
             dists[j] = np.linalg.norm(center2 - center1)
+            # print(f'{center2}, {center1}')
         idx1to2[i] = np.argmin(dists)
+        # print(dists)
+        # print(f'{np.argmin(dists)=}')
+    # quit()
     return idx1to2
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)

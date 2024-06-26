@@ -8,6 +8,7 @@ import matplotlib.ticker as mtick
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.stats as stats
 
 np.float = float
 np.bool = bool
@@ -17,11 +18,13 @@ def per_inc_bar(key='per_inc'):
     df, _ = get_plain_df_sn()
     # print(df['vis_hit'])
     # quit()
-    df = df.groupby(['sn', 'inc'])[[key]].mean()
+    # df = df.groupby(['sn', 'inc'])[[key]].mean()
     df.reset_index(inplace=True)
-    df['per_inc'] = df[key].astype(float)
+    # df['per_inc'] = df[key].astype(float)
+    df.dropna(subset=['inc', 'per_inc'], inplace=True)
+    df['per_inc'] = df['per_inc'].astype(int).astype(str)
     df['inc'] = df['inc'].astype(str)
-    df.dropna(inplace=True)
+    # df.dropna(inplace=True)
 
     pd.set_option('display.max_rows', None)
     df_ = df.sort_values(by='per_inc')
@@ -34,6 +37,24 @@ def per_inc_bar(key='per_inc'):
 
     jitter_mag = 0.1
     inc2color = {1: 'r', 2: 'purple', 3: 'dodgerblue'}
+
+    df_grp = df.groupby(['sn', 'inc'])[key].mean()
+    # df_inc = df_grp.groupby('inc').mean()
+    # df_dif = df_inc.diff().dropna()
+    print(df_grp)
+    key2 = '3'
+    df_dif = df_grp.loc[:, '1'] - df_grp.loc[:, key2]
+    M1 = df_grp.loc[:, '1'].mean()
+    SD1 = df_grp.loc[:, '1'].std()
+    M3 = df_grp.loc[:, key2].mean()
+    SD3 = df_grp.loc[:, key2].std()
+    print(f'{M1=:.3f}, {SD1=:.3f}, {M3=:.3f}, {SD3=:.3f}')
+    t, p = stats.ttest_rel(df_grp.loc[:, '1'], df_grp.loc[:, key2])
+    n = len(df_grp.loc[:, '1'])
+    d = t / np.sqrt(n)
+    print(f'{t=:.3f} (N = {n}) {p=:.3f}, {d=:.3f}')
+    quit()
+
     for sn, df_sn in df.groupby('sn'):
         x = []
         for inc in range(1, 4):
@@ -80,8 +101,10 @@ def con_memory_bar():
     pass
 
 if __name__ == '__main__':
-    per_inc_bar()
-    per_inc_bar('con_hit')
+    # per_inc_bar()
+    per_inc_bar('inc_rt')
+
+    # per_inc_bar('con_hit')
 
 
 

@@ -229,7 +229,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=True, clean=False,
         MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
         IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
         # fluc = MFG_IPL + ATL_LOC - ATL_MFG + IPL_LOC
-        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC) ** 2
+        fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC) #** 2
         # fluc = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC) ** 2
 
     else:
