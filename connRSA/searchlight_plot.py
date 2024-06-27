@@ -2,6 +2,7 @@ from time import time
 
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
     jit_volume_searchlight
+from connRSA.conn_utils import mask_img
 
 t_st = time()
 from functools import cache
@@ -25,7 +26,8 @@ from stim import get_stim_RDM
 from nilearn import plotting, image
 import scipy.stats as stats
 
-def plot_t(t, title, vabs=None, fn='', only_positive=True):
+def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
+           dic='searchlight'):
     t_M = np.nanmean(t)
 
     print(f'{t_M=:.3f}')
@@ -42,6 +44,7 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True):
     y_pre_pad -= y_post_pad
     z_pre_pad = atlas['maps'].shape[2] - t.shape[2]
     t = np.pad(t, ((x_pre_pad, 0), (y_pre_pad, y_post_pad), (z_pre_pad, 0)))
+    t = mask_img(t, None, blocks=True)
 
     if only_positive:
         t = np.maximum(t, 0)
@@ -65,17 +68,40 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True):
         vabs = np.nanquantile(np.abs(t), 0.995)
 
 
-    fp_out = fr'E:\PycharmProjects_E\SchemeRep\result_pics\searchlight\{fn}.png'
+    fp_out = fr'E:\PycharmProjects_E\SchemeRep\result_pics\{dic}\{fn}.png'
     cmap = 'inferno' if only_positive else 'turbo'
+    if flip_color:
+        title = title.replace('Blue', 'XXX')
+        title = title.replace('Red', 'Blue')
+        title = title.replace('XXX', 'Red')
+        cmap += '_r'
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
                               vmax=vabs, output_file=fp_out, plot_abs=False,
-                              threshold=0, title=title,
+                              threshold=2, title=title,
                               colorbar=True, cmap=cmap,)
 
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
                               vmax=vabs, plot_abs=False,
-                              threshold=0, title=title,
+                              threshold=2, title=title,
                               colorbar=True, cmap=cmap,
                               )
-
     plt.show()
+
+    # plotting.plot_stat_map(t_img, display_mode='y',
+    #                        cut_coords=tuple(range(-70, 20, 6)),
+    #                        vmin=0 if only_positive else -vabs,
+    #                        vmax=vabs,
+    #                        threshold=2, title=title,
+    #                        colorbar=True, cmap=cmap,
+    #                        )
+    #
+    # plt.show()
+    #
+    # plotting.plot_stat_map(t_img, display_mode='mosaic',
+    #                        vmin=0 if only_positive else -vabs,
+    #                        vmax=vabs,
+    #                        threshold=2, title=title,
+    #                        colorbar=True, cmap=cmap,
+    #                        )
+    #
+    # plt.show()

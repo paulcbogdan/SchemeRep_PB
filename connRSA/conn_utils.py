@@ -347,3 +347,30 @@ def prep_for_pairwise(ROI2vecs, atlas):
 
     return region2vecs, region_order, score_ar, IRAFs_ar
 
+
+def mask_img(img, ROIs, blocks=False):
+    t_st = time()
+    atlas = get_atlas()
+    atlas_data = atlas['maps'].get_fdata()
+
+    if blocks:
+        # bad_vals = np.unique(img[atlas_data == 0])
+        bad_vals, bad_vals_cnts = np.unique(img[atlas_data == 0], return_counts=True)
+        max_cnt = np.max(bad_vals_cnts[1])
+        bad_vals = [bad_val for bad_val, cnt in
+                    zip(bad_vals, bad_vals_cnts) if cnt >= (max_cnt * .8)]
+        for bad_val in bad_vals:
+            img[(bad_val + 1e-8 > img) & (img > bad_val - 1e-8)] = np.nan
+        return img
+
+    img[atlas_data == 0] = np.nan # Needed to basically get only ROIs and no non-ROI
+    if ROIs is None:
+        return img
+    ROIs = set(ROIs)
+    atlas_remove = np.zeros(atlas['maps'].shape, dtype=np.bool_)
+    for ROI, ROI_num in zip(atlas['ROIs'], atlas['ROI_nums']):
+        if ROI not in ROIs:
+            atlas_remove[atlas_data == ROI_num] = True
+    img[atlas_remove, :] = np.nan
+    print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
+    return img

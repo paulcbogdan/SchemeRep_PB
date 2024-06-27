@@ -22,12 +22,12 @@ def per_inc_bar(key='per_inc'):
     df.reset_index(inplace=True)
     # df['per_inc'] = df[key].astype(float)
     df.dropna(subset=['inc', 'per_inc'], inplace=True)
-    df['per_inc'] = df['per_inc'].astype(int).astype(str)
+    # df['per_inc'] = df['per_inc'].astype(int).astype(str)
     df['inc'] = df['inc'].astype(str)
     # df.dropna(inplace=True)
 
     pd.set_option('display.max_rows', None)
-    df_ = df.sort_values(by='per_inc')
+    # df_ = df.sort_values(by='per_inc')
 
 
     # set font to Arial
@@ -38,11 +38,16 @@ def per_inc_bar(key='per_inc'):
     jitter_mag = 0.1
     inc2color = {1: 'r', 2: 'purple', 3: 'dodgerblue'}
 
+    # df['rt_rank'] = df['inc_rt'].rank()
+    # max_rank = df['rt_rank'].max()
+    # df['rt_rank'] /= max_rank
+    # key = 'rt_rank'
+    key = 'per_inc'
     df_grp = df.groupby(['sn', 'inc'])[key].mean()
     # df_inc = df_grp.groupby('inc').mean()
     # df_dif = df_inc.diff().dropna()
     print(df_grp)
-    key2 = '3'
+    key2 = '2'
     df_dif = df_grp.loc[:, '1'] - df_grp.loc[:, key2]
     M1 = df_grp.loc[:, '1'].mean()
     SD1 = df_grp.loc[:, '1'].std()
@@ -53,6 +58,13 @@ def per_inc_bar(key='per_inc'):
     n = len(df_grp.loc[:, '1'])
     d = t / np.sqrt(n)
     print(f'{t=:.3f} (N = {n}) {p=:.3f}, {d=:.3f}')
+
+    # df_inc = df.groupby(['inc'])[key].mean()
+
+
+
+    # M1 = df_inc.loc['1']
+
     quit()
 
     for sn, df_sn in df.groupby('sn'):

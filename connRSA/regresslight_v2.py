@@ -44,6 +44,7 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
     fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
                                                    kwargs=kw2, verbose=0,
                                                    easy_override=False)
+
     if fMRI_RDMs2 is None:
         return None, None, None
 
@@ -231,13 +232,13 @@ if __name__ == '__main__':
     set_num_threads(1)
     # for NETWORK in ['OC_T', 'OC_IT']:
     # for NETWORK in ['OC_T', 'IT']:
-    DO_CON = False
+    DO_CON = True
     for NETWORK in ['IT',]: # None, 'Occipital', 'OC_T',
         for SEMANTIC in [False, True]:
             test_regresslight(semantic=SEMANTIC,
-                              radius1=4, downsample1=3, resample1=1,
-                              radius2=12, downsample2=1,
-                              resample2=40 if NETWORK is None else 10,
+                              radius1=2, downsample1=8,
+                              resample1=40 if NETWORK is None else 10,
+                              radius2=8, downsample2=2, resample2=1,
                               network=NETWORK, center_filter=False,
                               do_con=DO_CON)
             #

@@ -5,8 +5,9 @@ from matplotlib import pyplot as plt, image as mpimg
 
 from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.conn_utils import mask_img
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
-    jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img, get_closest_dists
+    jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img
 from connRSA.searchlight_plot import plot_t
 from old.networks import prep_networks
 
@@ -48,20 +49,6 @@ def get_singular_ROIs(target_ROI):
     return ROIs_match
 
 
-def mask_img(img, ROIs):
-    t_st = time()
-    ROIs = set(ROIs)
-    atlas = get_atlas()
-    atlas_data = atlas['maps'].get_fdata()
-    img[atlas_data == 0] = np.nan # Needed to basically get only ROIs and no non-ROI
-    atlas_remove = np.zeros(atlas['maps'].shape, dtype=np.bool_)
-    for ROI, ROI_num in zip(atlas['ROIs'], atlas['ROI_nums']):
-        if ROI not in ROIs:
-            atlas_remove[atlas_data == ROI_num] = True
-    img[atlas_remove, :] = np.nan
-    print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
-    return img
-
 def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
                   resample=1, flip=False, mask_ROIs=None,
                   resample_filterer=None):
@@ -71,6 +58,9 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
     if mask_ROIs is not None:
         img = mask_img(img, mask_ROIs)
+    else:
+        img = mask_img(img, None)
+
     mask_pre = np.all(~np.isnan(img), axis=-1)
 
     if downsample != 1:
@@ -332,8 +322,8 @@ def interpolate_nearest_3D(ar):
     val_interp = interp(X, Y, Z)
     return val_interp
 
-def plot_searchlight_fn(fn):
-    fp = rf'result_pics/searchlight/{fn}.png'
+def plot_searchlight_fn(fn, dic='searchlight'):
+    fp = rf'result_pics/{dic}/{fn}.png'
     plt.figure(figsize=(7.5, 3.5))
     img = mpimg.imread(fp)
     plt.imshow(img)

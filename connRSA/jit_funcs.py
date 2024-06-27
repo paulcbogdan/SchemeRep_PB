@@ -240,19 +240,18 @@ def do_int_upsample(img, upsample, mask):
                 img_bigger[x, y, z] = img[x_orig, y_orig, z_orig]
     return img_bigger
 
-# @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def get_closest_dists(centers1, centers2, mult1):
     idx1to2 = np.full(len(centers1), NAN_VAL, dtype=np.int32)
     for i, center1 in enumerate(centers1):
         dists = np.empty(len(centers2))
         center1 *= mult1
         for j, center2 in enumerate(centers2):
-            dists[j] = np.linalg.norm(center2 - center1)
-            # print(f'{center2}, {center1}')
+            # 10x speedup relative to np.linalg.norm(center2 - center1)
+            dists[j] = ((center2[0] - center1[0]) ** 2 +
+                        (center2[1] - center1[1]) ** 2 +
+                        (center2[2] - center1[2]) ** 2)
         idx1to2[i] = np.argmin(dists)
-        # print(dists)
-        # print(f'{np.argmin(dists)=}')
-    # quit()
     return idx1to2
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
