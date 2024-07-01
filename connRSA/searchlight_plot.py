@@ -44,7 +44,7 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
     y_pre_pad -= y_post_pad
     z_pre_pad = atlas['maps'].shape[2] - t.shape[2]
     t = np.pad(t, ((x_pre_pad, 0), (y_pre_pad, y_post_pad), (z_pre_pad, 0)))
-    t = mask_img(t, None, blocks=True)
+    # t = mask_img(t, None, blocks=True)
 
     if only_positive:
         t = np.maximum(t, 0)
@@ -77,12 +77,12 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
         cmap += '_r'
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
                               vmax=vabs, output_file=fp_out, plot_abs=False,
-                              threshold=2, title=title,
+                              threshold=0.01, title=title,
                               colorbar=True, cmap=cmap,)
 
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
                               vmax=vabs, plot_abs=False,
-                              threshold=2, title=title,
+                              threshold=0.01, title=title,
                               colorbar=True, cmap=cmap,
                               )
     plt.show()

@@ -153,6 +153,12 @@ def prep_networks(network_setting=1):
         networks = {'OC_IT': ['EVC', 'LOC', 'sOcG', 'ITG', 'FuG', 'PhG', 'ATL'],
                     'OC_T': ['EVC', 'LOC', 'sOcG', 'ITG', 'FuG', 'PhG', 'ATL',
                              'MTG', ],}
+    elif network_setting == 28:
+        networks = {'cortex': ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL',
+                               'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
+                               'CG',
+                               'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
+                               'EVC', 'LOC', 'sOcG']}
     elif network_setting == -1:
         networks = {}
 

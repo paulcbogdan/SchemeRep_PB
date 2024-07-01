@@ -9,7 +9,7 @@ from fMRI_proc import get_ROI_vecs, get_ROI_vecs_
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
 from stim import get_stim_RDM, get_DNN_vecs, scipy_dist, prune_RSM_outliers
-from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer
+from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer, pickle_wrap
 import scipy.stats as stats
 
 import warnings
@@ -350,10 +350,10 @@ def prep_for_pairwise(ROI2vecs, atlas):
 
 def mask_img(img, ROIs, blocks=False):
     t_st = time()
-    atlas = get_atlas()
-    atlas_data = atlas['maps'].get_fdata()
 
     if blocks:
+        atlas = get_atlas()
+        atlas_data = atlas['maps'].get_fdata()
         # bad_vals = np.unique(img[atlas_data == 0])
         bad_vals, bad_vals_cnts = np.unique(img[atlas_data == 0], return_counts=True)
         max_cnt = np.max(bad_vals_cnts[1])
@@ -363,14 +363,39 @@ def mask_img(img, ROIs, blocks=False):
             img[(bad_val + 1e-8 > img) & (img > bad_val - 1e-8)] = np.nan
         return img
 
-    img[atlas_data == 0] = np.nan # Needed to basically get only ROIs and no non-ROI
+    atlas_mask = pickle_wrap(get_atlas_mask, RAM_cache=True, easy_override=True)
+    img[~atlas_mask] = np.nan # Needed to basically get only ROIs and no non-ROI
     if ROIs is None:
+        print(f'\tTime needed to atlas mask: {time() - t_st=:.2f}')
         return img
+
+
+    ROIs_mask = pickle_wrap(get_ROI_mask, kwargs={'ROIs': ROIs},
+                               RAM_cache=True, easy_override=True)
+
+    img[~ROIs_mask, :] = np.nan
+    # print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
+
+    # for i in range(10, 40, 5):
+    #     plt.imshow(img[i, :, :, 0])
+    #     plt.colorbar()
+    #     plt.show()
+    # quit()
+    return img
+
+def get_atlas_mask():
+    atlas = get_atlas()
+    atlas_data = atlas['maps'].get_fdata()
+    return atlas_data != 0
+
+def get_ROI_mask(ROIs):
+    t_st = time()
+    atlas = get_atlas()
+    atlas_data = atlas['maps'].get_fdata()
+
     ROIs = set(ROIs)
     atlas_remove = np.zeros(atlas['maps'].shape, dtype=np.bool_)
     for ROI, ROI_num in zip(atlas['ROIs'], atlas['ROI_nums']):
-        if ROI not in ROIs:
+        if ROI in ROIs:
             atlas_remove[atlas_data == ROI_num] = True
-    img[atlas_remove, :] = np.nan
-    print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
-    return img
+    return atlas_remove

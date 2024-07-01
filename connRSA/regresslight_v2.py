@@ -17,7 +17,8 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
                              radius1=2, downsample1=1, resample1=1,
                              radius2=2, downsample2=1, resample2=1,
                              second_level='spear', flip=False, std=True,
-                             mask_ROIs=None, center_filter=False):
+                             mask_ROIs=None, center_filter=False,
+                             threshold=0.25):
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
@@ -28,7 +29,8 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
 
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius1, 'downsample': downsample1,
-           'resample': resample1, 'mask_ROIs': mask_ROIs}
+           'resample': resample1, 'mask_ROIs': mask_ROIs,
+           'threshold': threshold}
     fMRI_RDMs1, mask, centers1, mask_downsample_pre = (
         utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
                           easy_override=False))
@@ -37,10 +39,9 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
 
     kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
-           'resample': resample2, 'mask_ROIs': mask_ROIs,}
-    if center_filter:
-        kw2['center_filterer'] = centers1
-        kw2['resample_filterer'] = resample1
+           'resample': resample2, 'mask_ROIs': mask_ROIs,
+           'threshold': threshold}
+
     fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
                                                    kwargs=kw2, verbose=0,
                                                    easy_override=False)
@@ -96,7 +97,7 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
                       radius1=2, downsample1=1, resample1=1,
                       radius2=2, downsample2=1, resample2=1,
                       std=True, network=None, center_filter=True,
-                      do_con=True):
+                      do_con=True, threshold=.25):
 
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
@@ -104,13 +105,16 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
 
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, (60, 4 if do_con else 3), downsample1,
-        radius1, downsample2, radius2)
-    fp3 = rf'result_pics/searchlight/{fn3}.png'
+        radius1, downsample2, radius2, threshold=threshold)
+    fp3 = rf'result_pics/regresslight/{fn3}.png'
     if os.path.isfile(fp3):
-        plot_searchlight_fn(fn1)
-        plot_searchlight_fn(fn2)
-        plot_searchlight_fn(fn3)
-        return
+        try:
+            plot_searchlight_fn(fn1, dic='regresslight')
+            plot_searchlight_fn(fn2, dic='regresslight')
+            plot_searchlight_fn(fn3, dic='regresslight')
+            return
+        except FileNotFoundError:
+            pass
 
     fps = prep_fps('7')
     if not do_con: fps = [fp for fp in fps if 'con' not in fp]
@@ -134,7 +138,8 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
                   'radius2': radius2, 'downsample2': downsample2,
                   'resample2': resample2,
                   'second_level': second_level, 'flip': flip, 'std': std,
-                  'mask_ROIs': mask_ROIs, 'center_filter': center_filter}
+                  'mask_ROIs': mask_ROIs, 'center_filter': center_filter,
+                  'threshold': threshold}
             searched1, searched2, mask = utils.pickle_wrap(
                 wrapped_jit_regresslight, kwargs=kw, verbose=-1,
                 easy_override=False)
@@ -180,14 +185,15 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
 
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, sample_size, downsample1, radius1,
-        downsample2, radius2)
+        downsample2, radius2, threshold=threshold)
 
-    plot_t(t1, title=title1, vabs=tile_max, fn=fn1)
-    plot_t(t2, title=title2, vabs=tile_max, fn=fn2)
-    plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False)
+    plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic='regresslight')
+    plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic='regresslight')
+    plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False,
+           dic='regresslight')
 
 def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
-               downsample2, radius2):
+                   downsample2, radius2, threshold=0.25):
     flip_str = ' flip' if flip else ''
     flip_str_ = '_flip' if flip else ''
     semantic_str = 'semantic' if semantic else 'visual'
@@ -210,6 +216,12 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
     title3 =  (f'Dif, {semantic_str}, N={sample_size}. '
                f'Blue: d={downsample1}, r={radius1}. '
                f'Red: d={downsample2}, r={radius2}.') + flip_str
+
+    if threshold < 0.24 or threshold > 0.26:
+        fn1 += f'_t{threshold}'
+        fn2 += f'_t{threshold}'
+        fn3 += f'_t{threshold}'
+
     return title1, fn1, title2, fn2, title3, fn3
 
 def get_t(searched_all):
@@ -233,19 +245,34 @@ if __name__ == '__main__':
     # for NETWORK in ['OC_T', 'OC_IT']:
     # for NETWORK in ['OC_T', 'IT']:
     DO_CON = True
-    for NETWORK in ['IT',]: # None, 'Occipital', 'OC_T',
-        for SEMANTIC in [False, True]:
-            test_regresslight(semantic=SEMANTIC,
-                              radius1=2, downsample1=8,
-                              resample1=40 if NETWORK is None else 10,
-                              radius2=8, downsample2=2, resample2=1,
-                              network=NETWORK, center_filter=False,
-                              do_con=DO_CON)
+    THRESHOLD = 0.5
+    for NETWORK in ['cortex', 'OC_IT', 'IT',]: # None, 'Occipital', 'OC_T',
+        for SEMANTIC in [True,]:
+            # test_regresslight(semantic=SEMANTIC,
+            #                   radius1=2, downsample1=8,
+            #                   resample1=40 if NETWORK is None else 10,
+            #                   radius2=8, downsample2=2, resample2=1,
+            #                   network=NETWORK, center_filter=False,
+            #                   do_con=DO_CON)
+
+            # test_regresslight(semantic=SEMANTIC,
+            #                   radius1=6, downsample1=3,
+            #                   resample1=1,#40 if NETWORK is None else 10,
+            #                   radius2=3, downsample2=6, resample2=1,
+            #                   network=NETWORK, center_filter=False,
+            #                   do_con=DO_CON, threshold=THRESHOLD)
             #
             # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=3, downsample1=4, resample2=1,
-            #                   radius2=12, downsample2=1, resample1=40,
-            #                   network=NETWORK)
+            #                   radius1=6, downsample1=3,
+            #                   resample1=1,  # 40 if NETWORK is None else 10,
+            #                   radius2=3, downsample2=6, resample2=1,
+            #                   network=NETWORK, center_filter=False,
+            #                   do_con=DO_CON, threshold=THRESHOLD)
+
+            test_regresslight(semantic=SEMANTIC,
+                              radius2=2, downsample2=6, resample1=1,
+                              radius1=6, downsample1=2, resample2=1,
+                              network=NETWORK)
 
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=8, downsample1=1, resample1=10,
@@ -266,12 +293,19 @@ if __name__ == '__main__':
             #                   radius1=3, downsample1=1, resample1=10,
             #                   radius2=3, downsample2=3, resample2=1,
             #                   network=NETWORK)
-
+            #
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=2, resample1=10,
             #                   radius2=2, downsample2=6, resample2=1,
-            #                   network=NETWORK)
+            #                   network=NETWORK,
+            #                   do_con=DO_CON, threshold=THRESHOLD)
             #
+            # test_regresslight(semantic=SEMANTIC,
+            #                   radius1=6, downsample1=2, resample1=10,
+            #                   radius2=2, downsample2=6, resample2=1,
+            #                   network=NETWORK,
+            #                   do_con=DO_CON, threshold=THRESHOLD)
+
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=6, downsample1=2, resample1=10,
             #                   radius2=4, downsample2=6, resample2=1,

@@ -121,6 +121,42 @@ def jit_searchlight_RDMs(data_2d, neighbors):
     return out
 
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def jit_searchlight_orged_RDMs(data_ready):
+    num_trials = data_ready.shape[0]
+    num_centers = data_ready.shape[1]
+    RDM_size = (num_trials - 1) * num_trials // 2
+    out = np.full((num_centers, RDM_size), NAN_VAL, dtype=np.float32)
+    for i in range(num_centers):
+        sphere_data = data_ready[:, i, :]
+        sphere_RDM = np.corrcoef(sphere_data)
+        RDM_flat = np.empty(RDM_size)
+        cnt = 0
+        for j in range(114):
+            for k in range(j):
+                RDM_flat[cnt] = sphere_RDM[j, k]
+                cnt += 1
+        out[i] = RDM_flat
+    return out
+
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def prep_data_Ms(data_2d, neighbors):
+    num_trials = data_2d.shape[0]
+    num_centers = neighbors.shape[0]
+    out = np.empty((num_trials, num_centers), dtype=np.float32)
+    for i in range(num_centers):
+        for k in range(neighbors.shape[1]):
+            if neighbors[i, k] == NAN_VAL:
+                cutoff = k
+                break
+        else:
+            cutoff = neighbors.shape[1]
+        neighbors_i = neighbors[i, :cutoff]
+        for j in range(num_trials):
+            out[j, i] = np.mean(data_2d[j, neighbors_i])
+    return out
+
+
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     X_len = mask.shape[0]
     Y_len = mask.shape[1]
