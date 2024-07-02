@@ -7,7 +7,8 @@ from matplotlib import pyplot as plt
 import utils
 
 from connRSA.jit_funcs import evaluate_regresslight, get_closest_dists, evaluate_regresslight_std, \
-    evaluate_multilight_std, evaluate_models_searchlight, jit_searchlight_orged_RDMs
+    evaluate_multilight_std, evaluate_models_searchlight, jit_searchlight_orged_RDMs, get_closest_dists_all, \
+    get_closest_dists_vox2c
 from connRSA.searchlight_plot import plot_t
 from connRSA.searchlight_v2 import full_get_RDMs, results2img, get_singular_ROIs, get_RSM_stim_flat, \
     plot_searchlight_fn, make_tril_mask_within_nan
@@ -33,8 +34,9 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
     kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
            'resample': resample2, 'mask_ROIs': mask_ROIs,
-           'threshold': threshold, 'get_sphere_Ms': True}
-    fMRI_RDMs2, mask2, centers2, mask_downsample_pre2, data_Ms = (
+           'threshold': threshold, 'get_sphere_Ms': True,
+           'get_vox2center': True}
+    fMRI_RDMs2, mask2, centers2, mask_downsample_pre2, data_Ms, voxel2center = (
         utils.pickle_wrap(full_get_RDMs, kwargs=kw2, verbose=0,
                           easy_override=False))
     if fMRI_RDMs2 is None:
@@ -61,14 +63,20 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
 
     print(f'{data_Ms.shape=}')
     mult1 = downsample1 / downsample2
-    ar = get_indexing_ar(centers1, centers2, radius1, mult1, mult27,
-                         super64=super64)
+    ar, good_finds = get_indexing_ar(centers1, centers2, radius1, mult1, mult27,
+                         super64=super64, voxel2center=voxel2center)
+    print(f'{ar.shape=}')
+    # print(f'{fMRI_RDMs2.shape=}')
+    ar = ar[good_finds, :]
+    # fMRI_RDMs2 = fMRI_RDMs2[good_finds, :]
+    centers1 = centers1[good_finds, :]
+
     cube1s = data_Ms[:, ar]
     fMRI_RDMs1 = jit_searchlight_orged_RDMs(cube1s)
     tril_mask, kept_in = make_tril_mask_within_nan(flip=flip)
     fMRI_RDMs1 = fMRI_RDMs1[:, kept_in]
 
-    print(f'{fMRI_RDMs1.shape}')
+    # print(f'{fMRI_RDMs1.shape=}')
 
     regressors = fMRI_RDMs2[ar]
     if m_rsm:
@@ -81,6 +89,9 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
     M_other = np.nanmean(betas[:, 2:], axis=1)
     M_sum_other = np.nansum(betas[:, 2:], axis=1)
     print(f'\tTime needed to regress: {time() - t_st:.2f} s')
+
+    if superdensity:
+        downsample1 = downsample2
 
     searched1 = results2img(eval_results1, second_level, mask, centers1,
                             mask_downsample_pre, resample1, downsample1)
@@ -101,17 +112,7 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
 
 
 def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
-                    super64=False):
-    t_st = time()
-    idx1to_center = get_closest_dists(centers1.astype(np.float32),
-                                      centers2.astype(np.float32),
-                                      mult1=mult1)
-    print(f'\tTime needed to find closest: {time() - t_st:.2f} s')
-
-    i2new_spot = defaultdict(list)
-    mod2idxs = {}
-
-    centers1_multd = (centers1 * mult1).astype(np.float32)
+                    super64=False, voxel2center=None):
 
     if super64:
         off1 = int(mult1)
@@ -121,53 +122,35 @@ def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
         off = int(radius1 * mult1)
         l = [-off, 0, off]
 
-    for x_mod in l:
-        for y_mod in l:
-            for z_mod in l:
-                num_zeros = np.sum([x_mod == 0, y_mod == 0, z_mod == 0])
+    t_st = time()
+    # print(f'{voxel2center.shape=}')
+    # quit()
+    if voxel2center is not None:
+        ar, good_finds = get_closest_dists_vox2c(centers1, centers2,
+                                                 np.array(l), voxel2center,
+                                                 off)
+        proportion_good = np.mean(good_finds)
+        print(f'{proportion_good=}')
+        # print(f'{len(good_finds)=}')
+        # print(f'{ar.shape=}')
+        # print(f'{centers1.shape=}')
+        # quit()
+    else:
+        ar = get_closest_dists_all(centers1, centers2, np.array(l))
+        good_finds = np.full(centers1.shape[0], True, dtype=np.bool_)
+    print(f'\tTime needed to find closests: {time() - t_st:.2f} s')
 
-                if super64:
-                    pass
-                elif mult27:
-                    if num_zeros == 3:
-                        continue
-                else:
-                    if num_zeros != 2:
-                        continue
 
 
-                if super64:
-                    tup = (x_mod, y_mod, z_mod)
-                else:
-                    tup = (np.sign(x_mod), np.sign(y_mod), np.sign(z_mod))
-
-                mod2idxs[tup] = (
-                    get_closest_dists(centers1_multd +
-                                      [x_mod, y_mod, z_mod],
-                                      centers2.astype(np.float32),
-                                      mult1=1))
-
-                for i in range(len(centers1)):
-                    i2new_spot[i].append(
-                        (centers1[i] + [x_mod, y_mod, z_mod]))
-
-    ar = np.vstack([l for l in mod2idxs.values()]).T
-    print(ar.shape)
-    quit()
-
-    nan_out = []
-    num2is = defaultdict(list)
+    num_uniques = []
     for i in range(ar.shape[0]):
         num_unique = len(np.unique(ar[i]))
-        num2is[num_unique].append(i)
-    M_num_unique = np.mean([len(l) for l in num2is.values()])
+        num_uniques.append(num_unique)
+
+    M_num_unique = np.mean(num_uniques)
     print(f'Mean number of uniques: {M_num_unique:.2f} ({mult27=})')
 
-    if not super64:
-        ar = np.concatenate([idx1to_center[:, None], ar], axis=1)
-    if super64:
-        assert ar.shape[1] == 64
-    return ar
+    return ar, good_finds
 
 
 def wrapped_jit_eightlight(sn, fp_fMRI_col, semantic,

@@ -194,6 +194,7 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
     good_neighbors = np.full((centers.shape[0], max_cnt), NAN_VAL, dtype=np.int32)
     good_centers = np.full(centers.shape, NAN_VAL, dtype=np.int32)
     thresh_int = int(threshold * max_cnt)
+    voxel2idx_centers = np.full(mask.shape, NAN_VAL, dtype=np.int32)
 
     cnt_good_center = 0
     for cnt_center, center in enumerate(centers):
@@ -219,10 +220,15 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
         if cnt >= thresh_int:
             good_centers[cnt_good_center, :] = centers[cnt_center, :]
             good_neighbors[cnt_good_center, :] = neighbors[cnt_center, :]
+            voxel2idx_centers[centers[cnt_center, 0],
+                              centers[cnt_center, 1],
+                              centers[cnt_center, 2]] = cnt_good_center
             cnt_good_center += 1
+
+
     good_centers = good_centers[:cnt_good_center]
     good_neighbors = good_neighbors[:cnt_good_center, :]
-    return good_centers, good_neighbors
+    return good_centers, good_neighbors, voxel2idx_centers
 
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
@@ -290,8 +296,119 @@ def get_closest_dists(centers1, centers2, mult1):
         idx1to2[i] = np.argmin(dists)
     return idx1to2
 
-def get_closest_dists_all(centers1, centers2, mult1, l):
-    pass
+@jit(parallel=True, fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def get_closest_dists_all(centers1, centers2, l):
+    num_centers = centers1.shape[0]
+    # num_mods =
+    ar = np.empty((num_centers, l.shape[0] ** 3, ), dtype=np.int32)
+    mod_combos = np.empty((l.shape[0] ** 3, 3), dtype=np.int32)
+    cnt = 0
+    for x_mod in l:
+        for y_mod in l:
+            for z_mod in l:
+                mod_combos[cnt, :] = [x_mod, y_mod, z_mod]
+                cnt += 1
+
+    for i in prange(num_centers):
+        for j, mod_combo in enumerate(mod_combos):
+            x_ = centers1[i, 0] + mod_combo[0]
+            y_ = centers1[i, 1] + mod_combo[1]
+            z_ = centers1[i, 2] + mod_combo[2]
+            min_dist = np.inf
+            for k, center2 in enumerate(centers2):
+                dist = ((center2[0] - x_) ** 2 +
+                        (center2[1] - y_) ** 2 +
+                        (center2[2] - z_) ** 2)
+                if dist < min_dist:
+                    min_dist = dist
+                    ar[i, j] = k
+    return ar
+
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def get_closest_dists_vox2c(centers1, centers2, l, vox2center, search_range):
+    num_centers = centers1.shape[0]
+    # num_mods =
+    ar = np.empty((num_centers, l.shape[0] ** 3, ), dtype=np.int32)
+    mod_combos = np.empty((l.shape[0] ** 3, 3), dtype=np.int32)
+    cnt = 0
+    for x_mod in l:
+        for y_mod in l:
+            for z_mod in l:
+                mod_combos[cnt, :] = [x_mod, y_mod, z_mod]
+                cnt += 1
+
+    good_finds = np.full(num_centers, True, dtype=np.bool_)
+
+    for i in range(num_centers):
+        for j, mod_combo in enumerate(mod_combos):
+            x_ = centers1[i, 0] + mod_combo[0]
+            y_ = centers1[i, 1] + mod_combo[1]
+            z_ = centers1[i, 2] + mod_combo[2]
+
+            bullseye = vox2center[x_, y_, z_]
+            if bullseye != NAN_VAL:
+                ar[i, j] = bullseye
+                # print('BULLSEYE')
+                continue
+            # loop around the bullseye
+            found = False
+            for k in range(1, search_range):
+                for x in range(-k, k+1):
+                    for y in range(-k, k+1):
+                        for z in range(-k, k+1):
+                            if x == -k or x == k or y == -k or y == k or z == -k or z == k:
+                                x_ = centers1[i, 0] + mod_combo[0] + x
+                                y_ = centers1[i, 1] + mod_combo[1] + y
+                                z_ = centers1[i, 2] + mod_combo[2] + z
+                                if x_ < 0 or y_ < 0 or z_ < 0:
+                                    continue
+                                if (x_ >= vox2center.shape[0] or
+                                        y_ >= vox2center.shape[1] or
+                                        z_ >= vox2center.shape[2]):
+                                    continue
+                                if vox2center[x_, y_, z_] != NAN_VAL:
+                                    ar[i, j] = vox2center[x_, y_, z_]
+                                    found = True
+                                    break
+                        if found:
+                            break
+                    if found:
+                        break
+                if found:
+                    break
+            if found:
+                # print('FOUND WITH SEARCH')
+                continue
+            else:
+                good_finds[i] = False
+                ar[i, j] = NAN_VAL
+                # print('?????????')
+            # extremely extremely rare to not be found by now...
+            # else:
+
+            # if not found:
+            #     ar[i, j] = NAN_VAL
+            #     print('STILL NOT FOUND????')
+            # else:
+            #     print('FOUND WITH SEARCH')
+
+            # print(vox2center[x_, y_, z_])
+
+            # print(vox2center[x_-1:x_+2, y_-1:y_+2, z_-1:z_+2])
+            #
+            # min_dist = np.inf
+            # for k, center2 in enumerate(centers2):
+            #     dist = ((center2[0] - x_) ** 2 +
+            #             (center2[1] - y_) ** 2 +
+            #             (center2[2] - z_) ** 2)
+            #     if dist < min_dist:
+            #         min_dist = dist
+            #         ar[i, j] = k
+            # print(f'{ar[i, j]}')
+            # print('-')
+    return ar, good_finds
+
+
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def convert_back_to_img(eval_results, mask, centers):
@@ -300,6 +417,10 @@ def convert_back_to_img(eval_results, mask, centers):
         center = centers[i]
         img[center[0], center[1], center[2]] = eval_results[i]
     return img
+
+
+
+
 
 # if __name__ == '__main__':
 #     a = [[2, 1, 2], [100, 10, 100], [-1000, -100, -10]]

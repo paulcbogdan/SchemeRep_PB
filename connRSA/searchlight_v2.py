@@ -52,7 +52,8 @@ def get_singular_ROIs(target_ROI):
 def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
                   resample=1, flip=False, mask_ROIs=None,
                   resample_filterer=None, threshold=0.25,
-                  get_sphere_Ms=False, no_RDMs=False):
+                  get_sphere_Ms=False, no_RDMs=False,
+                  get_vox2center=False):
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
 
@@ -83,8 +84,9 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     del img
     assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
 
-    centers, neighbors = jit_volume_searchlight(mask, radius=radius,
-                                                threshold=threshold)
+    centers, neighbors, voxel2idx_centers = (
+        jit_volume_searchlight(mask, radius=radius, threshold=threshold))
+
     if no_RDMs:
         if centers.shape[0] == 0:
             return [None] * 3
@@ -94,7 +96,13 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
     if centers.shape[0] == 0:
         print(f'NO CENTERS: {sn}/{fp_fMRI_col}')
-        return [None] * 5 if get_sphere_Ms else [None] * 4
+        if voxel2idx_centers:
+            return [None] * 6
+        elif get_sphere_Ms:
+            return [None] * 5
+        else:
+            return [None] * 4
+        # return [None] * 5 if get_sphere_Ms else [None] * 4
         # return None, None, None, None
 
     if resample > 1:
@@ -119,22 +127,9 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
         t_st = time()
         print(f'{data_2d.shape=}')
         data_Ms = prep_data_Ms(data_2d, neighbors)
-        # plt.imshow(data_Ms)
-        # plt.show()
-        # print(f'{data_Ms.shape=}')
-        # quit()
+
         print(f'\tTime needed to get data_Ms: {time() - t_st:.2f} s')
-        # quit()
-        # data_Ms = []
-        # for neighbors_ in neighbors:
-        #     pass
-        # print(f'{neighbors.shape=}')
-        # print(f'{data_2d.shape=}')
-        # test = data_2d[:, neighbors]
-        # print(f'{test.shape=}')
-        # quit()
-        # data_2d[data_2d == NAN_VAL] = np.nan
-        # data_Ms = np.nanmean(data_2d, axis=1)
+
     del data_2d, neighbors
     assert np.sum(np.isnan(fMRI_RDMs)) == 0, 'fMRI_RDMs has nans'
 
@@ -146,7 +141,11 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     print(f'{mask.dtype=}')
     print(f'{centers.dtype=}')
     print(f'{mask_downsample_pre.dtype=}')
-    if get_sphere_Ms:
+    if get_vox2center:
+        return (fMRI_RDMs, mask, centers, mask_downsample_pre, data_Ms,
+                voxel2idx_centers)
+
+    elif get_sphere_Ms:
         return fMRI_RDMs, mask, centers, mask_downsample_pre, data_Ms
     else:
         return fMRI_RDMs, mask, centers, mask_downsample_pre
