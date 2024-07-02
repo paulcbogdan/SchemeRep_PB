@@ -138,22 +138,29 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
 # def plot_surf(combine_regions=True, bilateral=False):
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
-def get_split_cmap(vabs, thresh, cmap, blue_half=False):
+def get_split_cmap(vabs, thresh, cmap, blue_half=False,
+                   black_line=0):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
-    n = 1000
-    prop_black = thresh / vabs
-    if prop_black > 1:
-        prop_black = 1
+    if blue_half and black_line > 0:
+        n = 4000
+    else:
+        n = 1000
+    prop_gray = thresh / vabs
+    if prop_gray > 1:
+        prop_gray = 1
         # raise ValueError(f'{prop_black=}')
-    n_black = int(n * prop_black)
+    n_gray = int(n * prop_gray)
     # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
     #                      axis=1).T
-    vals_black = np.repeat(np.array([0.5, 0.5, 0.5, 1])[:, None], n_black,
-                         axis=1).T
-    prop_colored = 1 - prop_black
-    # print(f'{prop_colored=}')
+    vals_gray = np.repeat(np.array([0.5, 0.5, 0.5, 1])[:, None], n_gray,
+                          axis=1).T
+    prop_colored = 1 - prop_gray
+
+        # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
+        #                        axis=1).T
+
     n_colored = int(n * prop_colored)
     print(f'{n_colored=}')
     if blue_half:
@@ -166,20 +173,39 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False):
     # quit()
     vals_high = vals_colored[-int(n_colored/2):]
 
+
+
     # vals_low = vals_colored[:500]
     # vals_high = vals_colored[500:]
 
 
     # vals_low = vals_colored[int(n/10):int(n/2)]
     # vals_high = vals_colored[int(n/2):n-int(n/10)]
-    vals = np.concatenate([vals_low, vals_black, vals_high])
+
     if blue_half:
-        vals = vals[vals.shape[0] // 2:, :]
+        vals_gray = vals_gray[:vals_gray.shape[0] // 4]
+        vals_high = vals_high[vals_high.shape[0] // 2:]
+        if black_line > 0:
+            # n_black = int(n * black_line)
+            # print(f'{n_black=}')
+            vals_gray[-1:] = [0, 0, 0, 1]
+            vals_high[:1] = [0, 0, 0, 1]
+        vals = np.concatenate([vals_gray, vals_high])
+    else:
+        if black_line > 0:
+            n_black = int(n * black_line)
+            vals_high[:n_black] = [0, 0, 0, 1]
+        vals = np.concatenate([vals_low, vals_gray, vals_high])
+
+        # vals = vals[vals.shape[0] // 2:, :]
 
     # plt.plot(vals[:, 0])
     # plt.show()
     # print(vals[:, 0])
     # quit()
+
+    # print(vals[0:])
+
 
     cmap = ListedColormap(vals)
 
@@ -190,7 +216,8 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False):
 
 def my_plot_surf(Ms, atlas, title, fp_out=None,
                  neg='', pos='', thresh=1.65, vmax=4,
-                 cmap='hot_cold'):
+                 cmap='hot_cold', only_positive=False,
+                 strict_thresh=True):
     from statsmodels.stats.multitest import multipletests
     import scipy.stats as stats
     from nilearn import plotting
@@ -222,9 +249,15 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
             img_data[(atlas_data == (i + 1)) & slicer] = 0
 
     vabs = np.nanmax(np.abs(Ms))
-    cmap = get_split_cmap(vabs, thresh, 'rainbow_r')
+    # print(f'{vabs=}')
+    cmap = get_split_cmap(vabs, thresh, 'rainbow_r',)
+    quit()
+    # cmap = 'rainbow_r'
+    # if strict_thresh:
+    #     img_data[np.abs(img_data) < thresh] = 0
+    # else:
+    #     img_data[np.abs(img_data) < thresh] = thresh - .1
 
-    img_data[img_data < thresh] = thresh - 0.1
     img_data[img_data < 0] = 0
 
     img = image.new_img_like(atlas['maps'], img_data)
@@ -232,25 +265,28 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     print(f'{vmax=}')
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                          cmap=cmap, title=title,
-                                         vmin=-vmax, vmax=vmax,
+                                         vmin=0 if only_positive else -vmax,
+                                         vmax=vmax,
                                          inflate=False,
-                                         surf_mesh='fsaverage7',
+                                         surf_mesh='fsaverage5',
                                          avg_method='median')
 
-    if thresh > 5:
-        axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
-                          [-vmax, -thresh, thresh, vmax],
-                          fontsize=8)
-    elif neg:
-        axs[4].set_xticks([-vmax, -2, 2, vmax],
-                          [f'({neg})',
-                           '-2', '2',
-                           f'({pos})'], fontsize=8)
+    # if thresh > 5 or True:
+    #     axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
+    #                       [-vmax, -thresh, thresh, vmax],
+    #                       fontsize=8)
+    # elif neg:
+    #     axs[4].set_xticks([-vmax, -2, 2, vmax],
+    #                       [f'({neg})',
+    #                        '-2', '2',
+    #                        f'({pos})'], fontsize=8)
     if fp_out is None:
         plotting.show()
     else:
-        fig.savefig(fp_out)
+        fig.savefig(fp_out, dpi=300)
         print(f'Saving fig: {fp_out=}')
+        plotting.show()
+
         plt.clf()
     return
 

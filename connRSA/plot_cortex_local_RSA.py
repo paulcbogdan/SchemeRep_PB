@@ -7,26 +7,13 @@ from old.plot_gen import my_plot_surf
 from utils import pickle_wrap
 
 
-def plot_cortex_RSA():
-    easy_override = False
-    ctrl_strict = False
-
-    ISPC = False
-    RSA = True
-    semantic = True
-    ERS_alt = False
-    trial_similarity = 'corr' # euc
+def plot_cortex_RSA(semantic=True, RSA=True):
+    trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
     four_tasks = '7'
-    stdize_by_run = True if trial_similarity == 'euc' else False
+    stdize_by_run = False
 
-    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'subcort']
-    # target_ROIs = ['Dorsal', 'pSTS', 'Parietal']
-    # target_ROIs = ['Parietal']
-    # , 'IT', 'Ventral']
-
-    # target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC', 'subcort']
     target_ROIs = get_BNA_ROIs()
     target_ROIs = [f'{ROI}_BOLD' for ROI in target_ROIs]
 
@@ -44,10 +31,9 @@ def plot_cortex_RSA():
             kwargs_ = kwargs.copy()
             kwargs_['ROI_focus'] = target_ROI
             kwargs_['ROIs_ctrl'] = []
-            t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
+            t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
                                                     easy_override=False,
                                                     )
-            # print(t_ROIs_all)
             ts_ROI.append(t_ROIs_all)
 
     if len(target_ROIs) >= 10:
@@ -57,11 +43,13 @@ def plot_cortex_RSA():
             cbl = True
         atlas = get_atlas(combine_regions=False, combine_bilateral=cbl)
 
-        vmax = 4
-        thresh = 1.65
+        vmax = 5
+        thresh = 2.5
 
-        title_ROI = ''
-        my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh)
+        title_ROI = 'Semantic' if semantic else 'Perceptual'
+        fp_out = fr'result_pics\ROI_RSA\cortex_RSA_{title_ROI}.png'
+        my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh,
+                     fp_out=fp_out, only_positive=False)
 
 
 if __name__ == '__main__':

@@ -516,8 +516,8 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         warnings.warn(f'Bad length ({len(z_l)=}: {kwargs=}')
     return t, np.nanmean(np.array(r_sqs))
 
-def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
-               skip_sns_bonus=None):
+def run_all_sn(kwargs, RSA, ISPC=False, ERS_alt=False,
+               easy_override=False, skip_sns_bonus=None):
     kw_outer = locals().copy()
     return pickle_wrap(run_all_sn_, kwargs=kw_outer,
                        easy_override=easy_override)

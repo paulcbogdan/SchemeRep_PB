@@ -74,11 +74,20 @@ def plot_just_cbar():
     # plt.tight_layout(rect=(0, 0.1, 1, 0.1))
     plt.show()
 
-def plot_just_cbar2():
+def plot_just_cbar2(setting='conn_RSA_cortex'):
     # cmap = get_split_cmap(4, 1, 'turbo', blue_half=False)
-    cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
+    # cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
+
+    if setting == 'conn_RSA_cortex':
+        cmap = get_split_cmap(5, 2.5, 'rainbow_r', blue_half=True,
+                              black_line=0.0002)
+    else:
+        cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
     from matplotlib import rcParams, cm
+
+    # set default font to ARial
+    rcParams['font.sans-serif'] = 'Arial'
 
     rcParams['axes.linewidth'] = 2  # set the value globally
     a = np.array([[0, 1]])
@@ -92,8 +101,12 @@ def plot_just_cbar2():
     #                    ['-4\nLow PE', '-1', '1', '4\nHigh PE'],
     #                    fontsize=47)
 
-    cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
-    cbar.outline.set_visible(False)
+    if setting == 'conn_RSA_cortex':
+        cbar.ax.set_xticks([0, 0.5, 1], ['0', '2.5', '5'], fontsize=47)
+    else:
+        cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
+        cbar.outline.set_visible(False)
+
     # cbar.ax.set_title('t-value', fontsize=47, pad=15)
 
     cbar.ax.xaxis.set_tick_params(width=2)
