@@ -10,7 +10,7 @@ from fMRI_proc import within_run_to_nan, get_IRAFs
 from old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
-from utils import pickle_wrap
+from utils import pickle_wrap, stdize
 import warnings
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
@@ -121,6 +121,8 @@ def do_RSM_ERS_sn(sn, ROI_focus, ROIs_ctrl,
 
     assert np.sum(np.isnan(X)) == 0
 
+
+
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
 
     p = X.shape[1] - 1
@@ -228,7 +230,7 @@ def get_ERS_scores(ERS_mat, get_same=False):
 def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
                    fp0, fp1, four_tasks, cv=False,
-                   regress_row=True):
+                   regress_row=True, return_dif=False):
 
     dir_in = fr'E:/PycharmProjects_E/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
@@ -275,7 +277,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         n_ctrls = len(ROIs_ctrl)
 
         if n_good_cols == 0: # accommodate the sns with missing runs
-            print(f'No good columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
+            print(f'No good columns ({sn}, {fp})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
             good_rows = ~np.isnan(flat_ctrls).any(axis=1)
             print(f'\t{np.sum(good_rows)=}')
@@ -310,7 +312,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                                                            rcond=None)
             except np.linalg.LinAlgError as e:
                 print(f'{sn}: {fp} | {ROI_focus=}, {ROIs_ctrl=} | {e=}')
-                return np.nan, np.nan
+                return [np.nan] * (3 if return_dif else 2)
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
 
             M = np.nanmean(IRAFs_focus)
@@ -339,7 +341,13 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
     assert np.sum(np.isnan(X)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
 
+    X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
+    flat_stim = stats.zscore(flat_stim)
+
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
+
+    if return_dif:
+        return solution[1], solution[2], solution[1] - solution[2]
 
     p = X.shape[1] - 1
     n = X.shape[0] - 1 # minus 1 because of the intercept
@@ -883,7 +891,7 @@ def prep_ROI_avg(target_name, ROI_cols,
 
 
 def do_regr():
-    easy_override = False
+    easy_override = True
     ctrl_strict = False
 
     ISPC = False
@@ -921,8 +929,8 @@ def do_regr():
                       'regress_row': regress_row, 'four_tasks': four_tasks,
                       }
 
-            target_name = fr'{target_ROI}_M'
-            prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
+            voxel_small_M = fr'{target_ROI}_M'
+            prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                          ERS_alt=ERS_alt, **kwargs)
 
             outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
@@ -932,7 +940,7 @@ def do_regr():
                            'ctrl_large_strict': ctrl_strict,
                            'ctrl_avg_strict': ctrl_strict}
 
-            outer_kwargs['voxel_small_M'] = target_name
+            outer_kwargs['voxel_small_M'] = voxel_small_M
             outer_kwargs['voxel_small_all'] = ROI_lvl_control
             outer_kwargs['voxel_large'] = f'{target_ROI}_BOLD_cmb'
             outer_kwargs['avg_large'] = f'{target_ROI}_BOLD'
