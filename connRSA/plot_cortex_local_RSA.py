@@ -7,7 +7,7 @@ from old.plot_gen import my_plot_surf
 from utils import pickle_wrap
 
 
-def plot_cortex_RSA(semantic=True, RSA=True):
+def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -17,9 +17,16 @@ def plot_cortex_RSA(semantic=True, RSA=True):
     target_ROIs = get_BNA_ROIs()
     target_ROIs = [f'{ROI}_BOLD' for ROI in target_ROIs]
 
+    region2network = {'SFG': 'PFC', 'MFG': 'PFC', 'IFG': 'PFC', 'OrG': 'PFC',
+                      'SPL': 'Parietal', 'IPL': 'Parietal', 'Pcun': 'Parietal',
+                      'EVC': 'Occipital', 'LOC': 'Occipital', 'sOcG': 'Occipital',
+                      'ITG': 'ITL', 'FuG': 'ITL', 'PhG': 'ITL', 'ATL': 'ITL'}
+
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
         for target_ROI in target_ROIs:
+            region = target_ROI.split(' ')[1].split('_')[0]
+
             kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
                       'fp1': None, 'trial_similarity': trial_similarity,
                       'second_order': second_order,
@@ -30,7 +37,12 @@ def plot_cortex_RSA(semantic=True, RSA=True):
 
             kwargs_ = kwargs.copy()
             kwargs_['ROI_focus'] = target_ROI
-            kwargs_['ROIs_ctrl'] = []
+            if control_network and region in region2network:
+                network = region2network[region]
+                kwargs_['ROIs_ctrl'] = [f'{network}_BOLD', ]
+            else:
+                kwargs_['ROIs_ctrl'] = []
+
             t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
                                                     easy_override=False,
                                                     )

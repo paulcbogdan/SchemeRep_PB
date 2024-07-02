@@ -493,12 +493,18 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     r_sqs = []
     sns = get_sns('all')['healthy']
     successful_sns = []
-    acceptable_failures = ['116', '125', '133', '213', '215', '231']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    # bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+    #             ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+
 
     for sn in sns:
         if skip_sns_bonus and sn in skip_sns_bonus:
             continue
-        if sn in acceptable_failures: continue
+        # if sn in bad_sns: continue
+        # if (sn, fp) in bad_tups:
+        #     continue
         kwargs['sn'] = sn
         try:
             z, r_sq = send_to_specific(kwargs, RSA, ISPC, ERS_alt,
@@ -904,12 +910,8 @@ def do_regr():
     four_tasks = '7'
     stdize_by_run = True if trial_similarity == 'euc' else False
 
-    # target_ROIs = ['Occipital', 'Ventral', 'Dorsal', 'PFC', 'subcort']
-    # target_ROIs = ['Dorsal', 'pSTS', 'Parietal']
-    # target_ROIs = ['Parietal']
-    # , 'IT', 'Ventral']
 
-    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC', 'subcort']
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:

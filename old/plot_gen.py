@@ -251,7 +251,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     vabs = np.nanmax(np.abs(Ms))
     # print(f'{vabs=}')
     cmap = get_split_cmap(vabs, thresh, 'rainbow_r',)
-    quit()
+    # quit()
     # cmap = 'rainbow_r'
     # if strict_thresh:
     #     img_data[np.abs(img_data) < thresh] = 0

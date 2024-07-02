@@ -15,42 +15,49 @@ from connRSA.conn_utils import mask_img
 from connRSA.single_trial_conn import prep_fps
 from org_sns import get_sns
 from numba import set_num_threads
+from copy import deepcopy
 
 def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
                           radius1=2, downsample1=1, resample1=1,
                           radius2=2, downsample2=1, resample2=1,
                           second_level='spear', flip=False, std=True,
                           mask_ROIs=None, mult27=False, m_rsm=False,
-                          threshold=0.25, super64=False):
+                          threshold=0.25, super64=False,
+                          superdensity=False):
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
     RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
                                       verbose=0, easy_override=False)
 
-    if super64:
-        radius1_ = radius1 * 2
-    else:
-        radius1_ = int(radius1 * 1.5 + .0001)
-    kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
-           'flip': flip, 'radius': radius1_, 'downsample': downsample1,
-           'resample': resample1, 'mask_ROIs': mask_ROIs,
-           'threshold': threshold, 'no_RDMs': True}
-    centers1, mask, mask_downsample_pre = (
-        utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
-                          easy_override=False))
-    if centers1 is None:
-        return [None] * 4
-
     kw2 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
            'resample': resample2, 'mask_ROIs': mask_ROIs,
            'threshold': threshold, 'get_sphere_Ms': True}
-    fMRI_RDMs2, _, centers2, _, data_Ms = utils.pickle_wrap(full_get_RDMs,
-                                                   kwargs=kw2, verbose=0,
-                                                   easy_override=False)
+    fMRI_RDMs2, mask2, centers2, mask_downsample_pre2, data_Ms = (
+        utils.pickle_wrap(full_get_RDMs, kwargs=kw2, verbose=0,
+                          easy_override=False))
     if fMRI_RDMs2 is None:
         return [None] * 4
+
+    if superdensity:
+        centers1 = deepcopy(centers2)
+        mask_downsample_pre = mask_downsample_pre2
+        mask = mask2
+    else:
+        if super64:
+            radius1_ = radius1 * 2
+        else:
+            radius1_ = int(radius1 * 1.5 + .0001)
+        kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
+               'flip': flip, 'radius': radius1_, 'downsample': downsample1,
+               'resample': resample1, 'mask_ROIs': mask_ROIs,
+               'threshold': threshold, 'no_RDMs': True}
+        centers1, mask, mask_downsample_pre = (
+            utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
+                              easy_override=False))
+        if centers1 is None:
+            return [None] * 4
 
     print(f'{data_Ms.shape=}')
     mult1 = downsample1 / downsample2
@@ -145,6 +152,8 @@ def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
                         (centers1[i] + [x_mod, y_mod, z_mod]))
 
     ar = np.vstack([l for l in mod2idxs.values()]).T
+    print(ar.shape)
+    quit()
 
     nan_out = []
     num2is = defaultdict(list)
@@ -255,7 +264,8 @@ def eightlight(semantic=True, second_level='corr', flip=False,
                std=True, network=None,
                do_con=True, eightlight=True, mult27=False,
                use_sum_reg=False, m_rsm=False,
-               threshold=0.25, small_Ms=False, super64=False):
+               threshold=0.25, small_Ms=False, super64=False,
+               superdensity=False):
 
     assert not (m_rsm and use_sum_reg)
     age2sn = get_sns('all', sh=False)
@@ -265,7 +275,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, (60, 4 if do_con else 3), downsample1,
         radius1, downsample2, radius2, eightlight, use_sum_reg, mult27,
-        m_rsm, threshold, small_Ms, super64)
+        m_rsm, threshold, small_Ms, super64, superdensity)
     dic = 'cubelight' if small_Ms else 'eightlight'
     fp3 = rf'result_pics/{dic}/{fn3}.png'
     if os.path.isfile(fp3):
@@ -291,7 +301,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
 
     base_shape = None
     # sns = sns[:8] + sns[-25:-18]
-    # sns = sns[:10]
+    sns = sns[:3]
     for sn_i, sn in enumerate(sns):
         sn_l1 = []
         sn_l2 = []
@@ -305,9 +315,11 @@ def eightlight(semantic=True, second_level='corr', flip=False,
                   'resample2': resample2,
                   'second_level': second_level, 'flip': flip, 'std': std,
                   'mask_ROIs': mask_ROIs, 'mult27': mult27,
-                  'm_rsm': m_rsm, 'threshold': threshold,}
+                  'm_rsm': m_rsm, 'threshold': threshold,
+                  }
             if small_Ms:
                 kw['super64'] = super64
+                kw['superdensity'] = superdensity
                 searched1, searched2, searched3, mask = utils.pickle_wrap(
                     wrapped_jit_cubelight, kwargs=kw, verbose=-1,
                     easy_override=False)
@@ -360,7 +372,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, sample_size, downsample1, radius1,
         downsample2, radius2, eightlight, use_sum_reg, mult27, m_rsm,
-        threshold, small_Ms, super64)
+        threshold, small_Ms, super64, superdensity)
 
     plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
     plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
@@ -370,7 +382,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
 def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
                    downsample2, radius2, eightlight=False, use_sum_reg=False,
                    mult27=False, m_rsm=False, threshold=0.25, small_Ms=False,
-                   super64=False):
+                   super64=False, superdensity=False):
     flip_str = ' flip' if flip else ''
     flip_str_ = '_flip' if flip else ''
     semantic_str = 'semantic' if semantic else 'visual'
@@ -413,6 +425,8 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
         core += f'_t{threshold}'
     if small_Ms:
         core += '_small_Ms'
+    if superdensity:
+        core += '_supedens'
 
     fn1 = core + '_Multi1'
     fn2 = core + '_Multi2'
@@ -446,17 +460,19 @@ if __name__ == '__main__':
     SMALL_Ms = True
     THRESHOLD = 0.5
     SUPER64 = False
-    for MULT27 in [True, False]:  # True, False,
+    SUPERDENSITY = True
+    for MULT27 in [True, ]:  # True, False,
         for SEMANTIC in [True, False]:  # False,
-            for NETWORK in ['cortex', 'OC_IT', 'OC_T']:  #'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
+            for NETWORK in ['cortex','OC_T']:  #'OC_IT',  'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
                 eightlight(semantic=SEMANTIC,
-                           radius1=2, downsample1=6, resample1=1,
-                           radius2=6, downsample2=1,
+                           radius1=2, downsample1=3, resample1=1,
+                           radius2=3, downsample2=1,
                            resample2=1,#10 if NETWORK == 'cortex' else 1,
                            network=NETWORK, do_con=DO_CON,
                            use_sum_reg=USE_SUM_REG, mult27=MULT27,
                            m_rsm=M_RSM, threshold=THRESHOLD,
-                           small_Ms=SMALL_Ms, super64=False)
+                           small_Ms=SMALL_Ms, super64=False,
+                           superdensity=SUPERDENSITY)
 
                 # eightlight(semantic=SEMANTIC,
                 #            radius1=2, downsample1=5, resample1=1,

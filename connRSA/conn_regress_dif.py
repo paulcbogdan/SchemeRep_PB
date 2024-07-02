@@ -65,31 +65,34 @@ def plot_beta_dif_bars(kwargs, corr=False):
     # betas1_all = betas1_all[~nans, None]
     # betas2_all = betas2_all[~nans, None]
 
+    betas1_all *= 1000
+    betas2_all *= 1000
+
     M_sns1 = np.nanmean(betas1_all, axis=1)
     M1 = np.nanmean(M_sns1)
     SE1 = np.nanstd(M_sns1) / np.sqrt(len(M_sns1))
-    t1 = stats.ttest_1samp(M_sns1, 0)[0]
+    t1, p1 = stats.ttest_1samp(M_sns1, 0)
     M_sns2 = np.nanmean(betas2_all, axis=1)
     M2 = np.nanmean(M_sns2)
     SE2 = np.nanstd(M_sns2) / np.sqrt(len(M_sns2))
-    t2 = stats.ttest_1samp(M_sns2, 0)[0]
+    t2, p2 = stats.ttest_1samp(M_sns2, 0)
     print(f'{t1=:.3f} {t2=:.3f}')
 
-    plt.scatter(M_sns1, M_sns2)
-    low = min(min(M_sns1), min(M_sns2))
-    high = max(max(M_sns1), max(M_sns2))
-    plt.plot([low, high], [low, high], color='k',)
-    plt.plot([0, 0], [low, high], color='k',)
-    plt.plot([low, high], [0, 0], color='k',)
+    # plt.scatter(M_sns1, M_sns2)
+    # low = min(min(M_sns1), min(M_sns2))
+    # high = max(max(M_sns1), max(M_sns2))
+    # plt.plot([low, high], [low, high], color='k',)
+    # plt.plot([0, 0], [low, high], color='k',)
+    # plt.plot([low, high], [0, 0], color='k',)
+    #
 
-    title, fn, fontsize = get_title(True, False, kwargs, 28)
-    plt.title(title, fontsize=15, pad=30)
-    plt.show()
+    # plt.show()
     # return
 
     fig = plt.figure(figsize=(4.2, 5))
     fontsize = 20
-    plt.rcParams.update({'font.size': fontsize})
+    plt.rcParams.update({'font.size': fontsize,
+                         'font.sans-serif': 'Arial'})
     fig.subplots_adjust(bottom=0.18, left=0.24, right=0.85, top=0.85)
     bar_names = ['Local', 'Distributed', ]
     colors = ['dodgerblue', 'crimson', ]
@@ -114,54 +117,55 @@ def plot_beta_dif_bars(kwargs, corr=False):
             linewidth=1., edgecolor='k')
 
     max_yerr = max(M1 + SE1, M2 + SE2)
-    max_yerr_ = max_yerr * 1.05
-    plt.plot([0, 1], [max_yerr_, max_yerr_], color='k', linewidth=1.5)
+    height = max_yerr * 1.05
 
-    stars = get_stars(p_dif)
-    plt.text(0.5, max_yerr_ * .98, stars, ha='center', va='bottom',
-             fontsize=fontsize * 1.25)
+    if p_dif < .10:
+        plt.plot([0, 1], [height, height], color='k', linewidth=1.5)
+        stars = get_stars(p_dif)
+        stars_fs = 45 if stars != 'NS' else 24
+        stars_height = height * .92 if stars != 'NS' else height * 1.02
+        plt.text(0.5, stars_height, stars, ha='center', va='bottom',
+                 fontsize=stars_fs)
 
-    plt.ylabel('t-value', fontsize=26, labelpad=10)
+    if M1 > 0 and p1 < .1:
+        stars1 = get_stars(p1)
+        # minus height accounts for asterisks not being centered in its box
+        stars1_height = (M1 - SE1) * .5 - height * .053
+        stars_fs = 45 if stars1 != 'NS' else 24
+        plt.text(0, stars1_height, stars1, ha='center', va='center',
+                 color='w', fontsize=stars_fs)
+    if M2 > 0 and p2 < .1:
+        stars2 = get_stars(p2)
+        stars2_height = (M2 - SE2) * .5 - height * .053
+        stars_fs = 45 if stars2 != 'NS' else 24
+        plt.text(1, stars2_height, stars2, ha='center', va='center',
+                 color='w', fontsize=stars_fs)
+
+
+    plt.ylabel('Mean beta', fontsize=24, labelpad=10)
 
     plt.gca().spines[['top', 'right']].set_visible(False)
+    title, fn, _ = get_title(True, False, kwargs, 28)
+    plt.title(title, fontsize=15, pad=30)
+    plt.ylim(0, height * 1.05)
 
-    # if np.isnan(max_height):
-    #     print('NaN max_height!')
-    #     max_height = 0
-    # plt.yticks(range(0, int(max_height * 1.07) + 1,
-    #                  min(max(int(max_height * 1.07) // 4, 1), 5)),
-    #            fontsize=24)
-    # plt.ylim(0, max_height * 1.07)
-    # title_pad = ' ' * (len(title) // 10)
-    # title += title_pad
+    plt.yticks(range(0, int(height * 1.07) + 1,
+                     min(max(int(height * 1.07) // 4, 1), 5)),
+               fontsize=24)
+
+    plt.xticks(bar_names, fontsize=20.5)
 
     plt.locator_params(axis='y', nbins=6)
-    # plt.tight_layout()
 
+    fn = f'beta_{kwargs["ROI_focus"]}_{fn}'
 
-
-
-    # if 'RSA' in fn:
-    #     fp_out = rf'connRSA/stacked_bar/RSA/{fn}'
-    #     Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
-    # elif 'ISPC' in fn:
-    #     fp_out = rf'connRSA/stacked_bar/ISPC/{fn}'
-    #     Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
-    # else:
-    #     fp_out = rf'connRSA/stacked_bar/ERS/{fn}'
-    #     Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
-    #
-
-
-
-
-    plt.xticks(bar_names, fontsize=18)
-
+    fp_out = rf'result_pics/connRSA/RSA/{fn}'
+    Path(fp_out).parent.mkdir(exist_ok=True, parents=True)
+    plt.savefig(fp_out, dpi=300)
     plt.show()
-    # quit()
 
 
-def do_regr_dif(semantic=True, RSA=True):
+def do_regr_dif(semantic=False, RSA=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -202,3 +206,5 @@ sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
     do_regr_dif()
+    do_regr_dif(semantic=True)
+

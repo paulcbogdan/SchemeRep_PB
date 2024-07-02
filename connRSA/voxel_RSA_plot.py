@@ -74,15 +74,20 @@ def plot_just_cbar():
     # plt.tight_layout(rect=(0, 0.1, 1, 0.1))
     plt.show()
 
-def plot_just_cbar2(setting='conn_RSA_cortex'):
+def plot_just_cbar2(setting='conn_RSA_inferno'):
     # cmap = get_split_cmap(4, 1, 'turbo', blue_half=False)
     # cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
-    if setting == 'conn_RSA_cortex':
+    if setting == 'conn_RSA_inferno':
+        cmap = get_split_cmap(8, 0, 'inferno', blue_half=False)
+    elif setting == 'conn_RSA_dif':
+        cmap = get_split_cmap(4, 0, 'rainbow_r', blue_half=False)
+    elif setting == 'conn_RSA_cortex':
         cmap = get_split_cmap(5, 2.5, 'rainbow_r', blue_half=True,
                               black_line=0.0002)
     else:
         cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
+
 
     from matplotlib import rcParams, cm
 
@@ -101,7 +106,14 @@ def plot_just_cbar2(setting='conn_RSA_cortex'):
     #                    ['-4\nLow PE', '-1', '1', '4\nHigh PE'],
     #                    fontsize=47)
 
-    if setting == 'conn_RSA_cortex':
+    if setting == 'conn_RSA_inferno':
+        cbar.ax.set_xticks([0, 0.25, 0.5, 0.75, 1], ['0', '2', '4', '6', '8'],
+                           fontsize=60, )
+        cbar.ax.tick_params(axis='x', pad=15, length=10)
+    elif setting == 'conn_RSA_dif':
+        cbar.ax.set_xticks([0, 0.5, 1], ['-5', '0', '5'], fontsize=60,)
+        cbar.ax.tick_params(axis='x', pad=15, length=10)
+    elif setting == 'conn_RSA_cortex':
         cbar.ax.set_xticks([0, 0.5, 1], ['0', '2.5', '5'], fontsize=47)
     else:
         cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)

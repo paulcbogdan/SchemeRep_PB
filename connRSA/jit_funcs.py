@@ -290,6 +290,9 @@ def get_closest_dists(centers1, centers2, mult1):
         idx1to2[i] = np.argmin(dists)
     return idx1to2
 
+def get_closest_dists_all(centers1, centers2, mult1, l):
+    pass
+
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def convert_back_to_img(eval_results, mask, centers):
     img = np.full(mask.shape, NAN_VAL, dtype=np.float32)
