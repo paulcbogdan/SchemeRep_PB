@@ -220,39 +220,9 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
             idxs = np.indices(img_data.shape)
             slicer = idxs[0] == 67
             img_data[(atlas_data == (i + 1)) & slicer] = 0
-        # above_thresh = np.abs(val) > thresh
-        continue
-        # if above_thresh:
-        #     mat = np.zeros((n_non_nans, n_non_nans))
-        #     mat[i, :] = 1
-        #     mat[:, i] = 1
-        #     colors = ['b'] * i + ['r'] + ['b'] * (n_non_nans - i - 1)
-        #     coords_not_nans = atlas['coords'][~np.isnan(Ms)]
-        #     plotting.plot_connectome(mat, coords_not_nans,
-        #                              edge_threshold=0.1,
-        #                              edge_kwargs={'linewidth': 1,
-        #                                           'color': 'k'},
-        #                              node_size=10,
-        #                              node_color=colors,
-        #                              # node_kwargs={'c': 'k',
-        #                              #              'size': 10},
-        #                              title=f'i = {i}',
-        #                              )
-        #     plotting.show()
 
     vabs = np.nanmax(np.abs(Ms))
-    # Ms = np.array(Ms)
-    # Ms_clean = Ms[~np.isnan(Ms)]
-    # ps = [stats.t.sf(np.abs(m), 29) for m in Ms_clean]
-    # rej, ps_corr, alpha_sidak, alpha_conf = \
-    #     multipletests(ps, alpha=0.05, method='fdr_bh')
-
-
-
     cmap = get_split_cmap(vabs, thresh, 'rainbow_r')
-    # cmap = get_split_cmap(vabs, thresh, cmap)
-
-    # cmap = 'cold_hot'
 
     img_data[img_data < thresh] = thresh - 0.1
     img_data[img_data < 0] = 0
@@ -263,7 +233,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                          cmap=cmap, title=title,
                                          vmin=-vmax, vmax=vmax,
-                                         inflate=True,
+                                         inflate=False,
                                          surf_mesh='fsaverage7',
                                          avg_method='median')
 
@@ -282,7 +252,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         fig.savefig(fp_out)
         print(f'Saving fig: {fp_out=}')
         plt.clf()
-    quit()
+    return
 
     plotting.plot_stat_map(img,
                            vmin=-vmax, vmax=vmax,
@@ -290,14 +260,6 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                            display_mode='x',)
                            # cut_coords=[-22, -24, -26, -28])
     plt.show()
-    # plotting.plot_stat_map(img,
-    #                        vmin=-vmax, vmax=vmax,
-    #                        threshold=thresh, draw_cross=False,
-    #                        display_mode='x',
-    #                        cut_coords=[-30, -32, -34, -36])
-    # plt.show()
-    quit()
-
 
 
 if __name__ == '__main__':

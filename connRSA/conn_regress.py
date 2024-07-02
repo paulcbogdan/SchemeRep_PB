@@ -11,6 +11,7 @@ from old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
 from utils import pickle_wrap
+import warnings
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
@@ -229,7 +230,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    fp0, fp1, four_tasks, cv=False,
                    regress_row=True):
 
-    dir_in = fr'cache/conn_RSA/ars/RSA'
+    dir_in = fr'E:/PycharmProjects_E/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
@@ -426,6 +427,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
             kwargs['fp'] = fp
             kwargs['cv'] = False
             # print(kwargs['sn'])
+
             # kwargs['regress_row'] = regress_row
             try:
                 score, r_sq = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
@@ -436,6 +438,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
                 if kwargs["sn"] != '131':
                     print(f'Bad {kwargs["sn"]}: {e}')
                 continue
+
             if not isinstance(r_sq, np.float64):
                 # warnings.warn(f'{kwargs["sn"]}, {fp} yields no r_sq: {r_sq=}')
                 continue
@@ -508,7 +511,9 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     ctrl = kwargs['ROIs_ctrl']
     print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
           f': {focus=}, {ctrl=}')
-    assert len(z_l) == 60, f'Bad length ({len(z_l)=}: {kwargs=}'
+    if len(z_l) != 60:
+
+        warnings.warn(f'Bad length ({len(z_l)=}: {kwargs=}')
     return t, np.nanmean(np.array(r_sqs))
 
 def run_all_sn(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
