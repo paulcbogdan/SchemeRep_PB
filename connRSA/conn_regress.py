@@ -12,7 +12,7 @@ from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
 from utils import pickle_wrap
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 import numpy as np
 import scipy.stats as stats

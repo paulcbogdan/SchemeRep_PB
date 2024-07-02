@@ -9,7 +9,7 @@ import warnings
 import pandas as pd
 
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 def get_bad_sns_fp(fp):
     if 'obj_' in fp: f'Stop using an old fp: {fp=}'

@@ -21,7 +21,7 @@ from nilearn import plotting, image
 import scipy.stats as stats
 
 
-config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba_test'
+config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba_test'
 
 NAN_VAL = 10000001
 

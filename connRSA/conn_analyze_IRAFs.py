@@ -4,7 +4,7 @@ from datetime import datetime
 from connRSA.old.conn_plot import pie_charts
 from connRSA.conn_report import lmer_stats
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from collections import defaultdict
 

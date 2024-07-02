@@ -1,5 +1,5 @@
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 import numpy as np
 import pandas as pd
@@ -269,7 +269,14 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                   'Ldp_Rdp', 'Lvp_Rvp',
                   'Lda_Rda', 'Lva_Rva', ]
 
-    # cols_order += ['dd', 'vv']
+
+    # Bonus diagonals
+    # cols_order += ['Lda_Rva', 'Rda_Lva',
+    #                'Ldp_Rvp', 'Rdp_Lvp',
+    #                'Lda_Lvp', 'Rda_Rvp',
+    #                'Ldp_Lva', 'Rdp_Rva',
+    #                'Ldp_Rda', 'Rdp_Lda',
+    #                'Lvp_Rva', 'Rvp_Lva', ]
 
     df.dropna(subset=cols_order, inplace=True)
 

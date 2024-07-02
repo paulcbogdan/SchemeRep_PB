@@ -1,5 +1,5 @@
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 # import sys
 # from analyze_rs import load_resting_data, load_act_conn
 from atlas_utils import get_atlas

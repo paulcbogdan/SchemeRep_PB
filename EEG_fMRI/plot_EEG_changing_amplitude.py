@@ -1,5 +1,5 @@
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 import matplotlib.pyplot as plt
 import numpy as np

@@ -278,7 +278,7 @@ def get_trial_info(sn, easy_override=False, ret=True, incl_lures=False,
                    verbose=-1, only_one=False):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed
     ret_str = '_NoRet' if not ret else ''
-    # fp = fr'E:\PycharmProjects_E\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
+    # fp = fr'H:\PycharmProjects_H\SchemeRep\cache/trial_info/{sn}{ret_str}.pkl'
 
 
     # dt_max = datetime(2024, 2, 17, 1, 0, 0, 0)

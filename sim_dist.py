@@ -5,7 +5,7 @@ from old_Apr6.fluctuations import get_df_networks, partial_corr_df
 from utils import pickle_wrap
 import os
 import pandas as pd
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 def sim_second_order_corr(r=-.5):

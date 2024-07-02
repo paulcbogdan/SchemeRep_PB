@@ -4,7 +4,7 @@ import time
 from old_Apr6.LSS import get_LSS_img, load_motion
 from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap, stdize
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 from functools import partial
 
 import numpy as np

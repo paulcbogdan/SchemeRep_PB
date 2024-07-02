@@ -13,7 +13,7 @@ from stim import get_stim_RDM
 from utils import pickle_wrap
 
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 def pairRSA(fp, within2nan=True, semantic=False, regress_global=True,
             itr=False):

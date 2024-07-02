@@ -17,7 +17,7 @@ from load_more import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
 from statannotations.Annotator import Annotator
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 import statsmodels.formula.api as smf

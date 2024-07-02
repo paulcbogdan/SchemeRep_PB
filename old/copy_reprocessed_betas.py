@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 from tqdm import tqdm
 import shutil
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 if __name__ == '__main__':

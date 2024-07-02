@@ -21,7 +21,7 @@ from organize_bhv import get_trial_info
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 from functools import cache
 # TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
 # Lifu used it, per analysis_v2_ENC_bars.m
@@ -31,11 +31,11 @@ from functools import cache
 #     import scipy.io as io
 #     print('Loading existing...')
 #     if per:
-#         fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels' \
+#         fp_in = r'H:\PycharmProjects_H\SchemeRep\old\RSAmodels' \
 #                 r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
 #                 r'\RSM_VGG16_PCA.mat'
 #     else:
-#         fp_in = r'E:\PycharmProjects_E\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
+#         fp_in = r'H:\PycharmProjects_H\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
 #     mat = io.loadmat(fp_in)
 #     RDM_stim = mat['R']
 #     RDM_new = np.zeros((len(df_sn), len(df_sn)))
@@ -221,7 +221,7 @@ def norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type, objs):
 def get_semantic_vectors(normalize=True):
     # fit using python 3.11
     norm_string = '_norm' if normalize else ''
-    fp_vecs = rf'E:\PycharmProjects_E\SchemeRep\cache/schemerep_sem_vecs{norm_string}.pkl'
+    fp_vecs = rf'H:\PycharmProjects_H\SchemeRep\cache/schemerep_sem_vecs{norm_string}.pkl'
     d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs,
                          easy_override=False, verbose=-1)
     return d_vecs

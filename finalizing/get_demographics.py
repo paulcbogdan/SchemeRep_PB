@@ -1,6 +1,6 @@
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 import pandas as pd
 
 def do_demo():

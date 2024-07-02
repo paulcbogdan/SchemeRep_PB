@@ -2,7 +2,7 @@ import os
 
 from connsearch import print_list_stats
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 import pickle
 import pandas as pd
 from statsmodels.stats.multitest import multipletests

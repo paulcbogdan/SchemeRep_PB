@@ -10,7 +10,7 @@ from old.analyze_ROIs import setup_colors
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from utils import pickle_wrap, stdize
 from load_more import get_dfs_conn_trials, load_resting_data, load_act_conn

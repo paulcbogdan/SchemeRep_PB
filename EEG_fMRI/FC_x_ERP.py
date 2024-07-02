@@ -23,7 +23,7 @@ from time import sleep
 import pickle
 
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
 

@@ -3,7 +3,7 @@ library(lme4)
 library(lmerTest)
 library(Matrix)
 
-setwd(r'(E:\PycharmProjects_E\SchemeRep)')
+setwd(r'(H:\PycharmProjects_H\SchemeRep)')
 
 # ----
 sess = 'obj7_fMRI'

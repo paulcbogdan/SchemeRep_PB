@@ -6,7 +6,7 @@ from organize_bhv import get_trial_info
 from old.trialwise_graph_theory import get_df_trial_graphs
 # from vendor_lmers import get_vendor_df
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 import numpy as np
 import pandas as pd

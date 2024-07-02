@@ -19,7 +19,7 @@ from stim import get_stim_RDM
 from nilearn import plotting, image
 import scipy.stats as stats
 
-config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba'
+config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba'
 
 NAN_VAL = 10001
 

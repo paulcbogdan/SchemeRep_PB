@@ -5,7 +5,7 @@ from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.old.conn_plot import plot_pie_chart
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from conn_report import report_results
 from utils import pickle_wrap

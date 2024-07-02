@@ -9,7 +9,7 @@ import os
 from utils import pickle_wrap
 import matplotlib.pyplot as plt
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,

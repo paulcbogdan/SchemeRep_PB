@@ -1,7 +1,7 @@
 
 import os
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from pathlib import Path
 from collections import defaultdict, Counter
@@ -336,7 +336,7 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
             node_sizes[i] = 1
 
     if plot:
-        dir_out = r'E:\PycharmProjects_E\SchemeRep\result_pics\ttest_modules'
+        dir_out = r'H:\PycharmProjects_H\SchemeRep\result_pics\ttest_modules'
         Path(dir_out).mkdir(exist_ok=True, parents=True)
         if 'anat' in bonus_str:
             fn_glass = 'quads_anat.png'

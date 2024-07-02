@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-os.chdir('E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from collections import defaultdict
 from pathlib import Path
@@ -107,7 +107,7 @@ def mean_or_fist(l):
         return l.iloc[0]
 
 def include_shenyang_memory(df):
-    fp = r'E:\PycharmProjects_E\SchemeRep\Shenyang_R\shenyang_conceptual_memory.csv'
+    fp = r'H:\PycharmProjects_H\SchemeRep\Shenyang_R\shenyang_conceptual_memory.csv'
     df_sh = pd.read_csv(fp)
     d = defaultdict(None)
     for idx, row in df_sh.iterrows():

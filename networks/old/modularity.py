@@ -194,7 +194,7 @@ def plot_partitions(partitions, M_conn_masked, fn_str, coords=None,
         print(f'Plot: {fn=}')
         title = f'Partition {i + 1}{title_extra}'
         # cur_dir = os.getcwd()
-        cur_dir = r'E:\PycharmProjects_E\SchemeRep'
+        cur_dir = r'H:\PycharmProjects_H\SchemeRep'
         if dir_out_full:
             dir_out_ = dir_out_full
         elif dir_out:

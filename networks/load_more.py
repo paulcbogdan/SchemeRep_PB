@@ -191,11 +191,11 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
     fp_in = fr'fMRI_in/{sn}/resting/rs.nii.gz'
     img = image.load_img(fp_in)
     if true_OG:
-        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        dir_mask = fr'H:\PycharmProjects_H\SchemeRep\fMRI_in\masks'
         fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
         fp_mask = fr'{dir_mask}\{fn_mask}'
 
-        fp_in = fr'E:\PycharmProjects_E\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
+        fp_in = fr'H:\PycharmProjects_H\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
         df_confounds = pd.read_csv(fp_in, delimiter='\t')
         df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
         img = image.index_img(img, slice(4, None))
@@ -210,11 +210,11 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
 
     if near_OG: trad = True
     if clean:
-        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        dir_mask = fr'H:\PycharmProjects_H\SchemeRep\fMRI_in\masks'
         fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
         fp_mask = fr'{dir_mask}\{fn_mask}'
 
-        fp_in = fr'E:\PycharmProjects_E\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
+        fp_in = fr'H:\PycharmProjects_H\SchemeRep\cache\confounds\{sn}_resting_confounds.tsv'
         df_confounds = pd.read_csv(fp_in, delimiter='\t')
         df_confounds = df_confounds.iloc[4:].reset_index(drop=True)
         img = image.index_img(img, slice(4, None))

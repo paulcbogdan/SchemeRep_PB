@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
                 fp_fMRI = (sess_dir / 'func' /
                            f'sub-{sn}_ses-{sess}_task-{name}_run-0{run}_space-MNI152NLin2009cAsym_res-2_desc-preproc_bold.nii.gz')
-                dir_fMRI_out = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in_BOLD\{sn}\{name}'
+                dir_fMRI_out = fr'H:\PycharmProjects_H\SchemeRep\fMRI_in_BOLD\{sn}\{name}'
                 dir_fMRI_out = Path(dir_fMRI_out)
                 dir_fMRI_out.mkdir(parents=True, exist_ok=True)
                 fp_fMRI_out = dir_fMRI_out / f'BOLD_run{run}.nii.gz'

@@ -15,7 +15,7 @@ from organize_bhv import get_trial_info
 from org_sns import get_sns
 from utils import pickle_wrap, stdize
 import os
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
@@ -708,7 +708,7 @@ if __name__ == '__main__':
               'key': 'inc',
               'key_vals': (1, 2, 3),
               }
-    cache_dir = r'E:\PycharmProjects_E\SchemeRep\cache'
+    cache_dir = r'H:\PycharmProjects_H\SchemeRep\cache'
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity_ = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir=cache_dir)

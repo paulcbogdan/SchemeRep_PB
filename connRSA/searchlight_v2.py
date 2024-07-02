@@ -28,7 +28,7 @@ from stim import get_stim_RDM
 t_end = time()
 print(f'Import time: {t_end - t_st:.2f}')
 
-config.CACHE_DIR = r'E:\PycharmProjects_E\SchemeRep\cache\numba'
+config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba'
 
 NAN_VAL = 10000001
 

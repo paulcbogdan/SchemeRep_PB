@@ -68,7 +68,7 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
         vabs = np.nanquantile(np.abs(t), 0.995)
 
 
-    fp_out = fr'E:\PycharmProjects_E\SchemeRep\result_pics\{dic}\{fn}.png'
+    fp_out = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{dic}\{fn}.png'
     cmap = 'inferno' if only_positive else 'turbo'
     if flip_color:
         title = title.replace('Blue', 'XXX')

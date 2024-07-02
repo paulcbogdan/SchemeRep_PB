@@ -453,6 +453,8 @@ def pickle_wrap(callback: object, filepath: object = None,
         # print('\tDumping to file name:', filepath)
     start = time()
     try:
+        # print(f'{filepath=}')
+
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
         if verbose == 0: print(f'Pickle wrapped ({time()-start:.3f} s): '
@@ -508,14 +510,14 @@ def run_two_sample_on_2D(ar0, ar1):
 
 
 HCP_ROOT = r'F:\HCP_Preprocessing\HCP\HCP_WM_data'
-# HCP_ROOT = r'E:\PycharmProjects_E\HCP_WM'
+# HCP_ROOT = r'H:\PycharmProjects_H\HCP_WM'
 HCP_CACHE = r'F:\HCP_Preprocessing\HCP\HCP_cache'
-# HCP_CACHE = r'E:\PycharmProjects_E\SchemeRep\cache\HCP_nii'
+# HCP_CACHE = r'H:\PycharmProjects_H\SchemeRep\cache\HCP_nii'
 HCP_RS_ROOT = r'E:\HCP_RS'
 
 if __name__ == '__main__':
 
-    fp_in = r'E:\PycharmProjects_E\SchemeRep\fMRI_in\102\resting\rs.nii.gz'
+    fp_in = r'H:\PycharmProjects_H\SchemeRep\fMRI_in\102\resting\rs.nii.gz'
     img = image.load_img(fp_in)
     print(f'{img.shape=}')
     quit()

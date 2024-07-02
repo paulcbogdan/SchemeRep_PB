@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 if __name__ == '__main__':
-    dir_in = r'E:\PycharmProjects_E\SchemeRep\nuisance_regressors'
+    dir_in = r'H:\PycharmProjects_H\SchemeRep\nuisance_regressors'
 
     age2sn = get_sns()
     sns = age2sn[1] + age2sn[2]

@@ -98,7 +98,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     process = psutil.Process()
 
     rand_int = np.random.randint(0, 10000)
-    fp_log = fr"E:\PycharmProjects_E\SchemeRep\pb_crash_log_{rand_int}.log"
+    fp_log = fr"H:\PycharmProjects_H\SchemeRep\pb_crash_log_{rand_int}.log"
     logging.basicConfig(filemode='w',
         filename=fp_log,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -139,7 +139,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
         # num_vols = img.shape[-1]
         # sample_masks = list(range(num_vols))
     else:
-        dir_mask = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in\masks'
+        dir_mask = fr'H:\PycharmProjects_H\SchemeRep\fMRI_in\masks'
         fn_mask = fr'sub-{sn}_space-MNI152NLin2009cAsym_res-2_GrayMatter20.nii'
         fp_mask = fr'{dir_mask}\{fn_mask}'
         df_all = pd.read_csv(r'cache/trial_info_ENC.csv')
@@ -164,7 +164,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
         # df_trials['duration'] = 4
         sess2name = {1: 'BL', 2: 'ENC'}
         sess_name = sess2name[sess]
-        fp_in = fr'E:\PycharmProjects_E\SchemeRep\fMRI_in_BOLD\{sn}\{sess_name}\BOLD_run{run}.nii.gz'
+        fp_in = fr'H:\PycharmProjects_H\SchemeRep\fMRI_in_BOLD\{sn}\{sess_name}\BOLD_run{run}.nii.gz'
         MBs = process.memory_info().rss / 1024 / 1024
         logging.debug(f'Loading BOLD image: {MBs=:.2f}')
         img = image.load_img(fp_in)
@@ -172,7 +172,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
         img = image.index_img(img, list(range(4, img.shape[-1])))
         frame_times = np.arange(img.shape[-1]) * 2
 
-        dir_mat = r'E:\PycharmProjects_E\SchemeRep\nuisance_regressors'
+        dir_mat = r'H:\PycharmProjects_H\SchemeRep\nuisance_regressors'
         fp_mat = fr'{dir_mat}\sub-{sn}_ses-{sess}_task-{sess_name}_run-0{run}_' \
                     'desc-confounds_timeseries_use_univ.mat'
 
@@ -226,7 +226,7 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     # print(f'{len(df_trials)=}')
     # quit()
 
-    # log = open(r"E:\PycharmProjects_E\SchemeRep\pb_crash_log.log", "a")
+    # log = open(r"H:\PycharmProjects_H\SchemeRep\pb_crash_log.log", "a")
 
 
     if lsa:

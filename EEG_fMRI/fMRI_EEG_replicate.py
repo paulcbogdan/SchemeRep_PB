@@ -26,7 +26,7 @@ import pickle
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat
 
-os.chdir(r'E:\PycharmProjects_E\SchemeRep')
+os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 # warnings.filterwarnings('ignore', #category=RuntimeWarning,
 #                         )
