@@ -219,24 +219,11 @@ def run_lmer_PFC_RSA():
     four_tasks = '7'
     combine_regions = False
     split = False
-    # RDM_method = 'clever_std_complex_mean' # clever_std_complex_mean
     RDM_method = 'within_nan'
-    # RDM_method = 'clever_std'
     age = 'healthy'
     stdize_by_run = True if trial_similarity == 'euc' else False
-    # stdize_by_run = False
 
-    # target_ROI = 'else_cortical'
-    # target_ROI = 'perceptual'
-    # target_ROI = 'Occipital'
-    # target_ROI = 'Hipp'
-    target_ROI = 'Parietal'
-    # target_ROI = 'pSTS'
-    # target_ROI = 'Ventral'
-    # target_ROI = 'MTL'
-    # target_ROI = 'Dorsal'
-    # target_ROI = 'PFC'
-    # target_ROI = 'subcort'
+    target_ROI = 'OC_IT'
 
 
     do_networks = ROI2NETWORK[target_ROI]

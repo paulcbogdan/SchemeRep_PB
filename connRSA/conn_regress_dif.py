@@ -50,7 +50,7 @@ def plot_beta_dif_bars(kwargs, corr=False):
             #                                     verbose=-1)
             # else:
             beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                            verbose=-1, easy_override=True)
+                                            verbose=0, easy_override=True)
             if np.isnan(beta1):
                 continue
 
@@ -171,40 +171,41 @@ def do_regr_dif(semantic=False, RSA=True):
     RDM_method = 'within_nan'
     four_tasks = '7'
     stdize_by_run = False
+    regress_row = False
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+    target_ROIs = ['OC_IT']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
-    for regress_row in [False]:
-        for target_ROI in target_ROIs:
+    for target_ROI in target_ROIs:
 
-            regions = set(prep_networks(
-                network_setting=ROI2NETWORK[target_ROI])[target_ROI])
-            ROIs_match = [ROI for region in regions
-                              for ROI in get_BNA_ROIs() if region in ROI]
-            ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
+        regions = set(prep_networks(
+            network_setting=ROI2NETWORK[target_ROI])[target_ROI])
+        ROIs_match = [ROI for region in regions
+                          for ROI in get_BNA_ROIs() if region in ROI]
+        ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
 
-            kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
-                      'fp1': None, 'trial_similarity': trial_similarity,
-                      'second_order': second_order,
-                      'RDM_method': RDM_method,
-                      'stdize_by_run': stdize_by_run,
-                      'regress_row': regress_row, 'four_tasks': four_tasks,
-                      }
+        kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+                  'fp1': None, 'trial_similarity': trial_similarity,
+                  'second_order': second_order,
+                  'RDM_method': RDM_method,
+                  'stdize_by_run': stdize_by_run,
+                  'regress_row': regress_row, 'four_tasks': four_tasks,
+                  }
 
-            target_name = fr'{target_ROI}_M'
-            prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=False,
-                         ERS_alt=False, **kwargs)
+        target_name = fr'{target_ROI}_M'
+        prep_ROI_avg(target_name, ROI_lvl_control, RSA=RSA, ISPC=False,
+                     ERS_alt=False, **kwargs)
 
-            kwargs['ROI_focus'] = f'{target_ROI}_BOLD'
-            kwargs['ROIs_ctrl'] = [f'{target_ROI}_M']
-            plot_beta_dif_bars(kwargs)
+        kwargs['ROI_focus'] = f'{target_ROI}_BOLD'
+        kwargs['ROIs_ctrl'] = [f'{target_ROI}_M']
+        plot_beta_dif_bars(kwargs)
 
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    do_regr_dif()
+    # do_regr_dif()
     do_regr_dif(semantic=True)
 

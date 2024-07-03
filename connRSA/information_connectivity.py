@@ -637,9 +637,6 @@ def run_IC_analysis(ERS=True, regress_FC=True):
     corrs = []
     # TODO: maybe regress out the activation normal FC matrix?
 
-
-
-
     if drop_con:
         fps = [fp for fp in fps if 'con' not in fp]
     ERS_scores_all = []
@@ -756,7 +753,7 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
     corrs = []
     sns = None
     prev_sns = None
-    fps = ['obj7_fMRI']
+    # fps = ['obj7_fMRI'] # may have caused error in figure being true
     for fp in fps:
         kwargs = {'fp': fp,
                   'split': False,

@@ -96,7 +96,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     assert np.sum(np.isnan(neighbors)) == 0, 'neighbors has nans'
     if centers.shape[0] == 0:
         print(f'NO CENTERS: {sn}/{fp_fMRI_col}')
-        if voxel2idx_centers:
+        if get_vox2center:
             return [None] * 6
         elif get_sphere_Ms:
             return [None] * 5
@@ -137,10 +137,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
 
     tril_mask, kept_in = make_tril_mask_within_nan(flip=flip)
     fMRI_RDMs = fMRI_RDMs[:, kept_in]
-    print(f'{fMRI_RDMs.dtype=}')
-    print(f'{mask.dtype=}')
-    print(f'{centers.dtype=}')
-    print(f'{mask_downsample_pre.dtype=}')
+
     if get_vox2center:
         return (fMRI_RDMs, mask, centers, mask_downsample_pre, data_Ms,
                 voxel2idx_centers)
@@ -292,7 +289,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
         mask_ROIs = None
 
     base_shape = None
-    # sns = sns[:5]
+    sns = sns[30:]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:

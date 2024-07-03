@@ -518,6 +518,7 @@ HCP_RS_ROOT = r'E:\HCP_RS'
 if __name__ == '__main__':
 
     fp_in = r'H:\PycharmProjects_H\SchemeRep\fMRI_in\102\resting\rs.nii.gz'
+    fp_in = r'H:\PycharmProjects_H\SchemeRep\fMRI_in\102\ENC_GM20_LLS1_bpF_full\OBJ\ENC_sub102_run1_trial5_subset1_pairID33_scene.nii'
     img = image.load_img(fp_in)
     print(f'{img.shape=}')
     quit()

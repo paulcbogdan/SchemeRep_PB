@@ -72,13 +72,13 @@ def evaluate_regresslight_std(fMRI_RDMs1, fMRI_RDMs2, stim_RDM):
         betas[i, :] = solution
     return betas
 
-@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+@njit(parallel=True, fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def evaluate_multilight_std(fMRI_RDMs1, regressors, stim_RDM):
     stim_RDM_ = (stim_RDM - np.mean(stim_RDM)) / np.std(stim_RDM)
     num_centers = fMRI_RDMs1.shape[0]
     ones = np.ones(fMRI_RDMs1.shape[1])
     betas = np.empty((num_centers, 2 + regressors.shape[1]))
-    for i in range(num_centers):
+    for i in prange(num_centers):
         X = np.empty((fMRI_RDMs1.shape[1], 2 + regressors.shape[1]))
         X[:, 0] = ones
         X[:, 1] = (fMRI_RDMs1[i] - np.mean(fMRI_RDMs1[i])) / np.std(fMRI_RDMs1[i])
@@ -418,8 +418,17 @@ def convert_back_to_img(eval_results, mask, centers):
         img[center[0], center[1], center[2]] = eval_results[i]
     return img
 
-
-
+@jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def idx_and_mean(fMRI_RDMs, ar):
+    regressors = np.empty((ar.shape[0], 1, fMRI_RDMs.shape[1]),
+                          dtype=np.float32)
+    for i in range(ar.shape[0]):
+        for j in range(fMRI_RDMs.shape[1]):
+            s = 0
+            for k in range(ar.shape[1]):
+                s += fMRI_RDMs[ar[i, k], j]
+            regressors[i, 0, j] = s / ar.shape[1]
+    return regressors
 
 
 # if __name__ == '__main__':

@@ -232,7 +232,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    fp0, fp1, four_tasks, cv=False,
                    regress_row=True, return_dif=False):
 
-    dir_in = fr'E:/PycharmProjects_E/SchemeRep/cache/conn_RSA/ars/RSA'
+    dir_in = fr'H:/PycharmProjects_H/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
@@ -347,7 +347,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
 
     if return_dif:
-        return solution[1], solution[2], solution[1] - solution[2]
+        if len(solution) == 2:
+            return solution[1], None, None
+        else:
+            return solution[1], solution[2], solution[1] - solution[2]
 
     p = X.shape[1] - 1
     n = X.shape[0] - 1 # minus 1 because of the intercept
@@ -912,6 +915,7 @@ def do_regr():
 
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
+    target_ROIs = ['OC_IT']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
