@@ -325,19 +325,27 @@ def get_closest_dists_all(centers1, centers2, l):
     return ar
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
-def get_closest_dists_vox2c(centers1, centers2, l, vox2center, search_range):
+def get_closest_dists_vox2c(centers1, l, vox2center, search_range,
+                            no_y_dim):
     num_centers = centers1.shape[0]
     # num_mods =
-    ar = np.empty((num_centers, l.shape[0] ** 3, ), dtype=np.int32)
-    mod_combos = np.empty((l.shape[0] ** 3, 3), dtype=np.int32)
+    if no_y_dim:
+        y_l = np.zeros(1, dtype=np.int32)
+        ar = np.empty((num_centers, l.shape[0] ** 2, ), dtype=np.int32)
+        mod_combos = np.empty((l.shape[0] ** 2, 3), dtype=np.int32)
+    else:
+        y_l = l
+        ar = np.empty((num_centers, l.shape[0] ** 3, ), dtype=np.int32)
+        mod_combos = np.empty((l.shape[0] ** 3, 3), dtype=np.int32)
     cnt = 0
     for x_mod in l:
-        for y_mod in l:
+        for y_mod in y_l:
             for z_mod in l:
                 mod_combos[cnt, :] = [x_mod, y_mod, z_mod]
                 cnt += 1
 
-    good_finds = np.full(num_centers, True, dtype=np.bool_)
+    good_finds = np.full(num_centers, 0, dtype=np.int32)
+    # good_finds = np.full(num_centers, 1, dtype=np.int32)
 
     for i in range(num_centers):
         for j, mod_combo in enumerate(mod_combos):
@@ -348,6 +356,7 @@ def get_closest_dists_vox2c(centers1, centers2, l, vox2center, search_range):
             bullseye = vox2center[x_, y_, z_]
             if bullseye != NAN_VAL:
                 ar[i, j] = bullseye
+                good_finds[i] += 1
                 # print('BULLSEYE')
                 continue
             # loop around the bullseye
@@ -377,10 +386,11 @@ def get_closest_dists_vox2c(centers1, centers2, l, vox2center, search_range):
                 if found:
                     break
             if found:
+                good_finds[i] += 1
                 # print('FOUND WITH SEARCH')
                 continue
             else:
-                good_finds[i] = False
+                # good_finds[i] = 0
                 ar[i, j] = NAN_VAL
                 # print('?????????')
             # extremely extremely rare to not be found by now...

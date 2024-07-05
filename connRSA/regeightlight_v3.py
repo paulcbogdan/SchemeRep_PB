@@ -24,7 +24,8 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
                           second_level='spear', flip=False, std=True,
                           mask_ROIs=None, mult27=False, m_rsm=False,
                           threshold=0.25, super64=False, mini8=False,
-                          superdensity=False):
+                          superdensity=False, no_y_dim=False,
+                          strict27=False):
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
@@ -65,9 +66,9 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
     mult1 = downsample1 / downsample2
     ar, good_finds = get_indexing_ar(centers1, centers2, radius1, mult1, mult27,
                                      super64=super64, mini8=mini8,
-                                     voxel2center=voxel2center)
-    # print(f'{ar.shape=}')
-    # print(f'{fMRI_RDMs2.shape=}')
+                                     voxel2center=voxel2center, 
+                                     no_y_dim=no_y_dim, strict27=strict27)
+
     ar = ar[good_finds, :]
     # fMRI_RDMs2 = fMRI_RDMs2[good_finds, :]
     centers1 = centers1[good_finds, :]
@@ -79,19 +80,8 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
     fMRI_RDMs1 = fMRI_RDMs1[:, kept_in]
     print(f'\tTime needed to get RDMs1: {time() - t_st:.2f} s')
 
-    # print(f'{fMRI_RDMs1.shape=}')
-
-    # print(f'{fMRI_RDMs2.shape=}')
-    #
-    # regressors = fMRI_RDMs2[ar]
-    # num_nans = np.sum(np.isnan(regressors))
-    # print(f'{num_nans=}')
-    # print(f'{regressors.shape=}')
-    # quit()
     t_st = time()
-    # print(f'{fMRI_RDMs2.shape=}')
-    # print(f'{ar.shape=}')
-    # quit()
+
     if m_rsm:
         # regressors = fMRI_RDMs2[ar]
         # regressors = np.nanmean(regressors, axis=1)[:, None, :]
@@ -135,27 +125,43 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
 
 
 def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
-                    super64=False, mini8=False, voxel2center=None):
+                    super64=False, mini8=False, voxel2center=None,
+                    no_y_dim=False, strict27=False):
 
     if mini8:
         off = int(mult1)
         l = [-off, off]
     elif super64:
         off = int(mult1)
-        off2 = int(mult1 * 3)
-        l = [-off2, -off, off, off2]
+        off1 = int(mult1 * radius1 / 2)
+        off2 = int(mult1 * radius1 / 2 * 3)
+        l = [-off2, -off1, off1, off2]
+    elif strict27:
+        off = int(mult1)
+        off1 = int(radius1 * mult1)
+        l = [-off1, 0, off1]
     else:
-        off = int(radius1 * mult1)
-        l = [-off, 0, off]
+        off = off1 = int(radius1 * mult1)
+        l = [-off1, 0, off1]
+        # off -= 1
 
+    # print(f'{l=}')
+    # print(f'{off=}')
+    # quit()
     t_st = time()
 
     if voxel2center is not None:
-        ar, good_finds = get_closest_dists_vox2c(centers1, centers2,
+        ar, good_finds = get_closest_dists_vox2c(centers1,
                                                  np.array(l), voxel2center,
-                                                 off)
-        proportion_good = np.mean(good_finds)
-        print(f'{proportion_good=}')
+                                                 off, no_y_dim)
+        proportion_good = np.mean(good_finds == np.max(good_finds))
+        good_finds = good_finds == np.max(good_finds)
+        print(f'{proportion_good=:.3f}')
+        # bads = good_finds[good_finds < np.max(good_finds)]
+        # M_bad = np.mean(bads)
+        # print(f'\t{M_bad=:.3f}')
+        # quit()
+
     else:
         ar = get_closest_dists_all(centers1, centers2, np.array(l))
         good_finds = np.full(centers1.shape[0], True, dtype=np.bool_)
@@ -269,7 +275,8 @@ def eightlight(semantic=True, second_level='corr', flip=False,
                do_con=True, eightlight=True, mult27=False,
                use_sum_reg=False, m_rsm=False,
                threshold=0.25, small_Ms=False, super64=False,
-               superdensity=False, mini8=False):
+               superdensity=False, mini8=False, no_y_dim=False,
+               strict27=False):
 
     assert not (m_rsm and use_sum_reg)
     age2sn = get_sns('all', sh=False)
@@ -279,7 +286,8 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, (60, 4 if do_con else 3), downsample1,
         radius1, downsample2, radius2, eightlight, use_sum_reg, mult27,
-        m_rsm, threshold, small_Ms, super64, mini8, superdensity)
+        m_rsm, threshold, small_Ms, super64, mini8, superdensity,
+        no_y_dim, strict27)
     dic = 'cubelight' if small_Ms else 'eightlight'
     fp3 = rf'result_pics/{dic}/{fn3}.png'
     if os.path.isfile(fp3) and False:
@@ -306,6 +314,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     base_shape = None
     # sns = sns[-22:]
     # sns = sns[:8] + sns[-25:-18]
+    # sns = sns[-40:20]
     sns = sns
     for sn_i, sn in enumerate(sns):
         sn_l1 = []
@@ -326,9 +335,11 @@ def eightlight(semantic=True, second_level='corr', flip=False,
                 kw['super64'] = super64
                 kw['mini8'] = mini8
                 kw['superdensity'] = superdensity
+                kw['no_y_dim'] = no_y_dim
+                kw['strict27'] = strict27
                 searched1, searched2, searched3, mask = utils.pickle_wrap(
                     wrapped_jit_cubelight, kwargs=kw, verbose=-1,
-                    easy_override=False)
+                    easy_override=True)
             else:
                 searched1, searched2, searched3, mask = utils.pickle_wrap(
                     wrapped_jit_eightlight, kwargs=kw, verbose=-1,
@@ -378,7 +389,8 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(
         flip, semantic, network, sample_size, downsample1, radius1,
         downsample2, radius2, eightlight, use_sum_reg, mult27, m_rsm,
-        threshold, small_Ms, super64, mini8, superdensity)
+        threshold, small_Ms, super64, mini8, superdensity,
+        no_y_dim, strict27)
 
     tile_max = 8
     plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
@@ -390,7 +402,8 @@ def eightlight(semantic=True, second_level='corr', flip=False,
 def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
                    downsample2, radius2, eightlight=False, use_sum_reg=False,
                    mult27=False, m_rsm=False, threshold=0.25, small_Ms=False,
-                   super64=False, mini8=False, superdensity=False):
+                   super64=False, mini8=False, superdensity=False,
+                   no_y_dim=False, strict27=False):
     flip_str = ' flip' if flip else ''
     flip_str_ = '_flip' if flip else ''
     semantic_str = 'semantic' if semantic else 'visual'
@@ -423,12 +436,15 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
     if use_sum_reg:
         core += '_sum'
 
-    if mini8:
+    if strict27:
+        core += '_strict27'
+    elif mini8:
         core += '_mini8'
     elif super64:
         core += '_super64'
     elif mult27:
         core += '_mult27'
+
     if m_rsm:
         core += '_M_rsm'
     if threshold < 0.24 or threshold > 0.26:
@@ -437,6 +453,8 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
         core += '_small_Ms'
     if superdensity:
         core += '_supedens'
+    if no_y_dim:
+        core += '_no_y_dim'
 
     fn1 = core + '_Multi1'
     fn2 = core + '_Multi2'
@@ -468,20 +486,55 @@ if __name__ == '__main__':
     USE_SUM_REG = False
     M_RSM = True
     SMALL_Ms = True
-    THRESHOLD = 0.5
+    THRESHOLD = 0.25
     SUPER64 = False
-    MINI8 = True
+    MINI8 = False
     SUPERDENSITY = True
+    NO_Y_DIM = True
+    STRICT27 = False
     for MULT27 in [True, ]:  # True, False,
         for SEMANTIC in [True, False]:  # False, True,
-            for NETWORK in [ 'OC_IT', 'PFC']:  #'cortex',  #'OC_IT',  'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
+            for NETWORK in ['OC_T', 'PFC']:  #  'OC_IT', ' cortex',  #'OC_IT',  'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
+                # eightlight(semantic=SEMANTIC,
+                #            radius1=2, downsample1=6, resample1=1,
+                #            radius2=6, downsample2=1,
+                #            resample2=1,#10 if NETWORK == 'cortex' else 1,
+                #            network=NETWORK, do_con=DO_CON,
+                #            use_sum_reg=USE_SUM_REG, mult27=MULT27,
+                #            m_rsm=M_RSM, threshold=THRESHOLD,
+                #            small_Ms=SMALL_Ms, super64=SUPER64,
+                #            mini8=MINI8, superdensity=SUPERDENSITY,
+                #            no_y_dim=NO_Y_DIM,)
+                #
+                # eightlight(semantic=SEMANTIC,
+                #            radius1=2, downsample1=5, resample1=1,
+                #            radius2=5, downsample2=1,
+                #            resample2=1,#10 if NETWORK == 'cortex' else 1,
+                #            network=NETWORK, do_con=DO_CON,
+                #            use_sum_reg=USE_SUM_REG, mult27=MULT27,
+                #            m_rsm=M_RSM, threshold=THRESHOLD,
+                #            small_Ms=SMALL_Ms, super64=SUPER64,
+                #            mini8=MINI8, superdensity=SUPERDENSITY,
+                #            no_y_dim=NO_Y_DIM,)
+
                 eightlight(semantic=SEMANTIC,
                            radius1=2, downsample1=6, resample1=1,
                            radius2=6, downsample2=1,
-                           resample2=1,#10 if NETWORK == 'cortex' else 1,
+                           resample2=1,  # 10 if NETWORK == 'cortex' else 1,
                            network=NETWORK, do_con=DO_CON,
                            use_sum_reg=USE_SUM_REG, mult27=MULT27,
                            m_rsm=M_RSM, threshold=THRESHOLD,
-                           small_Ms=SMALL_Ms, super64=False,
-                           mini8=MINI8,
-                           superdensity=SUPERDENSITY)
+                           small_Ms=SMALL_Ms, strict27=False,
+                           mini8=MINI8, superdensity=SUPERDENSITY,
+                           no_y_dim=NO_Y_DIM, )
+
+                # eightlight(semantic=SEMANTIC,
+                #            radius1=2, downsample1=6, resample1=1,
+                #            radius2=6, downsample2=1,
+                #            resample2=1,#10 if NETWORK == 'cortex' else 1,
+                #            network=NETWORK, do_con=DO_CON,
+                #            use_sum_reg=USE_SUM_REG, mult27=MULT27,
+                #            m_rsm=M_RSM, threshold=THRESHOLD,
+                #            small_Ms=SMALL_Ms, super64=False,
+                #            mini8=MINI8, superdensity=SUPERDENSITY,
+                #            no_y_dim=NO_Y_DIM,)

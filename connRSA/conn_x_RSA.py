@@ -20,7 +20,7 @@ import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
-def prep_conn_corrs(ERS=False):
+def prep_conn_corrs(key, ERS=False, semantic=True):
     # semantic = False
     # regress_FC = False
 
@@ -33,7 +33,6 @@ def prep_conn_corrs(ERS=False):
     cross = False
     IRAF = False
 
-    semantic = False
     drop_con = False
     same_RSM_corr = False
     trial_similarity = 'corr' # euc
@@ -110,24 +109,42 @@ def prep_conn_corrs(ERS=False):
                                    easy_override=False, dt_max=dt_max)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
-
         # corr = np.nanmean(sn_corrs, axis=0)
-
         corrs.append(sn_corrs)
 
     corrs_all = np.array(corrs)
-    # corrs_all = get_plain_corr()
-
-    # print(corrs_all.shape)
-    # quit()
-
     df_all = []
-    for i in range(4):
+
+    if ERS:
+        fp_pair2cnt = {}
+
+        cnt = 0
+        for fp0 in fps:
+            for fp1 in fps:
+                if fp0 >= fp1:
+                    continue
+                print(f'{fp0}, {fp1}: {cnt=}')
+                fp_pair2cnt[(fp0, fp1)] = cnt
+                fp_pair2cnt[(fp1, fp0)] = cnt
+                cnt += 1
+
+        corrs_all_ = []
+        for fp0 in fps:
+            idxs = [fp_pair2cnt[(fp0, fp1)] for fp1 in fps if fp1 != fp0]
+            corrs_all_.append(corrs_all[:, idxs])
+        corrs_all = (np.nanmean(np.array(corrs_all_), axis=2).
+                     transpose((1, 0, 2, 3)))
+
+
+    for i in range(corrs_all.shape[1]):
         corrs = corrs_all[:, i]
 
         networks = ['Occipital', 'ITL', 'Parietal', 'PFC']
         network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
                         'Parietal': 'Parietal', 'PFC': 'PFC'}
+
+        # networks = [key]
+        # network2name = {key: key}
         names = [network2name[net] for net in networks]
         net2idxs = {}
         df_as_l = defaultdict(list)
@@ -145,24 +162,46 @@ def prep_conn_corrs(ERS=False):
             net_SE = net_SD / np.sqrt(np.sum(~np.isnan(net_sn_vals)))
             df_as_l['net'].extend([network2name[net]]*len(sns))
             df_as_l['sn'].extend(sns)
-            df_as_l['val'].extend(net_sn_vals)
+            df_as_l['conn'].extend(net_sn_vals)
 
         df = pd.DataFrame(df_as_l)
-        df = df[df['net'] == 'Occipital']
+
+        if key == 'OC_IT':
+            df = df[df['net'].isin(['Occipital', 'Temporal'])]
+            df = df.groupby('sn')[['conn']].mean().reset_index()
+        else:
+            # df_oc = df[df['net'] == 'Occipital']
+            # df_it = df[df['net'] == 'Temporal']
+            # df_dif = df_oc['conn'].values - df_it['conn'].values
+            # df = pd.DataFrame({'sn': df_it['sn'].values, 'conn': df_dif})
+            df = df[df['net'].isin([[key], network2name[key]])]
+
         df['fp'] = fps[i]
         df_all.append(df)
     df = pd.concat(df_all)
+
     # print(df)
     return df
 
-def get_RSA_betas():
-    kwargs = {'semantic': True, 'fp': None, 'fp0': None,
+def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
+                  ERS=False):
+    if key == 'OC_IT' and False:
+        df_OC = get_RSA_betas('Occipital', ctrl_within=ctrl_within)
+        df_ITL = get_RSA_betas('ITL', ctrl_within=ctrl_within)
+        df = pd.concat([df_OC, df_ITL])
+        df = df.groupby(['sn', 'fp']).mean().reset_index()
+        return df
+
+
+
+    kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
               'fp1': None, 'trial_similarity': 'corr',
               'second_order': 'spear',
               'RDM_method': 'within_nan',
               'stdize_by_run': False,
               'regress_row': False, 'four_tasks': '7',
-              'ROI_focus': 'OC_IT_BOLD', 'ROIs_ctrl': []#['ITL_M'],
+              'ROI_focus': f'{key}_M' if get_local else f'{key}_BOLD',
+              'ROIs_ctrl': [f'{key}_M'] if ctrl_within else [],
               }
 
     fps = prep_fps(kwargs['four_tasks'])
@@ -199,31 +238,12 @@ def get_RSA_betas():
     # print(betas1_all.shape)
     # quit()
     df_all = []
-    for i in range(4):
+    for i in range(len(fps)):
         df = pd.DataFrame({'sn': sns, 'beta1': betas1_all[:, i],
                            'fp': fps[i]})
         df_all.append(df)
     df = pd.concat(df_all)
-    # print(df)
     return df
-
-# def do_regress_FC():
-#     for sn_i in range(corrs.shape[0]):
-#         corr = corrs[sn_i]
-#         corr_flat = corr.flatten()
-#         corr_FC = corrs_FC[sn_i]
-#         corr_FC_flat = corr_FC.flatten()
-#         nans = np.isnan(corr_flat) | np.isnan(corr_FC_flat)
-#         corr_flat_ = corr_flat[~nans]
-#         corr_FC_flat_ = corr_FC_flat[~nans]
-#         slope, intercept, r, p, se = (
-#             stats.linregress(corr_FC_flat_, y=corr_flat_,
-#                              alternative='two-sided'))
-#         print(f'{slope=}')
-#
-#         corr_flat -= slope * corr_FC_flat
-#         corr = corr_flat.reshape(corr.shape)
-#         corrs[sn_i] = corr
 
 def get_plain_corr():
     four_tasks = '7'
@@ -253,30 +273,46 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn():
-    df_conn = prep_conn_corrs()
-    # print(len(df_conn))
-    df_rsa = get_RSA_betas()
+def corr_RSA_conn(main_key='ITL', semantic=True):
+    df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
+
+    df_rsa = get_RSA_betas(main_key, ctrl_within=True, get_local=False,
+                           semantic=semantic)
+    df_rsa_local = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
+                                 semantic=semantic)
+
+    df_rsa['local'] = df_rsa_local['beta1']
     # print(len(df_rsa))
     # quit()
     df = pd.merge(df_conn, df_rsa, on=['sn', 'fp'])
     # print(df)
 
     df = df.dropna()
-    # df = df.sort_values('val')
+    # df = df.sort_values('conn')
     # print(df)
     # quit()
 
+    df[['beta1', 'conn']] = stats.zscore(df[['beta1', 'conn']])
+    df.sort_values('conn', inplace=True)
+    df = df[df['conn'].abs() < 3]
+    df = df[df['beta1'].abs() < 3]
+
+    print(f'{len(df)=}')
+
     from pymer4.models import Lmer
-    formula = 'beta1 ~ val + (1|sn) '
-    model = Lmer(formula, data=df)
+    formula = 'conn ~ beta1 + (1|sn) ' #
+    model = Lmer(formula, data=df) # local +
     model.fit(summarize=False)
     print(model.summary())
 
-    plt.scatter(df['val'], df['beta1'])
+    plt.scatter(df['conn'], df['beta1'])
     plt.show()
-    # r, p = stats.spearmanr(df['val'], df['beta1'])#, nan_policy='omit')
-    # print(f'{r=:.3f}, {p=:.4f}')
+
+    # df = df.groupby('sn')[['conn', 'beta1']].mean()
+    r, p = stats.spearmanr(df['conn'], df['beta1'])#, nan_policy='omit')
+    print(f'distr: {r=:.3f}, {p=:.4f}')
+    r, p = stats.spearmanr(df['conn'], df['local'])#, nan_policy='omit')
+    print(f'local: {r=:.3f}, {p=:.4f}')
 
 if __name__ == '__main__':
     corr_RSA_conn()

@@ -246,7 +246,7 @@ if __name__ == '__main__':
     # for NETWORK in ['OC_T', 'IT']:
     DO_CON = True
     THRESHOLD = 0.5
-    for NETWORK in ['cortex', 'OC_IT', 'IT',]: # None, 'Occipital', 'OC_T',
+    for NETWORK in ['OC_IT', 'cortex', 'IT',]: # None, 'Occipital', 'OC_T',
         for SEMANTIC in [True,]:
             # test_regresslight(semantic=SEMANTIC,
             #                   radius1=2, downsample1=8,
@@ -270,7 +270,7 @@ if __name__ == '__main__':
             #                   do_con=DO_CON, threshold=THRESHOLD)
 
             test_regresslight(semantic=SEMANTIC,
-                              radius2=2, downsample2=6, resample1=1,
+                              radius2=12, downsample2=2, resample1=1,
                               radius1=6, downsample1=2, resample2=1,
                               network=NETWORK)
 

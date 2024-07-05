@@ -531,6 +531,7 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     else:
         if 'NPS' in fn_out:
             plt.ylim(0.0, 0.345)
+            plt.gca().set_yticks([0.0, 0.1, 0.2, 0.3])
         elif 'RSM' in fn_out:
             plt.ylim(0, None)
         else:
@@ -699,9 +700,10 @@ def run_IC_analysis(ERS=True, regress_FC=True):
     fn_out = r'NPS' if ERS else 'RSM'
     fn_out += '_regressed' if regress_FC else ''
     fn_out += '.png'
-    plot_network_M(corrs, corrs_FC, sns_FC, fn_out)
 
     atlas = get_atlas(lifu_labels=False)
+
+    plot_network_M(corrs, corrs_FC, sns_FC, fn_out)
 
     if regress_FC:
         for sn_i in range(corrs.shape[0]):
@@ -715,17 +717,16 @@ def run_IC_analysis(ERS=True, regress_FC=True):
             slope, intercept, r, p, se = (
                 stats.linregress(corr_FC_flat_, y=corr_flat_,
                                  alternative='two-sided'))
-            print(f'{slope=}')
 
             corr_flat -= slope * corr_FC_flat
             corr = corr_flat.reshape(corr.shape)
             corrs[sn_i] = corr
 
+
+
     M = np.nanmean(corrs, axis=0)
     SE = stats.sem(corrs, axis=0, nan_policy='omit')
     N = np.sum(~np.isnan(corrs), axis=0)
-
-
 
     for i in range(N.shape[-1]):
         val = 60 - N[i, 0]
@@ -790,11 +791,11 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
 
 if __name__ == '__main__':
-    plot_FC_mat(drop_con=False, four_tasks='7')
-    quit()
+    # plot_FC_mat(drop_con=False, four_tasks='7')
+    # quit()
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
 
-    run_IC_analysis(ERS=True, regress_FC=False)
-    run_IC_analysis(ERS=False, regress_FC=False)
-    plot_FC_mat()
+    run_IC_analysis(ERS=True, regress_FC=True)
+    run_IC_analysis(ERS=False, regress_FC=True)
+    # plot_FC_mat()

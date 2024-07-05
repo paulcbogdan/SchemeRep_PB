@@ -223,7 +223,7 @@ def run_lmer_PFC_RSA():
     age = 'healthy'
     stdize_by_run = True if trial_similarity == 'euc' else False
 
-    target_ROI = 'OC_IT'
+    target_ROI = 'OC_ITL'
 
 
     do_networks = ROI2NETWORK[target_ROI]

@@ -174,7 +174,7 @@ def do_regr_dif(semantic=False, RSA=True):
     regress_row = False
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
-    target_ROIs = ['OC_IT']
+    # target_ROIs = ['OC_IT']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
