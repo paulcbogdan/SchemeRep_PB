@@ -66,7 +66,8 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
     #                             cluster_threshold=40)
     if vabs is None:
         vabs = np.nanquantile(np.abs(t), 0.995)
-
+    print(f'{vabs=}')
+    # quit()
 
     fp_out = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{dic}\{fn}.png'
     cmap = 'inferno' if only_positive else 'turbo'
@@ -75,16 +76,30 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
         title = title.replace('Red', 'Blue')
         title = title.replace('XXX', 'Red')
         cmap += '_r'
-    plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
-                              vmax=vabs, output_file=fp_out, plot_abs=False,
-                              threshold=0.01, title=title,
-                              colorbar=True, cmap=cmap,)
+    # plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
+    #                           vmax=vabs, output_file=fp_out, plot_abs=False,
+    #                           threshold=.01, title=title,
+    #                           colorbar=True, cmap=cmap)
 
+    # plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
+    #                           vmax=vabs, plot_abs=False,
+    #                           threshold=.01, title=title,
+    #                           colorbar=True, cmap=cmap,
+    #                           )
+    # plt.savefig(fp_out, dpi=300)
+    # plt.show()
+    # plt.rcParams.update({#'font.size': 40,
+    #                      'font.sans-serif': 'Arial'})
+
+    d_clean = 'cleanlight'
+    fp_clean = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{d_clean}\{fn}.png'
+    fig = plt.figure(figsize=(8, 4.5))
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
-                              vmax=vabs, plot_abs=False,
-                              threshold=0.01, title=title,
-                              colorbar=True, cmap=cmap,
-                              )
+                              display_mode='xz', vmax=vabs, plot_abs=False,
+                              threshold=.001, cmap=cmap, annotate=False,
+                              resampling_interpolation='nearest',
+                              figure=fig)
+    plt.savefig(fp_clean, dpi=300)
     plt.show()
 
     # plotting.plot_stat_map(t_img, display_mode='y',

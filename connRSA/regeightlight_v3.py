@@ -287,10 +287,11 @@ def eightlight(semantic=True, second_level='corr', flip=False,
         flip, semantic, network, (60, 4 if do_con else 3), downsample1,
         radius1, downsample2, radius2, eightlight, use_sum_reg, mult27,
         m_rsm, threshold, small_Ms, super64, mini8, superdensity,
-        no_y_dim, strict27)
+        no_y_dim, strict27, resample1)
     dic = 'cubelight' if small_Ms else 'eightlight'
     fp3 = rf'result_pics/{dic}/{fn3}.png'
-    if os.path.isfile(fp3) and False:
+    print(f'{fp3=}')
+    if os.path.isfile(fp3):
         try:
             plot_searchlight_fn(fn1, dic=dic)
             plot_searchlight_fn(fn2, dic=dic)
@@ -339,7 +340,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
                 kw['strict27'] = strict27
                 searched1, searched2, searched3, mask = utils.pickle_wrap(
                     wrapped_jit_cubelight, kwargs=kw, verbose=-1,
-                    easy_override=True)
+                    easy_override=False)
             else:
                 searched1, searched2, searched3, mask = utils.pickle_wrap(
                     wrapped_jit_eightlight, kwargs=kw, verbose=-1,
@@ -403,7 +404,7 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
                    downsample2, radius2, eightlight=False, use_sum_reg=False,
                    mult27=False, m_rsm=False, threshold=0.25, small_Ms=False,
                    super64=False, mini8=False, superdensity=False,
-                   no_y_dim=False, strict27=False):
+                   no_y_dim=False, strict27=False, resample1=1):
     flip_str = ' flip' if flip else ''
     flip_str_ = '_flip' if flip else ''
     semantic_str = 'semantic' if semantic else 'visual'
@@ -456,6 +457,8 @@ def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
     if no_y_dim:
         core += '_no_y_dim'
 
+    core += f'_r{resample1}'
+
     fn1 = core + '_Multi1'
     fn2 = core + '_Multi2'
     fn3 = core + '_Multi_dif'
@@ -486,15 +489,15 @@ if __name__ == '__main__':
     USE_SUM_REG = False
     M_RSM = True
     SMALL_Ms = True
-    THRESHOLD = 0.25
+    THRESHOLD = 0.5
     SUPER64 = False
     MINI8 = False
     SUPERDENSITY = True
-    NO_Y_DIM = True
+    NO_Y_DIM = False
     STRICT27 = False
     for MULT27 in [True, ]:  # True, False,
         for SEMANTIC in [True, False]:  # False, True,
-            for NETWORK in ['OC_T', 'PFC']:  #  'OC_IT', ' cortex',  #'OC_IT',  'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
+            for NETWORK in ['cortex', 'OC_T', ]:  #  'OC_IT', ' cortex',  #'OC_IT',  'OC_IT',   'OC_IT',  , False, 'Occipital' None, 'Occipital', 'IT']: # 'OC_T', None  'OC_IT',
                 # eightlight(semantic=SEMANTIC,
                 #            radius1=2, downsample1=6, resample1=1,
                 #            radius2=6, downsample2=1,

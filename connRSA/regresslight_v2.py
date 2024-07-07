@@ -248,68 +248,12 @@ if __name__ == '__main__':
     THRESHOLD = 0.5
     for NETWORK in ['OC_IT', 'cortex', 'IT',]: # None, 'Occipital', 'OC_T',
         for SEMANTIC in [True,]:
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=2, downsample1=8,
-            #                   resample1=40 if NETWORK is None else 10,
-            #                   radius2=8, downsample2=2, resample2=1,
-            #                   network=NETWORK, center_filter=False,
-            #                   do_con=DO_CON)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=3,
-            #                   resample1=1,#40 if NETWORK is None else 10,
-            #                   radius2=3, downsample2=6, resample2=1,
-            #                   network=NETWORK, center_filter=False,
-            #                   do_con=DO_CON, threshold=THRESHOLD)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=3,
-            #                   resample1=1,  # 40 if NETWORK is None else 10,
-            #                   radius2=3, downsample2=6, resample2=1,
-            #                   network=NETWORK, center_filter=False,
-            #                   do_con=DO_CON, threshold=THRESHOLD)
 
             test_regresslight(semantic=SEMANTIC,
-                              radius2=12, downsample2=2, resample1=1,
-                              radius1=6, downsample1=2, resample2=1,
+                              radius1=4, downsample1=4, resample1=10,
+                              radius2=6, downsample2=1, resample2=1,
                               network=NETWORK)
 
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=4, downsample2=2, resample2=1,
-            #                   network=NETWORK, center_filter=True)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=8, downsample1=1, resample1=10,
-            #                   radius2=2, downsample2=4, resample2=1,
-            #                   network=NETWORK)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=1, resample1=10,
-            #                   radius2=3, downsample2=3, resample2=1,
-            #                   network=NETWORK)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=3, downsample1=1, resample1=10,
-            #                   radius2=3, downsample2=3, resample2=1,
-            #                   network=NETWORK)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=2, resample1=10,
-            #                   radius2=2, downsample2=6, resample2=1,
-            #                   network=NETWORK,
-            #                   do_con=DO_CON, threshold=THRESHOLD)
-            #
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=2, resample1=10,
-            #                   radius2=2, downsample2=6, resample2=1,
-            #                   network=NETWORK,
-            #                   do_con=DO_CON, threshold=THRESHOLD)
-
-            # test_regresslight(semantic=SEMANTIC,
-            #                   radius1=6, downsample1=2, resample1=10,
-            #                   radius2=4, downsample2=6, resample2=1,
-            #                   network=NETWORK)
 
 
 

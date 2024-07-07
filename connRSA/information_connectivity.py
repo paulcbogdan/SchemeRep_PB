@@ -249,7 +249,8 @@ def numba_IRAF_x_IRAF(ar):
 
 
 def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
-                      cross=False, nan_block=True, do_same=False):
+                      cross=False, nan_block=True, do_same=False,
+                      get_var=False):
     dir_root = fr'cache/conn_RSA/ars/ERS'
     # ROI2fps2iERS = {}
     num_pairs = (len(fps) * (len(fps) - 1)) // 2
@@ -367,7 +368,19 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         # plt.show()
         # quit()
     else:
+
+
+        if get_var != False:
+            idxs = get_idxs(get_var)
+            v = np.nanvar(fp2ROI2iNPS[:, idxs, :], axis=2)
+            return v
+            # return fp2ROI2iNPS
         fp2ROI2iNPS = stdize(fp2ROI2iNPS, axis=-1)
+
+        # print(fp2ROI2iNPS.shape)
+
+        # print(f'{fp2ROI2iNPS.shape=}')
+        # quit()
         corrs = numba_fp_x_fp_ERS(fp2ROI2iNPS)
 
     return corrs, M_ERS_difs

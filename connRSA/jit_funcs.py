@@ -157,7 +157,7 @@ def prep_data_Ms(data_2d, neighbors):
 
 
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
-def jit_volume_searchlight(mask, radius=2, threshold=0.5):
+def jit_volume_searchlight(mask, radius=2, threshold=0.5, resample=1):
     X_len = mask.shape[0]
     Y_len = mask.shape[1]
     Z_len = mask.shape[2]
@@ -188,6 +188,13 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5):
                     cnt += 1
     rel_points = rel_points[:cnt]
     max_cnt = rel_points.shape[0]
+
+    if resample > 1:
+        idxs = np.arange(0, centers.shape[0])
+        idxs = np.random.choice(idxs, idxs.shape[0] // resample, replace=False)
+        centers_new = np.empty((idxs.shape[0], 3), dtype=np.int32)
+        for i, idx in enumerate(idxs):
+            centers_new[i] = centers[idx]
 
     # Below messes up
     neighbors = np.full((centers.shape[0], max_cnt), NAN_VAL, dtype=np.int32)

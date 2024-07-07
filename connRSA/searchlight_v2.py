@@ -85,7 +85,8 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
 
     centers, neighbors, voxel2idx_centers = (
-        jit_volume_searchlight(mask, radius=radius, threshold=threshold))
+        jit_volume_searchlight(mask, radius=radius, threshold=threshold,
+                               resample=resample))
 
     if no_RDMs:
         if centers.shape[0] == 0:
@@ -105,11 +106,11 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
         # return [None] * 5 if get_sphere_Ms else [None] * 4
         # return None, None, None, None
 
-    if resample > 1:
-        idxs = np.arange(0, len(centers))
-        idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
-        centers = centers[idxs, :]
-        neighbors = neighbors[idxs, :]
+    # if resample > 1:
+    #     idxs = np.arange(0, len(centers))
+    #     idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
+    #     centers = centers[idxs, :]
+    #     neighbors = neighbors[idxs, :]
 
     print(f'\t\tNumber of centers: {len(centers)}, {neighbors.shape=}')
 
@@ -277,9 +278,9 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
               f'Down: {downsample}, radius: {radius} ') + flip_str
     fn = (f'd{downsample}-r{radius}{flip_str_}_'
           f'{semantic_str}_{sample_size}{network_str}_thr{threshold}_'
-          f'searchlight')
+          f'searchlight_r{resample}')
     fp3 = rf'result_pics/searchlight/{fn}.png'
-    if os.path.isfile(fp3):
+    if os.path.isfile(fp3) and False:
         plot_searchlight_fn(fn)
         return
 
@@ -289,7 +290,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
         mask_ROIs = None
 
     base_shape = None
-    sns = sns[30:]
+    sns = sns[-20:]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -303,17 +304,12 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
             searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
                                                    kwargs=kw, verbose=-1,
                                                    easy_override=False)
-            # print(searched.shape)
 
-            # atlas = get_atlas()
-            # print(atlas['maps'].shape)
-            # quit()
             if searched is None:
                 assert base_shape is not None
                 print(f'\tNONE NONE NONE: {sn}, {fp_fMRI_col}')
                 searched = np.full(base_shape, np.nan)
             else:
-                print(f'{searched.shape=}')
                 assert base_shape is None or searched.shape == base_shape
                 base_shape = searched.shape
 
@@ -339,7 +335,8 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
     biggest_N = np.nanmax(N)
     t[N < int(biggest_N * 0.8)] = np.nan
 
-    plot_t(t, title=title, fn=fn)
+    vabs = 8
+    plot_t(t, title=title, fn=fn, vabs=vabs)
 
 
 
@@ -369,11 +366,13 @@ def interpolate_nearest_3D(ar):
 
 def plot_searchlight_fn(fn, dic='searchlight'):
     fp = rf'result_pics/{dic}/{fn}.png'
-    plt.figure(figsize=(7.5, 3.5))
+    fig = plt.figure(figsize=(7.5, 3.5))
+    fig.subplots_adjust(bottom=0., left=0., right=1., top=1.)
+
     img = mpimg.imread(fp)
     plt.imshow(img)
     plt.axis('off')
-    plt.tight_layout()
+    # plt.tight_layout()
     plt.show()
 
 
@@ -397,21 +396,20 @@ if __name__ == '__main__':
     #                  network='OC_T')
     THRESHOLD = 0.5
     for NETWORK in ['cortex',  ]: # 'OC_IT',  'cortex', 'IT', 'IT', 'Occipital', 'OC_T',
-        test_searchlight(radius=5, downsample=1, flip=False,
-                         semantic=SEMANTIC, resample=40,
-                         network=NETWORK)
-        # test_searchlight(radius=8, downsample=2, flip=False,
-        #                  semantic=SEMANTIC, resample=10,
-        #                  network=NETWORK)
-        # test_searchlight(radius=10, downsample=2, flip=False,
-        #                  semantic=SEMANTIC, resample=10,
-        #                  network=NETWORK)
+        for SEMANTIC in [True, False]:
+            # test_searchlight(radius=14, downsample=1, flip=False,
+            #                  semantic=SEMANTIC, resample=40,
+            #                  network=NETWORK)
+            #
+            # test_searchlight(radius=12, downsample=1, flip=False,
+            #                  semantic=SEMANTIC, resample=40,
+            #                  network=NETWORK)
 
-        # test_searchlight(radius=3, downsample=8, flip=False,
-        #                  semantic=SEMANTIC, resample=1,
-        #                  network=NETWORK)
-        # test_searchlight(radius=2, downsample=12, flip=False,
-        #                  semantic=SEMANTIC, resample=1,
-        #                  network=NETWORK)
+            test_searchlight(radius=6, downsample=1, flip=False,
+                             semantic=SEMANTIC, resample=1,
+                             network=NETWORK, threshold=THRESHOLD)
+            # test_searchlight(radius=1, downsample=12, flip=False,
+            #                  semantic=SEMANTIC, resample=1,
+            #                  network=NETWORK)
 
 

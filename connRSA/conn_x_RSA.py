@@ -19,6 +19,98 @@ from utils import pickle_wrap
 import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
+def prep_var_ERS():
+    # semantic = False
+    # regress_FC = False
+
+    dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
+
+    ERS_nan_block = False
+
+    cross = False
+
+    drop_con = False
+    trial_similarity = 'corr' # euc
+    stdize_by_run = False
+    atlas = get_atlas()
+    ROIs = atlas['ROIs']
+
+
+    sns = ['102', '103', '104', '105', '106', '107', '108', '109', '110',
+           '111', '112', '113', '114', '115', '117',
+           '118', '119', '120', '123', '124', '126', '127', '128', '129',
+           '130', '131', '132', '134', '135', '136',
+           '137', '138', '201', '202', '203', '204', '205', '206', '207',
+           '208', '209', '210', '211', '212', '214',
+           '216', '217', '218', '219', '221', '222', '224', '225', '227',
+           '230', '232', '233', '234', '235', '239']
+
+    four_tasks = '7'
+    fps = prep_fps(four_tasks)
+
+    kwargs = {'trial_similarity': trial_similarity,
+              'stdize_by_run': stdize_by_run,
+              'ROIs': ROIs,
+              }
+
+    corrs = []
+    # TODO: maybe regress out the activation normal FC matrix?
+
+    if drop_con:
+        fps = [fp for fp in fps if 'con' not in fp]
+    ERS_scores_all = []
+
+    dfs_l = []
+    for i, sn in enumerate(sns):#, desc=f'Looping IC: {cross=}'):
+
+        kwargs['fps'] = fps
+        kwargs['cross'] = cross
+        kwargs['nan_block'] = ERS_nan_block
+        kwargs['get_var'] = 'ITL'
+        kwargs['sn'] = sn
+
+        try:
+            v = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
+                            easy_override=True, dt_max=dt_max)
+
+        except AttributeError:
+            v = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
+                            easy_override=True, dt_max=dt_max)
+        v = np.sqrt(v)
+
+
+
+        fp_pair2cnt = {}
+
+        cnt = 0
+        for fp0 in fps:
+            for fp1 in fps:
+                if fp0 >= fp1:
+                    continue
+                fp_pair2cnt[(fp0, fp1)] = cnt
+                fp_pair2cnt[(fp1, fp0)] = cnt
+                cnt += 1
+
+        corrs_all_ = []
+        for fp0 in fps:
+            idxs = [fp_pair2cnt[(fp0, fp1)] for fp1 in fps if fp1 != fp0]
+            corrs_all_.append(v[idxs])
+
+        corrs_all = np.nanmean(np.array(corrs_all_), axis=1)
+
+        df_as_l = defaultdict(list)
+        for i in range(len(fps)):
+            df_as_l['sn'].extend([sn]*len(corrs_all[i]))
+            df_as_l['fp'].extend([fps[i]]*len(corrs_all[i]))
+            df_as_l['conn'].extend(corrs_all[i])
+        df_sn = pd.DataFrame(df_as_l)
+        dfs_l.append(df_sn)
+    df = pd.concat(dfs_l)
+    df = df.groupby(['sn', 'fp'])[['conn']].mean().reset_index()
+
+    return df
+
+
 
 def prep_conn_corrs(key, ERS=False, semantic=True):
     # semantic = False
@@ -141,7 +233,8 @@ def prep_conn_corrs(key, ERS=False, semantic=True):
 
         networks = ['Occipital', 'ITL', 'Parietal', 'PFC']
         network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
-                        'Parietal': 'Parietal', 'PFC': 'PFC'}
+                        'Parietal': 'Parietal', 'PFC': 'PFC',
+                        'IT': 'Temporal'}
 
         # networks = [key]
         # network2name = {key: key}
@@ -273,10 +366,11 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='ITL', semantic=True):
-    df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
+def corr_RSA_conn(main_key='IT', semantic=True):
+    df_conn = prep_conn_corrs(main_key, ERS=True, semantic=False)
+    # df_conn = prep_var_ERS()
 
-    df_rsa = get_RSA_betas(main_key, ctrl_within=True, get_local=False,
+    df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
                            semantic=semantic)
     df_rsa_local = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
                                  semantic=semantic)
@@ -292,27 +386,39 @@ def corr_RSA_conn(main_key='ITL', semantic=True):
     # print(df)
     # quit()
 
-    df[['beta1', 'conn']] = stats.zscore(df[['beta1', 'conn']])
+    # plt.hist(df['conn'], bins=20)
+    # plt.show()
+    # quit()
+
+    # df[['beta1', 'conn']] = stats.zscore(df[['beta1', 'conn']])
+
+    # quit()
     df.sort_values('conn', inplace=True)
-    df = df[df['conn'].abs() < 3]
-    df = df[df['beta1'].abs() < 3]
+
+    # df = df[df['conn'].abs() < 3]
+    # df = df[df['beta1'].abs() < 3]
+    plt.scatter(df['conn'], df['beta1'])
+    plt.show()
+    # quit()
+    # print(df['conn'])
+
 
     print(f'{len(df)=}')
 
     from pymer4.models import Lmer
-    formula = 'conn ~ beta1 + (1|sn) ' #
+    formula = 'conn ~ beta1 + (1 |sn) + (1|fp)' #
     model = Lmer(formula, data=df) # local +
     model.fit(summarize=False)
     print(model.summary())
 
-    plt.scatter(df['conn'], df['beta1'])
-    plt.show()
 
     # df = df.groupby('sn')[['conn', 'beta1']].mean()
+
+
     r, p = stats.spearmanr(df['conn'], df['beta1'])#, nan_policy='omit')
     print(f'distr: {r=:.3f}, {p=:.4f}')
-    r, p = stats.spearmanr(df['conn'], df['local'])#, nan_policy='omit')
-    print(f'local: {r=:.3f}, {p=:.4f}')
+    # r, p = stats.spearmanr(df['conn'], df['local'])#, nan_policy='omit')
+    # print(f'local: {r=:.3f}, {p=:.4f}')
 
 if __name__ == '__main__':
     corr_RSA_conn()

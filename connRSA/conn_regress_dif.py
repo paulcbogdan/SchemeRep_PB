@@ -25,7 +25,132 @@ def get_stars(p):
         stars = 'NS'
     return stars
 
-def plot_beta_dif_bars(kwargs, corr=False):
+def interaction_bars(kwargs):
+    fps = prep_fps(kwargs['four_tasks'])
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+                ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+
+    conds = [('Occipital', 'Local'), ('Occipital', 'Distributed'),
+             ('ITL', 'Local'), ('ITL', 'Distributed')]
+    cond2betas = {}
+    for cond in conds:
+        cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
+    for i, sn in enumerate(sns):
+        for j, fp in enumerate(fps):
+            kwargs['cv'] = False
+            kwargs['return_dif'] = True
+            kwargs['sn'] = sn
+            kwargs['fp'] = fp
+            if (sn, fp) in bad_tups:
+                continue
+
+            for cond in conds:
+                if cond[1] == 'Local':
+                    kwargs['ROI_focus'] = f'{cond[0]}_M'
+                else:
+                    kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
+                kwargs['ROIs_ctrl'] = []
+                beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                          verbose=-1, easy_override=False)
+
+                cond2betas[cond][i, j] = beta1 * 1000
+
+    cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
+                  in cond2betas.items()}
+
+    cond2Ms = {cond: np.nanmean(betas) for cond, betas in cond2betas.items()}
+    cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
+                for cond, betas in cond2betas.items()}
+
+    itr = (cond2betas[('Occipital', 'Local')] -
+           cond2betas[('Occipital', 'Distributed')] -
+           cond2betas[('ITL', 'Local')] - cond2betas[('ITL', 'Distributed')])
+    t, p = stats.ttest_1samp(itr, 0)
+
+    oc_ef = (cond2betas[('Occipital', 'Local')] -
+             cond2betas[('Occipital', 'Distributed')])
+    oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
+    ITL_ef = (cond2betas[('ITL', 'Local')] -
+              cond2betas[('ITL', 'Distributed')])
+    ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
+
+    print(f'Interaction: {t=:.3f}, {p=:.3f}')
+    print(f'\tOccipital: {oc_t=:.3f}, {oc_p=:.3f}')
+    print(f'\tITL: {ITL_t=:.3f}, {ITL_p=:.3f}')
+
+    Ms = np.array([cond2Ms[cond] for cond in conds])
+    SEs = np.array([cond2SEs[cond] for cond in conds])
+    max_yerr = max(Ms + SEs)
+    height = max_yerr * 1.05
+
+    plt.rcParams.update({'font.sans-serif': 'Arial'})
+    plt.bar([0, 1, 2, 3], Ms, yerr=SEs,
+            color=['red',  'orange', 'red', 'orange'],
+            capsize=5,
+            linewidth=1., edgecolor='k')
+    plt.xticks([0, 1, 2, 3],
+               ['Local', 'Distributed', 'Local', 'Distributed'],
+               fontsize=19)
+
+    plt.text(0.5, 0 - height * .19, 'Occipital',
+             fontsize=22, ha='center')
+    plt.text(2.5, 0 - height * .19, 'Temporal',
+             fontsize=22, ha='center')
+
+    lower_signif_line = max_yerr * 1.04
+    upper_signif_line = max_yerr * 1.1
+    plt.plot([0, 1], [lower_signif_line, lower_signif_line], color='k')
+    plt.plot([0.5, 0.5], [lower_signif_line, upper_signif_line], color='k')
+    plt.plot([2, 3], [lower_signif_line, lower_signif_line], color='k')
+    plt.plot([2.5, 2.5], [lower_signif_line, upper_signif_line], color='k')
+    plt.plot([0.5, 2.5], [upper_signif_line, upper_signif_line], color='k')
+
+    # stars_height = height * .92 if stars != 'NS' else height * 1.02
+    itr_stars = get_stars(p)
+    stars_fs = 35 if itr_stars != 'NS' else 24
+    plt.text(1.5, max_yerr*1.12, itr_stars, ha='center', va='center',
+             fontsize=stars_fs, )
+
+    oc_stars = get_stars(oc_p)
+    if 'NS' not in oc_stars:
+        plt.text(0.5, max_yerr*.935, oc_stars, ha='center', va='center',
+                 fontsize=stars_fs, )
+    itl_stars = get_stars(ITL_p)
+    if 'NS' not in itl_stars:
+        plt.text(2.5, max_yerr * .935, itl_stars, ha='center', va='center',
+                 fontsize=stars_fs, )
+
+
+    plt.yticks(range(0, int(height * 1.07) + 1,
+                     min(max(int(height * 1.07) // 4, 1), 5)),
+               fontsize=24)
+    plt.locator_params(axis='y', nbins=6)
+
+    plt.ylabel('Mean beta', fontsize=24, labelpad=10)
+    plt.gca().spines[['top', 'right']].set_visible(False)
+    plt.ylim(0, height * 1.07)
+
+    # line = plt.Line2D([0.5, 0.5], [-.003, -0.18],
+    #                   transform=plt.gca().transAxes,
+    #                   color='black', linewidth=1.,
+    #                   dash_capstyle='butt')
+    # line.set_clip_on(False)
+    # plt.gca().add_line(line)
+
+    plt.tight_layout()
+
+    # plt.text(2.5, 0 - (top_level - bottom) * .225, 'Target After',
+    #          fontsize=17.5, ha='center')
+
+    # plt.bar(cond2Ms.keys(), cond2Ms.values(), yerr=cond2SEs.values(),
+    #         capsize=5, linewidth=1., edgecolor='k')
+    plt.show()
+
+
+def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
     fps = prep_fps(kwargs['four_tasks'])
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
@@ -49,10 +174,20 @@ def plot_beta_dif_bars(kwargs, corr=False):
             #     beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
             #                                     verbose=-1)
             # else:
-            beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                            verbose=0, easy_override=True)
+            beta1, beta2, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                            verbose=-1, easy_override=False)
             if np.isnan(beta1):
                 continue
+            # print(f'{beta1=:.3f}, {beta2=:.3f}')
+
+
+            if beta2 is None:
+                if '_M' in kwargs['ROI_focus']:
+                    beta2 = beta1
+                    beta1 = 0
+                else:
+                    beta2 = 0
+            # quit()
 
             betas1_all[i, j] = beta1
             betas2_all[i, j] = beta2
@@ -78,17 +213,6 @@ def plot_beta_dif_bars(kwargs, corr=False):
     t2, p2 = stats.ttest_1samp(M_sns2, 0)
     print(f'{t1=:.3f} {t2=:.3f}')
 
-    # plt.scatter(M_sns1, M_sns2)
-    # low = min(min(M_sns1), min(M_sns2))
-    # high = max(max(M_sns1), max(M_sns2))
-    # plt.plot([low, high], [low, high], color='k',)
-    # plt.plot([0, 0], [low, high], color='k',)
-    # plt.plot([low, high], [0, 0], color='k',)
-    #
-
-    # plt.show()
-    # return
-
     fig = plt.figure(figsize=(4.2, 5))
     fontsize = 20
     plt.rcParams.update({'font.size': fontsize,
@@ -103,16 +227,18 @@ def plot_beta_dif_bars(kwargs, corr=False):
     M1_pos_p = np.nanmean(M_sns1 > 0)
     M2_pos_p = np.nanmean(M_sns2 > 0)
     dif_p = np.nanmean(M_sns1 > M_sns2)
-    r, p = stats.pearsonr(M_sns1, M_sns2)
+
 
 
     # print(M)
 
     print(f'{t_dif=:.3f} (N = {len(M_sns1)}) {p_dif=:.3f} | '
           f'{M1_pos_p=:.1%} - {M2_pos_p=:.1%}: {dif_p:.1%} | '
-          f'{r=:.3f}')
+          f'') # {r=:.3f}
+    r, p = stats.pearsonr(M_sns1, M_sns2)
+    print(f'{r=:.3f}')
     # return
-    plt.bar(bar_names, [M1, M2], yerr=[SE1, SE2],
+    plt.bar(bar_names, [M2, M1], yerr=[SE2, SE1],
             label='2', color=colors, capsize=5,
             linewidth=1., edgecolor='k')
 
@@ -143,19 +269,18 @@ def plot_beta_dif_bars(kwargs, corr=False):
 
 
     plt.ylabel('Mean beta', fontsize=24, labelpad=10)
-
     plt.gca().spines[['top', 'right']].set_visible(False)
     title, fn, _ = get_title(True, False, kwargs, 28)
     plt.title(title, fontsize=15, pad=30)
-    plt.ylim(0, height * 1.05)
 
     plt.yticks(range(0, int(height * 1.07) + 1,
                      min(max(int(height * 1.07) // 4, 1), 5)),
                fontsize=24)
+    plt.locator_params(axis='y', nbins=6)
 
     plt.xticks(bar_names, fontsize=20.5)
+    plt.ylim(0, height * 1.05)
 
-    plt.locator_params(axis='y', nbins=6)
 
     fn = f'beta_{kwargs["ROI_focus"]}_{fn}'
 
@@ -165,7 +290,8 @@ def plot_beta_dif_bars(kwargs, corr=False):
     plt.show()
 
 
-def do_regr_dif(semantic=False, RSA=True):
+def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
+                inter=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -198,7 +324,14 @@ def do_regr_dif(semantic=False, RSA=True):
                      ERS_alt=False, **kwargs)
 
         kwargs['ROI_focus'] = f'{target_ROI}_BOLD'
-        kwargs['ROIs_ctrl'] = [f'{target_ROI}_M']
+        if big_voxel:
+            kwargs['ROI_focus'] += '_cmb'
+        # kwargs['ROI_focus'] = f'{target_ROI}_M'
+
+        kwargs['ROIs_ctrl'] = []#f'{target_ROI}_M'] # + ROI_lvl_control[1:]
+        if inter:
+            interaction_bars(kwargs)
+            return
         plot_beta_dif_bars(kwargs)
 
 
@@ -208,4 +341,8 @@ sys.setrecursionlimit(10000)
 if __name__ == '__main__':
     # do_regr_dif()
     do_regr_dif(semantic=True)
+    do_regr_dif(semantic=False)
+
+    # do_regr_dif(semantic=False)
+
 
