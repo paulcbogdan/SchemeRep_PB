@@ -83,7 +83,7 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
 
     # plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
     #                           vmax=vabs, plot_abs=False,
-    #                           threshold=.01, title=title,
+    #                           threshold=2.85, title=title,
     #                           colorbar=True, cmap=cmap,
     #                           )
     # plt.savefig(fp_out, dpi=300)
@@ -94,10 +94,13 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
     d_clean = 'cleanlight'
     fp_clean = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{d_clean}\{fn}.png'
     fig = plt.figure(figsize=(8, 4.5))
+    full_sns = '60,' in fn
+
     plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
                               display_mode='xz', vmax=vabs, plot_abs=False,
                               threshold=.001, cmap=cmap, annotate=False,
                               resampling_interpolation='nearest',
+                              title = None if full_sns else title,
                               figure=fig)
     plt.savefig(fp_clean, dpi=300)
     plt.show()

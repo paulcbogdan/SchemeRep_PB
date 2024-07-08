@@ -341,7 +341,7 @@ def f2str(callback, kwargs=None):
     signature = inspect.signature(callback) # functools.partial impacts sig
     for k, v in signature.parameters.items():
         if v.default is v.empty: continue # exclude args, only want kwargs
-        if k not in kwargs: kwargs[k] = v.default
+        if k not in kwargs: kwargs[k] = v.default # TODO: could toggle off?
     if kwargs is not None:
         kwargs_str = ''
         for key in sorted(kwargs.keys()):

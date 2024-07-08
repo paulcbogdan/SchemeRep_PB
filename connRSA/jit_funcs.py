@@ -121,6 +121,44 @@ def jit_searchlight_RDMs(data_2d, neighbors):
     return out
 
 @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+def jit_searchlight_RDMs_euc(data_2d, neighbors):
+    num_trials = data_2d.shape[0]
+    num_centers = neighbors.shape[0]
+    neighbor_len = neighbors.shape[1]
+    RDM_size = (num_trials - 1) * num_trials // 2
+    out = np.full((num_centers, RDM_size), NAN_VAL, dtype=np.float32)
+
+    for i in range(num_centers):
+        for k in range(neighbor_len):
+            if neighbors[i, k] == NAN_VAL:
+                cutoff = k
+                break
+        else:
+            cutoff = neighbor_len
+        neighbors_i = neighbors[i, :cutoff]
+        sphere_data = np.empty((num_trials, cutoff))
+        for j in range(num_trials): # TODO: change data 2d to have nans
+            sphere_data[j] = data_2d[j, neighbors_i]
+
+        RDM_flat = np.empty(RDM_size)
+        cnt = 0
+        for j in range(num_trials):
+            for k in range(j):
+                RDM_flat[cnt] = np.linalg.norm(sphere_data[j] -
+                                               sphere_data[k])
+                cnt += 1
+
+        # sphere_RDM = np.corrcoef(sphere_data)
+        # RDM_flat = np.empty(RDM_size)
+        # cnt = 0
+        # for j in range(114):
+        #     for k in range(j):
+        #         RDM_flat[cnt] = sphere_RDM[j, k]
+        #         cnt += 1
+        out[i] = RDM_flat
+    return out
+
+@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_searchlight_orged_RDMs(data_ready):
     num_trials = data_ready.shape[0]
     num_centers = data_ready.shape[1]

@@ -12,14 +12,14 @@ from old.networks import prep_networks
 from org_sns import get_sns
 from utils import pickle_wrap
 
-def get_stars(p):
+def get_stars(p, no_cross=True):
     if p < .001:
         stars = '***'
     elif p < .01:
         stars = '**'
     elif p < .05:
         stars = '*'
-    elif p < .1:
+    elif p < .1 and not no_cross:
         stars = '†'
     else:
         stars = 'NS'
@@ -34,7 +34,7 @@ def interaction_bars(kwargs):
                 ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
 
     conds = [('Occipital', 'Local'), ('Occipital', 'Distributed'),
-             ('ITL', 'Local'), ('ITL', 'Distributed')]
+             ('IT', 'Local'), ('IT', 'Distributed')]
     cond2betas = {}
     for cond in conds:
         cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
@@ -67,14 +67,14 @@ def interaction_bars(kwargs):
 
     itr = (cond2betas[('Occipital', 'Local')] -
            cond2betas[('Occipital', 'Distributed')] -
-           cond2betas[('ITL', 'Local')] - cond2betas[('ITL', 'Distributed')])
+           cond2betas[('IT', 'Local')] - cond2betas[('IT', 'Distributed')])
     t, p = stats.ttest_1samp(itr, 0)
 
     oc_ef = (cond2betas[('Occipital', 'Local')] -
              cond2betas[('Occipital', 'Distributed')])
     oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
-    ITL_ef = (cond2betas[('ITL', 'Local')] -
-              cond2betas[('ITL', 'Distributed')])
+    ITL_ef = (cond2betas[('IT', 'Local')] -
+              cond2betas[('IT', 'Distributed')])
     ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
 
     print(f'Interaction: {t=:.3f}, {p=:.3f}')
@@ -88,16 +88,22 @@ def interaction_bars(kwargs):
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     plt.bar([0, 1, 2, 3], Ms, yerr=SEs,
-            color=['red',  'orange', 'red', 'orange'],
+            color=['dodgerblue',  'orange', 'dodgerblue', 'orange'],
             capsize=5,
             linewidth=1., edgecolor='k')
     plt.xticks([0, 1, 2, 3],
-               ['Local', 'Distributed', 'Local', 'Distributed'],
+               ['Local', 'Distributed\n(Voxelwise)',
+                'Local', 'Distributed\n(Voxelwise)'],
                fontsize=19)
 
-    plt.text(0.5, 0 - height * .19, 'Occipital',
+    # plt.text(0.5, 0 - height * .19, 'Occipital',
+    #          fontsize=22, ha='center')
+    # plt.text(2.5, 0 - height * .19, 'Temporal',
+    #          fontsize=22, ha='center')
+
+    plt.text(0.5, 0 - height * .32, 'Occipital',
              fontsize=22, ha='center')
-    plt.text(2.5, 0 - height * .19, 'Temporal',
+    plt.text(2.5, 0 - height * .32, 'Temporal',
              fontsize=22, ha='center')
 
     lower_signif_line = max_yerr * 1.04
@@ -110,16 +116,23 @@ def interaction_bars(kwargs):
 
     # stars_height = height * .92 if stars != 'NS' else height * 1.02
     itr_stars = get_stars(p)
-    stars_fs = 35 if itr_stars != 'NS' else 24
-    plt.text(1.5, max_yerr*1.12, itr_stars, ha='center', va='center',
+    itr_stars = itr_stars.replace('NS', ' ')
+    stars_fs = 35 if itr_stars not in ['NS', '†'] else 24
+    # if 'NS' not in itr_stars:
+    plt.text(1.5,
+             max_yerr*1.12 if itr_stars not in ['NS', '†'] else
+             max_yerr*1.19,
+             itr_stars, ha='center', va='center',
              fontsize=stars_fs, )
 
     oc_stars = get_stars(oc_p)
     if 'NS' not in oc_stars:
+        stars_fs = 35
         plt.text(0.5, max_yerr*.935, oc_stars, ha='center', va='center',
                  fontsize=stars_fs, )
     itl_stars = get_stars(ITL_p)
     if 'NS' not in itl_stars:
+        stars_fs = 35
         plt.text(2.5, max_yerr * .935, itl_stars, ha='center', va='center',
                  fontsize=stars_fs, )
 
@@ -248,7 +261,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
     if p_dif < .10:
         plt.plot([0, 1], [height, height], color='k', linewidth=1.5)
         stars = get_stars(p_dif)
-        stars_fs = 45 if stars != 'NS' else 24
+        stars_fs = 45 if stars not in ['NS', '†'] else 24
         stars_height = height * .92 if stars != 'NS' else height * 1.02
         plt.text(0.5, stars_height, stars, ha='center', va='bottom',
                  fontsize=stars_fs)
@@ -257,13 +270,13 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
         stars1 = get_stars(p1)
         # minus height accounts for asterisks not being centered in its box
         stars1_height = (M1 - SE1) * .5 - height * .053
-        stars_fs = 45 if stars1 != 'NS' else 24
+        stars_fs = 45 if stars1 not in ['NS', '†']  else 24
         plt.text(0, stars1_height, stars1, ha='center', va='center',
                  color='w', fontsize=stars_fs)
     if M2 > 0 and p2 < .1:
         stars2 = get_stars(p2)
         stars2_height = (M2 - SE2) * .5 - height * .053
-        stars_fs = 45 if stars2 != 'NS' else 24
+        stars_fs = 45 if stars2 not in ['NS', '†'] else 24
         plt.text(1, stars2_height, stars2, ha='center', va='center',
                  color='w', fontsize=stars_fs)
 
@@ -291,7 +304,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
 
 
 def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
-                inter=True):
+                inter=False, strict_corr=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -299,7 +312,7 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     stdize_by_run = False
     regress_row = False
 
-    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+    target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
     # target_ROIs = ['OC_IT']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
@@ -332,8 +345,68 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
         if inter:
             interaction_bars(kwargs)
             return
+        elif strict_corr:
+            kwargs['ROIs_ctrl'] = ROI_lvl_control
+            strict_correlations(kwargs)
+            return
         plot_beta_dif_bars(kwargs)
 
+def strict_correlations(kwargs):
+    fps = prep_fps(kwargs['four_tasks'])
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+                ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+
+    conds = [('Occipital', 'Average'), ('Occipital', 'Voxel'),
+             ('IT', 'Average'), ('IT', 'Voxel')]
+    cond2betas = {}
+    for cond in conds:
+        cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
+    for i, sn in enumerate(sns):
+        for j, fp in enumerate(fps):
+            kwargs['cv'] = False
+            kwargs['return_dif'] = True
+            kwargs['sn'] = sn
+            kwargs['fp'] = fp
+            if (sn, fp) in bad_tups:
+                continue
+
+            for cond in conds:
+                if cond[1] == 'Average':
+                    kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
+                else:
+                    kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
+                beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                          verbose=-1, easy_override=False)
+
+                cond2betas[cond][i, j] = beta1 * 1000
+
+    cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
+                  in cond2betas.items()}
+
+    cond2Ms = {cond: np.nanmean(betas) for cond, betas in cond2betas.items()}
+    print(cond2Ms)
+    cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
+                for cond, betas in cond2betas.items()}
+
+    for cond, betas in cond2betas.items():
+        t, p = stats.ttest_1samp(betas, 0)
+        print(f'{cond=}, {t=:.3f}, {p=:.3f}')
+    return
+    quit()
+
+    oc_ef = (cond2betas[('Occipital', 'Average')] -
+             cond2betas[('Occipital', 'Voxel')])
+    oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
+    ITL_ef = (cond2betas[('IT', 'Average')] -
+              cond2betas[('IT', 'Voxel')])
+    ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
+
+    print(f'Interaction: {t=:.3f}, {p=:.3f}')
+    print(f'\tOccipital: {oc_t=:.3f}, {oc_p=:.3f}')
+    print(f'\tITL: {ITL_t=:.3f}, {ITL_p=:.3f}')
 
 import sys
 sys.setrecursionlimit(10000)

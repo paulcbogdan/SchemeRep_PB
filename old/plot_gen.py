@@ -139,7 +139,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
 def get_split_cmap(vabs, thresh, cmap, blue_half=False,
-                   black_line=0):
+                   black_line=0, full_range=False):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
@@ -166,7 +166,10 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False,
     if blue_half:
         vals_colored = cmap(np.linspace(0.05, .9, n_colored))
     else:
-        vals_colored = cmap(np.linspace(0.05, .9, n))
+        if full_range:
+            vals_colored = cmap(np.linspace(0.0, 1., n))
+        else:
+            vals_colored = cmap(np.linspace(0.05, .9, n))
     #I don't like the purple...
     vals_low = vals_colored[:int(n_colored/2)]
     # print(len(vals_low))

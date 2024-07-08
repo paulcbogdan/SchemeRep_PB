@@ -53,7 +53,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
                   resample=1, flip=False, mask_ROIs=None,
                   resample_filterer=None, threshold=0.25,
                   get_sphere_Ms=False, no_RDMs=False,
-                  get_vox2center=False):
+                  get_vox2center=False, ): # first_level='corr'
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
 
@@ -290,7 +290,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
         mask_ROIs = None
 
     base_shape = None
-    sns = sns[-20:]
+    sns = sns[-30:]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -394,9 +394,9 @@ if __name__ == '__main__':
     # test_searchlight(radius=3, downsample=4, flip=False,
     #                  semantic=SEMANTIC, resample=1,
     #                  network='OC_T')
-    THRESHOLD = 0.5
+    THRESHOLD = 0.25
     for NETWORK in ['cortex',  ]: # 'OC_IT',  'cortex', 'IT', 'IT', 'Occipital', 'OC_T',
-        for SEMANTIC in [True, False]:
+        for SEMANTIC in [True]:
             # test_searchlight(radius=14, downsample=1, flip=False,
             #                  semantic=SEMANTIC, resample=40,
             #                  network=NETWORK)
@@ -406,7 +406,7 @@ if __name__ == '__main__':
             #                  network=NETWORK)
 
             test_searchlight(radius=6, downsample=1, flip=False,
-                             semantic=SEMANTIC, resample=1,
+                             semantic=SEMANTIC, resample=10,
                              network=NETWORK, threshold=THRESHOLD)
             # test_searchlight(radius=1, downsample=12, flip=False,
             #                  semantic=SEMANTIC, resample=1,
