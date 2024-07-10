@@ -27,7 +27,7 @@ warnings.filterwarnings("ignore",
 
 FIRST_LOAD = True
 
-N_REPEATS = 32
+N_REPEATS = 128
 def evaluate_acc_ps(accs, kernel='rbf', subj_std=False, by_run=False,
                     strict=False):
     if subj_std:

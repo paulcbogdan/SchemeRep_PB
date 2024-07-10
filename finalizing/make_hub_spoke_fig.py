@@ -1,3 +1,5 @@
+import numpy as np
+
 from atlas_utils import get_atlas
 from nilearn import plotting
 
@@ -12,7 +14,7 @@ import matplotlib.pyplot as plt
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
-def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
+def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=True,
                    all_black=False, only_cortical=True):
     kwargs = {'fp': fp,
               'split': False,
@@ -29,54 +31,141 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False)
 
+
+    if only_cortical:
+        bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
+        bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
+                 if roi in bad_rois]
+        sn_inc_conn[..., bad_j, :] = np.nan
+        sn_inc_conn[..., :, bad_j] = np.nan
+
+
+        # sn_roi_act[..., bad_j, :] = np.nan
+        # sn_roi_rs[..., bad_j, :] = np.nan
+
     if regr:
-        z_graph = get_beta_graph(sn_inc_conn)
+        t_graph = get_beta_graph(sn_inc_conn)
     else:
-        _, _, _, _, _, _, z_graph = \
+        _, _, _, _, t_graph, _, z_graph = \
             get_stats_graphs(sn_inc_conn[:, 0, :, :],
                              sn_inc_conn[:, 2, :, :])
 
+    # print(sn_inc_conn.shape)
+    # quit()
+
+    comp_graph = sn_inc_conn[:, 0, :, :] > sn_inc_conn[:, 2, :, :]
+
+    # print(comp_graph.shape)
+    # print(np.nan > np.nan)
+    t_graph = (0.5 - np.nanmean(comp_graph, axis=0))
+    if only_cortical:
+        bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
+        bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
+                 if roi in bad_rois]
+        t_graph[bad_j, :] = np.nan
+        t_graph[:, bad_j] = np.nan
+
+    num_nans = np.sum(np.isnan(t_graph[31]))
+    # num_non_nans = np.sum(~np.isnan(t_graph[31]))
+    # print(f'{num_nans=}')
+    # quit()
+
     i = 77
 
+    rois = [30, 76, 142, 202]
+    rois = [0, 3, 24, 30, 31, 43, 51, 73, 76, 81, 99, 123, 142, 152, 173, 188,
+            198, 202, 206, 207]
 
+    # rois = [137]
+    # rois = [73, 76]
 
-    for i in [30, 76, 142, 202]:
+    # rois = np.arange(40)
+
+    # rois = [123, 142, 152, 173,]
+
+    # rois = list(range(140, 147))
+
+    # rois = np.arange(z_graph.shape[0])
+
+    # rois = [24, 30, 31, 76]#, 142, 202]
+    # rois = [roi - 1 for roi in rois]
+
+    # for i in np.arange(t_graph.shape[0]):
+    #     for j in np.arange(t_graph.shape[0]):
+    #         even_i = (i // 2) * 2
+    #         odd_i = even_i + 1
+    #         even_j = (j // 2) * 2
+    #         odd_j = even_j + 1
+    #         if ((even_i in rois or odd_i in rois) and
+    #                 (even_j in rois or odd_j in rois)):
+    #             continue
+    #         t_graph[i, j] = np.nan
+
+            # if i not in rois or j not in rois:
+            #     t_graph[i, j] = np.nan
+
+    # rois = [24, 30, 31]
+    # t_graph_pre = t_graph.copy()
+    # for roi in rois:
+    #     t_graph[roi, :] = np.nanmean(t_graph_pre[rois], axis=0)
+
+    rois = [31]
+
+    # rois = [0]
+    for i in rois:
     # for i in [78, 79]:
         all_black = False
         fig = plt.figure(figsize=(3.5, 3.5))
 
-        z_graph_ = z_graph.copy()
+        t_graph_ = t_graph.copy()
         if all_black:
-            z_graph_[:, :] = 1
+            t_graph_[:, :] = 1
             # z_graph_[:, ::3] = 1
-            z_graph_[:i] = 0
-            z_graph_[i+1:] = 0
-            z_graph_[:, i] = z_graph_[i, :]
+            t_graph_[:i] = 0
+            t_graph_[i+1:] = 0
+            t_graph_[:, i] = t_graph_[i, :]
             vabs = 1
             edge_kw = {'linewidth': 1.5, 'alpha': 0.25}
         else:
-            z_graph_[:i] = 0
-            z_graph_[i+1:] = 0
-            z_graph_[:, i] = z_graph_[i, :]
+            t_graph_[:i] = 0
+            t_graph_[i+1:] = 0
+            t_graph_[:, i] = t_graph_[i, :]
             vabs = 4
             edge_kw = {'linewidth': 1.5,}
 
+        # plotting.plot_connectome(
+        #     t_graph_,
+        #     atlas['coords'],
+        #     edge_threshold=1.,
+        #     edge_vmin=-vabs, edge_vmax=vabs,
+        #     colorbar=True,
+        #     edge_cmap='bone_r' if all_black else 'turbo', # 'cold_hot', #
+        #     # edge_cmap='RdYlBu_r',
+        #     node_size=1 if all_black else 1.5,
+        #     node_color='k',
+        #     edge_kwargs=edge_kw,
+        #     display_mode='x',
+        #     figure=fig,
+        #     title=atlas['ROIs'][i] + f' {atlas["coords"][i]}',
+        # )
+
         plotting.plot_connectome(
-            z_graph_,
+            t_graph_,
             atlas['coords'],
-            edge_threshold=1.,
-            edge_vmin=-vabs, edge_vmax=vabs,
-            colorbar=False,
-            edge_cmap='bone_r' if all_black else 'turbo', # 'cold_hot', #
+            edge_threshold=0,
+            colorbar=True,
+            edge_cmap='bone_r' if all_black else 'turbo',  # 'cold_hot', #
+            # edge_cmap='RdYlBu_r',
             node_size=1 if all_black else 1.5,
             node_color='k',
             edge_kwargs=edge_kw,
             display_mode='x',
             figure=fig,
-            # title=atlas['ROIs'][i] + f' {atlas["coords"][i]}',
+            title=atlas['ROIs'][i] + f' {atlas["coords"][i]}',
         )
         # abs_max = np.nanmax(np.abs(z_graph_))
         # print(f'{i}: {abs_max=:.3f}')
+        # plt.colorbar()
         fp_out = fr'result_pics/other/hub_spoke/_{atlas["ROIs"][i]}.png'
         plt.savefig(fp_out, dpi=300)
         plt.show()
