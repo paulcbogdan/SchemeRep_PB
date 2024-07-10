@@ -296,6 +296,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
 
         if regress_row:
+
             IRAFs_ctrl = []
             for RSM_ctrl in RSM_ctrl_l:
                 IRAFs = get_IRAFs(RSM_stim, RSM_ctrl, None,
@@ -314,9 +315,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 print(f'{sn}: {fp} | {ROI_focus=}, {ROIs_ctrl=} | {e=}')
                 return [np.nan] * (3 if return_dif else 2)
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
-
-            M = np.nanmean(IRAFs_focus)
-            return M, (M ** 2) * np.sign(M)
+            return IRAFs_focus
+            # M = np.nanmean(IRAFs_focus)
+            # return M, (M ** 2) * np.sign(M)
 
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:

@@ -290,7 +290,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
         mask_ROIs = None
 
     base_shape = None
-    sns = sns[-30:]
+    # sns = sns[-30:]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -396,7 +396,7 @@ if __name__ == '__main__':
     #                  network='OC_T')
     THRESHOLD = 0.25
     for NETWORK in ['cortex',  ]: # 'OC_IT',  'cortex', 'IT', 'IT', 'Occipital', 'OC_T',
-        for SEMANTIC in [True]:
+        for SEMANTIC in [True, False]:
             # test_searchlight(radius=14, downsample=1, flip=False,
             #                  semantic=SEMANTIC, resample=40,
             #                  network=NETWORK)

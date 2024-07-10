@@ -214,16 +214,16 @@ def run_lmer_PFC_RSA():
     RSA = True
     semantic = True
     conn = 'prod'
-    trial_similarity = 'corr'
+    trial_similarity = 'euc'
     second_order = 'spear'
     four_tasks = '7'
     combine_regions = False
     split = False
     RDM_method = 'within_nan'
     age = 'healthy'
-    stdize_by_run = True if trial_similarity == 'euc' else False
+    stdize_by_run = False#True if trial_similarity == 'euc' else False
 
-    target_ROI = 'OC_ITL'
+    target_ROI = 'IT'
 
 
     do_networks = ROI2NETWORK[target_ROI]

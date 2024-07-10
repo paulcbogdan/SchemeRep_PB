@@ -369,11 +369,11 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         # quit()
     else:
 
-
         if get_var != False:
             idxs = get_idxs(get_var)
-            v = np.nanvar(fp2ROI2iNPS[:, idxs, :], axis=2)
-            return v
+            return fp2ROI2iNPS[:, idxs, :]
+            # v = np.nanvar(fp2ROI2iNPS[:, idxs, :], axis=1)
+            # return v
             # return fp2ROI2iNPS
         fp2ROI2iNPS = stdize(fp2ROI2iNPS, axis=-1)
 

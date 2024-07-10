@@ -65,16 +65,13 @@ def interaction_bars(kwargs):
     cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
                 for cond, betas in cond2betas.items()}
 
-    itr = (cond2betas[('Occipital', 'Local')] -
-           cond2betas[('Occipital', 'Distributed')] -
-           cond2betas[('IT', 'Local')] - cond2betas[('IT', 'Distributed')])
+    itr = (cond2betas[conds[0]] - cond2betas[conds[1]] -
+           cond2betas[conds[2]] + cond2betas[conds[3]])
     t, p = stats.ttest_1samp(itr, 0)
 
-    oc_ef = (cond2betas[('Occipital', 'Local')] -
-             cond2betas[('Occipital', 'Distributed')])
+    oc_ef = cond2betas[conds[0]] - cond2betas[conds[1]]
     oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
-    ITL_ef = (cond2betas[('IT', 'Local')] -
-              cond2betas[('IT', 'Distributed')])
+    ITL_ef = cond2betas[conds[2]] - cond2betas[conds[3]]
     ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
 
     print(f'Interaction: {t=:.3f}, {p=:.3f}')
@@ -87,10 +84,10 @@ def interaction_bars(kwargs):
     height = max_yerr * 1.05
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
-    plt.bar([0, 1, 2, 3], Ms, yerr=SEs,
-            color=['dodgerblue',  'orange', 'dodgerblue', 'orange'],
-            capsize=5,
-            linewidth=1., edgecolor='k')
+    colors = ['dodgerblue' if 'Local' in cond[1] else 'orange'
+              for cond in conds]
+    plt.bar([0, 1, 2, 3], Ms, yerr=SEs, color=colors,
+            capsize=5, linewidth=1., edgecolor='k')
     plt.xticks([0, 1, 2, 3],
                ['Local', 'Distributed\n(Voxelwise)',
                 'Local', 'Distributed\n(Voxelwise)'],
@@ -142,7 +139,7 @@ def interaction_bars(kwargs):
                fontsize=24)
     plt.locator_params(axis='y', nbins=6)
 
-    plt.ylabel('Mean beta', fontsize=24, labelpad=10)
+    plt.ylabel('Mean correlation', fontsize=24, labelpad=10)
     plt.gca().spines[['top', 'right']].set_visible(False)
     plt.ylim(0, height * 1.07)
 
@@ -205,13 +202,6 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
             betas1_all[i, j] = beta1
             betas2_all[i, j] = beta2
             betas_dif_all[i, j] = dif
-            # print(f'{beta1}, {beta2}, {dif}')
-
-    # betas1_all = np.reshape(betas1_all, -1)[:, None]
-    # betas2_all = np.reshape(betas2_all, -1)[:, None]
-    # nans = np.isnan(betas1_all) | np.isnan(betas2_all)
-    # betas1_all = betas1_all[~nans, None]
-    # betas2_all = betas2_all[~nans, None]
 
     betas1_all *= 1000
     betas2_all *= 1000
@@ -281,7 +271,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
                  color='w', fontsize=stars_fs)
 
 
-    plt.ylabel('Mean beta', fontsize=24, labelpad=10)
+    plt.ylabel('Mean correlation', fontsize=24, labelpad=10)
     plt.gca().spines[['top', 'right']].set_visible(False)
     title, fn, _ = get_title(True, False, kwargs, 28)
     plt.title(title, fontsize=15, pad=30)
@@ -304,7 +294,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
 
 
 def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
-                inter=False, strict_corr=True):
+                inter=True, strict_corr=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -395,23 +385,181 @@ def strict_correlations(kwargs):
         t, p = stats.ttest_1samp(betas, 0)
         print(f'{cond=}, {t=:.3f}, {p=:.3f}')
     return
-    quit()
 
-    oc_ef = (cond2betas[('Occipital', 'Average')] -
-             cond2betas[('Occipital', 'Voxel')])
+def interaction_within_region(region='Occipital'):
+    trial_similarity = 'corr'
+    second_order = 'spear'
+    RDM_method = 'within_nan'
+    four_tasks = '7'
+    stdize_by_run = False
+    regress_row = False
+
+    kwargs = {'fp': None, 'fp0': None,
+              'fp1': None, 'trial_similarity': trial_similarity,
+              'second_order': second_order,
+              'RDM_method': RDM_method,
+              'stdize_by_run': stdize_by_run,
+              'regress_row': regress_row, 'four_tasks': four_tasks,
+              }
+
+
+    fps = prep_fps(kwargs['four_tasks'])
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+                ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+
+    conds = [(False, 'Local'), (False, 'Distributed'),
+             (True, 'Local'), (True, 'Distributed')]
+
+    # conds = [(False, 'Local'), (False, 'Distributed'),
+    #          (True, 'Local'), (True, 'Distributed')]
+
+
+    # only distributed
+    # conds = [('Occipital', False), ('Occipital', True),
+    #          ('IT', False), ('IT', True),]
+    cond2betas = {}
+    for cond in conds:
+        cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
+    for i, sn in enumerate(sns):
+        for j, fp in enumerate(fps):
+            kwargs['cv'] = False
+            kwargs['return_dif'] = True
+            kwargs['sn'] = sn
+            kwargs['fp'] = fp
+            if (sn, fp) in bad_tups:
+                continue
+
+            for cond in conds:
+                if cond[0] in ['Occipital', 'IT']:
+                    kwargs['semantic'] = cond[1]
+                    kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
+                    kwargs['ROIs_ctrl'] = []
+                else:
+                    kwargs['semantic'] = cond[0]
+                    if cond[1] == 'Local':
+                        kwargs['ROI_focus'] = f'{region}_M'
+                    else:
+                        kwargs['ROI_focus'] = f'{region}_BOLD'
+                    kwargs['ROIs_ctrl'] = []
+
+                beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                          verbose=-1, easy_override=False)
+
+                cond2betas[cond][i, j] = beta1 * 1000
+
+    cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
+                  in cond2betas.items()}
+
+    cond2Ms = {cond: np.nanmean(betas) for cond, betas in cond2betas.items()}
+    cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
+                for cond, betas in cond2betas.items()}
+
+    itr = (cond2betas[conds[0]] - cond2betas[conds[1]] -
+           cond2betas[conds[2]] + cond2betas[conds[3]])
+    t, p = stats.ttest_1samp(itr, 0)
+
+    oc_ef = cond2betas[conds[0]] - cond2betas[conds[1]]
     oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
-    ITL_ef = (cond2betas[('IT', 'Average')] -
-              cond2betas[('IT', 'Voxel')])
+    ITL_ef = cond2betas[conds[2]] - cond2betas[conds[3]]
     ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
 
     print(f'Interaction: {t=:.3f}, {p=:.3f}')
     print(f'\tOccipital: {oc_t=:.3f}, {oc_p=:.3f}')
     print(f'\tITL: {ITL_t=:.3f}, {ITL_p=:.3f}')
 
+    Ms = np.array([cond2Ms[cond] for cond in conds])
+    SEs = np.array([cond2SEs[cond] for cond in conds])
+    max_yerr = max(Ms + SEs)
+    height = max_yerr * 1.05
+
+    plt.rcParams.update({'font.sans-serif': 'Arial'})
+    colors = ['dodgerblue' if (isinstance(cond[1], bool) or 'Local' in cond[1])
+              else 'orange'
+              for cond in conds]
+    plt.bar([0, 1, 2, 3], Ms, yerr=SEs, color=colors,
+            capsize=5, linewidth=1., edgecolor='k')
+    plt.xticks([0, 1, 2, 3],
+               ['Local', 'Distributed\n(Voxelwise)',
+                'Local', 'Distributed\n(Voxelwise)'],
+               fontsize=19)
+
+    # plt.text(0.5, 0 - height * .19, 'Occipital',
+    #          fontsize=22, ha='center')
+    # plt.text(2.5, 0 - height * .19, 'Temporal',
+    #          fontsize=22, ha='center')
+
+    plt.text(0.5, 0 - height * .35, 'Perceptual',
+             fontsize=22, ha='center')
+    plt.text(2.5, 0 - height * .35, 'Semantic',
+             fontsize=22, ha='center')
+
+    lower_signif_line = max_yerr * 1.04
+    upper_signif_line = max_yerr * 1.1
+    plt.plot([0, 1], [lower_signif_line, lower_signif_line], color='k')
+    plt.plot([0.5, 0.5], [lower_signif_line, upper_signif_line], color='k')
+    plt.plot([2, 3], [lower_signif_line, lower_signif_line], color='k')
+    plt.plot([2.5, 2.5], [lower_signif_line, upper_signif_line], color='k')
+    plt.plot([0.5, 2.5], [upper_signif_line, upper_signif_line], color='k')
+
+    # stars_height = height * .92 if stars != 'NS' else height * 1.02
+    itr_stars = get_stars(p)
+    itr_stars = itr_stars.replace('NS', ' ')
+    stars_fs = 35 if itr_stars not in ['NS', '†'] else 24
+    # if 'NS' not in itr_stars:
+    plt.text(1.5,
+             max_yerr*1.105 if itr_stars not in ['NS', '†'] else
+             max_yerr*1.19,
+             itr_stars, ha='center', va='center',
+             fontsize=stars_fs, )
+
+    oc_stars = get_stars(oc_p)
+    if 'NS' not in oc_stars:
+        stars_fs = 35
+        plt.text(0.5, max_yerr * .925, oc_stars, ha='center', va='center',
+                 fontsize=stars_fs, )
+    itl_stars = get_stars(ITL_p)
+    if 'NS' not in itl_stars:
+        stars_fs = 35
+        plt.text(2.5, max_yerr * .925, itl_stars, ha='center', va='center',
+                 fontsize=stars_fs, )
+
+
+    plt.yticks(range(0, int(height * 1.07) + 1,
+                     min(max(int(height * 1.07) // 4, 1), 5)),
+               fontsize=24)
+    plt.locator_params(axis='y', nbins=6)
+
+    plt.ylabel('Mean correlation', fontsize=24, labelpad=10)
+    plt.gca().spines[['top', 'right']].set_visible(False)
+    plt.ylim(0, height * 1.07)
+
+    # line = plt.Line2D([0.5, 0.5], [-.003, -0.18],
+    #                   transform=plt.gca().transAxes,
+    #                   color='black', linewidth=1.,
+    #                   dash_capstyle='butt')
+    # line.set_clip_on(False)
+    # plt.gca().add_line(line)
+
+    plt.tight_layout()
+
+    # plt.text(2.5, 0 - (top_level - bottom) * .225, 'Target After',
+    #          fontsize=17.5, ha='center')
+
+    # plt.bar(cond2Ms.keys(), cond2Ms.values(), yerr=cond2SEs.values(),
+    #         capsize=5, linewidth=1., edgecolor='k')
+    plt.show()
+
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
+    interaction_within_region()
+    interaction_within_region('IT')
+    #
+    quit()
     # do_regr_dif()
     do_regr_dif(semantic=True)
     do_regr_dif(semantic=False)

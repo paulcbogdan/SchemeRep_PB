@@ -19,7 +19,7 @@ from utils import pickle_wrap
 import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
-def prep_var_ERS():
+def prep_var_ERS(trialwise=True):
     # semantic = False
     # regress_FC = False
 
@@ -45,6 +45,8 @@ def prep_var_ERS():
            '216', '217', '218', '219', '221', '222', '224', '225', '227',
            '230', '232', '233', '234', '235', '239']
 
+    # sns = sns[:40]
+
     four_tasks = '7'
     fps = prep_fps(four_tasks)
 
@@ -66,19 +68,18 @@ def prep_var_ERS():
         kwargs['fps'] = fps
         kwargs['cross'] = cross
         kwargs['nan_block'] = ERS_nan_block
-        kwargs['get_var'] = 'ITL'
+        kwargs['get_var'] = 'IT'
         kwargs['sn'] = sn
-
+        print(f'Doing: {sn}')
         try:
-            v = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
-                            easy_override=True, dt_max=dt_max)
+            fp2ROI2iNPS = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
+                            easy_override=False, dt_max=dt_max)
 
         except AttributeError:
-            v = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
+            fp2ROI2iNPS = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
                             easy_override=True, dt_max=dt_max)
-        v = np.sqrt(v)
-
-
+        v = np.nanstd(fp2ROI2iNPS, axis=1)
+        # v = np.sqrt(v)
 
         fp_pair2cnt = {}
 
@@ -98,21 +99,26 @@ def prep_var_ERS():
 
         corrs_all = np.nanmean(np.array(corrs_all_), axis=1)
 
+
         df_as_l = defaultdict(list)
         for i in range(len(fps)):
             df_as_l['sn'].extend([sn]*len(corrs_all[i]))
             df_as_l['fp'].extend([fps[i]]*len(corrs_all[i]))
             df_as_l['conn'].extend(corrs_all[i])
+            df_as_l['obj'].extend(range(len(corrs_all[i])))
         df_sn = pd.DataFrame(df_as_l)
         dfs_l.append(df_sn)
     df = pd.concat(dfs_l)
-    df = df.groupby(['sn', 'fp'])[['conn']].mean().reset_index()
+    if trialwise:
+        return df
+
+    df_M = df.groupby(['sn', 'fp'])[['conn']].mean().reset_index()
 
     return df
 
 
 
-def prep_conn_corrs(key, ERS=False, semantic=True):
+def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
     # semantic = False
     # regress_FC = False
 
@@ -181,8 +187,10 @@ def prep_conn_corrs(key, ERS=False, semantic=True):
 
             sn_corrs, ERS_scores = pickle_wrap(get_cross_ERS_mat,
                                                kwargs=kwargs, verbose=-1,
-                                               easy_override=False,
+                                               easy_override=True,
                                                dt_max=dt_max)
+            ERS_scores = np.array(ERS_scores)
+
             ERS_scores_all.append(ERS_scores)
         elif cross:
             kwargs['second_order'] = second_order
@@ -338,6 +346,82 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
     df = pd.concat(df_all)
     return df
 
+def get_dist_IRAFs(key='IT', ctrl_within=False, semantic=True,
+                   get_local=False, out_key=None):
+
+    kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
+              'fp1': None, 'trial_similarity': 'corr',
+              'second_order': 'spear',
+              'RDM_method': 'within_nan',
+              'stdize_by_run': False,
+              'regress_row': False, 'four_tasks': '7',
+              # 'ROI_focus': f'{key}_M' if get_local else f'{key}_BOLD',
+              # 'ROIs_ctrl': [f'{key}_M'] if ctrl_within else [],
+              }
+
+    if get_local:
+        kwargs['ROI_focus'] = f'{key}_M'
+        if ctrl_within:
+            kwargs['ROIs_ctrl'] = [f'{key}_BOLD']
+        else:
+            kwargs['ROIs_ctrl'] = []
+    else:
+        kwargs['ROI_focus'] = f'{key}_BOLD'
+        if ctrl_within:
+            kwargs['ROIs_ctrl'] = [f'{key}_M']
+        else:
+            kwargs['ROIs_ctrl'] = []
+
+
+    fps = prep_fps(kwargs['four_tasks'])
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+                ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+
+    betas1_all = np.full((len(sns), len(fps), 114), np.nan)
+    fp_idxs = np.full((len(sns), len(fps), 114), np.nan)
+    sn_idxs = np.full((len(sns), len(fps), 114), np.nan)
+    obj_idxs = np.full((len(sns), len(fps), 114), np.nan)
+    for i, sn in enumerate(sns):
+        for j, fp in enumerate(fps):
+            kwargs['cv'] = False
+            kwargs['return_dif'] = True
+            kwargs['sn'] = sn
+            kwargs['fp'] = fp
+            fp_idxs[i, j, :] = j
+            sn_idxs[i, j, :] = i
+            obj_idxs[i, j, :] = np.arange(114)
+            if (sn, fp) in bad_tups:
+                continue
+
+            kwargs['regress_row'] = True
+            beta1 = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                verbose=-1, easy_override=True)
+            has_nan = np.isnan(beta1).any()
+            if has_nan:
+                print(beta1)
+                print('end')
+                quit()
+            # if np.isnan(beta1):
+            #     continue
+
+            betas1_all[i, j, :] = beta1
+
+
+    betas1 = betas1_all.reshape(-1)
+    fp_idxs = fp_idxs.reshape(-1)
+    sn_idxs = sn_idxs.reshape(-1)
+    obj_idxs = obj_idxs.reshape(-1)
+    df = pd.DataFrame({'sn': sn_idxs, 'fp': fp_idxs,
+                       out_key if out_key else 'beta1': betas1,
+                       'obj': obj_idxs})
+    df['fp'] = df['fp'].apply(lambda x: fps[int(x)])
+    df['sn'] = df['sn'].apply(lambda x: sns[int(x)])
+    return df
+
+
 def get_plain_corr():
     four_tasks = '7'
     fps = prep_fps(four_tasks)
@@ -420,8 +504,66 @@ def corr_RSA_conn(main_key='IT', semantic=True):
     # r, p = stats.spearmanr(df['conn'], df['local'])#, nan_policy='omit')
     # print(f'local: {r=:.3f}, {p=:.4f}')
 
+def trialwise_corr():
+    df_ERS = prep_var_ERS(trialwise=True)
+    df = get_dist_IRAFs(key='IT', ctrl_within=True)
+    df = pd.merge(df, df_ERS, on=['sn', 'fp', 'obj'])
+    r, p = stats.spearmanr(df['conn'], df['beta1'], nan_policy='omit')
+    plt.scatter(df['conn'], df['beta1'], alpha=0.1)
+    plt.show()
+    df.dropna(inplace=True)
+    print(f'Spearman: {r=:.3f}, {p=:.4f}')
+
+    from pymer4.models import Lmer
+    formula = 'conn ~ beta1 + (1 + beta1 |sn)'  #
+    model = Lmer(formula, data=df)  # local +
+    model.fit(summarize=False)
+    print(model.summary())
+
+
+def RSA_x_RSA():
+    df_OC = get_dist_IRAFs(key='Occipital', ctrl_within=False,
+                           get_local=False,
+                           semantic=False, out_key='OC_IRAF')
+    df_IT = get_dist_IRAFs(key='IT', ctrl_within=False,
+                           get_local=True,
+                           semantic=True, out_key='IT_IRAF')
+
+    # df_OC = get_dist_IRAFs(key='Occipital', ctrl_within=False,
+    #                        get_local=True,
+    #                        semantic=True, out_key='OC_IRAF')
+    # df_IT = get_dist_IRAFs(key='IT', ctrl_within=False,
+    #                        get_local=False,
+    #                        semantic=False, out_key='IT_IRAF')
+
+    # df_IT_local = get_dist_IRAFs(key='IT', ctrl_within=False,
+    #                              get_local=True,
+    #                              semantic=False, out_key='IT_IRAF_l')
+    df = pd.merge(df_OC, df_IT, on=['sn', 'fp', 'obj'])
+
+    df_M = df.groupby(['sn', 'fp'])[['OC_IRAF', 'IT_IRAF']].mean().reset_index()
+    r, p = stats.spearmanr(df_M['OC_IRAF'], df_M['IT_IRAF'], nan_policy='omit')
+    print(f'Group: {r=:.3f}, {p=:.4f}')
+
+    df.dropna(inplace=True)
+    r, p = stats.spearmanr(df['OC_IRAF'], df['IT_IRAF'], nan_policy='omit')
+    print(f'Spearman: {r=:.3f}, {p=:.4f}')
+    # plt.scatter(df['OC_IRAF'], df['IT_IRAF'], alpha=0.1)
+    # plt.show()
+
+    from pymer4.models import Lmer
+    formula = 'IT_IRAF ~ OC_IRAF + (1 + OC_IRAF | sn)'
+    model = Lmer(formula, data=df)  # local +
+    model.fit(summarize=False)
+    print(model.summary())
+
+
 if __name__ == '__main__':
-    corr_RSA_conn()
+    RSA_x_RSA()
+    # trialwise_corr()
+    # prep_var_ERS()
+    # get_dist_IRAFs(key='IT')
+    # corr_RSA_conn()
     # DF = prep_conn_corrs(ERS=True)
     # get_RSA_betas()
 

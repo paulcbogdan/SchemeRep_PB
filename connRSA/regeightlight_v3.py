@@ -397,7 +397,7 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     tile_max = 8
     plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
     plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
-    tile_dif = 5
+    tile_dif = 4
     plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False,
            flip_color=True, dic=dic)
 
@@ -493,7 +493,7 @@ if __name__ == '__main__':
     USE_SUM_REG = False
     M_RSM = True
     SMALL_Ms = True
-    THRESHOLD = 0.5
+    THRESHOLD = 0.25
     SUPER64 = False
     MINI8 = False
     SUPERDENSITY = True
@@ -501,7 +501,7 @@ if __name__ == '__main__':
     STRICT27 = False
     for MULT27 in [True, ]:  # True, False,
         for SEMANTIC in [True, False]:  # False, True,
-            for NETWORK in ['cortex', ]: # 'OC_T',
+            for NETWORK in ['OC_T', ]: # 'OC_T',
                 # eightlight(semantic=SEMANTIC,
                 #            radius1=2, downsample1=6, resample1=1,
                 #            radius2=6, downsample2=1,
