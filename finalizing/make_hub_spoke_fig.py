@@ -57,7 +57,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=True,
 
     # print(comp_graph.shape)
     # print(np.nan > np.nan)
-    t_graph = (0.5 - np.nanmean(comp_graph, axis=0))
+    t_graph = (np.nanmean(comp_graph, axis=0) - 0.5)
     if only_cortical:
         bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
         bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
@@ -109,7 +109,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=True,
     # for roi in rois:
     #     t_graph[roi, :] = np.nanmean(t_graph_pre[rois], axis=0)
 
-    rois = [31]
+    # rois = [31]
 
     # rois = [0]
     for i in rois:
@@ -153,7 +153,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=True,
             t_graph_,
             atlas['coords'],
             edge_threshold=0,
-            colorbar=True,
+            # colorbar=True,
             edge_cmap='bone_r' if all_black else 'turbo',  # 'cold_hot', #
             # edge_cmap='RdYlBu_r',
             node_size=1 if all_black else 1.5,

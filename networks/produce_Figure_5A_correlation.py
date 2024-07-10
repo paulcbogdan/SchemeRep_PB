@@ -21,7 +21,7 @@ import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
-def produce_Fig5A(fp='rs_medium', anat_ver=2, combine_regions=False):
+def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
     df, networks = pickle_wrap(get_df_networks,
                                kwargs={'fp': fp,
                                        'norm_std': False,

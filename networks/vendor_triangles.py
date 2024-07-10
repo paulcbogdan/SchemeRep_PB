@@ -236,25 +236,12 @@ def lmer4matrix(df, dv, iv, hemi=False, random_slops=True):
 
 def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                                   HCP=True, anat_version=3):
-    # if HCP:
-    #     # f = partial(load_HCP_act, N=N,
-    #     #             RS=True, clean_confounds=True, LSS=False, LSA=False,
-    #     #             compcor=True)
-    #     #
-    #     # df, networks = pickle_wrap(get_df_networks,
-    #     #                            kwargs={'f': f, 'zscore': False},
-    #     #                            easy_override=False)
-    # else:
+
     if 'rs_' in fp:
         df, _ = pickle_wrap(get_df_networks, kwargs={'fp': fp,
                                                      'anat_ver': anat_version,
                                                      'add_hemi': 2},
                             easy_override=False)
-        # print(df.columns)
-        # print('test')
-        # quit()
-        # print(len(df['sn'].unique()))
-        # quit()
     else:
         df, cols = pickle_wrap(get_hemi_vendor_df, None, kwargs={'fp': fp,
                                                                  'anat': anat,
@@ -319,6 +306,7 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                            cov=['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
                                 'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',
                                 ])
+
 
     # corr = np.array(df[cols_order].corr())
     corr[corr > .99] = np.nan

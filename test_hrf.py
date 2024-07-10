@@ -5,7 +5,7 @@ from nilearn.glm.first_level import compute_regressor
 from scipy import ndimage
 
 
-def get_hrf():
+def get_hrf_():
     onset, amplitude, duration = 0.0, 1.0, 0.1
     exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
     # time_length = 21
@@ -25,7 +25,7 @@ def get_hrf():
     # quit()
     return signal[:, 0]
 
-HRF = get_hrf()
+HRF = get_hrf_()
 print(HRF)
 
 l = np.zeros(61)
