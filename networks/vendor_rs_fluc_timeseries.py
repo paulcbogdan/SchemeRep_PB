@@ -75,7 +75,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
     max_crosses = 0
 
     for sn, df_sn in df.groupby('sn'):
-        # if sn != '107': continue
+        if sn != '126': continue
         cols = ['dd_vv', 'dv_dv', 'pd_no', 'ad_no', 'av_no', 'pv_no',
                 'dpva', 'vpda',
                 'dd', 'vv', 'dv_ant', 'dv_pos',
@@ -151,7 +151,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
         # print(len(y0))
         # print(len(y0_))
 
-        r_, p_ = stats.pearsonr(y0_, y1_)
+        r_, p_ = stats.spearmanr(y0_, y1_)
         # rs.append(r_)
 
         autocorr_y0 = pg.corr(y0, y0.shift(1))['r'][0]
@@ -167,23 +167,46 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
 
         num_crosses = np.sum(np.diff(np.sign(y0 - y1)) != 0)
 
-        plt.rcParams.update({'font.size': 20})
+        plt.rcParams.update({'font.size': 40,
+                             'font.sans-serif': 'Arial'})
         if r < -.3:
             min_r = r
         # if num_crosses > max_crosses:
         #     max_crosses = num_crosses
-            plt.figure(figsize=(20, 12))
-            plt.plot(y0[:100], linewidth=1.5, label='dd_vv', color='dodgerblue')
-            plt.plot(y1[:100], linewidth=1.5, label='dv_dv', color='red')
-            plt.legend(frameon=False)
+        #     plt.figure(figsize=(20, 12))
+            plt.figure(figsize=(12, 6.9))
 
-            plt.title(f'{sn}: {r=:.2f} & {r_=:.2f} | '
-                      f'dd_vv: {autocorr_y0:.2f}, '
-                      f'dv_dv: {autocorr_y1:.2f}, '
-                      f'dif: {autocorr_dif:.2f}, '
-                      f'{num_crosses=}',)
+            linewidth = 2.5
+
+            plt.plot([0, 100], [0, 0], color='black', linewidth=1.5)
+
+            plt.plot(y0[:101], linewidth=linewidth, label='Posterior-Anterior',
+                     color='dodgerblue')
+            plt.plot(y1[:101], linewidth=linewidth, label='Ventral-Dorsal',
+                     color='red')
+            plt.plot(y0[:101], linewidth=linewidth, label='Posterior-Anterior',
+                     color='dodgerblue', alpha=0.5)
+            # plt.legend(frameon=False, ncol=22)
+
+            # plt.title(f'{sn}: {r=:.2f} & {r_=:.2f} | '
+            #           f'dd_vv: {autocorr_y0:.2f}, '
+            #           f'dv_dv: {autocorr_y1:.2f}, '
+            #           f'dif: {autocorr_dif:.2f}, '
+            #           f'{num_crosses=}',)
+            plt.gca().spines[['bottom', 'right', 'top']].set_visible(False)
+            plt.gca().spines['left'].set_linewidth(2.5)
+            # set yticks width to 2.5
+            plt.gca().yaxis.set_tick_params(width=linewidth, length=10)
+            plt.gca().xaxis.set_tick_params(width=linewidth, length=10)
+
+            plt.ylabel('Time-varying\nconnectivity', fontsize=36, labelpad=15)
+            plt.xlabel('Volume', labelpad=15)
+            plt.yticks([-2, 0, 2])
+            plt.xlim(0, 100)
+
             plt.tight_layout()
             plt.show()
+            quit()
 
             # plt.figure(figsize=(20, 12))
             # plt.plot(y0_, linewidth=1.5, label='dd_vv', color='green')

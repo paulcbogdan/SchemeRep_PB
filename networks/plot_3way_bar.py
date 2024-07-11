@@ -32,7 +32,7 @@ np.int = int
 
 
 def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
-                        anat_ver=3):
+                        anat_ver=4):
     # Age x Con x (Within/Between partitions)
     kwargs = {'fp': fp,
               'key': 'inc',
@@ -121,7 +121,7 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
             # print(f'{i=}')
             print_list_stats(ps)
 
-def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
+def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
     plot_params = {
         # 'data': df_agg,
         'y': 'vals',
@@ -131,16 +131,30 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
         'kind': 'bar'
     }
 
-    # cond_sets = [('Within', 'Between'),
-    #              ]
-    cond_sets = [('dv_pos', 'dv_ant'),
+    cond_sets = [('Within', 'Between'),
                  ]
+    # cond_sets = [('dv_pos', 'dv_ant'),
+    #              ]
     # ('dd', 'dv_pos'),
     #                  ('vv', 'dv_ant'),
+
+    # cond_sets = [('dd', 'dv_ant')]
+    # cond_sets = [('vv', 'dv_pos')]
 
     # cond_sets = [('Within', 'Between')]
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
+    print(df_agg['within_between'].unique())
+
+    for wb, df_wb in df_agg.groupby('within_between'):
+        df_inc = df_wb[df_wb['inc'] == 'Inc'].reset_index()
+        df_con = df_wb[df_wb['inc'] == 'Con'].reset_index()
+        # print(df_inc)
+        # print(df_con)
+        t, p = stats.ttest_rel(df_inc['vals'], df_con['vals'])
+        print(f'{wb}: {t=:.3f}, {p=:.4f}')
+
+    # quit()
 
 
     for cond_set in cond_sets:
@@ -156,9 +170,9 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
                 if mean_norm:
                     # middle =
 
-                    match_middle = ((df_set['sn'] == sn) &
-                                    (df_set['within_between'] == wb) &
-                                    (df_set['inc'] == 'Neu'))
+                    # match_middle = ((df_set['sn'] == sn) &
+                    #                 (df_set['within_between'] == wb) &
+                    #                 (df_set['inc'] == 'Neu'))
                     # print(len(match))
                     # print(len(match_middle))
                     # quit()
@@ -166,9 +180,9 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
                     # quit()
 
 
-                    df_set.loc[match, 'vals'] -= df_set.loc[match_middle, 'vals'].mean()
+                    # df_set.loc[match, 'vals'] -= df_set.loc[match_middle, 'vals'].mean()
 
-                    # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
+                    df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
                     # df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
@@ -180,17 +194,8 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
         df_con = df_set[df_set['inc'] == 'Con']
         df_con_w = df_con[df_con['within_between'] == 'Within'].reset_index()
         df_con_b = df_con[df_con['within_between'] == 'Between'].reset_index()
-        # t_within, p_within = stats.ttest_rel(df_inc_w['vals'],
-        #                                         df_inc_b['vals'])
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['sn_str'] = df_set['sn'].astype(str)
-        # formula = 'vals ~ inc_num + sn_str'
-        # # print(df_set)
-        # model = smf.ols(formula=formula,
-        #                 data=df_set[df_set['within_between'] == 'Between'])
-        # res = model.fit()
-        # print(res.summary())
-        # quit()
 
         t_within, p_within = stats.ttest_1samp(df_inc_w['vals'] - df_con_w['vals'],
                                                0, nan_policy='omit')
@@ -206,9 +211,6 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
                                              df_con_w['vals'] + df_con_b['vals'],
                                              0, nan_policy='omit')
         print(f'{t_anova=:.3f}, {p_anova=:.4f}')
-
-        # print(df_set)
-        # quit()
 
         df_set['PE'] = df_set['inc'].map({'Inc': 'High PE', 'Neu': 'Med. PE',
                                           'Con': 'Low PE'})
@@ -257,8 +259,10 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
         res = model.fit()
         key = cond_set[0]
         p_reg = res.pvalues.iloc[-1]#f'inc_num:within_between[T.{key}]']
-        if p_reg < 0.05:
-            print(res.summary())
+        # if p_reg < 0.05:
+        #     print(res.summary())
+        # print(res.summary())
+        # quit()
         if skip_plot:
             continue
 
@@ -312,8 +316,8 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=False):
         plt.xlim(-.5, 2.5)
         # plt.ylim(-.11, .11)
         plt.tick_params(axis='x', which='both', bottom=False, top=False)
-        if mean_norm:
-            plt.ylim(-.02, .02)
+        # if mean_norm:
+        #     plt.ylim(-.02, .02)
 
         g.set_xticklabels(['High PE', 'Med. PE', 'Low PE'])
         plt.gca().spines['bottom'].set_visible(False)

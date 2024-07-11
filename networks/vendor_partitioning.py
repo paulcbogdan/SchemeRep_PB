@@ -241,7 +241,12 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
                 else:
                     labels[i] = f'{key}_p'
 
-    if anat_ver == 3: # Consistent with rbf classifiers (PoG, STG, pSTS discared)
+    if anat_ver == 4:
+        p_d_ant_labels = ['MFG', 'IFG', 'OrG', 'SFG']
+        p_d_pos_labels = ['IPL', 'Pcun'] # 'SPL' (SPL not supported by the con_reg)
+        p_v_ant_labels = ['ATL', 'STG']
+        p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
+    elif anat_ver == 3: # Consistent with rbf classifiers (PoG, STG, pSTS discared)
         p_d_ant_labels = ['MFG', 'IFG']
         p_d_pos_labels = ['IPL', ] # 'SPL' (SPL not supported by the con_reg)
         p_v_ant_labels = ['ATL', ]

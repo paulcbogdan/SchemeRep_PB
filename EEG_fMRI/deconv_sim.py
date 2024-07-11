@@ -3,7 +3,20 @@ import numpy as np
 from EEG_fMRI.EEG_fMRI_test import get_hrf
 from vendor_rs_fluc_timeseries import wiener_deconvolution
 
+def roberto_test():
+    x = np.random.normal(0, 1, 200*60)
+    y = np.random.normal(0, 1, 200*60)
+    max_r = 0
+    for i in range(x.shape[0]-10):
+        r = np.corrcoef(x[i:i+10], y[i:i+10])[0, 1]
+        if r > max_r:
+            max_r = r
+            print(f'{max_r=:.3f}')
+    quit()
+
+
 if __name__ == '__main__':
+    roberto_test()
     n = 10000
     x = np.random.normal(0, 1, n)
     x[:-1] += x[1:] * .12
