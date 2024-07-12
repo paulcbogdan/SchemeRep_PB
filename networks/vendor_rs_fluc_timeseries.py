@@ -39,7 +39,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
                                        'anat_ver': anat_ver,
                                        'combine_regions': combine_regions},
                                easy_override=False)
-
+    #
     # print(list(df.columns))
     # quit()
 
@@ -56,8 +56,22 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
     df['horz'] = df['da'] - df['dp'] + df['va'] - df['vp']
     df['abs_horz'] = np.abs(df['horz'])
 
+    df['dd'] = df['da'] * df['da']
+    df['vv'] = df['va'] * df['va']
+    df['dv_ant'] = df['da'] * df['va']
+    df['dv_pos'] = df['dp'] * df['vp']
+    df['pd_no'] = df['da'] * df['no']
+    df['ad_no'] = df['dp'] * df['no']
+    df['av_no'] = df['va'] * df['no']
+    df['pv_no'] = df['vp'] * df['no']
+
     df['dd_vv'] = df['dd'] + df['vv']
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+
+    # print(df[networks].corr())
+
+    # print(df[['da', 'dp', 'va', 'vp', 'no']].corr())
+    # quit()
 
     # r, p = stats.spearmanr(df['dd_vv'], df['abs_vert'])
     # print(f'{r=:.2f}, {p=:.5f}')
@@ -73,99 +87,84 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
     autos_dif = []
     min_r = 0
     max_crosses = 0
+    HRF = get_hrf()[1:-7]
 
     for sn, df_sn in df.groupby('sn'):
-        if sn != '126': continue
+        # if sn != '126': continue
         cols = ['dd_vv', 'dv_dv', 'pd_no', 'ad_no', 'av_no', 'pv_no',
                 'dpva', 'vpda',
                 'dd', 'vv', 'dv_ant', 'dv_pos',
-                'horz', 'vert', 'abs_horz', 'abs_vert']
+                'horz', 'vert', 'abs_horz', 'abs_vert',
+                'da', 'dp', 'va', 'vp', 'no_no']
+
+        # for col in cols:
+        #     df_sn[col] = wiener_deconvolution(df_sn[col], HRF).values
+        #     df_sn[col] = stats.zscore(df_sn[col])
+            # has_nan = df_sn[col].isnull().sum()
+            # print(f'{col}, {has_nan}')
+            # if has_nan:
+            #     print(df_sn[col])
+            #     quit()
+
         df_sn = df_sn[cols].dropna().reset_index()
-
-        formula = '~ 1 + pd_no + ad_no + av_no + pv_no'
-        # formula += ' + dpva + vpda'
-        # formula += '+ abs_horz + abs_vert'
-        # df['dd_vv'] = df['abs_vert']
-        # df['dv_dv'] = df['abs_horz']
-
-
+        formula = '~ 1 + pd_no + ad_no + av_no + pv_no + no_no'
         mod0 = smf.ols(formula='dd_vv' + formula,
                        data=df_sn)
         res0 = mod0.fit()
-        # print(res0.summary())
-        # quit()
         y0 = res0.resid
-
         mod1 = smf.ols(formula='dv_dv' + formula,
                        data=df_sn)
         res1 = mod1.fit()
         y1 = res1.resid
 
-        # mod0 = smf.ols(formula='dv_ant' + formula,
-        #                data=df_sn)
-        # res0 = mod0.fit()
-        # y0 = res0.resid
-        #
-        # mod1 = smf.ols(formula='dv_pos' + formula,
-        #                data=df_sn)
-        # res1 = mod1.fit()
-        # y1 = res1.resid
-
-
-        # y0 = df_sn['pd_no']
-        # y1 = df_sn['av_no']
-
-
-
-        r, p = stats.spearmanr(y0, y1) # going pearsonr to spearmanr leads to a big drop
+        # y0 = df_sn['dv_pos']
+        # y1 = df_sn['dv_ant']
+        y0 = df_sn['dd_vv']
+        y1 = df_sn['dv_dv']
+        r, p = stats.pearsonr(y0, y1) # going pearsonr to spearmanr leads to a big drop
         rs.append(r)
-        # continue
-
-        # y0, y1 = df_sn['dd_vv'], df_sn['dv_dv']
-        #
-        # y0 = stats.rankdata(y0)
-        # y1 = stats.rankdata(y1)
-
+        continue
         dif = np.abs(y0 - y1)
-        #
-        # plt.plot(y0)
-        # plt.show()
 
-        HRF = get_hrf()[1:-7]
+
         # s = np.sum(HRF)
         # HRF /= s
-        y0_ = wiener_deconvolution(y0, HRF)
-        y0_ = stats.zscore(y0_)
-        y1_ = wiener_deconvolution(y1, HRF)
-        y1_ = stats.zscore(y1_)
-        dif_ = np.abs(y0_ - y1_)
-
-
-        # y0_ = signal.deconvolve(y0, HRF)[0]
-        # print(y0_)
-        # plt.plot(y0_)
-        # plt.show()
-        #
-        # quit()
-
-        # print(len(y0))
-        # print(len(y0_))
-
-        r_, p_ = stats.spearmanr(y0_, y1_)
+        # y0_ = wiener_deconvolution(y0, HRF)
+        # y0_ = stats.zscore(y0_)
+        # y1_ = wiener_deconvolution(y1, HRF)
+        # y1_ = stats.zscore(y1_)
+        # dif_ = np.abs(y0_ - y1_)
+        # r_, p_ = stats.spearmanr(y0_, y1_)
         # rs.append(r_)
-
+        # y0 = np.abs(y0)
+        # y1 = np.abs(y1)
+        # y0 = df['dd_vv']#)#*df['dp'])# + np.abs(df['dp'])
+        # y1 = df['dv_dv']#)#*df['dp'])# + np.abs(df['vp'])
+        # y0 = np.abs(df['da'] - df['va'])
+        # y1 = np.abs(df['dp'] + df['vp'] - df['da'] - df['va'])
+        # y0 = y0 # - np.abs(y1)# + np.abs(y0 - y1)
         autocorr_y0 = pg.corr(y0, y0.shift(1))['r'][0]
         autos0.append(autocorr_y0)
         autocorr_y1 = pg.corr(y1, y1.shift(1))['r'][0]
         autos1.append(autocorr_y1)
-        # continue
-        autocorr_dif = pg.corr(dif_, dif_.shift(1))['r'][0]
-        autos_dif.append(autocorr_dif)
-        print(f'{r=:.2f}, {r_=:.2f}')
-        print(f'\t{autocorr_dif=:.2f}')
+        autocorr_dif = pg.corr(dif, dif.shift(1))['r'][0]
+        # autos_dif.append(autocorr_dif)
+        # print(f'{r=:.2f}, {r_=:.2f}')
+        # print(f'\t{autocorr_dif=:.2f}')
         # continue
 
-        num_crosses = np.sum(np.diff(np.sign(y0 - y1)) != 0)
+        # num_crosses = np.sum(np.diff(np.sign(y0 - y1)) != 0)
+
+        # num_crosses = np.sum(np.diff(np.sign(df_sn['vp'])) != 0)
+        # y0 = df_sn['vp']
+        # y1 = df_sn['dp']
+
+        # print(np.diff(np.sign(y0 - y1)))
+        # print(y0 - y1)
+        # print(np.sign(y0 - y1))
+        # quit()
+        # autos_dif.append(205 / num_crosses)
+        continue
 
         plt.rcParams.update({'font.size': 40,
                              'font.sans-serif': 'Arial'})
@@ -206,7 +205,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
 
             plt.tight_layout()
             plt.show()
-            quit()
+            # quit()
 
             # plt.figure(figsize=(20, 12))
             # plt.plot(y0_, linewidth=1.5, label='dd_vv', color='green')
