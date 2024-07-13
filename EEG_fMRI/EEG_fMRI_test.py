@@ -91,7 +91,6 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False, clean=False,
                                   'clean': clean},
                           easy_override=False, verbose=0,)
 
-
     if ar_fMRI is None:
         return None
     # print(ar_fMRI.shape)
@@ -529,7 +528,7 @@ M_AUTOCORR = []
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
-                     abs_analysis=False, all_conn=False,
+                     abs_analysis=True, all_conn=False,
                      double_speed=True, Fz_Pz_abs_dif=False):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
@@ -537,12 +536,12 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn,
                             kwargs={'sn': sn, 'sess': sess,
                                     'many_ROI': many_ROI,
-                                    'combine_regions': True,
+                                    'combine_regions': False,
                                     'abs_analysis': abs_analysis,
                                     'all_conn': all_conn,
                                     'clean': True,
                                     'sanity': False},
-                            easy_override=False, verbose=-1,)
+                            easy_override=True, verbose=-1,)
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -581,23 +580,60 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         return None, None
     if Fz_Pz_abs_dif:
         EEG_fluc = np.repeat(EEG_fluc, 100, axis=1)
+    fMRI_fluc = fMRI_fluc[4:]
 
 
-    num_nans = np.isnan(EEG_fluc[0, 4]).sum()
+    # num_nans = np.isnan(EEG_fluc[0, 4]).sum()
+
     EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
 
     EEG_fluc = EEG_fluc.T # (TR, freq)
+    # print(EEG_fluc.shape)
+    # quit()
     EEG_fluc = EEG_fluc[4:, :] # drop edge artifact
-    fMRI_fluc = fMRI_fluc[4:]
-
-    import scipy.ndimage as ndimage
-    HRF = get_hrf()
-    for i in range(EEG_fluc.shape[1]):
-        nans, x = np.isnan(EEG_fluc[:, i]), lambda z: z.nonzero()[0]
-        EEG_fluc[nans, i] = np.interp(x(nans), x(~nans), EEG_fluc[~nans, i])
-
-    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
-                                  origin=-HRF.shape[0] // 2, axis=0)
+    EEG_fluc = conv(EEG_fluc)
+    # print(EEG_fluc.shape)
+    # quit()
+    # quit()
+    # plt.imshow(EEG_fluc)
+    # plt.show()
+    # quit()
+    # print(EEG_fluc_test)
+    # print(EEG_fluc.shape)
+    # quit()
+    # plt.imshow(EEG_fluc)
+    # plt.show()
+    # import scipy.ndimage as ndimage
+    # HRF = get_hrf()
+    # for i in range(EEG_fluc.shape[1]):
+    #     nans, x = np.isnan(EEG_fluc[:, i]), lambda z: z.nonzero()[0]
+    #     EEG_fluc[nans, i] = np.interp(x(nans), x(~nans), EEG_fluc[~nans, i])
+    #
+    # EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
+    #                               origin=-HRF.shape[0] // 2, axis=0)
+    # plt.imshow(EEG_fluc)
+    # plt.show()
+    # quit()
+    # print('-'*100)
+    # print(EEG_fluc)
+    # quit()
+    # if sn == '04':
+    #     theta_fluc = np.nanmean(EEG_fluc[:, 60:], axis=1)
+    #     print(theta_fluc)
+    #     quit()
+    # print(EEG_fluc.shape)
+    # quit()
+    # if sn == '04':
+    #     print(EEG_fluc)
+    #     quit()
+    # EEG_fluc = conv(EEG_fluc)
+    # EEG_fluc = EEG_fluc.T
+    # print(EEG_fluc)
+    # quit()
+    # print(EEG_fluc.shape)
+    # quit()
+    # print(np.nanmean(EEG_fluc[:, 60:], axis=1))
+    # quit()
 
     if Fz_Pz_abs_dif:
         ranges = {'Fz_Pz_abs_dif': (0, 1)}
@@ -630,18 +666,48 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     for name, rng in ranges.items():
         idxs = np.arange(*rng)
         idxs -= 1
-        range_fluc = EEG_fluc[:, idxs].mean(axis=1)
+        if name == 'gamma':
+            range_fluc = EEG_fluc[:, idxs[0]:].mean(axis=1)
+        else:
+            range_fluc = EEG_fluc[:, idxs].mean(axis=1)
         df[name] = range_fluc
         df_ = df.dropna()
+
+        # print(range_fluc)
+        # df_[[name, 'fMRI_fluc']] = (
+        #     stats.zscore(df_[[name, 'fMRI_fluc']], axis=0))
+
+        # if sn == '04' and name == 'gamma':
+        #     # print(EEG_fluc)
+        #     # print(df_[name])
+        #     # print(ran)
+        #     # print(df[name])
+        #     # print(idxs[0])
+        #     # range_fluc = EEG_fluc[:, idxs[0]:].mean(axis=1)
+        #     # print(range_fluc)
+        #     # print(df_)
+        #
+        #     print(df_[[name, 'fMRI_fluc']])
+        #     for idx, row in df_.iterrows():
+        #         print(f'{idx}', round(row['fMRI_fluc'], 2), row[name])
+        #     r, p = stats.pearsonr(df_[name], df_['fMRI_fluc'])
+        #     print(f'{r=}')
+        #     quit()
+
         r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
+        # print(f'{r=:.2f}')
 
         name2fluc[name] = range_fluc
 
         r = np.arctanh(r)
-        if 'r1' not in ranges:
+        if 'r' != name[0]:
             print(f'{name}: {r=:.3f}, {p=:.3f}')
+            # print('TOAST')
+
         name2r[name] = r
     # quit()
+    # if sn == '04':
+    #     quit()
     return name2r, df#, psd
 
 
@@ -686,6 +752,38 @@ def plot_regrs(df, key='theta'):
     plt.tight_layout()
     plt.show()
     quit()
+
+def conv(EEG_fluc):
+    if len(EEG_fluc.shape) == 1:
+        EEG_fluc = EEG_fluc[:, None]
+        undo = True
+
+    else:
+        undo = False
+
+    # print(EEG_fluc)
+    import scipy.ndimage as ndimage
+    HRF = get_hrf()
+    for i in range(EEG_fluc.shape[1]):
+        nans, x = np.isnan(EEG_fluc[:, i]), lambda z: z.nonzero()[0]
+        EEG_fluc[nans, i] = np.interp(x(nans), x(~nans), EEG_fluc[~nans, i])
+
+    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
+                                  origin=-HRF.shape[0] // 2, axis=0)
+    if undo:
+        return EEG_fluc[:, 0]
+    else:
+        return EEG_fluc
+
+    # EEG_fluc = EEG_fluc.T # (TR, freq)
+    # HRF = get_hrf()
+    # nans, x = np.isnan(EEG_fluc), lambda z: z.nonzero()[0]
+    # EEG_fluc[nans] = np.interp(x(nans), x(~nans), EEG_fluc[~nans])
+    #
+    # EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
+    #                               origin=-HRF.shape[0] // 2, axis=0)
+    # return EEG_fluc.T
+
 
 if __name__ == '__main__':
     # ar = get_fMRI_ar('05', '01_task-rest', False,

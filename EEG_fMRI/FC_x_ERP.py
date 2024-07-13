@@ -1,28 +1,18 @@
-import os.path
+from matplotlib import pyplot as plt
 
-from nilearn import image
-from nilearn.glm.first_level import compute_regressor
-from nilearn.image import high_variance_confounds
-from scipy.interpolate import interpolate
-
-from EEG_fMRI.EEG_fMRI_test import load_EEG, get_fMRI_ar, get_hrf
-from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
+from EEG_fMRI.EEG_fMRI_test import load_EEG, get_fMRI_ar, get_EEG_score_sn, conv
 from atlas_utils import get_atlas
-from get_HCP_act import img_data2ar
-from mne.io import read_raw_eeglab
 
 from utils import pickle_wrap, stdize
 import mne
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.stats as stats
 import pandas as pd
-import warnings
 from collections import defaultdict
-from time import sleep
-import pickle
 
 import os
+import statsmodels.formula.api as smf
+
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
@@ -91,7 +81,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                                                    easy_override=False)
 
     if raw is None:
-        return [None] * 5
+        return [None] * 7
 
     if avg_ref:
         raw = raw.set_eeg_reference('average')
@@ -118,14 +108,22 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     # eeg_scores = np.full((1, 1, num_TRs,),
     #                      np.nan)
 
+    data_Fz_M_padded = np.pad(data_Fz_M, pad_width=62, mode='constant',
+                              constant_values=np.nan)
     data_Pz_M_padded = np.pad(data_Pz_M, pad_width=62, mode='constant',
                               constant_values=np.nan)
     abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124])
     abs_M_backward = np.abs(data_Fz_M - data_Pz_M_padded[124:])
 
+    # Fz_forward = data_Fz_M - data_Fz_M_padded[:-124]
+    # Pz_forward = data_Pz_M - data_Pz_M_padded[:-124]
+
     # print(data_Pz_M_forward.shape)
     abs_M = np.abs(data_Fz_M - data_Pz_M)
-
+    abs_Fz_high = data_Fz_M - data_Pz_M
+    abs_Fz_high[abs_Fz_high < 0] = 0
+    abs_Pz_high = data_Pz_M - data_Fz_M
+    abs_Pz_high[abs_Pz_high < 0] = 0
 
 
     Fz_scores = np.full(num_TRs, np.nan)
@@ -133,6 +131,8 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     abs_scores = np.full(num_TRs, np.nan)
     abs_scores_fwd = np.full(num_TRs, np.nan)
     abs_scores_bwd = np.full(num_TRs, np.nan)
+    abs_Pz_high_scores = np.full(num_TRs, np.nan)
+    abs_Fz_high_scores = np.full(num_TRs, np.nan)
 
     for idx, event in enumerate(events):
         # true_idx = event2true[idx]
@@ -140,7 +140,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
             true_idx = event2true[idx]
         except KeyError as e:
             print(f'{e=}')
-            return [None] * 5
+            return [None] * 7
         if true_idx in boundary_events:
             continue
         t_st = event[0]
@@ -150,19 +150,12 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
         abs_scores[true_idx] = np.mean(abs_M[t_st:t_end])
         abs_scores_fwd[true_idx] = np.mean(abs_M_forward[t_st:t_end])
         abs_scores_bwd[true_idx] = np.mean(abs_M_backward[t_st:t_end])
+        abs_Pz_high_scores[true_idx] = np.mean(abs_Pz_high[t_st:t_end])
+        abs_Fz_high_scores[true_idx] = np.mean(abs_Fz_high[t_st:t_end])
 
-    return Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd
+    return (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
+            abs_Fz_high_scores, abs_Pz_high_scores,)
 
-def conv(EEG_fluc):
-    EEG_fluc = EEG_fluc.T # (TR, freq)
-    import scipy.ndimage as ndimage
-    HRF = get_hrf()
-    nans, x = np.isnan(EEG_fluc), lambda z: z.nonzero()[0]
-    EEG_fluc[nans] = np.interp(x(nans), x(~nans), EEG_fluc[~nans])
-
-    EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
-                                  origin=-HRF.shape[0] // 2, axis=0)
-    return EEG_fluc
 
 AUTOCORR = []
 
@@ -171,7 +164,9 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                      super_slow=False, avg_ref=False,
                      abs_analysis=True, all_conn=False,
                      double_speed=True,
-                     Fz_Pz_abs_dif=False):
+                     Fz_Pz_abs_dif=False,
+                     override=True):
+
     ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC = pickle_wrap(
         get_fMRI_AP_VD, kwargs={'sn': sn, 'sess': sess,
                                 'many_ROI': many_ROI,
@@ -188,13 +183,14 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
 
     num_TRs = ATL_MFG.shape[-1]
     picks = [['F1', 'Fz', 'F2', 'F3', 'F4',
-              #'FC1', 'FCz', 'FC2', 'FC3', 'FC4'
+              'FC1', 'FCz', 'FC2', 'FC3', 'FC4'
               ],
-             [#'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+             ['CP1', 'CPz', 'CP2', 'CP3', 'CP4',
               'P1', 'Pz', 'P2', 'P3', 'P4'
               ]]
 
-    Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd = (
+    (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
+     abs_Fz_high_scores, abs_Pz_high_scores) = (
         pickle_wrap(get_ERP_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
@@ -207,29 +203,134 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
                            easy_override=False, verbose=-1))
+
     if Fz_scores is None:
         print('No Fz!')
         return None
+
+    picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+             'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
+             'C1', 'Cz', 'C2', 'C3', 'C4',
+             'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+             'P1', 'Pz', 'P2', 'P3', 'P4']
+    EEG_fluc = pickle_wrap(get_EEG_score_sn,
+                           kwargs={'sn': sn, 'sess': sess,
+                                   'num_TRs': num_TRs,
+                                   'picks': picks,
+                                   'avg_before': avg_before,
+                                   'high_gamma': high_gamma,
+                                   'super_slow': super_slow,
+                                   'avg_ref': avg_ref,
+                                   'double_speed': double_speed,
+                                   'excl_before': True,
+                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
+                           easy_override=False, verbose=-1)
+
+    # print(EEG_fluc.shape)
+    # quit()
+    EEG_fluc = np.nanmean(EEG_fluc, axis=0)
+    # print(EEG_fluc.shape)
+
+    EEG_fluc = EEG_fluc#.T # (TR, freq)
+    EEG_fluc = EEG_fluc[:, 4:]
+
+
+    EEG_fluc = np.nanmean(EEG_fluc[59:, :], axis=0)
+    EEG_fluc = conv(EEG_fluc.T)
+    theta_fluc = EEG_fluc
+
+    # EEG_fluc = conv(EEG_fluc.T)
+    # theta_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
+
+
+    # print(theta_fluc.shape)
+    # quit()
+    # theta_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
+
+    # M = np.nanmean(EEG_fluc[:, 0])
+    # print(f'{M=}')
+
+    # EEG_fluc = EEG_fluc[:, :]
+    # EEG_fluc = conv(EEG_fluc.T)
+    # M = np.nanmean(EEG_fluc[:, 20])
+    # print(f'{M=}')
+
+    # plt.imshow(EEG_fluc)
+    # plt.show()
+    # quit()
+    # EEG_fluc = EEG_fluc.T
+    # print(f'{EEG_fluc.shape=}')
+    # quit()
+    # if sn == '04':
+    #     print(EEG_fluc)
+    #     quit()
+    # print(EEG_fluc.shape)
+    # quit()
+    # print(EEG_fluc.shape)
+    # quit()
+
+    # print(EEG_fluc)
+    # quit()
+    #
+    # quit()
+    # print(EEG_fluc.shape)
+    # quit()
+    # EEG_fluc = np.nanmean(EEG_fluc, axis=-1)
+    # theta_fluc = np.nanmean(EEG_fluc[:, 1:16], axis=1)
+    # if sn == '04':
+    #     # theta_fluc = np.nanmean(EEG_fluc[:, 60:], axis=1)
+    #     print(theta_fluc)
+    #     quit()
+    # print(theta_fluc)
+    # quit()
+    # print(theta_fluc)
+    # quit()
+
+    # print(theta_fluc.shape)
+    # quit()
+    # print(theta_fluc.shape)
+    # quit()
+
+    # theta_fluc = theta_fluc[4:]
+
+    IPL_LOC = stats.zscore(IPL_LOC, nan_policy='omit')
+    ATL_LOC = stats.zscore(ATL_LOC, nan_policy='omit')
+    MFG_IPL = stats.zscore(MFG_IPL, nan_policy='omit')
+    ATL_MFG = stats.zscore(ATL_MFG, nan_policy='omit')
 
     ATL_MFG = ATL_MFG[4:]
     ATL_LOC = ATL_LOC[4:]
     MFG_IPL = MFG_IPL[4:]
     IPL_LOC = IPL_LOC[4:]
 
+
+
     FC_fluc = np.abs(IPL_LOC - MFG_IPL - ATL_LOC + ATL_MFG)
+
     # FC_fluc = np.abs(IPL_LOC + MFG_IPL - ATL_LOC - ATL_MFG)
 
     AP_bias = ATL_LOC + MFG_IPL - IPL_LOC - ATL_MFG
     AP = ATL_LOC + MFG_IPL
+    # AP = np.diff(AP)
+    # AP_bias = np.diff(AP_bias)
     VD = IPL_LOC + ATL_MFG
+    test_abs = np.abs(ATL_MFG - ATL_LOC)
+
+    # Fz_scores = np.diff(Fz_scores)
+    # Fz_scores = Fz_scores[3:]
+    # # print(Fz_scores.shape)
+    #
+    # Pz_scores = np.diff(Pz_scores)
+    # Pz_scores = Pz_scores[3:]
 
     Fz_scores = Fz_scores[4:]
     Pz_scores = Pz_scores[4:]
     abs_scores = abs_scores[4:]
     abs_scores_fwd = abs_scores_fwd[4:]
     abs_scores_bwd = abs_scores_bwd[4:]
-    dif_scores = np.nancumsum(Fz_scores - Pz_scores)
-
+    abs_Fz_high_scores = abs_Fz_high_scores[4:]
+    abs_Pz_high_scores = abs_Pz_high_scores[4:]
+    # dif_scores = np.nancumsum(Fz_scores - Pz_scores)
     # global AUTOCORR
     # # print(Fz_scores)
     # # quit()
@@ -245,13 +346,21 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     # plt.show()
     # quit()
 
-    dif_scores = conv(dif_scores)
     # dif_scores = conv(Fz_scores - Pz_scores)
+    # print(Fz_scores.shape)
     Fz_scores = conv(Fz_scores)
+
+    # print(Fz_scores.shape)
+    # quit()
     Pz_scores = conv(Pz_scores)
     abs_scores = conv(abs_scores)
+    # abs_scores = np.abs(Fz_scores - Pz_scores)
+    # dif_scores = conv(dif_scores)
+    #
 
-    # dif_scores = Fz_scores - Pz_scores
+    Pz_abs = np.abs(Pz_scores)
+    Fz_abs = np.abs(Fz_scores)
+    dif_scores = Fz_scores - Pz_scores
 
     name2r = {}
     names_conn = ['ATL_MFG', 'ATL_LOC', 'MFG_IPL', 'IPL_LOC',
@@ -259,24 +368,66 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     names_eeg = ['Fz', 'Pz', 'abs', 'abs_fwd', 'abs_bwd', 'dif']
 
     # names_conn = ['AP_bias']
-    names_conn = ['AP_bias', 'fluc', 'VD', 'AP']
-    names_eeg = ['dif', ]
+    names_conn = ['theta']#, 'fluc', 'VD', 'AP']
+    names_eeg = ['Pz_abs', 'Fz_abs', 'abs']
 
     name2conn = {'ATL_MFG': ATL_MFG, 'ATL_LOC': ATL_LOC,
                  'MFG_IPL': MFG_IPL, 'IPL_LOC': IPL_LOC,
                  'fluc': FC_fluc, 'AP_bias': AP_bias,
-                 'AP': AP, 'VD': VD}
+                 'AP': AP, 'VD': VD, 'TEST': test_abs,
+                 'theta': theta_fluc}
     name2eeg = {'Fz': Fz_scores, 'Pz': Pz_scores,
                 'abs': abs_scores, 'abs_fwd': abs_scores_fwd,
-                'abs_bwd': abs_scores_bwd, 'dif': dif_scores}
+                'abs_bwd': abs_scores_bwd, 'dif': dif_scores,
+                'abs_Fz': abs_Fz_high_scores, 'abs_Pz': abs_Pz_high_scores,
+                'Fz_abs': Fz_abs, 'Pz_abs': Pz_abs
+                }
 
     for name_conn in names_conn:
         conn = name2conn[name_conn]
         for name_eeg in names_eeg:
-            eeg = name2eeg[name_eeg]
-            df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
-            df.dropna(inplace=True)
-            r, p = stats.spearmanr(df[name_conn], df[name_eeg])
+            if override:
+                df = pd.DataFrame({'abs_scores': abs_scores,
+                                   'theta': theta_fluc,
+                                   'conn': FC_fluc,})
+                df.dropna(inplace=True)
+                # df = stats.zscore(df, axis=0)
+                for col in df.columns:
+                    df[col] = stats.zscore(df[col])
+                # print(df)
+
+                mod = smf.ols(formula='conn ~ 1 + theta', data=df)
+                res = mod.fit()
+                r = res.params['theta']
+                # print(df[['conn', 'theta']])
+                # print(theta_fluc)
+                # quit()
+
+                # r, p = stats.pearsonr(df['conn'], df['theta'])
+
+                # if sn == '04':
+                #     # print(df)
+                #     # r, p = stats.pearsonr(df['conn'], df['theta'])
+                #     for idx, row in df.iterrows():
+                #         print(f'{idx}', round(row['conn'], 2), row['theta'])
+                #
+                #     print(f'{r=:.3f}')
+                #
+                #     # print(theta_fluc)
+                #     # print(df)
+                #     quit()
+                    # print(EEG_fluc)
+
+                # print(f'{r=}')
+                # quit()
+                # if name_eeg == 'Pz_abs':
+                #     r = res.params['theta']
+            else:
+                eeg = name2eeg[name_eeg]
+                df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
+                df.dropna(inplace=True)
+                r, p = stats.spearmanr(df[name_conn], df[name_eeg])
+
             name2r[(name_conn, name_eeg)] = r
     return name2r
 
@@ -287,13 +438,15 @@ def get_sess_setup():
     SESSES = ['01_task-rest', '02_task-rest',
               '01_task-inscapes', '02_task-inscapes'] # shape things
 
-    # SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
-    #               '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
-    #               '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
-    #               # '01_task-peer', # used for E-T calibration
-    #               '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
-    #               ]
-    # SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
+    SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
+                  '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
+                  '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
+                  # '01_task-peer', # used for E-T calibration
+                  '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
+                  ]
+    SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
+    # SESSES += SESS_OTHER
+    # SESSES = SESS_OTHER
 
 
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
