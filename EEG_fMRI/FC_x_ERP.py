@@ -85,7 +85,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                                                    easy_override=False)
 
     if raw is None:
-        return [None] * 9
+        return [None] * 11
 
     # print(raw.ch_names)
     # quit()
@@ -120,9 +120,14 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     data_Fz_M_padded = np.pad(data_Fz_M, pad_width=62, mode='constant',
                               constant_values=np.nan)
     data_Pz_M_padded = np.pad(data_Pz_M, pad_width=62, mode='constant',
-                              constant_values=np.nan)
+                              constant_values=np.nan) # temporal resolution ~250 ms
+
     abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124])
     abs_M_backward = np.abs(data_Fz_M - data_Pz_M_padded[124:])
+    # dif_M_forward = data_Fz_M - data_Pz_M_padded[:-124]
+    # dif_M_backward = data_Fz_M - data_Pz_M_padded[124:]
+    # abs_M_forward = dif_M_forward
+    # abs_M_backward = dif_M_backward
     sum_M_forward = np.abs(data_Fz_M + data_Pz_M_padded[:-124])
     sum_M_backward = np.abs(data_Fz_M + data_Pz_M_padded[124:])
 
@@ -144,6 +149,8 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     Fz_Pz_sum_scores = np.full(num_TRs, np.nan)
     sum_scores_fwd = np.full(num_TRs, np.nan)
     sum_scores_bwd = np.full(num_TRs, np.nan)
+    peak2peak = np.full(num_TRs, np.nan)
+    peak2peak_rev = np.full(num_TRs, np.nan)
 
     for idx, event in enumerate(events):
         # true_idx = event2true[idx]
@@ -151,7 +158,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
             true_idx = event2true[idx]
         except KeyError as e:
             print(f'{e=}')
-            return [None] * 9
+            return [None] * 11
         if true_idx in boundary_events:
             continue
         t_st = event[0]
@@ -166,8 +173,17 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
         sum_scores_fwd[true_idx] = np.mean(sum_M_forward[t_st:t_end])
         sum_scores_bwd[true_idx] = np.mean(sum_M_backward[t_st:t_end])
 
+        Fz_low = np.min(data_Fz_M[t_st:t_end])
+        Fz_high = np.max(data_Fz_M[t_st:t_end])
+        Pz_high = np.max(data_Pz_M[t_st:t_end])
+        Pz_low = np.min(data_Pz_M[t_st:t_end])
+        peak2peak[true_idx] = Pz_high - Fz_low
+        peak2peak_rev[true_idx] = Fz_high - Pz_low
+        # peak2peak_rev[true_idx] = Fz_peak - Pz_peak
+
     return (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
-            Fz_Pz_sum_scores, Fz_Pz_dif_scores, sum_scores_fwd, sum_scores_bwd)
+            Fz_Pz_sum_scores, Fz_Pz_dif_scores, sum_scores_fwd, sum_scores_bwd,
+            peak2peak, peak2peak_rev)
 
 
 AUTOCORR = []
@@ -202,7 +218,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
               ]]
 
     (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
-     Fz_Pz_sum_scores, Fz_Pz_dif, sum_scores_fwd, sum_scores_bwd) = (
+     Fz_Pz_sum_scores, Fz_Pz_dif, sum_scores_fwd, sum_scores_bwd,
+     peak2peak, peak2peak_rev) = (
         pickle_wrap(get_ERP_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
@@ -215,7 +232,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
-                           easy_override=False, verbose=-1))
+                           easy_override=True, verbose=-1))
 
     if Fz_scores is None:
         print('No Fz!')
@@ -239,6 +256,15 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
                            easy_override=False, verbose=-1)
+
+    global AUTOCORR
+    df_ = pd.DataFrame({'a': abs_scores_bwd[:-1], 'b': abs_scores_bwd[1:]})
+    r, p = stats.spearmanr(df_['a'], df_['b'], nan_policy='omit')
+    AUTOCORR.append(r)
+    M_autocorr = np.nanmean(AUTOCORR)
+    print(f'{M_autocorr=:.3f}')
+    # plt.plot(abs_scores_fwd)
+    # plt.show()
 
     EEG_fluc = np.nanmean(EEG_fluc, axis=0)
     # print(EEG_fluc.shape)
@@ -280,6 +306,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     Fz_Pz_dif = Fz_Pz_dif[4:]
     sum_scores_fwd = sum_scores_fwd[4:]
     sum_scores_bwd = sum_scores_bwd[4:]
+    peak2peak = peak2peak[4:]
+    peak2peak_rev = peak2peak_rev[4:]
 
     Fz_scores = conv(Fz_scores)
     Pz_scores = conv(Pz_scores)
@@ -289,6 +317,10 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     abs_scores_bwd = conv(abs_scores_bwd)
     sum_scores_fwd = conv(sum_scores_fwd)
     sum_scores_bwd = conv(sum_scores_bwd)
+    peak2peak = conv(peak2peak)
+    peak2peak_rev = conv(peak2peak_rev)
+
+
 
     # abs_scores = np.abs(Fz_scores - Pz_scores)
     # dif_scores = conv(dif_scores)
@@ -330,8 +362,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
         for name_eeg in names_eeg:
             if override:
                 df = pd.DataFrame({#'abs_scores_fwd': abs_scores_fwd,
-                                   'sum_scores': abs_scores_bwd,
-                                   'abs_scores': abs_scores_fwd,
+                                   'sum_scores': peak2peak_rev,
+                                   'abs_scores': peak2peak,
                                    'theta': theta_fluc,
                                    'gamma': gamma_fluc,
                                    'conn': FC_fluc,})
