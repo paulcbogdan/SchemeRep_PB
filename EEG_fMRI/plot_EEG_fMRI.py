@@ -4,7 +4,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True):
+def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
+                  flip_VD=True):
     def get_range(hz):
 
         if hz < 4:
@@ -26,6 +27,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True):
 
     # plt.figure(figsize=(6, 4))
     plt.figure(figsize=(6, 3.35))
+    # plt.figure(figsize=(6.5, 3.35))
 
 
     upper = 101 if 'r100' in name2r else 51
@@ -86,8 +88,12 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True):
     if effect_size:
         plt.ylabel(r'Effect size', labelpad=7)
     else:
-        plt.ylabel(r'Connectivity (d) x Power (A$^{\rm 2}$)',# + '\nCorrelation',
-                   labelpad=7, fontsize=14)
+        if flip_VD:
+            plt.ylabel(f'Connectivity (|VD-PA|)\n× ' + r'Power (A$^{\rm 2}$)',
+                       labelpad=7, fontsize=13)
+        else:
+            plt.ylabel(f'Connectivity (|PA-VD|)\n× ' + r'Power (A$^{\rm 2}$)',
+                       labelpad=7, fontsize=13)
 
     if t_vals:
         height = 6
@@ -138,9 +144,14 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True):
     if effect_size:
         fp_out = fr'result_pics/other/hz_effect_size_{ts}.png'
     else:
-        fp_out = fr'result_pics/other/hz_corr_{ts}.png'
+        last = 'VD' if flip_VD else 'PA'
+        fp_out = fr'result_pics/other/hz_corr_{ts}_{last}.png'
     plt.savefig(fp_out, dpi=600)
     plt.show()
+
+    if flip_VD:
+        plot_hz_corrs(name2r, effect_size=effect_size, t_vals=t_vals,
+                      plot_se=plot_se, flip_VD=False)
 
 def plot_psd(PSDs):
     cm = plt.get_cmap('viridis')

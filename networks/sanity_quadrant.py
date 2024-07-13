@@ -27,6 +27,10 @@ if __name__ == '__main__':
     # x = np.random.normal(0, 1, (num_ROIS, 100000))
 
     # x -= x.mean(axis=0) * .1
+    # new_cov = np.cov(x)
+    # print(new_cov)
+    # quit()
+
     # x = stats.zscore(x, axis=1)
     dd = x[0] * x[1]
     vv = x[2] * x[3]
@@ -56,7 +60,7 @@ if __name__ == '__main__':
 
     out = pg.partial_corr(data=df, x='dd_vv', y='dv_dv',
                           covar=['pd_no', 'ad_no', 'av_no', 'pv_no',
-                                 'no_no'
+                                 # 'no_no'
                                  ])
 
     # dd_vv = dd + vv
@@ -64,6 +68,7 @@ if __name__ == '__main__':
 
     # r, p = stats.pearsonr(df['dd_vv'], df['dv_dv'])
     # print(f'{r=:.3f}, {p=:.3f}')
+    print(out)
 
     r, p = stats.pearsonr(df['dd_vv'], df['dv_dv'])
     print(f'dd_vv x dv_dv: {r=:.3f}, {p=:.3f}')

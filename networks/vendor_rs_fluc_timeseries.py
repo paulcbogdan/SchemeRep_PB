@@ -58,15 +58,20 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
 
     df['dd'] = df['da'] * df['da']
     df['vv'] = df['va'] * df['va']
-    df['dv_ant'] = df['da'] * df['va']
-    df['dv_pos'] = df['dp'] * df['vp']
-    df['pd_no'] = df['da'] * df['no']
-    df['ad_no'] = df['dp'] * df['no']
-    df['av_no'] = df['va'] * df['no']
-    df['pv_no'] = df['vp'] * df['no']
+    # df['dv_ant'] = df['da'] * df['va']
+    # df['dv_pos'] = df['dp'] * df['vp']
+    # df['pd_no'] = df['da'] * df['no']
+    # df['ad_no'] = df['dp'] * df['no']
+    # df['av_no'] = df['va'] * df['no']
+    # df['pv_no'] = df['vp'] * df['no']
 
     df['dd_vv'] = df['dd'] + df['vv']
     df['dv_dv'] = df['dv_ant'] + df['dv_pos']
+
+    # df['dd_x_vv'] = df['dv_ant'] * df['dv_pos']
+    # r, p = stats.spearmanr(df['dd_x_vv'], df['abs_horz'])
+    # print(f'{r=:.2f}, {p=:.5f}')
+    # quit()
 
     # print(df[networks].corr())
 
@@ -107,7 +112,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
             #     quit()
 
         df_sn = df_sn[cols].dropna().reset_index()
-        formula = '~ 1 + pd_no + ad_no + av_no + pv_no + no_no'
+        formula = '~ 1 + pd_no + ad_no + av_no + pv_no'
         mod0 = smf.ols(formula='dd_vv' + formula,
                        data=df_sn)
         res0 = mod0.fit()
@@ -117,8 +122,8 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
         res1 = mod1.fit()
         y1 = res1.resid
 
-        # y0 = df_sn['dv_pos']
-        # y1 = df_sn['dv_ant']
+        y0 = df_sn['dv_pos']
+        y1 = df_sn['dv_ant']
         y0 = df_sn['dd_vv']
         y1 = df_sn['dv_dv']
         r, p = stats.pearsonr(y0, y1) # going pearsonr to spearmanr leads to a big drop
