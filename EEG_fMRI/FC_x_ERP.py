@@ -228,24 +228,25 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     abs_scores = abs_scores[4:]
     abs_scores_fwd = abs_scores_fwd[4:]
     abs_scores_bwd = abs_scores_bwd[4:]
+    dif_scores = np.nancumsum(Fz_scores - Pz_scores)
 
-
-    global AUTOCORR
-    # print(Fz_scores)
+    # global AUTOCORR
+    # # print(Fz_scores)
+    # # quit()
+    # df_ = pd.DataFrame({'a': dif_scores[1:], 'b': dif_scores[:-1]})
+    # df_ = df_.dropna()
+    # r, p = stats.spearmanr(df_['a'], df_['b'])
+    # AUTOCORR.append(r)
+    # M_r = np.mean(AUTOCORR)
+    # SD_r = np.std(AUTOCORR, ddof=1)# / np.sqrt(len(AUTOCORR))
+    # print(f'{M_r=:.3f}, {SD_r=:.3f}')
+    # plt.plot(dif_scores, color='g')
+    # plt.plot(Fz_scores - Pz_scores, color='dodgerblue')
+    # plt.show()
     # quit()
-    df_ = pd.DataFrame({'a': abs_scores[1:], 'b': abs_scores[:-1]})
-    df_ = df_.dropna()
-    r, p = stats.spearmanr(df_['a'], df_['b'])
-    AUTOCORR.append(r)
-    M_r = np.mean(AUTOCORR)
-    SD_r = np.std(AUTOCORR, ddof=1)# / np.sqrt(len(AUTOCORR))
-    print(f'{M_r=:.3f}, {SD_r=:.3f}')
-    plt.plot(df_['a'], color='g')
-    # plt.plot(Pz_scores, color='dodgerblue')
-    plt.show()
-    # quit()
 
-    dif_scores = conv(Fz_scores - Pz_scores)
+    dif_scores = conv(dif_scores)
+    # dif_scores = conv(Fz_scores - Pz_scores)
     Fz_scores = conv(Fz_scores)
     Pz_scores = conv(Pz_scores)
     abs_scores = conv(abs_scores)
@@ -258,7 +259,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     names_eeg = ['Fz', 'Pz', 'abs', 'abs_fwd', 'abs_bwd', 'dif']
 
     # names_conn = ['AP_bias']
-    names_conn = ['AP_bias', ]
+    names_conn = ['AP_bias', 'fluc', 'VD', 'AP']
     names_eeg = ['dif', ]
 
     name2conn = {'ATL_MFG': ATL_MFG, 'ATL_LOC': ATL_LOC,
@@ -279,33 +280,21 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
             name2r[(name_conn, name_eeg)] = r
     return name2r
 
-if __name__ == '__main__':
-    # ar = get_fMRI_ar('05', '01_task-rest', False,
-    #                  clean=True)
-    # print(ar.shape)
-    # quit()
-
+def get_sess_setup():
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
-    # SNS = ['13']
-    SESSES = ['01_task-rest', '02_task-rest']
-    SESS_INK = ['01_task-inscapes', '02_task-inscapes'] # shape things
+    SESSES = ['01_task-rest', '02_task-rest',
+              '01_task-inscapes', '02_task-inscapes'] # shape things
 
-    SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
-                  '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
-                  '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
-                  # '01_task-peer', # used for E-T calibration
-                  '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
-                  ]
-    # SESS_OTHER = ['01_task-monkey1_run-01', '01_task-monkey1_run-02']
-    SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
+    # SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
+    #               '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
+    #               '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
+    #               # '01_task-peer', # used for E-T calibration
+    #               '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
+    #               ]
+    # SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
 
-    # SNS = ['06']
-    # SNS = ['18']
-    SESSES += SESS_INK
-    # SESSES += SESS_OTHER
-    # SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
 
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
@@ -314,6 +303,10 @@ if __name__ == '__main__':
                ('15', '02_task-inscapes'), ('18', '01_task_inscapes')} # Bad EEG alignment
     NAME2L = defaultdict(list)
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
+    return SNS, SESSES, BAD_SNS, NAME2L, NAME2SN2L
+
+if __name__ == '__main__':
+    SNS, SESSES, BAD_SNS, NAME2L, NAME2SN2L = get_sess_setup()
     PSDs = []
     dfs_l = []
     for SN in SNS:
