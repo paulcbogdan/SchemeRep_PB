@@ -381,6 +381,7 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      super_slow=False, avg_ref=True,
                      double_speed=False,
                      excl_before=True,
+                     mastoid_ref=False,
                      Fz_Pz_abs_dif=False):
     assert not (high_gamma and super_slow)
     if picks is None:
@@ -399,7 +400,18 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
     if raw is None:
         return None
 
-    if avg_ref:
+    if mastoid_ref:
+        try:
+            raw = raw.set_eeg_reference(['T7', 'T8'])
+        except ValueError:
+            try:
+                raw = raw.set_eeg_reference(['T7',])
+            except ValueError:
+                try:
+                    raw = raw.set_eeg_reference(['T8',])
+                except ValueError:
+                    pass
+    elif avg_ref:
         raw = raw.set_eeg_reference('average')
 
     events = mne.events_from_annotations(raw, verbose=False)
@@ -525,9 +537,10 @@ ELECTRODES_KEPT = []
 
 M_AUTOCORR = []
 
+# TODO: TEST AVERAGE BEFORE!!
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
-                     super_slow=False, avg_ref=False,
+                     super_slow=False, avg_ref=True,
                      abs_analysis=True, all_conn=False,
                      double_speed=True, Fz_Pz_abs_dif=False):
     # changed to remove SFGG
@@ -541,7 +554,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                     'all_conn': all_conn,
                                     'clean': True,
                                     'sanity': False},
-                            easy_override=True, verbose=-1,)
+                            easy_override=False, verbose=-1,)
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -570,6 +583,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'high_gamma': high_gamma,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
+                                   'mastoid_ref': False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
@@ -825,7 +839,7 @@ if __name__ == '__main__':
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     PSDs = []
     dfs_l = []
-    for SN in SNS:
+    for SN in SNS[14:]:
         for j, SESS in enumerate(SESSES):
             if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue

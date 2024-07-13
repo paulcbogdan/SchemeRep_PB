@@ -11,7 +11,10 @@ import pandas as pd
 from collections import defaultdict
 
 import os
-import statsmodels.formula.api as smf
+try:
+    import statsmodels.formula.api as smf
+except ModuleNotFoundError:
+    pass
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
@@ -65,7 +68,8 @@ def get_fMRI_AP_VD(sn, sess='01', combine_regions=True, clean=False,
 
 def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                high_gamma=False, super_slow=False, avg_ref=True,
-               double_speed=False, excl_before=True, Fz_Pz_abs_dif=False):
+               double_speed=False, excl_before=True, Fz_Pz_abs_dif=False,
+               mastoid_ref=False):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -81,9 +85,14 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                                                    easy_override=False)
 
     if raw is None:
-        return [None] * 7
+        return [None] * 9
 
-    if avg_ref:
+    # print(raw.ch_names)
+    # quit()
+
+    if mastoid_ref:
+        raw = raw.set_eeg_reference(['T7', 'T8'])
+    elif avg_ref:
         raw = raw.set_eeg_reference('average')
 
     events = mne.events_from_annotations(raw, verbose=False)
@@ -114,25 +123,27 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                               constant_values=np.nan)
     abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124])
     abs_M_backward = np.abs(data_Fz_M - data_Pz_M_padded[124:])
+    sum_M_forward = np.abs(data_Fz_M + data_Pz_M_padded[:-124])
+    sum_M_backward = np.abs(data_Fz_M + data_Pz_M_padded[124:])
 
     # Fz_forward = data_Fz_M - data_Fz_M_padded[:-124]
     # Pz_forward = data_Pz_M - data_Pz_M_padded[:-124]
 
     # print(data_Pz_M_forward.shape)
     abs_M = np.abs(data_Fz_M - data_Pz_M)
-    abs_Fz_high = data_Fz_M - data_Pz_M
-    abs_Fz_high[abs_Fz_high < 0] = 0
-    abs_Pz_high = data_Pz_M - data_Fz_M
-    abs_Pz_high[abs_Pz_high < 0] = 0
+    Fz_Pz_sum = np.abs(data_Fz_M + data_Pz_M)
 
+    Fz_Pz_dif = data_Fz_M - data_Pz_M
 
     Fz_scores = np.full(num_TRs, np.nan)
     Pz_scores = np.full(num_TRs, np.nan)
     abs_scores = np.full(num_TRs, np.nan)
     abs_scores_fwd = np.full(num_TRs, np.nan)
     abs_scores_bwd = np.full(num_TRs, np.nan)
-    abs_Pz_high_scores = np.full(num_TRs, np.nan)
-    abs_Fz_high_scores = np.full(num_TRs, np.nan)
+    Fz_Pz_dif_scores = np.full(num_TRs, np.nan)
+    Fz_Pz_sum_scores = np.full(num_TRs, np.nan)
+    sum_scores_fwd = np.full(num_TRs, np.nan)
+    sum_scores_bwd = np.full(num_TRs, np.nan)
 
     for idx, event in enumerate(events):
         # true_idx = event2true[idx]
@@ -140,7 +151,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
             true_idx = event2true[idx]
         except KeyError as e:
             print(f'{e=}')
-            return [None] * 7
+            return [None] * 9
         if true_idx in boundary_events:
             continue
         t_st = event[0]
@@ -150,11 +161,13 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
         abs_scores[true_idx] = np.mean(abs_M[t_st:t_end])
         abs_scores_fwd[true_idx] = np.mean(abs_M_forward[t_st:t_end])
         abs_scores_bwd[true_idx] = np.mean(abs_M_backward[t_st:t_end])
-        abs_Pz_high_scores[true_idx] = np.mean(abs_Pz_high[t_st:t_end])
-        abs_Fz_high_scores[true_idx] = np.mean(abs_Fz_high[t_st:t_end])
+        Fz_Pz_dif_scores[true_idx] = np.mean(Fz_Pz_dif[t_st:t_end])
+        Fz_Pz_sum_scores[true_idx] = np.mean(Fz_Pz_sum[t_st:t_end])
+        sum_scores_fwd[true_idx] = np.mean(sum_M_forward[t_st:t_end])
+        sum_scores_bwd[true_idx] = np.mean(sum_M_backward[t_st:t_end])
 
     return (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
-            abs_Fz_high_scores, abs_Pz_high_scores,)
+            Fz_Pz_sum_scores, Fz_Pz_dif_scores, sum_scores_fwd, sum_scores_bwd)
 
 
 AUTOCORR = []
@@ -163,8 +176,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
                      super_slow=False, avg_ref=False,
                      abs_analysis=True, all_conn=False,
-                     double_speed=True,
-                     Fz_Pz_abs_dif=False,
+                     double_speed=True, Fz_Pz_abs_dif=False,
                      override=True):
 
     ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC = pickle_wrap(
@@ -190,7 +202,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
               ]]
 
     (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
-     abs_Fz_high_scores, abs_Pz_high_scores) = (
+     Fz_Pz_sum_scores, Fz_Pz_dif, sum_scores_fwd, sum_scores_bwd) = (
         pickle_wrap(get_ERP_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
@@ -199,6 +211,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'high_gamma': high_gamma,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
+                                   'mastoid_ref': False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
@@ -222,12 +235,11 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
                                    'double_speed': double_speed,
+                                   'mastoid_ref': False,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
                            easy_override=False, verbose=-1)
 
-    # print(EEG_fluc.shape)
-    # quit()
     EEG_fluc = np.nanmean(EEG_fluc, axis=0)
     # print(EEG_fluc.shape)
 
@@ -235,63 +247,13 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     EEG_fluc = EEG_fluc[:, 4:]
 
 
-    EEG_fluc = np.nanmean(EEG_fluc[59:, :], axis=0)
     EEG_fluc = conv(EEG_fluc.T)
-    theta_fluc = EEG_fluc
+    # theta_fluc = EEG_fluc
 
     # EEG_fluc = conv(EEG_fluc.T)
-    # theta_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
+    theta_fluc = np.nanmean(EEG_fluc[:, :6], axis=1)
+    gamma_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
 
-
-    # print(theta_fluc.shape)
-    # quit()
-    # theta_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
-
-    # M = np.nanmean(EEG_fluc[:, 0])
-    # print(f'{M=}')
-
-    # EEG_fluc = EEG_fluc[:, :]
-    # EEG_fluc = conv(EEG_fluc.T)
-    # M = np.nanmean(EEG_fluc[:, 20])
-    # print(f'{M=}')
-
-    # plt.imshow(EEG_fluc)
-    # plt.show()
-    # quit()
-    # EEG_fluc = EEG_fluc.T
-    # print(f'{EEG_fluc.shape=}')
-    # quit()
-    # if sn == '04':
-    #     print(EEG_fluc)
-    #     quit()
-    # print(EEG_fluc.shape)
-    # quit()
-    # print(EEG_fluc.shape)
-    # quit()
-
-    # print(EEG_fluc)
-    # quit()
-    #
-    # quit()
-    # print(EEG_fluc.shape)
-    # quit()
-    # EEG_fluc = np.nanmean(EEG_fluc, axis=-1)
-    # theta_fluc = np.nanmean(EEG_fluc[:, 1:16], axis=1)
-    # if sn == '04':
-    #     # theta_fluc = np.nanmean(EEG_fluc[:, 60:], axis=1)
-    #     print(theta_fluc)
-    #     quit()
-    # print(theta_fluc)
-    # quit()
-    # print(theta_fluc)
-    # quit()
-
-    # print(theta_fluc.shape)
-    # quit()
-    # print(theta_fluc.shape)
-    # quit()
-
-    # theta_fluc = theta_fluc[4:]
 
     IPL_LOC = stats.zscore(IPL_LOC, nan_policy='omit')
     ATL_LOC = stats.zscore(ATL_LOC, nan_policy='omit')
@@ -303,64 +265,43 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     MFG_IPL = MFG_IPL[4:]
     IPL_LOC = IPL_LOC[4:]
 
-
-
     FC_fluc = np.abs(IPL_LOC - MFG_IPL - ATL_LOC + ATL_MFG)
-
-    # FC_fluc = np.abs(IPL_LOC + MFG_IPL - ATL_LOC - ATL_MFG)
-
     AP_bias = ATL_LOC + MFG_IPL - IPL_LOC - ATL_MFG
     AP = ATL_LOC + MFG_IPL
-    # AP = np.diff(AP)
-    # AP_bias = np.diff(AP_bias)
     VD = IPL_LOC + ATL_MFG
     test_abs = np.abs(ATL_MFG - ATL_LOC)
-
-    # Fz_scores = np.diff(Fz_scores)
-    # Fz_scores = Fz_scores[3:]
-    # # print(Fz_scores.shape)
-    #
-    # Pz_scores = np.diff(Pz_scores)
-    # Pz_scores = Pz_scores[3:]
 
     Fz_scores = Fz_scores[4:]
     Pz_scores = Pz_scores[4:]
     abs_scores = abs_scores[4:]
     abs_scores_fwd = abs_scores_fwd[4:]
     abs_scores_bwd = abs_scores_bwd[4:]
-    abs_Fz_high_scores = abs_Fz_high_scores[4:]
-    abs_Pz_high_scores = abs_Pz_high_scores[4:]
-    # dif_scores = np.nancumsum(Fz_scores - Pz_scores)
-    # global AUTOCORR
-    # # print(Fz_scores)
-    # # quit()
-    # df_ = pd.DataFrame({'a': dif_scores[1:], 'b': dif_scores[:-1]})
-    # df_ = df_.dropna()
-    # r, p = stats.spearmanr(df_['a'], df_['b'])
-    # AUTOCORR.append(r)
-    # M_r = np.mean(AUTOCORR)
-    # SD_r = np.std(AUTOCORR, ddof=1)# / np.sqrt(len(AUTOCORR))
-    # print(f'{M_r=:.3f}, {SD_r=:.3f}')
-    # plt.plot(dif_scores, color='g')
-    # plt.plot(Fz_scores - Pz_scores, color='dodgerblue')
-    # plt.show()
-    # quit()
+    Fz_Pz_sum_scores = Fz_Pz_sum_scores[4:]
+    Fz_Pz_dif = Fz_Pz_dif[4:]
+    sum_scores_fwd = sum_scores_fwd[4:]
+    sum_scores_bwd = sum_scores_bwd[4:]
 
-    # dif_scores = conv(Fz_scores - Pz_scores)
-    # print(Fz_scores.shape)
     Fz_scores = conv(Fz_scores)
-
-    # print(Fz_scores.shape)
-    # quit()
     Pz_scores = conv(Pz_scores)
     abs_scores = conv(abs_scores)
+    sum_scores = conv(Fz_Pz_sum_scores)
+    abs_scores_fwd = conv(abs_scores_fwd)
+    abs_scores_bwd = conv(abs_scores_bwd)
+    sum_scores_fwd = conv(sum_scores_fwd)
+    sum_scores_bwd = conv(sum_scores_bwd)
+
     # abs_scores = np.abs(Fz_scores - Pz_scores)
     # dif_scores = conv(dif_scores)
     #
 
     Pz_abs = np.abs(Pz_scores)
     Fz_abs = np.abs(Fz_scores)
-    dif_scores = Fz_scores - Pz_scores
+    dif_scores = conv(Fz_Pz_dif)
+    # print(dif_scores.shape)
+    # quit()
+    # plt.plot(dif_scores)
+    # plt.show()
+    # quit()
 
     name2r = {}
     names_conn = ['ATL_MFG', 'ATL_LOC', 'MFG_IPL', 'IPL_LOC',
@@ -377,9 +318,10 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                  'AP': AP, 'VD': VD, 'TEST': test_abs,
                  'theta': theta_fluc}
     name2eeg = {'Fz': Fz_scores, 'Pz': Pz_scores,
+                'Fz_pz': Fz_scores * Pz_scores,
                 'abs': abs_scores, 'abs_fwd': abs_scores_fwd,
-                'abs_bwd': abs_scores_bwd, 'dif': dif_scores,
-                'abs_Fz': abs_Fz_high_scores, 'abs_Pz': abs_Pz_high_scores,
+                'abs_bwd': abs_scores_bwd, #'dif': dif_scores,
+                'abs_Fz': Fz_Pz_sum_scores, 'dif': Fz_Pz_dif,
                 'Fz_abs': Fz_abs, 'Pz_abs': Pz_abs
                 }
 
@@ -387,37 +329,22 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
         conn = name2conn[name_conn]
         for name_eeg in names_eeg:
             if override:
-                df = pd.DataFrame({'abs_scores': abs_scores,
+                df = pd.DataFrame({#'abs_scores_fwd': abs_scores_fwd,
+                                   'sum_scores': abs_scores_bwd,
+                                   'abs_scores': abs_scores_fwd,
                                    'theta': theta_fluc,
+                                   'gamma': gamma_fluc,
                                    'conn': FC_fluc,})
                 df.dropna(inplace=True)
                 # df = stats.zscore(df, axis=0)
                 for col in df.columns:
-                    df[col] = stats.zscore(df[col])
-                # print(df)
+                    df[col] = stdize(df[col], rankdata=True)
+                    # df[col] = stats.zscore(df[col])
 
-                mod = smf.ols(formula='conn ~ 1 + theta', data=df)
+                mod = smf.ols(formula='abs_scores ~ 1 + conn + sum_scores',
+                              data=df)
                 res = mod.fit()
-                r = res.params['theta']
-                # print(df[['conn', 'theta']])
-                # print(theta_fluc)
-                # quit()
-
-                # r, p = stats.pearsonr(df['conn'], df['theta'])
-
-                # if sn == '04':
-                #     # print(df)
-                #     # r, p = stats.pearsonr(df['conn'], df['theta'])
-                #     for idx, row in df.iterrows():
-                #         print(f'{idx}', round(row['conn'], 2), row['theta'])
-                #
-                #     print(f'{r=:.3f}')
-                #
-                #     # print(theta_fluc)
-                #     # print(df)
-                #     quit()
-                    # print(EEG_fluc)
-
+                r = res.params['conn']
                 # print(f'{r=}')
                 # quit()
                 # if name_eeg == 'Pz_abs':
