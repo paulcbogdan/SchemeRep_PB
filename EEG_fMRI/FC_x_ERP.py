@@ -151,6 +151,8 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     sum_scores_bwd = np.full(num_TRs, np.nan)
     peak2peak = np.full(num_TRs, np.nan)
     peak2peak_rev = np.full(num_TRs, np.nan)
+    min_Fz = np.full(num_TRs, np.nan)
+    max_Pz = np.full(num_TRs, np.nan)
 
     for idx, event in enumerate(events):
         # true_idx = event2true[idx]
@@ -179,11 +181,18 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
         Pz_low = np.min(data_Pz_M[t_st:t_end])
         peak2peak[true_idx] = Pz_high - Fz_low
         peak2peak_rev[true_idx] = Fz_high - Pz_low
+        min_Fz[true_idx] = Fz_low
+        max_Pz[true_idx] = Pz_high
+
+
+        # peak2peak[true_idx] = Fz_high
+        # peak2peak_rev[true_idx] = Pz_high
+
         # peak2peak_rev[true_idx] = Fz_peak - Pz_peak
 
     return (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
             Fz_Pz_sum_scores, Fz_Pz_dif_scores, sum_scores_fwd, sum_scores_bwd,
-            peak2peak, peak2peak_rev)
+            peak2peak, peak2peak_rev, min_Fz, max_Pz)
 
 
 AUTOCORR = []
@@ -219,7 +228,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
 
     (Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd,
      Fz_Pz_sum_scores, Fz_Pz_dif, sum_scores_fwd, sum_scores_bwd,
-     peak2peak, peak2peak_rev) = (
+     peak2peak, peak2peak_rev, min_Fz, max_Pz) = (
         pickle_wrap(get_ERP_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
@@ -258,7 +267,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                            easy_override=False, verbose=-1)
 
     global AUTOCORR
-    df_ = pd.DataFrame({'a': abs_scores_bwd[:-1], 'b': abs_scores_bwd[1:]})
+    df_ = pd.DataFrame({'a': peak2peak[:-1], 'b': peak2peak[1:]})
     r, p = stats.spearmanr(df_['a'], df_['b'], nan_policy='omit')
     AUTOCORR.append(r)
     M_autocorr = np.nanmean(AUTOCORR)
@@ -308,6 +317,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     sum_scores_bwd = sum_scores_bwd[4:]
     peak2peak = peak2peak[4:]
     peak2peak_rev = peak2peak_rev[4:]
+    min_Fz = min_Fz[4:]
+    max_Pz = max_Pz[4:]
 
     Fz_scores = conv(Fz_scores)
     Pz_scores = conv(Pz_scores)
@@ -319,6 +330,8 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     sum_scores_bwd = conv(sum_scores_bwd)
     peak2peak = conv(peak2peak)
     peak2peak_rev = conv(peak2peak_rev)
+    min_Fz = conv(min_Fz)
+    max_Pz = conv(max_Pz)
 
 
 
@@ -370,17 +383,17 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                 df.dropna(inplace=True)
                 # df = stats.zscore(df, axis=0)
                 for col in df.columns:
-                    df[col] = stdize(df[col], rankdata=True)
+                    df[col] = stdize(df[col], rankdata=False)
                     # df[col] = stats.zscore(df[col])
 
-                mod = smf.ols(formula='abs_scores ~ 1 + conn + sum_scores',
+                mod = smf.ols(formula='theta ~ 1 + sum_scores + abs_scores',
                               data=df)
                 res = mod.fit()
-                r = res.params['conn']
+                r = res.params['sum_scores']
                 # print(f'{r=}')
                 # quit()
-                # if name_eeg == 'Pz_abs':
-                #     r = res.params['theta']
+                if name_eeg == 'Pz_abs':
+                    r = res.params['abs_scores']
             else:
                 eeg = name2eeg[name_eeg]
                 df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
