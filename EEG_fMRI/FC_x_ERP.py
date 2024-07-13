@@ -40,7 +40,7 @@ def get_fMRI_AP_VD(sn, sess='01', combine_regions=True, clean=False,
 
 
     if ar_fMRI is None:
-        return None
+        return None, None, None, None
 
     atlas = get_atlas(natview=True, combine_regions=combine_regions)
 
@@ -109,8 +109,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                  if pick in raw.ch_names]
 
     data_Fz = raw.get_data(picks=Fz_pruned)
-    # print(f'{data_Fz.shape=}')
-    # quit()
+
     data_Fz_M = np.mean(data_Fz, axis=0)
     data_Pz = raw.get_data(picks=Pz_pruned)
     data_Pz_M = np.mean(data_Pz, axis=0)
@@ -158,13 +157,14 @@ def conv(EEG_fluc):
     EEG_fluc = EEG_fluc.T # (TR, freq)
     import scipy.ndimage as ndimage
     HRF = get_hrf()
-    # for i in range(EEG_fluc.shape[1]):
     nans, x = np.isnan(EEG_fluc), lambda z: z.nonzero()[0]
     EEG_fluc[nans] = np.interp(x(nans), x(~nans), EEG_fluc[~nans])
 
     EEG_fluc = ndimage.convolve1d(EEG_fluc, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
     return EEG_fluc
+
+AUTOCORR = []
 
 def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
@@ -179,24 +179,20 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                 'abs_analysis': abs_analysis,
                                 'all_conn': all_conn,
                                 'clean': True},
-                            easy_override=True, verbose=-1,)
+                            easy_override=False, verbose=-1,)
+    if ATL_MFG is None:
+        print('No ATL_MFG!')
+        return None
 
 
-
-    FC_fluc = np.abs(IPL_LOC - MFG_IPL - ATL_LOC + ATL_MFG)
-    # FC_fluc = np.abs(IPL_LOC + MFG_IPL - ATL_LOC - ATL_MFG)
-
-
-    AP_bias = ATL_LOC + MFG_IPL - IPL_LOC - ATL_MFG
-    AP = ATL_LOC + MFG_IPL
-    # VD_bias = ATL_LOC + ATL_MFG - IPL_LOC - MFG_IPL
-    VD = IPL_LOC + ATL_MFG
 
     num_TRs = ATL_MFG.shape[-1]
     picks = [['F1', 'Fz', 'F2', 'F3', 'F4',
-              'FC1', 'FCz', 'FC2', 'FC3', 'FC4'],
-             ['CP1', 'CPz', 'CP2', 'CP3', 'CP4',
-              'P1', 'Pz', 'P2', 'P3', 'P4']]
+              #'FC1', 'FCz', 'FC2', 'FC3', 'FC4'
+              ],
+             [#'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+              'P1', 'Pz', 'P2', 'P3', 'P4'
+              ]]
 
     Fz_scores, Pz_scores, abs_scores, abs_scores_fwd, abs_scores_bwd = (
         pickle_wrap(get_ERP_sn,
@@ -210,26 +206,73 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
-                           easy_override=True, verbose=-1))
+                           easy_override=False, verbose=-1))
     if Fz_scores is None:
+        print('No Fz!')
         return None
-    # Fz_scores = conv(Fz_scores)
-    # Pz_scores = conv(Pz_scores)
+
+    ATL_MFG = ATL_MFG[4:]
+    ATL_LOC = ATL_LOC[4:]
+    MFG_IPL = MFG_IPL[4:]
+    IPL_LOC = IPL_LOC[4:]
+
+    FC_fluc = np.abs(IPL_LOC - MFG_IPL - ATL_LOC + ATL_MFG)
+    # FC_fluc = np.abs(IPL_LOC + MFG_IPL - ATL_LOC - ATL_MFG)
+
+    AP_bias = ATL_LOC + MFG_IPL - IPL_LOC - ATL_MFG
+    AP = ATL_LOC + MFG_IPL
+    VD = IPL_LOC + ATL_MFG
+
+    Fz_scores = Fz_scores[4:]
+    Pz_scores = Pz_scores[4:]
+    abs_scores = abs_scores[4:]
+    abs_scores_fwd = abs_scores_fwd[4:]
+    abs_scores_bwd = abs_scores_bwd[4:]
+
+
+    global AUTOCORR
+    # print(Fz_scores)
+    # quit()
+    df_ = pd.DataFrame({'a': abs_scores[1:], 'b': abs_scores[:-1]})
+    df_ = df_.dropna()
+    r, p = stats.spearmanr(df_['a'], df_['b'])
+    AUTOCORR.append(r)
+    M_r = np.mean(AUTOCORR)
+    SD_r = np.std(AUTOCORR, ddof=1)# / np.sqrt(len(AUTOCORR))
+    print(f'{M_r=:.3f}, {SD_r=:.3f}')
+    plt.plot(df_['a'], color='g')
+    # plt.plot(Pz_scores, color='dodgerblue')
+    plt.show()
+    # quit()
+
+    dif_scores = conv(Fz_scores - Pz_scores)
+    Fz_scores = conv(Fz_scores)
+    Pz_scores = conv(Pz_scores)
     abs_scores = conv(abs_scores)
-    dif_scores = Fz_scores - Pz_scores
+
+    # dif_scores = Fz_scores - Pz_scores
 
     name2r = {}
     names_conn = ['ATL_MFG', 'ATL_LOC', 'MFG_IPL', 'IPL_LOC',
-                  'fluc',
-                  'AP_bias', 'AP',  'VD']
+                  'fluc',  'AP_bias', 'AP',  'VD']
     names_eeg = ['Fz', 'Pz', 'abs', 'abs_fwd', 'abs_bwd', 'dif']
-    for name_conn, conn in zip(names_conn, [ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC,
-                                            FC_fluc,
-                                            AP_bias, AP,  VD]):
-        for name_eeg, eeg in zip(names_eeg,
-                                 [Fz_scores, Pz_scores, abs_scores,
-                                  abs_scores_fwd, abs_scores_bwd,
-                                  dif_scores]):
+
+    # names_conn = ['AP_bias']
+    names_conn = ['AP_bias', ]
+    names_eeg = ['dif', ]
+
+    name2conn = {'ATL_MFG': ATL_MFG, 'ATL_LOC': ATL_LOC,
+                 'MFG_IPL': MFG_IPL, 'IPL_LOC': IPL_LOC,
+                 'fluc': FC_fluc, 'AP_bias': AP_bias,
+                 'AP': AP, 'VD': VD}
+    name2eeg = {'Fz': Fz_scores, 'Pz': Pz_scores,
+                'abs': abs_scores, 'abs_fwd': abs_scores_fwd,
+                'abs_bwd': abs_scores_bwd, 'dif': dif_scores}
+
+    for name_conn in names_conn:
+        conn = name2conn[name_conn]
+        for name_eeg in names_eeg:
+            eeg = name2eeg[name_eeg]
             df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
             df.dropna(inplace=True)
             r, p = stats.spearmanr(df[name_conn], df[name_eeg])
@@ -261,12 +304,9 @@ if __name__ == '__main__':
     # SNS = ['06']
     # SNS = ['18']
     SESSES += SESS_INK
+    # SESSES += SESS_OTHER
     # SESSES = SESS_OTHER # I'm not sure if im even processsing the task properylll
 
-    # SESSES += SESS_OTHER
-    # SESSES += SESS_MONKEY
-    # SESSES = ['01_task-dme_run-01']
-    # SNS = ['22']
     BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
                ('06', '02_task-inscapes'), ('07', '01_task_inscapes'),
