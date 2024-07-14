@@ -379,10 +379,9 @@ def load_EEG(sn, sess, num_TRs, dir_eeg, excl_before=False):
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      avg_before=True, high_gamma=False,
                      super_slow=False, avg_ref=True,
-                     double_speed=False,
-                     excl_before=True,
-                     mastoid_ref=False,
-                     Fz_Pz_abs_dif=False):
+                     double_speed=False, excl_before=True,
+                     mastoid_ref=False, Fz_Pz_abs_dif=False,
+                     fz_minus_pz=False, delay=False):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -439,8 +438,7 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                              np.nan)
 
     else:
-        picks_pruned = [pick for pick in picks if pick in raw.ch_names]
-        data_eeg = raw.get_data(picks=picks_pruned)
+
         if high_gamma:
             freqs = np.arange(1, 101)
         elif super_slow:
@@ -450,10 +448,41 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
         else:
             freqs = np.arange(1, 51)
 
-        if avg_before:
-            data_eeg = np.nanmean(data_eeg, axis=0)[None, None, :]
+        if fz_minus_pz:
+            picks_fz = picks[0]
+            picks_fz = [pick for pick in picks_fz if pick in raw.ch_names]
+            picks_pz = picks[1]
+            picks_pz = [pick for pick in picks_pz if pick in raw.ch_names]
+            data_Fz_M = raw.get_data(picks=picks_fz)
+            data_Fz_M = np.nanmean(data_Fz_M, axis=0)
+            data_Pz_M = raw.get_data(picks=picks_pz)
+            data_Pz_M = np.nanmean(data_Pz_M, axis=0)
+
+            if delay:
+                # data_Fz_M_padded = np.pad(data_Fz_M, pad_width=62, mode='constant',
+                #                           constant_values=np.nan)
+                # print(data_Pz_M.shape)
+                # print(data_Pz_M.shape)
+
+                data_Pz_M_padded = np.pad(data_Pz_M, pad_width=62, mode='constant',
+                                          constant_values=data_Pz_M[-1])  # temporal resolution ~250 ms
+
+                data_eeg = data_Fz_M - data_Pz_M_padded[124:]
+                # print(data_eeg)
+                # quit()
+                data_eeg = data_eeg[None, None, :]
+            else:
+                data_eeg = data_Pz_M - data_Fz_M
+                data_eeg = data_eeg[None, None, :]
+
+            picks_pruned = ['dif']
         else:
-            data_eeg = data_eeg[None, :, :]
+            picks_pruned = [pick for pick in picks if pick in raw.ch_names]
+            data_eeg = raw.get_data(picks=picks_pruned)
+            if avg_before:
+                data_eeg = np.nanmean(data_eeg, axis=0)[None, None, :]
+            else:
+                data_eeg = data_eeg[None, :, :]
 
         tfr = mne.time_frequency.tfr_array_morlet(data_eeg[..., ::ds1],
                                                   sfreq=250 // ds1, freqs=freqs,
@@ -540,9 +569,10 @@ M_AUTOCORR = []
 # TODO: TEST AVERAGE BEFORE!!
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
-                     super_slow=False, avg_ref=True,
+                     super_slow=False, avg_ref=False,
                      abs_analysis=True, all_conn=False,
-                     double_speed=True, Fz_Pz_abs_dif=False):
+                     double_speed=True, Fz_Pz_abs_dif=False,
+                     fz_minus_pz=False):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
 
@@ -562,10 +592,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
 
     num_TRs = fMRI_fluc.shape[-1]
 
-    if Fz_Pz_abs_dif:
+    if Fz_Pz_abs_dif or fz_minus_pz:
         picks = [['F1', 'Fz', 'F2', 'F3', 'F4',
-                 'FC1', 'FCz', 'FC2', 'FC3', 'FC4'],
-                 [ 'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+                  'FC1', 'FCz', 'FC2', 'FC3', 'FC4'
+                  ],
+                 ['CP1', 'CPz', 'CP2', 'CP3', 'CP4',
                  'P1', 'Pz', 'P2', 'P3', 'P4']]
     else:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
@@ -584,6 +615,8 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
                                    'mastoid_ref': False,
+                                   'fz_minus_pz': fz_minus_pz,
+                                   'delay': False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
@@ -839,7 +872,7 @@ if __name__ == '__main__':
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     PSDs = []
     dfs_l = []
-    for SN in SNS[14:]:
+    for SN in SNS:#[14:]:
         for j, SESS in enumerate(SESSES):
             if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue

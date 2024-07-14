@@ -54,10 +54,8 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
                              ((M ** 2) / (2*len(name2r[name]))))
 
             SE /= SD
-            print(f'{alt_SE=:.5f}, {SE=:.5f}')
-            print(f'{M=:.5f}, {SD=:.5f}')
-
-
+            # print(f'{alt_SE=:.5f}, {SE=:.5f}')
+            # print(f'{M=:.5f}, {SD=:.5f}')
 
         high = M + 1 * SE
         low = M - 1 * SE

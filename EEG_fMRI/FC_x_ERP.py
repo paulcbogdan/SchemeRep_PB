@@ -85,7 +85,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                                                    easy_override=False)
 
     if raw is None:
-        return [None] * 11
+        return [None] * 13
 
     # print(raw.ch_names)
     # quit()
@@ -122,7 +122,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
     data_Pz_M_padded = np.pad(data_Pz_M, pad_width=62, mode='constant',
                               constant_values=np.nan) # temporal resolution ~250 ms
 
-    abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124])
+    abs_M_forward = np.abs(data_Fz_M - data_Pz_M_padded[:-124]) # confused fwd and bkwd
     abs_M_backward = np.abs(data_Fz_M - data_Pz_M_padded[124:])
     # dif_M_forward = data_Fz_M - data_Pz_M_padded[:-124]
     # dif_M_backward = data_Fz_M - data_Pz_M_padded[124:]
@@ -160,7 +160,7 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
             true_idx = event2true[idx]
         except KeyError as e:
             print(f'{e=}')
-            return [None] * 11
+            return [None] * 13
         if true_idx in boundary_events:
             continue
         t_st = event[0]
@@ -202,7 +202,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                      super_slow=False, avg_ref=False,
                      abs_analysis=True, all_conn=False,
                      double_speed=True, Fz_Pz_abs_dif=False,
-                     override=True):
+                     override=True, fz_minus_pz=False):
 
     ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC = pickle_wrap(
         get_fMRI_AP_VD, kwargs={'sn': sn, 'sess': sess,
@@ -241,17 +241,32 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
                                    'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
-                           easy_override=True, verbose=-1))
+                           easy_override=False, verbose=-1))
 
     if Fz_scores is None:
         print('No Fz!')
         return None
 
-    picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
-             'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
-             'C1', 'Cz', 'C2', 'C3', 'C4',
-             'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
-             'P1', 'Pz', 'P2', 'P3', 'P4']
+    # picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+    #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
+    #          'C1', 'Cz', 'C2', 'C3', 'C4',
+    #          'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+    #          'P1', 'Pz', 'P2', 'P3', 'P4']
+
+    if Fz_Pz_abs_dif or fz_minus_pz:
+        picks = [['F1', 'Fz', 'F2', 'F3', 'F4',
+                  'FC1', 'FCz', 'FC2', 'FC3', 'FC4'
+                  ],
+                 ['CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+                 'P1', 'Pz', 'P2', 'P3', 'P4']]
+    else:
+        picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+                 'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
+                 'C1', 'Cz', 'C2', 'C3', 'C4',
+                 'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
+                 'P1', 'Pz', 'P2', 'P3', 'P4']
+
+
     EEG_fluc = pickle_wrap(get_EEG_score_sn,
                            kwargs={'sn': sn, 'sess': sess,
                                    'num_TRs': num_TRs,
@@ -260,10 +275,12 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'high_gamma': high_gamma,
                                    'super_slow': super_slow,
                                    'avg_ref': avg_ref,
-                                   'double_speed': double_speed,
                                    'mastoid_ref': False,
+                                   'fz_minus_pz': fz_minus_pz,
+                                   'delay': False,
+                                   'double_speed': double_speed,
                                    'excl_before': True,
-                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
+                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif, },
                            easy_override=False, verbose=-1)
 
     global AUTOCORR
@@ -271,9 +288,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     r, p = stats.spearmanr(df_['a'], df_['b'], nan_policy='omit')
     AUTOCORR.append(r)
     M_autocorr = np.nanmean(AUTOCORR)
-    print(f'{M_autocorr=:.3f}')
-    # plt.plot(abs_scores_fwd)
-    # plt.show()
+
 
     EEG_fluc = np.nanmean(EEG_fluc, axis=0)
     # print(EEG_fluc.shape)
@@ -286,7 +301,7 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     # theta_fluc = EEG_fluc
 
     # EEG_fluc = conv(EEG_fluc.T)
-    theta_fluc = np.nanmean(EEG_fluc[:, :6], axis=1)
+    theta_fluc = np.nanmean(EEG_fluc[:, :11], axis=1)
     gamma_fluc = np.nanmean(EEG_fluc[:, 59:], axis=1)
 
 
@@ -306,6 +321,20 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     VD = IPL_LOC + ATL_MFG
     test_abs = np.abs(ATL_MFG - ATL_LOC)
 
+    min_Fz = min_Fz[4:]
+    # print(Pz_scores)
+    # print(np.diff(Pz_scores))
+    # quit()
+    # max_Pz = np.array([np.nan] + list(np.diff(Pz_scores)[4:]))
+    # print(max_Pz)
+    # quit()
+    max_Pz = max_Pz[4:]
+    # print(Pz_scores[:3])
+    # print(np.diff(Pz_scores[:3]))
+    # print(Pz_scores[1] - Pz_scores[0])
+    # quit()
+
+
     Fz_scores = Fz_scores[4:]
     Pz_scores = Pz_scores[4:]
     abs_scores = abs_scores[4:]
@@ -317,8 +346,11 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     sum_scores_bwd = sum_scores_bwd[4:]
     peak2peak = peak2peak[4:]
     peak2peak_rev = peak2peak_rev[4:]
-    min_Fz = min_Fz[4:]
-    max_Pz = max_Pz[4:]
+
+    # print(f'{M_autocorr=:.3f}')
+    # plt.plot(min_Fz)
+    # plt.show()
+    # quit()
 
     Fz_scores = conv(Fz_scores)
     Pz_scores = conv(Pz_scores)
@@ -375,25 +407,46 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
         for name_eeg in names_eeg:
             if override:
                 df = pd.DataFrame({#'abs_scores_fwd': abs_scores_fwd,
-                                   'sum_scores': peak2peak_rev,
-                                   'abs_scores': peak2peak,
+                                   # 'sum_scores': max_Pz,
+                                   # 'abs_scores': min_Fz,
+                                   'peak2peak_rev': peak2peak_rev,
+                                   'peak2peak': peak2peak,
+                                   'max_Pz': max_Pz,
+                                   'min_Fz': min_Fz,
                                    'theta': theta_fluc,
                                    'gamma': gamma_fluc,
-                                   'conn': FC_fluc,})
+                                   'conn': FC_fluc,
+                                   'AP': AP, 'VD': VD, 'AP_bias': AP_bias})
                 df.dropna(inplace=True)
                 # df = stats.zscore(df, axis=0)
                 for col in df.columns:
-                    df[col] = stdize(df[col], rankdata=False)
+                    df[col] = stdize(df[col], rankdata=True)
                     # df[col] = stats.zscore(df[col])
 
-                mod = smf.ols(formula='theta ~ 1 + sum_scores + abs_scores',
+                mod = smf.ols(formula='conn ~ 1 + peak2peak + peak2peak_rev',
                               data=df)
+
+                # df['trial'] = [str(i) for i in range(len(df))]
+                # df_fwd = df.copy()
+                # df_fwd['dir'] = 0.5
+                # df_bwd = df.copy()
+                # df_bwd['peak2peak'] = df_bwd['peak2peak_rev']
+                # df_bwd['dir'] = -0.5
+                # df_new = pd.concat([df_fwd, df_bwd]).reset_index()
+                # # df_new['peak2peak'].fillna(df_new['peak2peak_rev'], inplace=True)
+                # df_new['peak2peak'] = stats.zscore(df_new['peak2peak'],
+                #                                    nan_policy='omit')
+                #
+                # mod = smf.ols(formula='peak2peak ~ 1 + theta*dir',
+                #               data=df_new)
                 res = mod.fit()
-                r = res.params['sum_scores']
-                # print(f'{r=}')
+
+                # print(res.summary())
                 # quit()
+
+                r = res.params['peak2peak']
                 if name_eeg == 'Pz_abs':
-                    r = res.params['abs_scores']
+                    r = res.params['peak2peak_rev']
             else:
                 eeg = name2eeg[name_eeg]
                 df = pd.DataFrame({name_conn: conn, name_eeg: eeg})
