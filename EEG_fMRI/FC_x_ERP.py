@@ -531,7 +531,7 @@ if __name__ == '__main__':
                     M_above = np.mean([m > 0 for m in l])
 
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
-                          f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e} | '
+                          f'({t=:.3f} | {d=:.3f}), {p=:.2e}, {p_wilcox=:.2e} | '
                           f'{M_above:.1%}')
             # continue
             # if 'r50' not in NAME2L:

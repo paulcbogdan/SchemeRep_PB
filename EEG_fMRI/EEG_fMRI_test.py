@@ -381,7 +381,8 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
                      super_slow=False, avg_ref=True,
                      double_speed=False, excl_before=True,
                      mastoid_ref=False, Fz_Pz_abs_dif=False,
-                     fz_minus_pz=False, delay=False):
+                     fz_minus_pz=False, delay=False,
+                     get_max=False, get_max_avg_before=False):
     assert not (high_gamma and super_slow)
     if picks is None:
         picks = ['Fz', 'Cz', 'Pz',
@@ -506,7 +507,14 @@ def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
             continue
         t_st = event[0]
         t_end = t_st + int(2.1*(250 // ds1))
-        tfr_event = tfr[..., t_st:t_end].mean(axis=-1)
+        if get_max:
+            tfr_event = tfr[..., t_st:t_end].max(axis=-1)
+        elif get_max_avg_before:
+            tfr = np.mean(tfr, axis=0)[None, ...]
+            tfr_event = tfr[..., t_st:t_end].mean(axis=-1)
+        else:
+            tfr_event = tfr[..., t_st:t_end].mean(axis=-1)
+
         eeg_scores[:, :, true_idx] = tfr_event
     # print(eeg_scores.shape)
     # quit()
@@ -569,12 +577,15 @@ M_AUTOCORR = []
 # TODO: TEST AVERAGE BEFORE!!
 def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      high_gamma=False, many_ROI=True,
-                     super_slow=False, avg_ref=False,
+                     super_slow=False, avg_ref=True,
                      abs_analysis=True, all_conn=False,
                      double_speed=True, Fz_Pz_abs_dif=False,
-                     fz_minus_pz=False):
+                     fz_minus_pz=False,
+                     get_max=False, get_max_avg_before=True):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
+
+    assert not (get_max and get_max_avg_before), 'Only have one true'
 
     fMRI_fluc = pickle_wrap(get_fMRI_score_sn,
                             kwargs={'sn': sn, 'sess': sess,
@@ -619,7 +630,9 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'delay': False,
                                    'double_speed': double_speed,
                                    'excl_before': True,
-                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif,},
+                                   'Fz_Pz_abs_dif': Fz_Pz_abs_dif,
+                                   'get_max': get_max,
+                                   'get_max_avg_before': get_max_avg_before},
                            easy_override=False, verbose=-1)
 
     if EEG_fluc is None:

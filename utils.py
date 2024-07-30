@@ -44,11 +44,21 @@ def stdize(v, axis=None, nans=False, rankdata=False, stdize_by_run=False):
         slices0 = [slice(None)] * (axis - 2) + [slice(0, b0)]
         slices1 = [slice(None)] * (axis - 1) + [slice(b0, b1)]
         slices2 = [slice(None)] * (axis - 1) + [slice(b1, None)]
-        v = np.concatenate((stdize(v[*slices0], axis=axis, nans=nans,
+        # python 3.11+
+        # v = np.concatenate((stdize(v[*slices0], axis=axis, nans=nans,
+        #                            rankdata=rankdata),
+        #                     stdize(v[*slices1], axis=axis, nans=nans,
+        #                            rankdata=rankdata),
+        #                     stdize(v[*slices2], axis=axis, nans=nans,
+        #                            rankdata=rankdata)),
+        #                    axis=axis)
+
+        # not sure if the below one works...?
+        v = np.concatenate((stdize(v[tuple(slices0)], axis=axis, nans=nans,
                                    rankdata=rankdata),
-                            stdize(v[*slices1], axis=axis, nans=nans,
+                            stdize(v[tuple(slices1)], axis=axis, nans=nans,
                                    rankdata=rankdata),
-                            stdize(v[*slices2], axis=axis, nans=nans,
+                            stdize(v[tuple(slices2)], axis=axis, nans=nans,
                                    rankdata=rankdata)),
                            axis=axis)
         return v

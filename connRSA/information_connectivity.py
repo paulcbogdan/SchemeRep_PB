@@ -150,7 +150,8 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     return corrs
 
 def get_cross_IRAF_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
-                       second_order, RDM_method, semantic):
+                       second_order, RDM_method, semantic,
+                       just_get_IRAFs=False):
     dir_root = fr'cache/conn_RSA/ars/RSA'
     # ROI2fps2iERS = {}
     num_pairs = (len(fps) * (len(fps) - 1)) // 2
@@ -201,6 +202,10 @@ def get_cross_IRAF_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                               by_run=False, second_order='spear')
             ROI2fp2IRAFs[ROI][fp0] = IRAFs
             ar[i, j, :] = IRAFs
+
+    if get_IRAFs:
+        ar = np.transpose(ar, (1, 0, 2))
+        return ar
 
     ar = stdize(ar, axis=-1)
     t_st = time()
@@ -256,9 +261,6 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     num_pairs = (len(fps) * (len(fps) - 1)) // 2
     fp2ROI2iNPS = np.full((num_pairs, len(ROIs), 114), np.nan)
 
-    # print(fps)
-    # print(f'{cross=}')
-    # quit()
 
     tup2cnt = {}
     fp12block2objs = {}
@@ -317,10 +319,6 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                 except FileNotFoundError:
                     ERS_dif = np.full(114, np.nan)
 
-                    # print('Bad 2')
-                    # continue
-                # print(ERS_dif.shape)
-                # quit()
                 fp2ROI2iNPS[cnt, i, :] = ERS_dif
                 tup = tuple(sorted((fp0, fp1)))
                 tup2cnt[tup] = cnt
@@ -329,7 +327,6 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
             M_ERS_difs.append(np.nanmean(fp2ROI2iNPS[:, i, :]))
         else:
             M_ERS_difs.append(np.mean(fp2ROI2iNPS[:, i, :]))
-    # quit()
 
     if cross:
         valid_pairs = set()
@@ -369,7 +366,9 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         # quit()
     else:
 
-        if get_var != False:
+        if get_var == 'all':
+            return fp2ROI2iNPS
+        elif get_var != False:
             idxs = get_idxs(get_var)
             return fp2ROI2iNPS[:, idxs, :]
             # v = np.nanvar(fp2ROI2iNPS[:, idxs, :], axis=1)

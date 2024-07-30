@@ -117,6 +117,7 @@ def prep_vecs(RSA, semantic):
 def prep_fps(four_tasks):
     if four_tasks == '7':
         fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+
     elif four_tasks == '8':
         fps = ['bl8_fMRI', 'obj8_fMRI', 'con8_fMRI', 'vis8_fMRI']
     else:

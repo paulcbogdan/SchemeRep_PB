@@ -140,6 +140,9 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     key2p_M = {}
     for key, p in zip(act_keys, act_p):
         key2p_M[key] = np.nanmean(sn_roi_act[:, p, :], axis=1)
+    act_keys += 'no'
+    p_no = [i for i in range(246) if i not in p_dorsal + p_ventral]
+    key2p_M['no'] = np.nanmean(sn_roi_act[:, p_no, :], axis=1)
 
     df_as_d = defaultdict(list)
     n_TRs = sn_roi_act.shape[-1]

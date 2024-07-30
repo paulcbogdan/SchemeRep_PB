@@ -30,7 +30,6 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
                                        'combine_regions': combine_regions},
                                easy_override=False)
 
-
     df['da_dp'] = df['da'] + df['dp']
     df['va_vp'] = df['va'] + df['vp']
 
@@ -49,6 +48,12 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
     # plot_connectivity(conn, ticks, tick_labels, tick_lows, title=title, no_avg=True, cbar_label='Pearson\'s r',
     #                   vmin=-0.5, vmax=0.5)
 
+    # test = df[['da', 'dp', 'va', 'vp', 'no']].corr()
+    # print(test)
+    # test = [list(test.iloc[i]) for i in range(5)]
+    # print(test)
+    # # print(np.array(test))
+    # quit()
 
     networks = ['dd', 'vv', 'dv_ant', 'dv_pos',
                 'dd_vv', 'dv_dv']
@@ -65,8 +70,13 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
         # vals = df_sn[key0].sample(frac=1, ignore_index=True)
         # df_sn[key0] = vals.tolist()
 
+        # ar = partial_corr_df(df_sn, networks,
+        #                      cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])
         ar = partial_corr_df(df_sn, networks,
-                             cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])
+                             cov=['pd_no', 'ad_no', 'av_no', 'pv_no',
+                                  ])
+        # ar = partial_corr_df(df_sn, networks,
+        #                      cov=[])
         r = ar[4, 5]
         print(f'{r=:.3f}')
         # r = ar[0, 1]
