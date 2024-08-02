@@ -289,7 +289,6 @@ def test_ERP_fMRI_sn(sn='06', sess='01', avg_before=False,
     AUTOCORR.append(r)
     M_autocorr = np.nanmean(AUTOCORR)
 
-
     EEG_fluc = np.nanmean(EEG_fluc, axis=0)
     # print(EEG_fluc.shape)
 
