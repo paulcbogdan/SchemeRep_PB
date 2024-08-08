@@ -531,7 +531,7 @@ def numba_corr(edges0, edges1):
 
 def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
     print('-' * 10)
-    n = 100
+    n = 1000
     rs = []
     for i in range(n):
         rs.append(calc_triangle_corr(shuffle=True, seed=i,
@@ -552,7 +552,7 @@ def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    SS_TRIANGLES = True
+    SS_TRIANGLES = False
     print(f'{SS_TRIANGLES=}')
     res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
                        ss_triangles=SS_TRIANGLES)
