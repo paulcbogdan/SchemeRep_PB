@@ -133,12 +133,11 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     p_ant = list(set(p_d_ant + p_v_ant))
     p_pos = list(set(p_d_pos + p_v_pos))
 
+    # allow diagonal
     pd_no = list(set(range(246)) - set(p_d_pos + p_d_ant + p_v_pos))
     ad_no = list(set(range(246)) - set(p_d_ant + p_d_pos + p_v_ant))
     pv_no = list(set(range(246)) - set(p_v_pos + p_v_ant + p_d_pos))
     av_no = list(set(range(246)) - set(p_v_ant + p_v_pos + p_d_ant))
-
-
 
     conn_keys = ['dd', 'vv',
                  'dv_ant', 'dv_pos',
