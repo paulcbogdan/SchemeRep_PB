@@ -351,6 +351,7 @@ def split_BNA(new_space=True, split_code='xyz', lifu_labels=True):
     return atlas_new
 
 
+@cache
 def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
               new_space=True, split_code='xyz', schaefer=False, shenyang=True,
               HCP=False, natview=False, lifu_labels=True):
