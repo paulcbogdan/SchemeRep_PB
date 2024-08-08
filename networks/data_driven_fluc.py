@@ -249,7 +249,8 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
         for i in range(sn_inc_conn.shape[0]):
             dif_mat = sn_inc_conn[i, 0] - sn_inc_conn[i, 2]
             dif_mat = dif_mat[:210, :210]
-            triangle, highest_is = get_triangles_from_z(dif_mat)
+            triangle, highest_is = (
+                get_triangles_from_z(dif_mat, strongest_efs=strongest_efs))
             triangles_l.append(triangle)
             highest_is_all.append(highest_is)
             d_triangles[sns[i]] = triangles_l[-1]
@@ -265,7 +266,8 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
         lowest_bad_j = min(bad_j)
         z_both = do_regression(sn_inc_conn, flip=False, nans=True)
         z_both = z_both[:lowest_bad_j, :lowest_bad_j]
-        triangles, highest_is = get_triangles_from_z(z_both)
+        triangles, highest_is = (
+            get_triangles_from_z(z_both, strongest_efs=strongest_efs))
         return triangles, highest_is
 
 @cache
@@ -283,10 +285,16 @@ def get_candidates(lowest_bad_j=210, combine_regions=False):
     return candidates
 
 def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
-    z_abs = np.abs(z_both) ** 2
-    z_abs_sum = np.sum(z_abs, axis=0)
+    z_abs = np.abs(z_both)# ** 2
+    # print(z_abs)
+    # quit()
+    z_abs_sum = np.nansum(z_abs, axis=0)
+    # print(z_abs_sum)
+    # quit()
     # print(z_both.shape)
     highest_is = np.argsort(z_abs_sum)[-int(strongest_efs * n_roi):]
+    # print(highest_is)
+    # quit()
     # print(highest_is)
     # quit()
     candidates = get_candidates()
@@ -306,6 +314,7 @@ def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
                 triangles_i.append((i, candidates[i][neg], candidates[i][pos]))
         triangles.append(triangles_i)
     triangles = np.array(triangles)
+    # print(triangles[0])
     return triangles, highest_is
 
 def calc_corr(combine_regions=False):
@@ -420,12 +429,12 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
             edge0s_total = np.zeros((conn_trials.shape[0], 206))
             edge1s_total = np.zeros((conn_trials.shape[0], 206))
             triangles = d_triangles[sn]
-            print(triangles.shape)
-            quit()
+            # print(triangles.shape)
+            # quit()
 
             highest_is = d_is[sn]
-            # for roi_i in range(triangles.shape[0]):
-            for roi_i in highest_is:
+            for roi_i in range(triangles.shape[0]):
+            # for roi_i in highest_is:
                 for triangle_j in range(triangles.shape[1]):
                     triangle = triangles[roi_i, triangle_j]
                     edge0 = conn_trials[sn_k, triangle[0], triangle[1], :]
@@ -468,7 +477,7 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
     # edge0s = edge0s[:10, :, :]
     # edge1s = edge1s[:, :2, :]
     r_gavg = numba_corr(edge0s, edge1s)
-    print(f'{shuffle} | {r_gavg=:.7f} | {time() - t_st:.2f}')
+    print(f'{r_gavg=:.7f}') #  | t: {time() - t_st:.2f} s
     # return r_gavg
     # edge0s = np.array(edge0s)
     # print(edge0s.shape)
@@ -519,7 +528,8 @@ def numba_corr(edges0, edges1):
 
 
 
-def calc_triangle_shuffle(strongest_efs=0.2, ss_triangles=False):
+def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
+    print('-' * 10)
     n = 100
     rs = []
     for i in range(n):
@@ -527,17 +537,24 @@ def calc_triangle_shuffle(strongest_efs=0.2, ss_triangles=False):
                                      strongest_efs=strongest_efs,
                                      ss_triangles=ss_triangles))
         cutoff = sorted(rs)[int((i + 1) * .05)]
-        print(f'\t{cutoff=:.3f}')
+        if i > 1:
+            M = np.mean(rs)
+            SD = np.std(rs)
+            res_z = (res - M) / SD
+            res_p = stats.norm.sf(-res_z)
+            print(f'\t{cutoff=:.3f}, {M=:.3f} [{SD:.3f}, N = {len(rs)}] | '
+                  f'{res:.3f}, {res_z=:.2f} ({res_p=:.3f})')
     rs = np.array(rs)
     print(f'{rs=}')
     print(f'{np.mean(rs)=}')
     print(f'{np.std(rs)=}')
 
 if __name__ == '__main__':
+    np.random.seed(0)
     SS_TRIANGLES = False
     print(f'{SS_TRIANGLES=}')
-    calc_triangle_corr(strongest_efs=0.2, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
                        ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(strongest_efs=0.2, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
 
 
