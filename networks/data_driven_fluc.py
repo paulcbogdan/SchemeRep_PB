@@ -248,6 +248,7 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
         d_is = {}
         for i in range(sn_inc_conn.shape[0]):
             dif_mat = sn_inc_conn[i, 0] - sn_inc_conn[i, 2]
+            dif_mat = dif_mat[:210, :210]
             triangle, highest_is = get_triangles_from_z(dif_mat)
             triangles_l.append(triangle)
             highest_is_all.append(highest_is)
@@ -282,12 +283,16 @@ def get_candidates(lowest_bad_j=210, combine_regions=False):
     return candidates
 
 def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
-    z_abs = np.abs(z_both)
+    z_abs = np.abs(z_both) ** 2
     z_abs_sum = np.sum(z_abs, axis=0)
+    # print(z_both.shape)
     highest_is = np.argsort(z_abs_sum)[-int(strongest_efs * n_roi):]
-
+    # print(highest_is)
+    # quit()
     candidates = get_candidates()
     triangles = []
+    # print(z_both.shape)
+    # quit()
     # for i in range(n_roi):
     for i in highest_is:
         triangles_i = []
@@ -415,6 +420,9 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
             edge0s_total = np.zeros((conn_trials.shape[0], 206))
             edge1s_total = np.zeros((conn_trials.shape[0], 206))
             triangles = d_triangles[sn]
+            print(triangles.shape)
+            quit()
+
             highest_is = d_is[sn]
             # for roi_i in range(triangles.shape[0]):
             for roi_i in highest_is:
@@ -430,14 +438,18 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
                                                    strongest_efs=strongest_efs,
                                                    ss_triangles=ss_triangles)
 
-        edge0s_total = np.zeros((len(highest_is), 206))
-        edge1s_total = np.zeros((len(highest_is), 206))
-        for roi_i in highest_is:
+        edge0s_total = np.zeros((conn_trials.shape[0], 206))
+        edge1s_total = np.zeros((conn_trials.shape[0], 206))
+        for roi_i in range(len(highest_is)):
+            # print(highest_is)
+            # print(triangles)
+            # quit()
         # for roi_i in range(triangles.shape[0]):
             # non_targets = list(set(range(246)) - set(triangles[roi_i, :, :].flatten()))
             for triangle_j in range(triangles.shape[1]):
                 triangle = triangles[roi_i, triangle_j]
                 edge0 = conn_trials[:, triangle[0], triangle[1], :]
+                # print(edge0.shape)
                 edge0s_total += edge0
                 edge1 = conn_trials[:, triangle[0], triangle[2], :]
                 edge1s_total += edge1
@@ -524,8 +536,8 @@ def calc_triangle_shuffle(strongest_efs=0.2, ss_triangles=False):
 if __name__ == '__main__':
     SS_TRIANGLES = False
     print(f'{SS_TRIANGLES=}')
-    calc_triangle_corr(strongest_efs=0.1, shuffle=False,
+    calc_triangle_corr(strongest_efs=0.2, shuffle=False,
                        ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(strongest_efs=0.1, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(strongest_efs=0.2, ss_triangles=SS_TRIANGLES)
 
 
