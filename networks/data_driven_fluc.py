@@ -1,3 +1,5 @@
+import copy
+
 import pandas as pd
 
 from atlas_utils import get_atlas
@@ -11,7 +13,15 @@ from vendor_partitioning import do_regression, get_vendor_partitions
 import numpy as np
 import matplotlib.pyplot as plt
 from nilearn import plotting
+from scipy import stats, spatial
+from functools import cache
+from numba import njit, config, jit
+from time import time
 
+config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba_test'
+CACHE_NUMBA = True
+
+@cache
 def load_rs():
     sn_roi_act, sns, conn_trials = load_a(fp='rs_medium', norm_std=True)
     return conn_trials
@@ -116,6 +126,78 @@ def load_task(combine_regions=True):
     #                   scrub=True, easy_override=True, thr=THRESHOLD,
     #                   combine_regions=False, regress=REGRESS)
 
+def get_task_triangles(combine_regions=False, strongest_efs=0.1,
+                       shuffle=True, seed=0):
+    kwargs = {'fp': 'obj7_fMRI',
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True,
+              'combine_regions': combine_regions,
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=-1, cache_dir='cache',
+                    RAM_cache=False)
+    # sn_inc_conn = copy.deepcopy(sn_inc_conn)
+
+    if shuffle:
+        np.random.seed(seed)
+        idxs = np.arange(sn_inc_conn.shape[0])
+        np.random.shuffle(idxs)
+        sn_inc_conn = sn_inc_conn[idxs]
+        start = np.random.randint(6)
+        idxs_possible = [[0, 1, 2], [0, 2, 1], [1, 0, 2],
+                         [1, 2, 0], [2, 0, 1], [2, 1, 0]]
+        idxs_possible = np.array(idxs_possible)
+        np.random.shuffle(idxs_possible)
+        # idxs = [0, 1, 2]
+        for i in range(sn_inc_conn.shape[0]):
+            np.random.shuffle(idxs)
+            # print(idxs)
+            idxs = idxs_possible[(start + i) % 6]
+            sn_inc_conn[i, ] = sn_inc_conn[i, idxs, :, :]
+
+    bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
+    atlas = get_atlas(combine_regions=combine_regions)
+    bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
+             if roi in bad_rois]
+    sn_inc_conn[..., bad_j, :] = np.nan
+    sn_inc_conn[..., :, bad_j] = np.nan
+    lowest_bad_j = min(bad_j)
+    z_both = do_regression(sn_inc_conn, flip=False, nans=True)
+    z_both = z_both[:lowest_bad_j, :lowest_bad_j]
+    # print(z_both)
+    # print(f'{seed=}')
+
+    coords = np.array(atlas['coords'][:lowest_bad_j])
+    pdist = spatial.distance.pdist(coords[:, 1:]) # drop x-dim
+    pdist = spatial.distance.squareform(pdist)
+    candidates = []
+    n_roi = pdist.shape[0]
+    for i in range(n_roi):
+        idxs = np.argsort(pdist[i])
+        candidates.append(idxs[n_roi // 4:])
+
+    candidates = np.array(candidates)
+    triangles = []
+    for i in range(n_roi):
+        triangles_i = []
+        candidate_zs = z_both[i, candidates[i]]
+        lowest_zs = np.argsort(candidate_zs)[
+                    :int(strongest_efs * len(candidate_zs))]
+        highest_zs = np.argsort(candidate_zs)[
+                        -int(strongest_efs * len(candidate_zs)):]
+        for neg in lowest_zs:
+            for pos in highest_zs:
+                triangles_i.append((i, candidates[i][neg], candidates[i][pos]))
+        triangles.append(triangles_i)
+    triangles = np.array(triangles)
+    # print(triangles[:2, :2])
+    return triangles
+
+
+
 def calc_corr(combine_regions=False):
     conn_trials = load_rs()
     partitions_VD, partitions_PA, non_used_nodes, quads = (
@@ -206,7 +288,107 @@ def calc_corr(combine_regions=False):
 
     # ['dd_vv', 'dv_dv'], #
 
+def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,):
+    conn_trials = load_rs()
+    # print(conn_trials.shape)
+    sns_ok = list(range(27)) + [28, 29] + list(range(31, conn_trials.shape[0]))
+    conn_trials = conn_trials[sns_ok]
+
+    triangles = get_task_triangles(shuffle=shuffle, seed=seed,
+                                   strongest_efs=strongest_efs)
+
+    edge0s = []
+    edge1s = []
+
+    edge0s_total = np.zeros((conn_trials.shape[0], 206))
+    edge1s_total = np.zeros((conn_trials.shape[0], 206))
+    for roi_i in range(triangles.shape[0]):
+        for triangle_j in range(triangles.shape[1]):
+            triangle = triangles[roi_i, triangle_j]
+            edge0 = conn_trials[:, triangle[0], triangle[1], :]
+            edge0s_total += edge0
+            # print(edge0.shape)
+            # quit()
+            # edge0s.append(edge0)
+            edge1 = conn_trials[:, triangle[0], triangle[2], :]
+            edge1s_total += edge1
+            # edge1s.append(edge1)
+    t_st = time()
+    edge0s = np.array(edge0s)[None, :, :]
+    print(f'{edge0s.shape=}')
+    edge1s = np.array(edge1s)[None, :, :]
+    # edge0s = np.mean(edge0s, axis=0)[None, :, :]
+    # edge1s = np.mean(edge1s, axis=0)[None, :, :]
+
+    # edge0s = edge0s[:10, :, :]
+    # edge1s = edge1s[:, :2, :]
+    r_gavg = numba_corr(edge0s, edge1s)
+    print(f'{shuffle} | {r_gavg=:.7f} | {time() - t_st:.2f}')
+    # return r_gavg
+    # edge0s = np.array(edge0s)
+    # print(edge0s.shape)
+    # quit()
+    # edge0s = stdize(edge0s, axis=2)
+    # edge1s = np.array(edge1s)
+    # edge1s = stdize(edge1s, axis=2)
+    # prod = edge0s * edge1s
+    # r = np.mean(prod, axis=2)
+    # print(r[0, 0])
+    # r_avg = np.nanmean(r, axis=0)
+    # r_gavg2 = np.nanmean(r_avg)
+    # print(f'{shuffle} | {r_gavg=:.7f} | {r_gavg2=:.7f}')
+    # quit()
+    return r_gavg
+
+@jit(cache=CACHE_NUMBA, fastmath=True, nopython=True,)
+def numba_corr(edges0, edges1):
+    n_triangles = edges0.shape[0]
+    n_sn = edges0.shape[1]
+    n_t = edges0.shape[2]
+
+    # r_out = np.empty((n_triangles, n_sn))
+    r_total = 0
+    for j in range(n_sn):
+        for i in range(n_triangles):
+            M = edges0[i, j, :].mean()
+            SD = edges0[i, j, :].std()
+            for k in range(n_t):
+                edges0[i, j, k] = (edges0[i, j, k] - M) / SD
+            M = edges1[i, j, :].mean()
+            SD = edges1[i, j, :].std()
+            for k in range(n_t):
+                edges1[i, j, k] = (edges1[i, j, k] - M) / SD
+
+            prod_total = 0
+            for k in range(n_t):
+                prod_total += edges0[i, j, k] * edges1[i, j, k]
+            # r_out[i, j] = prod_total / n_t
+            r_total += prod_total / n_t
+            # print(j, i, prod_total / n_t)
+            # return
+            # print(prod_total / n_t)
+    r_total /= n_triangles * n_sn
+    return r_total
+    # return r_out, r_total
+
+
+
+
+def calc_triangle_shuffle(strongest_efs=0.2,):
+    n = 100
+    rs = []
+    for i in range(n):
+        rs.append(calc_triangle_corr(shuffle=True, seed=i,
+                                     strongest_efs=strongest_efs))
+        cutoff = sorted(rs)[int((i + 1) * .05)]
+        print(f'\t{cutoff=:.3f}')
+    rs = np.array(rs)
+    print(f'{rs=}')
+    print(f'{np.mean(rs)=}')
+    print(f'{np.std(rs)=}')
+
 if __name__ == '__main__':
-    calc_corr()
+    calc_triangle_corr(strongest_efs=0.3, shuffle=False)
+    calc_triangle_shuffle(strongest_efs=0.3,)
 
 

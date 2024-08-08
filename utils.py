@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
 from functools import wraps
 from pathlib import Path
 
@@ -492,7 +492,7 @@ def timing(f):
 
 def get_formula_cols(df, formula):
     import re
-    formula = re.split(' |[*]|\)|\(', formula)
+    formula = re.split(r' |[*]|\)|\(', formula)
     cols = []
     for col in df.columns:
         # if col == 'sn': continue
