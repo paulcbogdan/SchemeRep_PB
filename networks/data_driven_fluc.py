@@ -285,7 +285,7 @@ def get_candidates(lowest_bad_j=210, combine_regions=False):
     return candidates
 
 def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
-    z_abs = np.abs(z_both)# ** 2
+    z_abs = np.abs(z_both) ** 2
     # print(z_abs)
     # quit()
     z_abs_sum = np.nansum(z_abs, axis=0)
@@ -293,6 +293,7 @@ def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
     # quit()
     # print(z_both.shape)
     highest_is = np.argsort(z_abs_sum)[-int(strongest_efs * n_roi):]
+    # print(sorted(highest_is))
     # print(highest_is)
     # quit()
     # print(highest_is)
@@ -551,7 +552,7 @@ def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    SS_TRIANGLES = False
+    SS_TRIANGLES = True
     print(f'{SS_TRIANGLES=}')
     res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
                        ss_triangles=SS_TRIANGLES)
