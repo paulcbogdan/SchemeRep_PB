@@ -23,7 +23,15 @@ if __name__ == '__main__':
            [0.11049860890265359, 0.2340526294594836, 0.09142026050694677, 1.0, 0.36198624591242934],
            [0.4744860197168674, 0.574046017913156, 0.4176132290023326, 0.36198624591242934, 1.0]]
 
-    x = np.random.multivariate_normal(np.zeros(num_ROIS), cov, 100_000).T
+    x = np.random.multivariate_normal(np.zeros(num_ROIS), cov, 1_000_000).T
+    # x = np.sign(x) * (x * x)
+
+    add_rois = 2
+    for roi in range(add_rois):
+        x = np.vstack([x, x[-1, :]])
+    # print(x.shape)
+    # quit()
+
     # x = np.random.normal(0, 1, (num_ROIS, 100000))
 
     # x -= x.mean(axis=0) * .1
@@ -39,10 +47,17 @@ if __name__ == '__main__':
     cov_regions = x[4:, :]
     # cov_regions = cov_regions + np.random.normal(0, 0.1, (100, 100_000))
 
+    print(x.shape)
+    # print(np.vstack([x[[0], :], x[2:, :]]).shape)
+    # quit()
     pd_no = np.nanmean(x[0] * cov_regions, axis=0)
+    # pd_no = np.nanmean(x[0] * x[1:, :], axis=0)
     ad_no = np.nanmean(x[1] * cov_regions, axis=0)
+    # ad_no = np.nanmean(x[1] * np.vstack([x[[0], :], x[2:, :]]), axis=0)
     av_no = np.nanmean(x[2] * cov_regions, axis=0)
+    # av_no = np.nanmean(x[2] * np.vstack([x[0:2, :], x[3:, :]]), axis=0)
     pv_no = np.nanmean(x[3] * cov_regions, axis=0)
+    # pv_no = np.nanmean(x[3] * np.vstack([x[0:3, :], x[4:, :]]), axis=0)
     no_no = np.nanmean(cov_regions * cov_regions, axis=0)
 
     ar = np.stack([dd, vv, dv_ant, dv_pos, pd_no, ad_no, av_no, pv_no, no_no],
@@ -62,6 +77,8 @@ if __name__ == '__main__':
                           covar=['pd_no', 'ad_no', 'av_no', 'pv_no',
                                  # 'no_no'
                                  ])
+    # x _else: r = -.36
+
 
     # dd_vv = dd + vv
     # dv_dv = dv_ant + dv_pos

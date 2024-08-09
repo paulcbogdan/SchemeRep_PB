@@ -14,47 +14,103 @@ from old_Apr6.ttest_mat import get_stats_graphs
 from old.modularity import get_main_partitions
 from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap, stdize
+import matplotlib.pyplot as plt
+
+def do_regression(sn_inc_conn, flip=True, nans=True):
+    sn_inc_conn = (sn_inc_conn -
+                   np.nanmean(sn_inc_conn, axis=1)[:, None, :, :])
+    n_sn = sn_inc_conn.shape[0]
+    n_roi = sn_inc_conn.shape[-1]
+    # print(sn_inc_conn.shape)
+    # quit()
+
+    sn_conn = sn_inc_conn.reshape(-1, n_roi, n_roi)
+    trils = np.tril_indices(n_roi, k=-1)
+    sn_flat = sn_conn[:, trils[0], trils[1]]
+    sn_flat = stdize(sn_flat, axis=0, nans=nans)
+    regressors = np.array([[-1, 0, 1] * n_sn]).T
+
+    XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
+    XTX_invX = np.dot(XTX_inv, regressors.T)
+    # print(XTX_inv)
+    # XTX_invX = np.nansum(XTX_inv * regressors.T)
+    # XTX_invX = XTX_inv * regressors.T
+    # print(test)
+    # print(XTX_invX)
+    # print(test.shape)
+    # print(XTX_invX.shape)
+    # quit()
+
+    if nans:
+        betas = np.nansum(XTX_invX * sn_flat.T, axis=1)[None, :]
+    else:
+        betas = np.dot(XTX_invX, sn_flat)
+
+    Y_pred = np.dot(regressors, betas)
+    residual = sn_flat - Y_pred
+    # print(sn_flat.T.shape)
+    # print(betas.shape)
+    # quit()
+    # print(sn_flat.T[4278, :])
+    # print(Y_pred[:, 4278])
+    # quit()
+
+    n_sn = np.sum(np.any(~np.isnan(sn_inc_conn), axis=1),
+                  axis=0)
+
+    n_sn = n_sn[trils]
 
 
-def do_regression():
-    pass
+    if nans:
+        sigma_s = np.nansum(residual ** 2, axis=0) / (n_sn * 2 - 2)
+        ss_x = np.nansum(regressors ** 2, axis=0)
+    else:
+        sigma_s = np.sum(residual ** 2, axis=0) / (n_sn * 2 - 2)
+        ss_x = np.sum(regressors ** 2, axis=0)
+    var_beta = sigma_s / ss_x
+
+    z = betas / np.sqrt(var_beta)
+    # print(np.sum(var_beta == 0))
+
+    z_both = np.full((246, 246), np.nan)
+    z_both[trils] = z
+    z_both[trils[1], trils[0]] = z
+    z_both = z_both if flip else -z_both
+    # num_nans = np.sum(np.isnan(betas))
+    var_beta_ =  np.full((n_roi, n_roi), np.nan)
+    # print(sigma_s)
+    var_beta_[trils] = np.nansum(residual ** 2, axis=0)
+    # print(var_beta_[93, :])
+
+    # print(residual[:, 4278])
+    # quit()
+
+    # test = np.nansum(residual ** 2, axis=0)
+    # for i in range(10_000):
+    #     if test[i] == 0:
+    #         print(i)
+    #         quit()
+
+    # plt.imshow(z_both)
+    # plt.colorbar()
+    # plt.show()
+    # plt.imshow(betas)
+    # plt.show()
+
+    # plt.imshow(var_beta)
+    # plt.show()
+
+    # print(num_nans)
+    # quit()
+
+    return z_both
 
 def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                            flip=True, weighted=True, plot=False,
                            combine_regions=False, regress=True):
 
-    age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     if regress:
-        sn_inc_conn = (sn_inc_conn -
-                        np.nanmean(sn_inc_conn, axis=1)[:, None, :, :])
-        n_sn = sn_inc_conn.shape[0]
-        sn_conn = sn_inc_conn.reshape(-1, 246, 246)
-        trils = np.tril_indices(246, k=-1)
-        sn_flat = sn_conn[:, trils[0], trils[1]]
-        sn_flat = stdize(sn_flat, axis=0)
-        regressors = np.array([[-1, 0, 1] * n_sn]).T
-
-        XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
-        XTX_invX = np.dot(XTX_inv, regressors.T)
-        betas = np.dot(XTX_invX, sn_flat)
-        # print(f'{regressors.shape=}')
-        # print(f'{XTX_invX.shape=}')
-        # print(f'{sn_flat.shape=}')
-        # print(f'{betas.shape=}')
-        # quit()
-
-        Y_pred = np.dot(regressors, betas)
-        residual = sn_flat - Y_pred
-        sigma_s = np.sum(residual ** 2, axis=0) / (n_sn*2 - 2)
-        ss_x = np.sum(regressors ** 2, axis=0)
-        var_beta = sigma_s / ss_x
-
-        z = betas / np.sqrt(var_beta)
-
-        z_both = np.full((246, 246), np.nan)
-        z_both[trils] = z
-        z_both[trils[1], trils[0]] = z
-        z_both = z_both if flip else -z_both
+        z_both = do_regression(sn_inc_conn, flip=flip)
 
     elif weighted:
         M_YA, _, _, _, _, p_YA, z_YA = \
@@ -72,6 +128,8 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                              sn_inc_conn[age2idxs[age], -1, :, :])
         z_both = -z_both if flip else z_both
 
+    # age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
+
     atlas = get_atlas(combine_regions=combine_regions)
     labels = atlas['labels']
     bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp',} #
@@ -82,14 +140,18 @@ def get_vendor_partitions_(sn_inc_conn, age2idxs, age: int | str=2, thr=.95,
                 z_both[i, :] = np.nan
                 z_both[:, i] = np.nan
                 break
+    # plt.imshow(z_both)
+    # plt.show()
+    # quit()
 
-    num_no1n_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
+    num_non_nans = np.sum(~np.isnan(sn_inc_conn[:, 0, 0, 1]))
 
     age2str = {1: 'YA', 2: 'OA', 'healthy': 'healthy'}
     weighted_str = '_W' if weighted else ''
     comb_str = '_comb' if combine_regions else ''
     regr_str = '_regr' if regress else ''
-    dir_out = f'result_pics/ttest_modules/' \
+    root = r'H:\PycharmProjects_H\SchemeRep\result_pics'
+    dir_out = f'{root}/ttest_modules/' \
               f'flip{flip}_thr{thr}_{age2str[age]}{comb_str}{weighted_str}' \
               f'{regr_str}_n{num_non_nans}'
     regression_str = ' [regression]' if regress else ''
@@ -122,6 +184,7 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                           combine_regions=False,
                           anat_ver=1,
                           regress=False):
+    assert not combine_regions
     if anat:
         return get_anat_vendor_partitions(plot=plot,
                                           combine_regions=combine_regions,
@@ -130,13 +193,17 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
                   'split': False,
-                  # 'atlas_name': 'BNA',
+                  'atlas_name': 'BNA',
                   'key_vals': (1, 2, 3) if regress else (1, 3),
+                  'get_df_sn': True,
                   'combine_regions': combine_regions
                   }
-        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, _ = \
             pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache')
+        # print(sn_inc_conn.shape)
+        # quit()
+
 
     comb_str = f'_comb' if combine_regions else ''
     regr_str = f'_regr' if regress else ''
@@ -152,7 +219,9 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
                                            plot=plot,
                                            combine_regions=combine_regions,
                                            regress=regress), fp,
-                    easy_override=easy_override)
+                    easy_override=True)
+    # print(partitions)
+    # quit()
     atlas = get_atlas(combine_regions=combine_regions)
     coords = atlas['coords']
     # print(len(coords))
@@ -242,7 +311,7 @@ def get_anat_vendor_partitions(plot=False, anat_ver=1, combine_regions=False,
                     labels[i] = f'{key}_p'
 
     if anat_ver == 4:
-        p_d_ant_labels = ['MFG', 'IFG', 'OrG', 'SFG']
+        p_d_ant_labels = ['MFG', 'IFG', ] # 'OrG', 'SFG'
         p_d_pos_labels = ['IPL', 'Pcun'] # 'SPL' (SPL not supported by the con_reg)
         p_v_ant_labels = ['ATL', 'STG']
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
@@ -393,35 +462,14 @@ def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, plot=False,
     return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
 
 if __name__ == '__main__':
-    # THRESHOLD = 0.99 #  0.95, 0.975, 1.65, 2.0, 2.32
-
-    get_vendor_partitions(age='healthy', flip=True, plot=True,
-                          scrub=True, easy_override=True, anat=True,
-                          anat_ver=3)
-    quit()
+    # get_vendor_partitions(age='healthy', flip=True, plot=True,
+    #                       scrub=True, easy_override=True, anat=True,
+    #                       anat_ver=3)
     REGRESS = True
     for THRESHOLD in [.95]:
         get_vendor_partitions(age='healthy', flip=True, plot=True,
                               scrub=True, easy_override=True, thr=THRESHOLD,
                               combine_regions=False, regress=REGRESS)
-        # THRESHOLD = .8
         get_vendor_partitions(age='healthy', flip=False, plot=True,
                               scrub=True, easy_override=True, thr=THRESHOLD,
                               combine_regions=False, regress=REGRESS)
-
-    # get_vendor_partitions(age=2, flip=True, anat=False, plot=True,
-    #                       scrub=True, easy_override=False, thr=THRESHOLD)
-    # get_vendor_partitions(age=1, flip=True, anat=False, plot=True,
-    #                       scrub=True, easy_override=False, thr=THRESHOLD)
-    # get_vendor_partitions(age='healthy', flip=False, anat=False, plot=True,
-    #                       scrub=True, easy_override=False, thr=THRESHOLD)
-    # get_vendor_partitions(age='healthy', flip=True, anat=True, plot=True,
-    #                       scrub=True, combine_regions=False)
-    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
-
-    # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-    #     get_vendor_partitions(age='healthy', flip=True, scrub=True, plot=True)
-    # save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=True, anat=False)
-
-
-

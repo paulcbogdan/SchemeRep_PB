@@ -16,7 +16,7 @@ from org_sns import get_sns
 from utils import HCP_CACHE, HCP_ROOT, HCP_RS_ROOT
 import matplotlib.pyplot as plt
 from copy import deepcopy
-import psutil
+# import psutil
 import logging
 from scipy import io
 

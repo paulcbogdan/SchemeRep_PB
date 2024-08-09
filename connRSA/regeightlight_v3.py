@@ -281,6 +281,12 @@ def eightlight(semantic=True, second_level='corr', flip=False,
     assert not (m_rsm and use_sum_reg)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
+    # print(age2sn[1])
+    # print(age2sn[2])
+    # print(len(sns))
+    # print(len(age2sn[1]))
+    # print(len(age2sn[2]))
+    # quit()
     # sns = sns[:20]
 
     title1, fn1, title2, fn2, title3, fn3 = get_titles_fns(

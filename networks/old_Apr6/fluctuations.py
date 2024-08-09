@@ -163,7 +163,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     networks += ['dd', 'vv', 'dv_ant', 'dv_pos']
     return df, networks
 
-def partial_corr_df(df, cols, cov):
+def partial_corr_df(df, cols, cov, verbose=1):
     cols = [col for col in cols if col not in cov]
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
     for i, col_i in enumerate(cols):
@@ -187,7 +187,8 @@ def partial_corr_df(df, cols, cov):
                 ar[j, i] = ar[i, j]
 
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
-    print(df_result)
+    if verbose:
+        print(df_result)
     return ar
 
 def analyze_networks(fp='rs_medium', anat_ver=2, combine_regions=False):

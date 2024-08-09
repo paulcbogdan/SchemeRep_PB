@@ -249,6 +249,7 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                                         'anat_version': anat_version},
                                easy_override=False, cache_dir='cache')
 
+
     cols_order = ['Lda_Ldp', 'Rda_Rdp',
                   'Lva_Lvp', 'Rva_Rvp',
                   'Ldp_Lvp', 'Rdp_Rvp',

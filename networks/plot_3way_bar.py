@@ -15,13 +15,13 @@ import scipy.stats as stats
 
 from load_more import get_module_cross_trialwise_z
 from vendor_partitioning import get_vendor_partitions
-from statannotations.Annotator import Annotator
+#from statannotations.Annotator import Annotator
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 import statsmodels.formula.api as smf
-from connsearch import print_list_stats
+# from connsearch import print_list_stats
 
 from warnings import filterwarnings
 filterwarnings('ignore', category=SettingWithCopyWarning,)
@@ -43,6 +43,19 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
+    # print(df_sns)
+    # quit()
+
+    # sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]
+    # print(sns)
+    # print(len(sns))
+    # sns_YA = [sn for sn in sns if sn[0] == '1']
+    # print(sns_YA)
+    # print(len(sns_YA))
+    # sns_OA = [sn for sn in sns if sn[0] == '2']
+    # print(sns_OA)
+    # print(len(sns_OA))
+    # quit()
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
@@ -156,6 +169,10 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
 
     # quit()
 
+
+    # print(df_agg['sn'].unique())
+    # print(df_agg['sn'].nunique())
+    # quit()
 
     for cond_set in cond_sets:
         df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]

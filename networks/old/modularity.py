@@ -164,18 +164,23 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
 
     matrix_binary, matrix_mask = get_binary_matrix(M_conn,
                                                    threshold=threshold)
+
+
     matrix_binary[np.isnan(matrix_binary)] = 0
     M_conn_masked = M_conn * matrix_mask
     if overlapping:
         partitions = get_modules_overlapping(matrix_binary, algo=overlapping)
     else:
         partitions = get_modules(matrix_binary)
+    # print(partitions)
+    # quit()
 
     if plot:
         fn_str += f'thr{threshold}'
         fn_str += f'_ovr{overlapping}' if overlapping else ''
         plot_partitions(partitions, M_conn_masked, fn_str, coords=coords,
-                        dir_out=None, dir_out_full=None, title_extra='', )
+                        dir_out=dir_out, dir_out_full=dir_out_full,
+                        title_extra='', )
 
     partitions = [p for p in partitions]
     return partitions, matrix_mask
