@@ -565,15 +565,15 @@ def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
     print(f'{np.std(rs)=}')
 
 if __name__ == '__main__':
-    calc_corr(combine_regions=False)
+    # calc_corr(combine_regions=False)
     # np.random.seed(0)
-    # SS_TRIANGLES = False
+    SS_TRIANGLES = True
     # print(f'{SS_TRIANGLES=}')
-    # # res = calc_triangle_corr(strongest_efs=0.25, shuffle=True,
-    # #                    ss_triangles=SS_TRIANGLES)
+    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
+                             ss_triangles=SS_TRIANGLES)
     #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    # calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
 
 

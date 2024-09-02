@@ -112,15 +112,12 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
             #     quit()
 
         df_sn = df_sn[cols].dropna().reset_index()
-        formula = '~ 1 + pd_no + ad_no + av_no + pv_no'
-        mod0 = smf.ols(formula='dd_vv' + formula,
-                       data=df_sn)
-        res0 = mod0.fit()
-        y0 = res0.resid
+        sim_80_power_implied_low(beta=1.8)
+
         mod1 = smf.ols(formula='dv_dv' + formula,
                        data=df_sn)
         res1 = mod1.fit()
-        y1 = res1.resid
+        y1 = res1
 
         y0 = df_sn['dv_pos']
         y1 = df_sn['dv_ant']

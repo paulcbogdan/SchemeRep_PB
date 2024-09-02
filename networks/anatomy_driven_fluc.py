@@ -99,6 +99,6 @@ def calc_anat_perm(res=-.154):
     print(f'{np.std(rs)=}')
 
 if __name__ == '__main__':
-    calc_anat_corr()
-    # calc_anat_perm()
+    # calc_anat_corr()
+    calc_anat_perm()
 
