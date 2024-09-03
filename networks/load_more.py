@@ -19,7 +19,7 @@ from utils import pickle_wrap, timing, stdize, load_ni_w_nan_fps
 from vendor_partitioning import get_vendor_partitions
 
 
-def load_a(fp='pb_lss', norm_std=False, f=None,):
+def load_a(fp='pb_lss', norm_std=False, f=None, combine_regions=False):
 
     if f is not None:
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std, f=f,
@@ -62,7 +62,8 @@ def load_a(fp='pb_lss', norm_std=False, f=None,):
                                                      easy_override=False,
                                                      f=f, YA_only=False)
     elif fp == 'rs_medium':
-        f = partial(load_resting_data, medium=True, clean=True)
+        f = partial(load_resting_data, medium=True, clean=True,
+                    combine_regions=combine_regions)
         sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                      easy_override=False,
                                                      f=f, YA_only=False)
@@ -307,11 +308,12 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
 
         if int(sn) in [221, 222]:
             fp_mask = None
+        fp_mask = None # It appears that the GM masks disapeared 9/3/2024
         img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
                               standardize=False, t_r=2,
-                              mask_img=fp_mask)
-        # print('ook')
-        # quit()
+                              mask_img=fp_mask
+                              )
+
     data = img.get_fdata()
     return data
 
@@ -381,6 +383,7 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
+    # sns = sns[::-1]
 
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
         logging.debug(f'{sn=}')
@@ -392,8 +395,7 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
         elif raw_enc:
             data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
         else:
-            # print('test')
-            # quit()
+
             data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': clean,
                                                   'compcor': compcor,
                                                   'light': light,
@@ -413,7 +415,6 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
             ar.append(ts)
         ar = np.array(ar)
         print(f'{sn} | {ar.shape=}')
-        # quit()
         sn_roi_act.append(ar)
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns

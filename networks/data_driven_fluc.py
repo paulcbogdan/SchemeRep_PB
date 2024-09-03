@@ -22,10 +22,11 @@ config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba_test'
 CACHE_NUMBA = True
 
 @cache
-def load_rs():
-    sn_roi_act, sns, conn_trials = load_a(fp='rs_medium', norm_std=True)
+def load_rs(combine_regions=False):
+    sn_roi_act, sns, conn_trials = load_a(fp='rs_medium',
+                                          norm_std=True,
+                                          combine_regions=combine_regions)
     return conn_trials, sns
-
 def load_task(combine_regions=True):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
@@ -569,11 +570,11 @@ if __name__ == '__main__':
     # np.random.seed(0)
     SS_TRIANGLES = True
     # print(f'{SS_TRIANGLES=}')
-    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.5, shuffle=False,
                              ss_triangles=SS_TRIANGLES)
     #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.5, ss_triangles=SS_TRIANGLES)
 
 
