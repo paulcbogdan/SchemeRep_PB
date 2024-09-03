@@ -130,8 +130,15 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                                       p_v_ant, p_v_pos)
     for key, (p0, p1) in zip(conn_keys, conn_ps):
     # for key, (p0, p1) in key2pair.items():
+        if key != 'pd_no': continue
         key2conn[key] = get_module_cross_trialwise_z(conn_trials[:, None],
                                                      p0, p1)
+        # print(key2conn[key])
+        # print(key2conn[key].shape)
+        # print(conn_trials)
+        # print(np.nanmean(key2conn[key], axis=1))
+        # quit()
+    # quit()
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials[:, None],
                                                 list(range(246)))
 

@@ -24,7 +24,7 @@ CACHE_NUMBA = True
 @cache
 def load_rs(combine_regions=False):
     sn_roi_act, sns, conn_trials = load_a(fp='rs_medium',
-                                          norm_std=True,
+                                          norm_std=False,
                                           combine_regions=combine_regions)
     return conn_trials, sns
 def load_task(combine_regions=True):

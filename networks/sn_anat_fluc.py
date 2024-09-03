@@ -39,6 +39,8 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
         df = pd.DataFrame({'dd_vv': dd_vv, 'dv_dv': dv_dv,
                            'pd_no': pd_no, 'ad_no': ad_no,
                            'av_no': av_no, 'pv_no': pv_no})
+        # print(df)
+        # quit()
         r = partial_corr(df, x='dd_vv', y='dv_dv',
                          covar=['pd_no', 'ad_no', 'av_no', 'pv_no'],)
         r = r['r'].values[0]
@@ -48,17 +50,16 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
         return r
 
 @cache
-def get_quads(skip_other=False, all_roi=False, anat_ver=5):
+def get_quads(skip_other=False, all_roi=False, anat_ver=3):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=anat_ver,
-                              combine_regions=COMBINE_REGIONS)
+                              anat_ver=anat_ver, combine_regions=COMBINE_REGIONS)
     # n_roi = 54 if COMBINE_REGIONS else 246
-    print(f'{anat_ver=}')
     n_roi = 48 if COMBINE_REGIONS else 246
     p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +
-                                              p_v_ant + p_v_pos]
-
+                                                p_v_ant + p_v_pos]
+    # print(f'{len(p_no)=}')
+    # quit()
     if all_roi:
         p_d_ant = list(range(n_roi))
         p_d_pos = list(range(n_roi))
@@ -87,62 +88,81 @@ def get_rs_fluc_OLD(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn):
     r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no)
     return r
 
-def get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn):
-    # dd = rs_conn[*np.ix_(pda_i, pdp_i), :]
-    dd = rs_conn[pda_i, pdp_i, :]
-    # dd = np.nanmean(dd, axis=(0, 1))
-    dd = np.nanmean(dd, axis=0)
-    # vv = rs_conn[*np.ix_(pva_i, pvp_i), :]
-    vv = rs_conn[pva_i, pvp_i, :]
-    # vv = np.nanmean(vv, axis=(0, 1))
-    vv = np.nanmean(vv, axis=0)
+def get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn, ix=True,
+                ctrl=CTRL):
+    if ix:
+        dd = rs_conn[*np.ix_(pda_i, pdp_i), :]
+        dd = np.nanmean(dd, axis=(0, 1))
+        vv = rs_conn[*np.ix_(pva_i, pvp_i), :]
+        vv = np.nanmean(vv, axis=(0, 1))
+        dv_ant = rs_conn[*np.ix_(pda_i, pva_i), :]
+        dv_ant = np.nanmean(dv_ant, axis=(0, 1))
+        dv_pos = rs_conn[*np.ix_(pdp_i, pvp_i), :]
+        dv_pos = np.nanmean(dv_pos, axis=(0, 1))
+    else:
+        dd = rs_conn[pda_i, pdp_i, :]
+        dd = np.nanmean(dd, axis=0)
+        vv = rs_conn[pva_i, pvp_i, :]
+        vv = np.nanmean(vv, axis=0)
+        dv_ant = rs_conn[pda_i, pva_i, :]
+        dv_ant = np.nanmean(dv_ant, axis=0)
+        dv_pos = rs_conn[pdp_i, pvp_i, :]
+        dv_pos = np.nanmean(dv_pos, axis=0)
+
+    dd = stats.zscore(dd)
+    vv = stats.zscore(vv)
+    dv_ant = stats.zscore(dv_ant)
+    dv_pos = stats.zscore(dv_pos)
+
     dd_vv = dd + vv
 
-    # dv_ant = rs_conn[*np.ix_(pda_i, pva_i), :]
-    dv_ant = rs_conn[pda_i, pva_i, :]
-    # dv_ant = np.nanmean(dv_ant, axis=(0, 1))
-    dv_ant = np.nanmean(dv_ant, axis=0)
-
-    # dv_pos = rs_conn[*np.ix_(pdp_i, pvp_i), :]
-    dv_pos = rs_conn[pdp_i, pvp_i, :]
-    # dv_pos = np.nanmean(dv_pos, axis=(0, 1))
-    dv_pos = np.nanmean(dv_pos, axis=0)
     dv_dv = dv_ant + dv_pos
-
-
-    pd_no = np.nanmean(rs_conn[*np.ix_(pda_i, p_no), :], axis=(0, 1))
-    ad_no = np.nanmean(rs_conn[*np.ix_(pdp_i, p_no), :], axis=(0, 1))
+    pd_no = np.nanmean(rs_conn[*np.ix_(pdp_i, p_no), :], axis=(0, 1))
+    ad_no = np.nanmean(rs_conn[*np.ix_(pda_i, p_no), :], axis=(0, 1))
     av_no = np.nanmean(rs_conn[*np.ix_(pva_i, p_no), :], axis=(0, 1))
     pv_no = np.nanmean(rs_conn[*np.ix_(pvp_i, p_no), :], axis=(0, 1))
-    r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no)
+    r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
+                          ctrl=ctrl)
+
     return r
 
-def get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn):
-    # inc_dd = inc_conn[0, *np.ix_(pda_i, pdp_i)]
-    inc_dd = inc_conn[0, pda_i, pdp_i]
-    inc_dd = np.nanmean(inc_dd)
-    # inc_vv = inc_conn[0, *np.ix_(pva_i, pvp_i)]
-    inc_vv = inc_conn[0, pva_i, pvp_i]
-    inc_vv = np.nanmean(inc_vv)
-    # inc_dv_ant = inc_conn[0, *np.ix_(pda_i, pva_i)]
-    inc_dv_ant = inc_conn[0, pda_i, pva_i]
-    inc_dv_ant = np.nanmean(inc_dv_ant)
-    # inc_dv_pos = inc_conn[0, *np.ix_(pdp_i, _pvp_i)]
-    inc_dv_pos = inc_conn[0, pdp_i, pvp_i]
-    inc_dv_pos = np.nanmean(inc_dv_pos)
+def get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
+    if ix:
+        inc_dd = inc_conn[0, *np.ix_(pda_i, pdp_i)]
+        inc_dd = np.nanmean(inc_dd)
+        inc_vv = inc_conn[0, *np.ix_(pva_i, pvp_i)]
+        inc_vv = np.nanmean(inc_vv)
+        inc_dv_ant = inc_conn[0, *np.ix_(pda_i, pva_i)]
+        inc_dv_ant = np.nanmean(inc_dv_ant)
+        inc_dv_pos = inc_conn[0, *np.ix_(pdp_i, pvp_i)]
+        inc_dv_pos = np.nanmean(inc_dv_pos)
 
-    # conn_dd = inc_conn[2, *np.ix_(pda_i, pdp_i)]
-    conn_dd = inc_conn[2, pda_i, pdp_i]
-    conn_dd = np.nanmean(conn_dd)
-    # conn_vv = inc_conn[2, *np.ix_(pva_i, pvp_i)]
-    conn_vv = inc_conn[2, pva_i, pvp_i]
-    conn_vv = np.nanmean(conn_vv)
-    # conn_dv_ant = inc_conn[2, *np.ix_(pda_i, pva_i)]
-    conn_dv_ant = inc_conn[2, pda_i, pva_i]
-    conn_dv_ant = np.nanmean(conn_dv_ant)
-    # conn_dv_pos = inc_conn[2, *np.ix_(pdp_i, pvp_i)]
-    conn_dv_pos = inc_conn[2, pdp_i, pvp_i]
-    conn_dv_pos = np.nanmean(conn_dv_pos)
+        conn_dd = inc_conn[2, *np.ix_(pda_i, pdp_i)]
+        conn_dd = np.nanmean(conn_dd)
+        conn_vv = inc_conn[2, *np.ix_(pva_i, pvp_i)]
+        conn_vv = np.nanmean(conn_vv)
+        conn_dv_ant = inc_conn[2, *np.ix_(pda_i, pva_i)]
+        conn_dv_ant = np.nanmean(conn_dv_ant)
+        conn_dv_pos = inc_conn[2, *np.ix_(pdp_i, pvp_i)]
+        conn_dv_pos = np.nanmean(conn_dv_pos)
+    else:
+        inc_dd = inc_conn[0, pda_i, pdp_i]
+        inc_dd = np.nanmean(inc_dd)
+        inc_vv = inc_conn[0, pva_i, pvp_i]
+        inc_vv = np.nanmean(inc_vv)
+        inc_dv_ant = inc_conn[0, pda_i, pva_i]
+        inc_dv_ant = np.nanmean(inc_dv_ant)
+        inc_dv_pos = inc_conn[0, pdp_i, pvp_i]
+        inc_dv_pos = np.nanmean(inc_dv_pos)
+
+        conn_dd = inc_conn[2, pda_i, pdp_i]
+        conn_dd = np.nanmean(conn_dd)
+        conn_vv = inc_conn[2, pva_i, pvp_i]
+        conn_vv = np.nanmean(conn_vv)
+        conn_dv_ant = inc_conn[2, pda_i, pva_i]
+        conn_dv_ant = np.nanmean(conn_dv_ant)
+        conn_dv_pos = inc_conn[2, pdp_i, pvp_i]
+        conn_dv_pos = np.nanmean(conn_dv_pos)
 
     conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
     inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
@@ -176,20 +196,21 @@ def get_group_level_efs(pda_i, pdp_i, pva_i, pvp_i, p_no):
 
 
 @cache
-def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no):
+def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
     conn_trials, sns = load_rs()
     rs = []
     for i in range(conn_trials.shape[0]):
         rs_conn = conn_trials[i]
-        r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn)
+        r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn, ix=ix)
         rs.append(r)
     return np.nanmean(rs)
 
 
 def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
-          skip_other=False, all_roi=False):
+          skip_other=False, all_roi=False, ix=True, anat_ver=3):
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
-                                                         all_roi=all_roi)
+                                                         all_roi=all_roi,
+                                                         anat_ver=anat_ver)
     p_no = tuple(p_no)
 
 
@@ -227,13 +248,14 @@ def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
                     pvp_i = tuple(pvp_i)
 
 
-                    r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn)
+                    r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
+                                    ix=ix)
                     ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                          inc_conn)
 
                     if ctrl_group:
                         group_ef = get_group_level_efs(pda_i, pdp_i, pva_i,
-                                                       pvp_i, p_no)
+                                                       pvp_i, p_no, ix=ix)
                         group_r = get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no)
                         r -= group_r
                         ef -= group_ef
@@ -248,7 +270,8 @@ def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
     # print(f'{num_nans_efs=}')
 
     print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
-          f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}')
+          f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
+          f'{anat_ver=}')
 
     plt.scatter(rs, efs, color='red' if CTRL else 'dodgerblue',
                 alpha=.25)

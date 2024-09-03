@@ -160,6 +160,7 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                  'av_no_L', 'av_no_R',
                  ]
 
+
     p_d_pos_L = [i for i in p_d_pos if i % 2 == 0]
     p_d_pos_R = [i for i in p_d_pos if i % 2 == 1]
     p_d_ant_L = [i for i in p_d_ant if i % 2 == 0]

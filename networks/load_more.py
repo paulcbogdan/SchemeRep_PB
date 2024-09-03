@@ -86,12 +86,21 @@ def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True,
     if transpose:
         conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
     conn_trials_cross = get_partition_cross(conn_trials, p_mod0, p_mod1)
+    # print(np.nanmean(conn_trials_cross[0, 0, ], axis=(1, 2)))
+
+
     flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
                                                 conn_trials_cross.shape[1],
                                                 conn_trials_cross.shape[2], -1))
+    # print(flat_cross.shape)
+    # quit()
     if trialwise:
         agg_zs = np.nanmean(flat_cross, axis=-1)
         agg_zs = np.nanmean(agg_zs, axis=1) # omit inc axis
+        # print(agg_zs)
+        # print(agg_zs.shape)
+        # print(conn_trials_cross.shape)
+        # quit()
         return agg_zs
     else:
         rs = np.nanmean(flat_cross, axis=2)

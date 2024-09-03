@@ -72,6 +72,9 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
 
         # ar = partial_corr_df(df_sn, networks,
         #                      cov=['pd_no', 'ad_no', 'av_no', 'pv_no'])
+        # print(df_sn['dd'])
+        # print(df_sn)
+        # quit() r
         ar = partial_corr_df(df_sn, networks,
                              cov=['pd_no', 'ad_no', 'av_no', 'pv_no',
                                   ])
@@ -79,6 +82,7 @@ def produce_Fig5A(fp='rs_medium', anat_ver=3, combine_regions=False):
         #                      cov=[])
         r = ar[4, 5]
         print(f'{r=:.3f}')
+        quit()
         # r = ar[0, 1]
 
         rs.append(r)
