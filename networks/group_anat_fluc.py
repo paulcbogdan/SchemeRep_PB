@@ -32,11 +32,11 @@ COMBINE_REGIONS = True
 CTRL = True
 
 @cache
-def get_sn_inc_conn_cache(combine_regions=False):
+def get_sn_inc_conn_cache(combine_regions=False, n='7'):
     conn_trials, sns = load_rs(combine_regions=combine_regions)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
-    kwargs = {'fp': 'obj8_fMRI',
+    kwargs = {'fp': f'obj{n}_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
@@ -54,8 +54,9 @@ def get_sn_inc_conn_cache(combine_regions=False):
     return conn_trials, sn_inc_conn
 
 def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                       ctrl=True, combine_regions=False):
-    conn_trials, _ = get_sn_inc_conn_cache(combine_regions=combine_regions)
+                       ctrl=True, combine_regions=False, n='7'):
+    conn_trials, _ = get_sn_inc_conn_cache(combine_regions=combine_regions,
+                                           n=n)
     corrs = []
     for i in range(conn_trials.shape[0]):
         rs_conn = conn_trials[i]
@@ -68,9 +69,10 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     return np.nanmean(corrs)
 
 def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                      combine_regions=False):
+                      combine_regions=False, n='7'):
 
-    _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions)
+    _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions,
+                                           n=n)
     pdp_i = list(pdp_i)
     pda_i = list(pda_i)
     pvp_i = list(pvp_i)
@@ -117,15 +119,12 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
     inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
     ef = conn_vendor - inc_vendor
-    return np.nanmean(ef) / np.nanstd(ef)
-
-# def get_og_M():
-
+    return np.nanmean(ef)# / np.nanstd(ef)
 
 
 def do_group(num_test=100_000, ctrl_group=False,
-             skip_other=True, all_roi=False, ix=True, anat_ver=5,
-             combine_regions=True):
+             skip_other=False, all_roi=False, ix=True, anat_ver=5,
+             combine_regions=True, n='7'):
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(False, all_roi=False, anat_ver=anat_ver,
@@ -134,9 +133,11 @@ def do_group(num_test=100_000, ctrl_group=False,
 
     # M all: og_r, og_d = -.18, -.11
     og_r = get_group_avg_rs_r(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
-                              ix=ix, combine_regions=combine_regions)
+                              ix=ix, combine_regions=combine_regions,
+                              n=n)
     og_d = get_group_level_d(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
-                             ix=ix, combine_regions=combine_regions)
+                             ix=ix, combine_regions=combine_regions,
+                             n=n)
     print(f'OG all: {og_r=:.2f}, {og_d=:.2f}\n')
 
 
@@ -178,20 +179,20 @@ def do_group(num_test=100_000, ctrl_group=False,
                     pvp_i = tuple(pvp_i)
 
                     r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                                           ix=ix)
+                                           ix=ix, n=n)
                     d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                                          ix=ix, )
+                                          ix=ix, n=n)
                     rs.append(r)
                     efs.append(d)
 
                     if len(efs) % 100 == 0:
                         plot_rs_efs(rs, efs, og_d, og_r,
                                     combine_regions=combine_regions,
-                                    all_roi=all_roi)
+                                    all_roi=all_roi, n=n)
 
                         plot_rs_efs(rs, np.abs(efs), og_d, og_r,
                                     combine_regions=combine_regions,
-                                    all_roi=all_roi)
+                                    all_roi=all_roi, n=n)
 
     print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
           f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
@@ -202,9 +203,10 @@ def do_group(num_test=100_000, ctrl_group=False,
     print(f'\t{rho=:.6f}, {p=:.4f}')
 
 def plot_rs_efs(rs, efs, og_d, og_r, combine_regions=False,
-                all_roi=False):
+                all_roi=False, n='7'):
     rho, p = stats.spearmanr(rs, efs)
-    plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=}, {all_roi=}')
+    plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=},'
+              f' {all_roi=}, {n=}')
     plt.scatter(rs, efs, color='green' if CTRL else 'blue',
                 alpha=.25)
     plt.scatter([og_r], [og_d], color='red', alpha=1)
