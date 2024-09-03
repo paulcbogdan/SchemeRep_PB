@@ -19,7 +19,7 @@ from scipy import stats, spatial
 from functools import cache
 from numba import njit, config, jit
 from time import time
-from data_driven_fluc import load_rs
+from data_driven_fluc import load_rs, shuffle_remake
 from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
@@ -33,7 +33,7 @@ COMBINE_REGIONS = True
 CTRL = True
 
 @cache
-def get_sn_inc_conn_cache(combine_regions=False, n='7'):
+def get_sn_inc_conn_cache(combine_regions=False, n='7', shuffle_seed=None):
     conn_trials, sns = load_rs(combine_regions=combine_regions)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
@@ -48,14 +48,22 @@ def get_sn_inc_conn_cache(combine_regions=False, n='7'):
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
+
+    if shuffle_seed is not None:
+        np.random.seed(shuffle_seed)
+        sn_inc_conn = shuffle_remake(sn_inc_roi_act)
+
+
     sns_task = [df_sn['sn'].iloc[0] for df_sn in df_sns]
     assert all(sns_task[i] <= sns_task[i+1] for i in range(len(sns_task) - 1))
     bool_overlap = [sn in sns for sn in sns_task]
     sn_inc_conn = sn_inc_conn[bool_overlap]
     return conn_trials, sn_inc_conn
 
+@cache
 def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                       ctrl=True, combine_regions=False, n='7'):
+                       ctrl=True, combine_regions=False, n='7',
+                       ):
     conn_trials, _ = get_sn_inc_conn_cache(combine_regions=combine_regions,
                                            n=n)
     corrs = []
@@ -70,10 +78,11 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     return np.nanmean(corrs)
 
 def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                      combine_regions=False, n='7', std_d=False):
+                      combine_regions=False, n='7', std_d=False,
+                      shuffle_seed=None):
 
     _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions,
-                                           n=n)
+                                           n=n, shuffle_seed=shuffle_seed)
     pdp_i = list(pdp_i)
     pda_i = list(pda_i)
     pvp_i = list(pvp_i)
@@ -126,32 +135,30 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
         return np.nanmean(ef)# / np.nanstd(ef)
 
 
-def do_group(num_test=100_000, ctrl_group=False,
-             skip_other=False, all_roi=False, ix=True, anat_ver=5,
-             combine_regions=True, n='7', std_d=True):
+def do_group(num_test=2_000, ctrl_group=False,
+             skip_other=True, all_roi=True, ix=True, anat_ver=5,
+             combine_regions=True, n='8', std_d=False,
+             shuffle_seed=None):
 
     p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_ = (
         get_quads(False, all_roi=False, anat_ver=3,
                   combine_regions=combine_regions))
     # M all: og_r, og_d = -.18, -.11
+    p_d_ant_ = tuple(p_d_ant_)
+    p_d_pos_ = tuple(p_d_pos_)
+    p_v_ant_ = tuple(p_v_ant_)
+    p_v_pos_ = tuple(p_v_pos_)
+    p_no_ = tuple(p_no_)
+    purp_combos = itertools.product(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_)
+    purp_combos = list(purp_combos)
     og_r = get_group_avg_rs_r(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
                               ix=ix, combine_regions=combine_regions,
                               n=n)
     og_d = get_group_level_d(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
                              ix=ix, combine_regions=combine_regions,
-                             n=n, std_d=std_d)
+                             n=n, std_d=std_d, shuffle_seed=shuffle_seed)
 
     print(f'OG all: {og_r=:.2f}, {og_d=:.2f}\n')
-
-    # p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
-    #     get_quads(False, all_roi=False, anat_ver=anat_ver,
-    #               combine_regions=combine_regions))
-
-
-    # p_no is different for anat_ver 5
-
-
-
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other, all_roi=all_roi, anat_ver=anat_ver,
@@ -165,19 +172,24 @@ def do_group(num_test=100_000, ctrl_group=False,
     combos = itertools.product(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
     combos = list(combos)
     shuffle(combos)
-    # print(combos)
-    # quit()
+
+    combos_ = []
+    for (a, b, c, d) in combos:
+        if random() > num_test / num_pos:
+            continue
+        combos_.append((a, b, c, d))
+    combos = combos_
+    print(f'{len(combos)=}')
+    print(f'{len(purp_combos)=}')
+    combos = purp_combos + combos
+
 
     rs = []
     efs = []
     colors = []
     for (a, b, c, d) in combos:
-    # for a in tqdm(p_d_ant):
-    #     for b in p_d_pos:
-    #         for c in p_v_ant:
-    #             for d in p_v_pos:
-        if random() > num_test / num_pos:
-            continue
+        # if random() > num_test / num_pos:
+        #     continue
         if len({a, b, c, d}) < 4:
             continue
 
@@ -207,7 +219,8 @@ def do_group(num_test=100_000, ctrl_group=False,
         r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                ix=ix, n=n)
         d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                              ix=ix, n=n, std_d=std_d)
+                              ix=ix, n=n, std_d=std_d,
+                              shuffle_seed=shuffle_seed)
         rs.append(r)
         efs.append(d)
         colors.append(color)
@@ -220,7 +233,8 @@ def do_group(num_test=100_000, ctrl_group=False,
             if all_roi:
                 plot_rs_efs(rs, np.abs(efs), colors, og_d, og_r,
                             combine_regions=combine_regions,
-                            all_roi=all_roi, n=n, std_d=std_d)
+                            all_roi=all_roi, n=n + f'seed: {shuffle_seed}',
+                            std_d=std_d)
 
     print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
           f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
@@ -228,9 +242,11 @@ def do_group(num_test=100_000, ctrl_group=False,
 
     plot_rs_efs(rs, efs, colors, og_d, og_r,
                 combine_regions=combine_regions,
-                all_roi=all_roi, n=n, std_d=std_d)
+                all_roi=all_roi, std_d=std_d,
+                n=n + f'seed: {shuffle_seed}')
     rho, p = stats.spearmanr(rs, efs)
     print(f'\t{rho=:.6f}, {p=:.4f}')
+    return rho
 
 def plot_rs_efs(rs, efs, colors, og_d, og_r, combine_regions=False,
                 all_roi=False, n='7', std_d=True):
@@ -240,13 +256,18 @@ def plot_rs_efs(rs, efs, colors, og_d, og_r, combine_regions=False,
     alphas = [.75 if color == 'purple' else .25 for color in colors]
     plt.scatter(rs, efs, color=colors,
                 alpha=alphas)
-    plt.scatter([og_r], [og_d], color='red', alpha=.9, marker='square')
+    plt.scatter([og_r], [og_d], color='red', alpha=.9, marker='s')
     plt.xlabel('Resting correlation')
     plt.ylabel('Task effect')
     plt.show()
 
+def shuffle_test():
+    for seed in range(100):
+        rho = do_group(shuffle_seed=seed)
+
 
 if __name__ == '__main__':
-    # do_group_anat_fluc()
     do_group()
+    # shuffle_test()
+    # do_group_anat_fluc()
 
