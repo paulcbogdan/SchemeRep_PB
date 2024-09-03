@@ -28,15 +28,15 @@ from random import random
 from warnings import simplefilter
 simplefilter("ignore", category=RuntimeWarning)
 
-COMBINE_REGIONS = False
+COMBINE_REGIONS = True
 CTRL = True
 
 @cache
-def get_sn_inc_conn_cache():
-    conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
+def get_sn_inc_conn_cache(combine_regions=False):
+    conn_trials, sns = load_rs(combine_regions=combine_regions)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
-    kwargs = {'fp': 'obj7_fMRI',
+    kwargs = {'fp': 'obj8_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
@@ -54,26 +54,23 @@ def get_sn_inc_conn_cache():
     return conn_trials, sn_inc_conn
 
 def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                       ctrl=CTRL):
-    conn_trials, _ = get_sn_inc_conn_cache()
+                       ctrl=True, combine_regions=False):
+    conn_trials, _ = get_sn_inc_conn_cache(combine_regions=combine_regions)
     corrs = []
     for i in range(conn_trials.shape[0]):
         rs_conn = conn_trials[i]
 
-
         r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
                         ix=ix, ctrl=ctrl)
-        # r2 = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
-        #                 ix=ix, ctrl=False)
+
         corrs.append(r)
 
-    print(f'{np.nanmean(corrs)=}')
-    quit()
     return np.nanmean(corrs)
 
-def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True):
+def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
+                      combine_regions=False):
 
-    _, sn_inc_conn = get_sn_inc_conn_cache()
+    _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions)
     pdp_i = list(pdp_i)
     pda_i = list(pda_i)
     pvp_i = list(pvp_i)
@@ -117,69 +114,106 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True):
         conn_dv_pos = sn_inc_conn[:, 2, pdp_i, pvp_i]
         conn_dv_pos = np.nanmean(conn_dv_pos, axis=1)
 
-    # sn_inc_conn = []
-    # print(pdp_i)
-    # print(pda_i)
-    # print(sn_inc_conn.shape)
-    # print(sn_inc_conn[..., pdp_i].shape)
-    # inc_dd = sn_inc_conn[:, 0, pda_i, pdp_i]
-    # inc_dd = np.nanmean(inc_dd, axis=(1, 2))
-    # # inc_vv = inc_conn[0, *np.ix_(pva_i, pvp_i)]
-    # inc_vv = sn_inc_conn[:, 0, pva_i, pvp_i]
-    # inc_vv = np.nanmean(inc_vv, axis=(1, 2))
-    # # inc_dv_ant = inc_conn[0, *np.ix_(pda_i, pva_i)]
-    # inc_dv_ant = sn_inc_conn[:, 0, pda_i, pva_i]
-    # inc_dv_ant = np.nanmean(inc_dv_ant, axis=(1, 2))
-    # # inc_dv_pos = inc_conn[0, *np.ix_(pdp_i, _pvp_i)]
-    # inc_dv_pos = sn_inc_conn[:, 0, pdp_i, pvp_i]
-    # inc_dv_pos = np.nanmean(inc_dv_pos, axis=(1, 2))
-    #
-    # # conn_dd = inc_conn[2, *np.ix_(pda_i, pdp_i)]
-    # conn_dd = sn_inc_conn[:, 2, pda_i, pdp_i]
-    # conn_dd = np.nanmean(conn_dd, axis=(1, 2))
-    # # conn_vv = inc_conn[2, *np.ix_(pva_i, pvp_i)]
-    # conn_vv = sn_inc_conn[:, 2, pva_i, pvp_i]
-    # conn_vv = np.nanmean(conn_vv, axis=(1, 2))
-    # # conn_dv_ant = inc_conn[2, *np.ix_(pda_i, pva_i)]
-    # conn_dv_ant = sn_inc_conn[:, 2, pda_i, pva_i]
-    # conn_dv_ant = np.nanmean(conn_dv_ant, axis=(1, 2))
-    # # conn_dv_pos = inc_conn[2, *np.ix_(pdp_i, pvp_i)]
-    # conn_dv_pos = sn_inc_conn[:, 2, pdp_i, pvp_i]
-    # conn_dv_pos = np.nanmean(conn_dv_pos, axis=(1, 2))
-
     conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
     inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
     ef = conn_vendor - inc_vendor
     return np.nanmean(ef) / np.nanstd(ef)
 
+# def get_og_M():
 
-def do_group_anat_fluc():
-    conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
 
-    assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
-    kwargs = {'fp': 'obj7_fMRI',
-              'key': 'inc',
-              'atlas_name': 'BNA',
-              'key_vals': (1, 2, 3),
-              'get_df_sn': True,
-              'combine_regions': False,
-              }
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_roi_act, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=-1, cache_dir='cache',
-                    RAM_cache=True)
-    sns_task = [df_sn['sn'].iloc[0] for df_sn in df_sns]
-    assert all(sns_task[i] <= sns_task[i+1] for i in range(len(sns_task) - 1))
-    bool_overlap = [sn in sns for sn in sns_task]
-    sn_inc_conn = sn_inc_conn[bool_overlap]
 
-# a = get_group_level_d((1, 2), (3, 4), (5, 6), (7, 8), (9, 10, 11))
+def do_group(num_test=100_000, ctrl_group=False,
+             skip_other=True, all_roi=False, ix=True, anat_ver=5,
+             combine_regions=True):
 
-p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other=False,
-                                                     all_roi=False, anat_ver=3)
-a = get_group_avg_rs_r(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no)
+    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
+        get_quads(False, all_roi=False, anat_ver=anat_ver,
+                  combine_regions=combine_regions))
+
+
+    # M all: og_r, og_d = -.18, -.11
+    og_r = get_group_avg_rs_r(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
+                              ix=ix, combine_regions=combine_regions)
+    og_d = get_group_level_d(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
+                             ix=ix, combine_regions=combine_regions)
+    print(f'OG all: {og_r=:.2f}, {og_d=:.2f}\n')
+
+
+
+    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
+        get_quads(skip_other, all_roi=all_roi, anat_ver=anat_ver,
+                  combine_regions=combine_regions))
+
+
+    p_no = tuple(p_no)
+    num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
+    print(f'{num_pos=}')
+
+    rs = []
+    efs = []
+    for a in tqdm(p_d_ant):
+        for b in p_d_pos:
+            for c in p_v_ant:
+                for d in p_v_pos:
+                    if random() > num_test / num_pos:
+                        continue
+                    if len({a, b, c, d}) < 4:
+                        continue
+
+                    if skip_other:
+                        pda_i = [a, a + 1]
+                        pdp_i = [b, b + 1]
+                        pva_i = [c, c + 1]
+                        pvp_i = [d, d + 1]
+                    else:
+                        pda_i = [a]
+                        pdp_i = [b]
+                        pva_i = [c]
+                        pvp_i = [d]
+
+                    pda_i = tuple(pda_i)
+                    pdp_i = tuple(pdp_i)
+                    pva_i = tuple(pva_i)
+                    pvp_i = tuple(pvp_i)
+
+                    r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                                           ix=ix)
+                    d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                                          ix=ix, )
+                    rs.append(r)
+                    efs.append(d)
+
+                    if len(efs) % 100 == 0:
+                        plot_rs_efs(rs, efs, og_d, og_r,
+                                    combine_regions=combine_regions,
+                                    all_roi=all_roi)
+
+                        plot_rs_efs(rs, np.abs(efs), og_d, og_r,
+                                    combine_regions=combine_regions,
+                                    all_roi=all_roi)
+
+    print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
+          f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
+          f'{anat_ver=}')
+
+    plot_rs_efs(rs, efs, og_d, og_r)
+    rho, p = stats.spearmanr(rs, efs)
+    print(f'\t{rho=:.6f}, {p=:.4f}')
+
+def plot_rs_efs(rs, efs, og_d, og_r, combine_regions=False,
+                all_roi=False):
+    rho, p = stats.spearmanr(rs, efs)
+    plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=}, {all_roi=}')
+    plt.scatter(rs, efs, color='green' if CTRL else 'blue',
+                alpha=.25)
+    plt.scatter([og_r], [og_d], color='red', alpha=1)
+    plt.xlabel('Resting correlation')
+    plt.ylabel('Task effect')
+    plt.show()
 
 
 if __name__ == '__main__':
-    do_group_anat_fluc()
+    # do_group_anat_fluc()
+    do_group()
 

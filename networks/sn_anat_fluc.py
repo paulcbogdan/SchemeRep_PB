@@ -27,9 +27,7 @@ from random import random
 from warnings import simplefilter
 simplefilter("ignore", category=RuntimeWarning)
 
-
-#
-CTRL = False
+CTRL = True
 COMBINE_REGIONS = False
 print(f'{CTRL=}')
 
@@ -39,23 +37,25 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
         df = pd.DataFrame({'dd_vv': dd_vv, 'dv_dv': dv_dv,
                            'pd_no': pd_no, 'ad_no': ad_no,
                            'av_no': av_no, 'pv_no': pv_no})
-        # print(df)
-        # quit()
-        r = partial_corr(df, x='dd_vv', y='dv_dv',
-                         covar=['pd_no', 'ad_no', 'av_no', 'pv_no'],)
-        r = r['r'].values[0]
-        return r
+        try:
+            r = partial_corr(df, x='dd_vv', y='dv_dv',
+                             covar=['pd_no', 'ad_no', 'av_no', 'pv_no'],)
+            r = r['r'].values[0]
+            return r
+        except AssertionError: # NaN
+            return np.nan
     else:
         r, p = stats.spearmanr(dd_vv, dv_dv)
         return r
 
 @cache
-def get_quads(skip_other=False, all_roi=False, anat_ver=3):
+def get_quads(skip_other=False, all_roi=False, anat_ver=3,
+              combine_regions=COMBINE_REGIONS):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=anat_ver, combine_regions=COMBINE_REGIONS)
+                              anat_ver=anat_ver, combine_regions=combine_regions)
     # n_roi = 54 if COMBINE_REGIONS else 246
-    n_roi = 48 if COMBINE_REGIONS else 246
+    n_roi = 48 if combine_regions else 246
     p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +
                                                 p_v_ant + p_v_pos]
     # print(f'{len(p_no)=}')
@@ -207,13 +207,11 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
 
 
 def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
-          skip_other=False, all_roi=False, ix=True, anat_ver=3):
+          skip_other=False, all_roi=False, ix=True, anat_ver=5):
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
                                                          all_roi=all_roi,
                                                          anat_ver=anat_ver)
     p_no = tuple(p_no)
-
-
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
 
     st = time()
@@ -224,10 +222,8 @@ def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
         for b in p_d_pos:
             for c in p_v_ant:
                 for d in p_v_pos:
-
                     if random() > num_test / num_pos:
                         continue
-
                     if len({a, b, c, d}) < 4:
                         continue
 
@@ -246,7 +242,6 @@ def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
                     pdp_i = tuple(pdp_i)
                     pva_i = tuple(pva_i)
                     pvp_i = tuple(pvp_i)
-
 
                     r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
                                     ix=ix)
@@ -323,4 +318,4 @@ if __name__ == '__main__':
     #     num_pos = 11440: num_test = 5000(
     #         len(efs) = 5022): ctrl_group = False, CTRL = False, all_roi = False, skip_other = True
     #     rho = -0.043849, p = 0.0019
-    # 63: M = -0.029, t = -1.79, p = 0.0781
+    # 63: M = -0.029, t = -1.79, p = 0.0781_
