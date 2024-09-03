@@ -1,4 +1,5 @@
 import copy
+import itertools
 
 import pandas as pd
 
@@ -22,7 +23,7 @@ from data_driven_fluc import load_rs
 from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
-from random import random
+from random import random, shuffle
 
 # suppress RuntimeWarning
 from warnings import simplefilter
@@ -69,7 +70,7 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     return np.nanmean(corrs)
 
 def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
-                      combine_regions=False, n='7'):
+                      combine_regions=False, n='7', std_d=False):
 
     _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions,
                                            n=n)
@@ -119,97 +120,127 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
     inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
     ef = conn_vendor - inc_vendor
-    return np.nanmean(ef)# / np.nanstd(ef)
+    if std_d:
+        return np.nanmean(ef) / np.nanstd(ef)
+    else:
+        return np.nanmean(ef)# / np.nanstd(ef)
 
 
 def do_group(num_test=100_000, ctrl_group=False,
              skip_other=False, all_roi=False, ix=True, anat_ver=5,
-             combine_regions=True, n='7'):
+             combine_regions=True, n='7', std_d=True):
 
-    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
-        get_quads(False, all_roi=False, anat_ver=anat_ver,
+    p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_ = (
+        get_quads(False, all_roi=False, anat_ver=3,
                   combine_regions=combine_regions))
-
-
     # M all: og_r, og_d = -.18, -.11
-    og_r = get_group_avg_rs_r(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
+    og_r = get_group_avg_rs_r(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
                               ix=ix, combine_regions=combine_regions,
                               n=n)
-    og_d = get_group_level_d(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
+    og_d = get_group_level_d(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
                              ix=ix, combine_regions=combine_regions,
-                             n=n)
+                             n=n, std_d=std_d)
+
     print(f'OG all: {og_r=:.2f}, {og_d=:.2f}\n')
+
+    # p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
+    #     get_quads(False, all_roi=False, anat_ver=anat_ver,
+    #               combine_regions=combine_regions))
+
+
+    # p_no is different for anat_ver 5
+
 
 
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other, all_roi=all_roi, anat_ver=anat_ver,
-                  combine_regions=combine_regions))
+                  combine_regions=combine_regions, p_no_override=True))
 
 
     p_no = tuple(p_no)
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
     print(f'{num_pos=}')
 
+    combos = itertools.product(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
+    combos = list(combos)
+    shuffle(combos)
+    # print(combos)
+    # quit()
+
     rs = []
     efs = []
-    for a in tqdm(p_d_ant):
-        for b in p_d_pos:
-            for c in p_v_ant:
-                for d in p_v_pos:
-                    if random() > num_test / num_pos:
-                        continue
-                    if len({a, b, c, d}) < 4:
-                        continue
+    colors = []
+    for (a, b, c, d) in combos:
+    # for a in tqdm(p_d_ant):
+    #     for b in p_d_pos:
+    #         for c in p_v_ant:
+    #             for d in p_v_pos:
+        if random() > num_test / num_pos:
+            continue
+        if len({a, b, c, d}) < 4:
+            continue
 
-                    if skip_other:
-                        pda_i = [a, a + 1]
-                        pdp_i = [b, b + 1]
-                        pva_i = [c, c + 1]
-                        pvp_i = [d, d + 1]
-                    else:
-                        pda_i = [a]
-                        pdp_i = [b]
-                        pva_i = [c]
-                        pvp_i = [d]
+        if skip_other:
+            pda_i = [a, a + 1]
+            pdp_i = [b, b + 1]
+            pva_i = [c, c + 1]
+            pvp_i = [d, d + 1]
+        else:
+            pda_i = [a]
+            pdp_i = [b]
+            pva_i = [c]
+            pvp_i = [d]
 
-                    pda_i = tuple(pda_i)
-                    pdp_i = tuple(pdp_i)
-                    pva_i = tuple(pva_i)
-                    pvp_i = tuple(pvp_i)
+        if (a in p_d_ant_ and b in p_d_pos_ and c in p_v_ant_ and
+                d in p_v_pos_):
+            color = 'purple'
+        else:
+            color = 'green'
 
-                    r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                                           ix=ix, n=n)
-                    d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                                          ix=ix, n=n)
-                    rs.append(r)
-                    efs.append(d)
 
-                    if len(efs) % 100 == 0:
-                        plot_rs_efs(rs, efs, og_d, og_r,
-                                    combine_regions=combine_regions,
-                                    all_roi=all_roi, n=n)
+        pda_i = tuple(pda_i)
+        pdp_i = tuple(pdp_i)
+        pva_i = tuple(pva_i)
+        pvp_i = tuple(pvp_i)
 
-                        plot_rs_efs(rs, np.abs(efs), og_d, og_r,
-                                    combine_regions=combine_regions,
-                                    all_roi=all_roi, n=n)
+        r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                               ix=ix, n=n)
+        d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                              ix=ix, n=n, std_d=std_d)
+        rs.append(r)
+        efs.append(d)
+        colors.append(color)
+
+        if len(efs) % 100 == 0:
+            plot_rs_efs(rs, efs, colors, og_d, og_r,
+                        combine_regions=combine_regions,
+                        all_roi=all_roi, n=n, std_d=std_d)
+
+            if all_roi:
+                plot_rs_efs(rs, np.abs(efs), colors, og_d, og_r,
+                            combine_regions=combine_regions,
+                            all_roi=all_roi, n=n, std_d=std_d)
 
     print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
           f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
           f'{anat_ver=}')
 
-    plot_rs_efs(rs, efs, og_d, og_r)
+    plot_rs_efs(rs, efs, colors, og_d, og_r,
+                combine_regions=combine_regions,
+                all_roi=all_roi, n=n, std_d=std_d)
     rho, p = stats.spearmanr(rs, efs)
     print(f'\t{rho=:.6f}, {p=:.4f}')
 
-def plot_rs_efs(rs, efs, og_d, og_r, combine_regions=False,
-                all_roi=False, n='7'):
+def plot_rs_efs(rs, efs, colors, og_d, og_r, combine_regions=False,
+                all_roi=False, n='7', std_d=True):
     rho, p = stats.spearmanr(rs, efs)
     plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=},'
-              f' {all_roi=}, {n=}')
-    plt.scatter(rs, efs, color='green' if CTRL else 'blue',
-                alpha=.25)
-    plt.scatter([og_r], [og_d], color='red', alpha=1)
+              f' {all_roi=}, {n=}, {std_d=}')
+    alphas = [.75 if color == 'purple' else .25 for color in colors]
+    plt.scatter(rs, efs, color=colors,
+                alpha=alphas)
+    plt.scatter([og_r], [og_d], color='red', alpha=.9, marker='square')
     plt.xlabel('Resting correlation')
     plt.ylabel('Task effect')
     plt.show()

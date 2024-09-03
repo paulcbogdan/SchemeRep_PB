@@ -50,12 +50,12 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
 
 @cache
 def get_quads(skip_other=False, all_roi=False, anat_ver=3,
-              combine_regions=COMBINE_REGIONS):
+              combine_regions=COMBINE_REGIONS, p_no_override=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
                               anat_ver=anat_ver, combine_regions=combine_regions)
     # n_roi = 54 if COMBINE_REGIONS else 246
-    n_roi = 48 if combine_regions else 246
+    n_roi = 54 if combine_regions else 246
     p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +
                                                 p_v_ant + p_v_pos]
     # print(f'{len(p_no)=}')
@@ -70,6 +70,13 @@ def get_quads(skip_other=False, all_roi=False, anat_ver=3,
         p_d_pos = p_d_pos[::2]
         p_v_ant = p_v_ant[::2]
         p_v_pos = p_v_pos[::2]
+
+    if p_no_override:
+        p_dorsal, p_ventral, p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, matrix_mask = \
+            get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
+                                  anat_ver=3, combine_regions=combine_regions)
+        p_no = [i for i in range(n_roi) if i not in p_d_ant_ + p_d_pos_ +
+                p_v_ant_ + p_v_pos_]
     # p_no = []
     return p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no
 
