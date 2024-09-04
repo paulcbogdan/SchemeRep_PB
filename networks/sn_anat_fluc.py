@@ -29,7 +29,7 @@ from warnings import simplefilter
 simplefilter("ignore", category=RuntimeWarning)
 
 CTRL = True
-COMBINE_REGIONS = False
+COMBINE_REGIONS = True
 print(f'{CTRL=}')
 
 def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
@@ -233,8 +233,8 @@ def get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
 
 
 @cache
-def get_group_inc_conn():
-    kwargs = {'fp': 'obj7_fMRI',
+def get_group_inc_conn(n='7'):
+    kwargs = {'fp': f'obj{n}_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
@@ -249,8 +249,9 @@ def get_group_inc_conn():
     return inc_conn
 
 @cache
-def get_group_level_efs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True):
-    inc_conn = get_group_inc_conn()
+def get_group_level_efs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
+                        n='7'):
+    inc_conn = get_group_inc_conn(n=n)
     ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn,  ix=ix)
     return ef
 
@@ -266,9 +267,9 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
     return np.nanmean(rs)
 
 
-def do_sn(rs_conn, inc_conn, num_test=500, ctrl_group=True,
-          skip_other=True, all_roi=True, ix=True, anat_ver=3,
-          ):
+def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
+          skip_other=True, all_roi=False, ix=True, anat_ver=5,
+          n='XXX'):
     if len(inc_conn.shape) == 4:
         std_d = True
     else:
@@ -288,6 +289,7 @@ def do_sn(rs_conn, inc_conn, num_test=500, ctrl_group=True,
     skipper = int(num_pos / num_test)
     # print(f'skip: {skipper}')
     # print(f'{len(combos)=}')
+    skipper = max(1, skipper)
     combos = combos[::skipper]
     np.random.shuffle(combos)
     # print('shuffled')
@@ -335,7 +337,8 @@ def do_sn(rs_conn, inc_conn, num_test=500, ctrl_group=True,
                                  inc_conn, ix=ix)
         if ctrl_group:
             group_ef = get_group_level_efs(pda_i, pdp_i, pva_i,
-                                           pvp_i, p_no, ix=ix)
+                                           pvp_i, p_no, ix=ix,
+                                           n=n)
             group_r = get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                    ix=ix)
             r -= group_r
@@ -374,11 +377,11 @@ def get_inc_conn_t(inc_roi_act):
     return inc_conn
 
 
-def do_all_sn(do_t=True):
+def do_all_sn(do_t=True, n='7'):
     conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
-    kwargs = {'fp': 'obj7_fMRI',
+    kwargs = {'fp': f'obj{n}_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
@@ -402,7 +405,7 @@ def do_all_sn(do_t=True):
             inc_conn = get_inc_conn_t(sn_inc_roi_act[i])
         else:
             inc_conn = sn_inc_conn[i]
-        rho = do_sn(conn_trials[i], inc_conn)
+        rho = do_sn(conn_trials[i], inc_conn, n=n)
         if np.isnan(rho): continue
         rhos.append(rho)
         t, p = stats.ttest_1samp(rhos, 0)
