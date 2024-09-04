@@ -267,8 +267,8 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
     return np.nanmean(rs)
 
 
-def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
-          skip_other=False, all_roi=False, ix=True, anat_ver=5,
+def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
+          skip_other=False, all_roi=True, ix=True, anat_ver=5,
           n='XXX'):
     if len(inc_conn.shape) == 4:
         std_d = True
@@ -358,7 +358,7 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
 
     print(f'{num_pos=}: {num_test=} ({len(efs)=}): '
           f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
-          f'{anat_ver=}')
+          f'{anat_ver=}, {n=}, {std_d=}')
 
     plt.scatter(rs, efs, color='red' if CTRL else 'dodgerblue',
                 alpha=.25)
@@ -377,7 +377,7 @@ def get_inc_conn_t(inc_roi_act):
     return inc_conn
 
 
-def do_all_sn(do_t=True, n='7'):
+def do_all_sn(do_t=False, n='7'):
     conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
