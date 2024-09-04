@@ -21,7 +21,8 @@ from data_driven_fluc import load_rs
 from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
-from random import random
+from random import random, shuffle
+import itertools
 
 # suppress RuntimeWarning
 from warnings import simplefilter
@@ -176,6 +177,61 @@ def get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
     ef = conn_vendor - inc_vendor
     return ef
 
+def get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
+    if ix:
+        inc_dd = inc_conn[0, *np.ix_(pda_i, pdp_i)]
+        inc_dd = np.nanmean(inc_dd, axis=(0, 1))
+        inc_vv = inc_conn[0, *np.ix_(pva_i, pvp_i)]
+        inc_vv = np.nanmean(inc_vv, axis=(0, 1))
+        inc_dv_ant = inc_conn[0, *np.ix_(pda_i, pva_i)]
+        inc_dv_ant = np.nanmean(inc_dv_ant, axis=(0, 1))
+        inc_dv_pos = inc_conn[0, *np.ix_(pdp_i, pvp_i)]
+        inc_dv_pos = np.nanmean(inc_dv_pos, axis=(0, 1))
+
+        conn_dd = inc_conn[2, *np.ix_(pda_i, pdp_i)]
+        conn_dd = np.nanmean(conn_dd, axis=(0, 1))
+        conn_vv = inc_conn[2, *np.ix_(pva_i, pvp_i)]
+        conn_vv = np.nanmean(conn_vv, axis=(0, 1))
+        conn_dv_ant = inc_conn[2, *np.ix_(pda_i, pva_i)]
+        conn_dv_ant = np.nanmean(conn_dv_ant, axis=(0, 1))
+        conn_dv_pos = inc_conn[2, *np.ix_(pdp_i, pvp_i)]
+        conn_dv_pos = np.nanmean(conn_dv_pos, axis=(0, 1))
+    else:
+        inc_dd = inc_conn[0, pda_i, pdp_i]
+        inc_dd = np.nanmean(inc_dd, axis=0)
+        inc_vv = inc_conn[0, pva_i, pvp_i]
+        inc_vv = np.nanmean(inc_vv, axis=0)
+        inc_dv_ant = inc_conn[0, pda_i, pva_i]
+        inc_dv_ant = np.nanmean(inc_dv_ant, axis=0)
+        inc_dv_pos = inc_conn[0, pdp_i, pvp_i]
+        inc_dv_pos = np.nanmean(inc_dv_pos, axis=0)
+
+        conn_dd = inc_conn[2, pda_i, pdp_i]
+        conn_dd = np.nanmean(conn_dd, axis=0)
+        conn_vv = inc_conn[2, pva_i, pvp_i]
+        conn_vv = np.nanmean(conn_vv, axis=0)
+        conn_dv_ant = inc_conn[2, pda_i, pva_i]
+        conn_dv_ant = np.nanmean(conn_dv_ant, axis=0)
+        conn_dv_pos = inc_conn[2, pdp_i, pvp_i]
+        conn_dv_pos = np.nanmean(conn_dv_pos, axis=0)
+
+    conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
+    inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
+    ef = conn_vendor - inc_vendor
+
+    M1 = np.nanmean(conn_vendor)
+    n1 = np.sum(~np.isnan(conn_vendor))
+    M2 = np.nanmean(inc_vendor)
+    n2 = np.sum(~np.isnan(inc_vendor))
+    denom = np.sqrt(1 / n1 + 1 / n2)
+    sd = np.sqrt((np.nanvar(conn_vendor) * (n1 - 1) +
+                  np.nanvar(inc_vendor) * (n2 - 1)) / (n1 + n2 - 3))
+    t = (M1 - M2) / (sd * denom)
+    d = t * np.sqrt(1 / n1 + 1 / n2)
+    return d
+    # return np.nanmean(ef) / np.nanstd(ef)
+
+
 @cache
 def get_group_inc_conn():
     kwargs = {'fp': 'obj7_fMRI',
@@ -193,13 +249,10 @@ def get_group_inc_conn():
     return inc_conn
 
 @cache
-def get_group_level_efs(pda_i, pdp_i, pva_i, pvp_i, p_no):
+def get_group_level_efs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True):
     inc_conn = get_group_inc_conn()
-    ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn)
+    ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn,  ix=ix)
     return ef
-
-
-# get_group_level_efs((1, 2), (3, 4), (5, 6), (7, 8), (9, 10, 11))
 
 
 @cache
@@ -213,58 +266,87 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
     return np.nanmean(rs)
 
 
-def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
-          skip_other=False, all_roi=False, ix=True, anat_ver=5):
+def do_sn(rs_conn, inc_conn, num_test=500, ctrl_group=True,
+          skip_other=True, all_roi=True, ix=True, anat_ver=3,
+          ):
+    if len(inc_conn.shape) == 4:
+        std_d = True
+    else:
+        std_d = False
+
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
                                                          all_roi=all_roi,
                                                          anat_ver=anat_ver)
     p_no = tuple(p_no)
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
 
-    st = time()
+    np.random.seed(0)
+    combos = itertools.product(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
+    # print('prod')
+    combos = list(combos)
+    # print('list')
+    skipper = int(num_pos / num_test)
+    # print(f'skip: {skipper}')
+    # print(f'{len(combos)=}')
+    combos = combos[::skipper]
+    np.random.shuffle(combos)
+    # print('shuffled')
+    # print(f'{len(combos)=}')
+    # print(combos)
+
+    combos_ = []
+    for (a, b, c, d) in combos:
+        if len({a, b, c, d}) < 4:
+            continue
+        # if np.random.uniform(0, 1) > num_test / num_pos:
+        #     continue
+        combos_.append((a, b, c, d))
+    combos = combos_
+    # print(f'{len(combos)=}')
+    # st = time()
 
     rs = []
     efs = []
-    for a in tqdm(p_d_ant):
-        for b in p_d_pos:
-            for c in p_v_ant:
-                for d in p_v_pos:
-                    if random() > num_test / num_pos:
-                        continue
-                    if len({a, b, c, d}) < 4:
-                        continue
+    for (a, b, c, d) in tqdm(combos):
 
-                    if skip_other:
-                        pda_i = [a, a + 1]
-                        pdp_i = [b, b + 1]
-                        pva_i = [c, c + 1]
-                        pvp_i = [d, d + 1]
-                    else:
-                        pda_i = [a]
-                        pdp_i = [b]
-                        pva_i = [c]
-                        pvp_i = [d]
+        if skip_other:
+            pda_i = [a, a + 1]
+            pdp_i = [b, b + 1]
+            pva_i = [c, c + 1]
+            pvp_i = [d, d + 1]
+        else:
+            pda_i = [a]
+            pdp_i = [b]
+            pva_i = [c]
+            pvp_i = [d]
 
-                    pda_i = tuple(pda_i)
-                    pdp_i = tuple(pdp_i)
-                    pva_i = tuple(pva_i)
-                    pvp_i = tuple(pvp_i)
+        pda_i = tuple(pda_i)
+        pdp_i = tuple(pdp_i)
+        pva_i = tuple(pva_i)
+        pvp_i = tuple(pvp_i)
 
-                    r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
-                                    ix=ix)
-                    ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no,
-                                         inc_conn)
-
-                    if ctrl_group:
-                        group_ef = get_group_level_efs(pda_i, pdp_i, pva_i,
-                                                       pvp_i, p_no, ix=ix)
-                        group_r = get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no)
-                        r -= group_r
-                        ef -= group_ef
-                    if np.isnan(ef):
-                        continue
-                    rs.append(r)
-                    efs.append(ef)
+        r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
+                        ix=ix)
+        if std_d:
+            ef = get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                                     inc_conn, ix=ix)
+        else:
+            ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                                 inc_conn, ix=ix)
+        if ctrl_group:
+            group_ef = get_group_level_efs(pda_i, pdp_i, pva_i,
+                                           pvp_i, p_no, ix=ix)
+            group_r = get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no,
+                                   ix=ix)
+            r -= group_r
+            ef -= group_ef
+        if all_roi:
+            ef = np.abs(ef)
+        # print(f'{ef=}, {r=}')
+        if np.isnan(ef):
+            continue
+        rs.append(r)
+        efs.append(ef)
     num_nans = sum(np.isnan(rs))
     # print(f'{num_nans=}')
     # print(f'{len(rs)=}')
@@ -284,10 +366,15 @@ def do_sn(rs_conn, inc_conn, num_test=25_000, ctrl_group=False,
     # print(time() - st)
     return rho
 
+def get_inc_conn_t(inc_roi_act):
+    inc_roi_act = stats.zscore(inc_roi_act, axis=-1, nan_policy='omit')
+    inc_roi_act0 = inc_roi_act[:, :, None, :]
+    inc_roi_act1 = inc_roi_act[:, None, :, :]
+    inc_conn = inc_roi_act0 * inc_roi_act1
+    return inc_conn
 
 
-
-def do_all_sn():
+def do_all_sn(do_t=True):
     conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
@@ -302,14 +389,20 @@ def do_all_sn():
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
+
     sns_task = [df_sn['sn'].iloc[0] for df_sn in df_sns]
     assert all(sns_task[i] <= sns_task[i+1] for i in range(len(sns_task) - 1))
     bool_overlap = [sn in sns for sn in sns_task]
     sn_inc_conn = sn_inc_conn[bool_overlap]
+    sn_inc_roi_act = sn_inc_roi_act[bool_overlap]
 
     rhos = []
     for i in range(sn_inc_conn.shape[0]):
-        rho = do_sn(conn_trials[i], sn_inc_conn[i])
+        if do_t:
+            inc_conn = get_inc_conn_t(sn_inc_roi_act[i])
+        else:
+            inc_conn = sn_inc_conn[i]
+        rho = do_sn(conn_trials[i], inc_conn)
         if np.isnan(rho): continue
         rhos.append(rho)
         t, p = stats.ttest_1samp(rhos, 0)

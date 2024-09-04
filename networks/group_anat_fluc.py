@@ -134,10 +134,38 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     else:
         return np.nanmean(ef)# / np.nanstd(ef)
 
+def get_dists(al, bl, cl, dl, combine_regions=True):
+    atlas = get_atlas(combine_regions=combine_regions)
+    all_totals = []
+    for a in al:
+        coord_a = atlas['coords'][a]
+        for b in bl:
+            coord_b = atlas['coords'][b]
+            ab_dist = spatial.distance.euclidean(coord_a, coord_b)
+            for c in cl:
+                coord_c = atlas['coords'][c]
+                ac_dist = spatial.distance.euclidean(coord_a, coord_c)
+                bc_dist = spatial.distance.euclidean(coord_b, coord_c)
+                for d in dl:
+                    coord_d = atlas['coords'][d]
+                    ad_dist = spatial.distance.euclidean(coord_a, coord_d)
+                    bd_dist = spatial.distance.euclidean(coord_b, coord_d)
+                    cd_dist = spatial.distance.euclidean(coord_c, coord_d)
+                    total_dist = (ab_dist + ac_dist + bc_dist + ad_dist +
+                                  bd_dist + cd_dist)
+                    all_totals.append(total_dist)
+    all_total = np.mean(all_totals)
+    return all_total
+    # print(f'{all_total=}')
+    # quit()
+                    # print(f'{ab_dist=:.2f}, {ac_dist=:.2f}, {bc_dist=:.2f}, '
+                    #       f'{ad_dist=:.2f}, {bd_dist=:.2f}, {cd_dist=:.2f}')
 
-def do_group(num_test=2_000, ctrl_group=False,
+
+
+def do_group(num_test=10_000, ctrl_group=False,
              skip_other=True, all_roi=True, ix=True, anat_ver=5,
-             combine_regions=True, n='8', std_d=False,
+             combine_regions=True, n='8', std_d=True,
              shuffle_seed=None):
 
     p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_ = (
@@ -148,12 +176,14 @@ def do_group(num_test=2_000, ctrl_group=False,
     p_d_pos_ = tuple(p_d_pos_)
     p_v_ant_ = tuple(p_v_ant_)
     p_v_pos_ = tuple(p_v_pos_)
+
+    get_dists(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_,)
+
     p_no_ = tuple(p_no_)
     purp_combos = itertools.product(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_)
     purp_combos = list(purp_combos)
     og_r = get_group_avg_rs_r(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
-                              ix=ix, combine_regions=combine_regions,
-                              n=n)
+                              ix=ix, combine_regions=combine_regions, n=n)
     og_d = get_group_level_d(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
                              ix=ix, combine_regions=combine_regions,
                              n=n, std_d=std_d, shuffle_seed=shuffle_seed)
@@ -178,6 +208,8 @@ def do_group(num_test=2_000, ctrl_group=False,
         if random() > num_test / num_pos:
             continue
         combos_.append((a, b, c, d))
+    #     print(f'{dist=}')
+    # quit()
     combos = combos_
     print(f'{len(combos)=}')
     print(f'{len(purp_combos)=}')
@@ -186,12 +218,15 @@ def do_group(num_test=2_000, ctrl_group=False,
 
     rs = []
     efs = []
+    dists = []
     colors = []
     for (a, b, c, d) in combos:
         # if random() > num_test / num_pos:
         #     continue
         if len({a, b, c, d}) < 4:
             continue
+        dist = get_dists([a], [b], [c], [d], combine_regions=combine_regions)
+        dists.append(dist)
 
         if skip_other:
             pda_i = [a, a + 1]
@@ -225,13 +260,13 @@ def do_group(num_test=2_000, ctrl_group=False,
         efs.append(d)
         colors.append(color)
 
-        if len(efs) % 100 == 0:
-            plot_rs_efs(rs, efs, colors, og_d, og_r,
+        if len(efs) % 200 == 0:
+            plot_rs_efs(rs, efs, colors, og_d, og_r, dists,
                         combine_regions=combine_regions,
                         all_roi=all_roi, n=n, std_d=std_d)
 
             if all_roi:
-                plot_rs_efs(rs, np.abs(efs), colors, og_d, og_r,
+                plot_rs_efs(rs, np.abs(efs), colors, og_d, og_r, dists,
                             combine_regions=combine_regions,
                             all_roi=all_roi, n=n + f'seed: {shuffle_seed}',
                             std_d=std_d)
@@ -240,7 +275,7 @@ def do_group(num_test=2_000, ctrl_group=False,
           f'{ctrl_group=}, {CTRL=}, {all_roi=}, {skip_other=}, {ix=},'
           f'{anat_ver=}')
 
-    plot_rs_efs(rs, efs, colors, og_d, og_r,
+    plot_rs_efs(rs, efs, colors, og_d, og_r, dists,
                 combine_regions=combine_regions,
                 all_roi=all_roi, std_d=std_d,
                 n=n + f'seed: {shuffle_seed}')
@@ -248,26 +283,81 @@ def do_group(num_test=2_000, ctrl_group=False,
     print(f'\t{rho=:.6f}, {p=:.4f}')
     return rho
 
-def plot_rs_efs(rs, efs, colors, og_d, og_r, combine_regions=False,
-                all_roi=False, n='7', std_d=True):
+def plot_rs_efs(rs, efs, colors, og_d, og_r, dists,
+                combine_regions=False, all_roi=False, n='7', std_d=True):
     rho, p = stats.spearmanr(rs, efs)
+    fig, axs = plt.subplots(3, 1, figsize=(5, 9))
+    plt.sca(axs[0])
+
+    cmap = plt.get_cmap('turbo')
+    max_dist = max(dists) / 1.2
+    min_dist = min(dists)
+
+    def get_color(d, c):
+        if c == 'purple':
+            return c
+        else:
+            return cmap((d - min_dist) / (max_dist - min_dist))
+
+    # colors = [cmap((d - min_dist) / (max_dist - min_dist)) for d in dists]
+    colors = [get_color(d, c) for d, c in zip(dists, colors)]
+
+
     plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=},'
               f' {all_roi=}, {n=}, {std_d=}')
     alphas = [.75 if color == 'purple' else .25 for color in colors]
+
     plt.scatter(rs, efs, color=colors,
                 alpha=alphas)
     plt.scatter([og_r], [og_d], color='red', alpha=.9, marker='s')
     plt.xlabel('Resting correlation')
     plt.ylabel('Task effect')
+
+    # low = min(rs)
+    # high = max(rs)
+    # rs_ = [r for r, c in zip(rs, colors) if c != 'purple']
+    plt.sca(axs[1])
+    r, p = stats.spearmanr(dists, efs)
+    plt.title(f'Dist x ef: {r=:.3f}, {p=:.4f}')
+    plt.scatter(dists, efs, color=colors,
+                alpha=alphas)
+    # plt.hist(rs_, bins=100, cumulative=True, range=(low, high))
+    plt.xlabel('dists')
+    plt.ylabel('Task effect')
+
+    plt.sca(axs[2])
+    r, p = stats.spearmanr(dists, rs)
+    plt.title(f'Dist x corr: {r=:.3f}, {p=:.4f}')
+    plt.scatter(dists, rs, color=colors,
+                alpha=alphas)
+    # plt.hist(rs_, bins=100, cumulative=True, range=(low, high))
+    plt.xlabel('dists')
+    plt.ylabel('Resting correlation')
+    plt.tight_layout()
     plt.show()
+
+
 
 def shuffle_test():
     for seed in range(100):
         rho = do_group(shuffle_seed=seed)
 
+def simple_shuffle_og():
+    p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_ = (
+        get_quads(False, all_roi=False, anat_ver=3,
+                  combine_regions=combine_regions))
+    # M all: og_r, og_d = -.18, -.11
+    p_d_ant_ = tuple(p_d_ant_)
+    p_d_pos_ = tuple(p_d_pos_)
+    p_v_ant_ = tuple(p_v_ant_)
+    p_v_pos_ = tuple(p_v_pos_)
+    og_d = get_group_level_d(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
+                             ix=ix, combine_regions=combine_regions,
+                             n=n, std_d=std_d, shuffle_seed=shuffle_seed)
+
+    print(f'OG all: {og_r=:.2f}, {og_d=:.2f}\n')
 
 if __name__ == '__main__':
     do_group()
-    # shuffle_test()
-    # do_group_anat_fluc()
+    shuffle_test()
 
