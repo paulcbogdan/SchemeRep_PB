@@ -268,7 +268,7 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
 
 
 def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
-          skip_other=True, all_roi=False, ix=True, anat_ver=5,
+          skip_other=False, all_roi=False, ix=True, anat_ver=5,
           n='XXX'):
     if len(inc_conn.shape) == 4:
         std_d = True
