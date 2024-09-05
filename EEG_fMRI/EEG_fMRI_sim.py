@@ -1,8 +1,10 @@
 import numpy as np
+import pandas as pd
 import scipy.stats as stats
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 import mne
+import statsmodels.formula.api as smf
 
 from EEG_fMRI.EEG_fMRI_test import get_hrf
 
@@ -23,20 +25,24 @@ def sample_signal(n_samples, corr, mu=0, sigma=1):
 
     return np.array(signal)
 
-def conv_quick(ts):
+def conv_quick(ts, tr=2):
     import scipy.ndimage as ndimage
-    HRF = get_hrf()
+    HRF = get_hrf(tr)
+    return ts
 
     ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
+    # ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
+    #                          origin=HRF.shape[0] // 2 - 1, axis=0)
     return ts_
 
-def do_EEG_fMRI_sim(noise_mag=0.1):
-    true_resolution = 250
-    time = 6000
+def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
+    true_resolution = 100
+    time = 1_000
+    # time = 20
     fMRI_TR = 2
-    amplitude_autocorr = 0.99
-    true_hz = 10
+    amplitude_autocorr = 0.9
+    true_hz = 5
 
     amplitude = sample_signal(time * true_resolution, amplitude_autocorr,
                               0, 1)
@@ -47,21 +53,23 @@ def do_EEG_fMRI_sim(noise_mag=0.1):
                           0, noise_mag)
     noise2 = sample_signal(time * true_resolution, amplitude_autocorr,
                            0, noise_mag)
+    noise_eeg = sample_signal(time * true_resolution, amplitude_autocorr,
+                              0, noise_mag)
 
-    oscillator = np.cos(2 * np.pi *
-                        np.linspace(0, time, time * true_resolution) *
-                        true_hz)
-    oscillator *= amplitude
-    inv_osc = -oscillator
+    osc = np.cos(np.pi * np.linspace(0, time, time * true_resolution) *
+                 true_hz)
+    osc_a = osc * amplitude
+    inv_osc = -osc_a
 
-    # TODO FFT
-
-    noisy_oscillator = oscillator + noise
+    noisy_osc = osc_a + noise
     noisy_osc_inv = inv_osc + noise2
 
     true_bins_TR = fMRI_TR * true_resolution
-    noisy_oscillator_TR = noisy_oscillator.reshape(-1, true_bins_TR).mean(
+    true_bins_TR = int(true_bins_TR)
+    noisy_oscillator_TR = noisy_osc.reshape(-1, true_bins_TR).mean(
         axis=1)
+
+    if verbose: print('Onto convolving')
     noisy_oscillator_fMRI = conv_quick(noisy_oscillator_TR)
     noisy_osc_inv_TR = noisy_osc_inv.reshape(-1, true_bins_TR).mean(axis=1)
     noisy_osc_inv_fMRI = conv_quick(noisy_osc_inv_TR)
@@ -71,17 +79,77 @@ def do_EEG_fMRI_sim(noise_mag=0.1):
 
     # d = np.abs(np.fft.fft(noisy_oscillator_fMRI))
     d = np.abs(noisy_oscillator_fMRI - noisy_osc_inv_fMRI)
+
+    # ts_fMRI = np.linspace(0, time, time // fMRI_TR)
+    # m_fMRI = np.max(noisy_oscillator_fMRI)
+
+    # plt.plot(ts_fMRI, noisy_oscillator_TR)
+    # plt.plot(ts_fMRI, noisy_osc_inv_TR)
+    # plt.plot(ts_fMRI, np.abs(noisy_oscillator_TR - noisy_osc_inv_TR))
+    #
+    # d0 = np.abs(noisy_osc.reshape(-1, true_bins_TR).mean(axis=1) -
+    #             noisy_osc_inv.reshape(-1, true_bins_TR).mean(axis=1))
+    # d1 = np.abs(noisy_osc - noisy_osc_inv).reshape(-1, true_bins_TR).mean(axis=1)
+    # d = conv_quick(d1)
+    #
+    # plt.plot(ts_fMRI, d1)
+    #
+    # ts_true = np.linspace(0, time, time * true_resolution,)
+    #
+    # plt.plot(ts_true, noisy_osc, linewidth=0.5, alpha=.2)
+    # plt.plot(ts_true, noisy_osc_inv, linewidth=0.5, alpha=.2)
+    #
+    # plt.show()
+    # quit()
+
+    # d0 = np.abs(noisy_osc.reshape(-1, true_bins_TR).mean(axis=1) -
+    #             noisy_osc_inv.reshape(-1, true_bins_TR).mean(axis=1))
+    #
+    # d1 = np.abs(noisy_osc - noisy_osc_inv).reshape(-1, true_bins_TR).mean(axis=1)
+    # # d1 = conv_quick(d)
+    # r, p = stats.spearmanr(d0, d1)
+    # plt.hist2d(d0, d1, bins=100)
+    # plt.show()
+    # print('d0 vs d1', r)
+    # quit()
+
+    # d = np.abs(noisy_oscillator_fMRI)
+
     r, p = stats.spearmanr(d, amplitude_fMRI)
 
-    tfr_in = noisy_oscillator[None, None, :]
+    if verbose: print('Onto TFR')
+    noisy_oscillator_e = osc_a + noise_eeg
+    tfr_in = noisy_oscillator_e[None, None, :]
     tfr = mne.time_frequency.tfr_array_morlet(tfr_in,
                                               sfreq=true_resolution,
-                                              freqs = np.arange(1, 51),
-                                              n_cycles=1,
+                                              freqs=np.arange(1, 31),
+                                              n_cycles=7,
+                                              zero_mean=True,
                                               output='power')[0, 0]
-    for hz in np.arange(1, 51):
-        r, p = stats.pearsonr(tfr[hz - 1], amplitude)
-        print(f'{hz=}, {r=:.4f}')
+    # tfr = mne.time_frequency.tfr_array_multitaper(tfr_in,
+    #                                           sfreq=true_resolution,
+    #                                           freqs=np.arange(1, 51),
+    #                                           output='power',)[0, 0]
+
+
+    r_amp_fMRI = stats.spearmanr(amplitude_fMRI, d)[0]
+    print(F'{r_amp_fMRI=:.4f}')
+    print(f'{tfr.shape=}')
+
+    for hz in np.arange(1, 31):
+        r, p = stats.spearmanr(tfr[hz - 1], amplitude)
+        tfr_TR = tfr[hz - 1].reshape(-1, true_bins_TR).mean(axis=1)
+
+        tfr_fMRI = conv_quick(tfr_TR)
+        # r_f, p = stats.spearmanr(tfr_TR, d)
+        r_f, p = stats.spearmanr(tfr_fMRI, d)
+
+        # df = pd.DataFrame({'tfr': tfr_fMRI, 'd': d,
+        #                    'amplitude': amplitude_fMRI})
+        # model = smf.ols('tfr ~ d + amplitude', data=df).fit()
+        # print(model.summary())
+
+        print(f'{hz=}, {r=:.4f}, {r_f=:.4f}')
     quit()
 
 
@@ -104,7 +172,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1):
 def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100):
     rs = []
     for nsim in tqdm(range(nsims)):
-        noise_mag = 1
+        noise_mag = .001
         r = do_EEG_fMRI_sim(noise_mag=noise_mag)
         rs.append(r)
     rs = np.array(rs)
