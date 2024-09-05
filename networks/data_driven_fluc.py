@@ -157,10 +157,12 @@ def shuffle_rows(sn_roi_act, shuffle_lowhigh=True):
     return new_ar
 
 
-def shuffle_remake(sn_roi_act):
+def shuffle_remake(sn_roi_act, just_rows=False):
     sn_roi_act = shuffle_rows(sn_roi_act)
     # sn_inc_conn = conn_remake_numba(sn_roi_act)
     sn_roi_act = stdize(sn_roi_act, axis=-1, nans=True)
+    if just_rows:
+        return sn_roi_act
     sn_inc_conn = (sn_roi_act[:, :, :, None, :] *
                    sn_roi_act[:, :, None, :, :])
     sn_inc_conn = np.nanmean(sn_inc_conn, axis=-1)

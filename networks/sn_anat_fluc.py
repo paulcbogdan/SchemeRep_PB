@@ -17,7 +17,7 @@ from scipy import stats, spatial
 from functools import cache
 from numba import njit, config, jit
 from time import time
-from data_driven_fluc import load_rs
+from data_driven_fluc import load_rs, shuffle_remake
 from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
@@ -228,8 +228,7 @@ def get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
                   np.nanvar(inc_vendor) * (n2 - 1)) / (n1 + n2 - 3))
     t = (M1 - M2) / (sd * denom)
     d = t * np.sqrt(1 / n1 + 1 / n2)
-    return d
-    # return np.nanmean(ef) / np.nanstd(ef)
+    return d, (M1 - M2) / d
 
 
 @cache
@@ -268,7 +267,7 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
 
 
 def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
-          skip_other=False, all_roi=True, ix=True, anat_ver=5,
+          skip_other=False, all_roi=False, ix=True, anat_ver=5,
           n='XXX'):
     if len(inc_conn.shape) == 4:
         std_d = True
@@ -330,7 +329,7 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
         r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
                         ix=ix)
         if std_d:
-            ef = get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no,
+            ef, div = get_task_effect_std(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                      inc_conn, ix=ix)
         else:
             ef = get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no,
@@ -339,6 +338,8 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
             group_ef = get_group_level_efs(pda_i, pdp_i, pva_i,
                                            pvp_i, p_no, ix=ix,
                                            n=n)
+            if std_d:
+                group_ef /= div
             group_r = get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                    ix=ix)
             r -= group_r
@@ -377,7 +378,7 @@ def get_inc_conn_t(inc_roi_act):
     return inc_conn
 
 
-def do_all_sn(do_t=False, n='7'):
+def do_all_sn(do_t=False, n='7', shuffle_seed=None):
     conn_trials, sns = load_rs(combine_regions=COMBINE_REGIONS)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
@@ -393,6 +394,15 @@ def do_all_sn(do_t=False, n='7'):
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
 
+    if shuffle_seed is not None:
+        print(f'Shuffled: {shuffle_seed}')
+        np.random.seed(shuffle_seed)
+        if do_t:
+            sn_inc_roi_act = shuffle_remake(sn_inc_roi_act, just_rows=True)
+        else:
+            sn_inc_conn = shuffle_remake(sn_inc_roi_act)
+
+
     sns_task = [df_sn['sn'].iloc[0] for df_sn in df_sns]
     assert all(sns_task[i] <= sns_task[i+1] for i in range(len(sns_task) - 1))
     bool_overlap = [sn in sns for sn in sns_task]
@@ -400,6 +410,7 @@ def do_all_sn(do_t=False, n='7'):
     sn_inc_roi_act = sn_inc_roi_act[bool_overlap]
 
     rhos = []
+    t = None
     for i in range(sn_inc_conn.shape[0]):
         if do_t:
             inc_conn = get_inc_conn_t(sn_inc_roi_act[i])
@@ -414,6 +425,7 @@ def do_all_sn(do_t=False, n='7'):
             continue
         M = np.mean(rhos)
         print(f'{i}: {M=:.3f}, {t=:.2f}, {p=:.4f}')
+    return t
 
 if __name__ == '__main__':
     do_all_sn()

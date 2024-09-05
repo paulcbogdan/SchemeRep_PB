@@ -165,7 +165,7 @@ def get_dists(al, bl, cl, dl, combine_regions=True):
 
 def do_group(num_test=10_000, ctrl_group=False,
              skip_other=True, all_roi=True, ix=True, anat_ver=5,
-             combine_regions=True, n='8', std_d=True,
+             combine_regions=True, n='7', std_d=True,
              shuffle_seed=None):
 
     p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_ = (
@@ -359,5 +359,5 @@ def simple_shuffle_og():
 
 if __name__ == '__main__':
     do_group()
-    shuffle_test()
+    # shuffle_test()
 
