@@ -286,9 +286,12 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
         lowest_bad_j = min(bad_j)
         z_both = do_regression(sn_inc_conn, flip=False, nans=True)
         z_both = z_both[:lowest_bad_j, :lowest_bad_j]
-        triangles, highest_is = (
+        low_idxs, high_idxs = (
             get_triangles_from_z(z_both, strongest_efs=strongest_efs))
-        return triangles, highest_is
+        return low_idxs, high_idxs
+        # triangles, highest_is = (
+        #     get_triangles_from_z(z_both, strongest_efs=strongest_efs))
+        # return triangles, highest_is
 
 @cache
 def get_candidates(lowest_bad_j=210, combine_regions=False):
@@ -305,12 +308,26 @@ def get_candidates(lowest_bad_j=210, combine_regions=False):
     return candidates
 
 def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
-    z_abs = np.abs(z_both)
+    # z_abs = np.abs(z_both)
+    # print(z_abs.shape)
+
+    low_thresh = np.nanpercentile(z_both, 10)
+    low_idxs = np.where(z_both < low_thresh)
+    low_idxs = np.array(low_idxs)
+    high_thresh = np.nanpercentile(z_both, 90)
+    high_idxs = np.where(z_both > high_thresh)
+    high_idxs = np.array(high_idxs)
+    return low_idxs, high_idxs
+    # print(low_thresh)
+    # print(low_idxs)
+    # print(low_idxs.shape)
+    # quit()
+
     z_abs_sum = np.nansum(z_abs, axis=0)
     # print(z_abs_sum)
     # quit()
     # print(z_both.shape)
-    highest_is = np.argsort(z_abs_sum)[-int(strongest_efs * n_roi):]
+    highest_is = np.argsort(z_abs_sum)#[-int(strongest_efs * n_roi):]
     # print(sorted(highest_is))
     # print(highest_is)
     # quit()
@@ -464,34 +481,54 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
                     edge1 = conn_trials[sn_k, triangle[0], triangle[2], :]
                     edge1s_total += edge1
                     n_cnt += 1
-            edge0s_total /= n_cnt
-            edge1s_total /= n_cnt
+            # edge0s_total /= n_cnt
+            # edge1s_total /= n_cnt
     else:
         conn_trials = conn_trials[sns_ok]
-        triangles, highest_is = get_task_triangles(shuffle=shuffle, seed=seed,
+        # triangles, highest_is = get_task_triangles(shuffle=shuffle, seed=seed,
+        #                                            strongest_efs=strongest_efs,
+        #                                            ss_triangles=ss_triangles)
+        low_idxs, high_idxs = get_task_triangles(shuffle=shuffle, seed=seed,
                                                    strongest_efs=strongest_efs,
                                                    ss_triangles=ss_triangles)
-        print(triangles.shape)
-
+        # print(low_idxs.shape)
+        # quit()
         edge0s_total = np.zeros((conn_trials.shape[0], 206))
         edge1s_total = np.zeros((conn_trials.shape[0], 206))
-        for roi_i in range(len(highest_is)):
-            non_targets = list(set(range(246)) - set(triangles[roi_i, :, :].flatten()))
-            M_non = np.nanmean(conn_trials[:, roi_i, non_targets, :], axis=1)
-            for triangle_j in range(triangles.shape[1]):
-                triangle = triangles[roi_i, triangle_j]
-                edge0 = conn_trials[:, triangle[0], triangle[1], :]
-                # print(edge0.shape)
-                edge0s_total += edge0
-                edge1 = conn_trials[:, triangle[0], triangle[2], :]
-                edge1s_total += edge1
-            edge0s_total -= (M_non * triangles.shape[1])
-            # print(edge0s_total)
-            # print(f'{M_non=}')
-            edge1s_total -= (M_non * triangles.shape[1])
+        for i in range(low_idxs.shape[1]):
+            edge0s_total += conn_trials[:, low_idxs[0, i], low_idxs[1, i], :]
+        for i in range(high_idxs.shape[1]):
+            edge1s_total += conn_trials[:, high_idxs[0, i], high_idxs[1, i], :]
+        # print(edge0s_total.shape)
+        # print(edge1s_total.shape)
+        # quit()
+        # print(triangles.shape)
+        # edge0s_total = np.zeros((conn_trials.shape[0], 206))
+        # edge1s_total = np.zeros((conn_trials.shape[0], 206))
+        # n_cnt = 0
+        # for roi_i in range(len(highest_is)):
+        #     non_targets = list(set(range(246)) - set(triangles[roi_i, :, :].flatten()))
+        #     M_non = np.nanmean(conn_trials[:, roi_i, non_targets, :], axis=1)
+        #     for triangle_j in range(triangles.shape[1]):
+        #         triangle = triangles[roi_i, triangle_j]
+        #         edge0 = conn_trials[:, triangle[0], triangle[1], :]
+        #         edge0s_total += edge0
+        #         edge1 = conn_trials[:, triangle[0], triangle[2], :]
+        #         edge1s_total += edge1
+        #         n_cnt += 1
+        #     edge0s_total -= (M_non * triangles.shape[1])
+        #     edge1s_total -= (M_non * triangles.shape[1])
+        # print('subtract non')
+        # edge0s_total /= n_cnt
+        # edge1s_total /= n_cnt
+
     t_st = time()
     edge0s = edge0s_total[None, :, :]
+    edge0s = stats.zscore(edge0s, axis=2, nan_policy='omit')
     edge1s = edge1s_total[None, :, :]
+    edge1s = stats.zscore(edge1s, axis=2, nan_policy='omit')
+    # print(edge0s.shape)
+    # quit()
     # print(edge0s.shape)
     # quit()
     r_gavg = np.nanmean(np.abs(edge0s - edge1s))
@@ -585,11 +622,11 @@ if __name__ == '__main__':
     # np.random.seed(0)
     SS_TRIANGLES = False
     # print(f'{SS_TRIANGLES=}')
-    res = calc_triangle_corr(strongest_efs=0.2, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
                              ss_triangles=SS_TRIANGLES)
     #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
 
 
