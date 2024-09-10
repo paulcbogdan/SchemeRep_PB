@@ -29,7 +29,7 @@ from warnings import simplefilter
 simplefilter("ignore", category=RuntimeWarning)
 
 CTRL = True
-COMBINE_REGIONS = True
+COMBINE_REGIONS = False
 print(f'{CTRL=}')
 
 def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
@@ -52,9 +52,12 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
 @cache
 def get_quads(skip_other=False, all_roi=False, anat_ver=3,
               combine_regions=COMBINE_REGIONS, p_no_override=False):
+    # print(combine_regions)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
                               anat_ver=anat_ver, combine_regions=combine_regions)
+    # print(p_d_pos)
+    # print(combine_regions)
     # n_roi = 54 if COMBINE_REGIONS else 246
     n_roi = 54 if combine_regions else 246
     p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +

@@ -28,7 +28,7 @@ def sample_signal(n_samples, corr, mu=0, sigma=1):
 def conv_quick(ts, tr=2):
     import scipy.ndimage as ndimage
     HRF = get_hrf(tr)
-    return ts
+    # return ts
 
     ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
@@ -36,13 +36,196 @@ def conv_quick(ts, tr=2):
     #                          origin=HRF.shape[0] // 2 - 1, axis=0)
     return ts_
 
-def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
+def setup_x(time):
+    t_ticks = list(range(0, time + 1, 2))
+    plt.xlim(0, time)
+    plt.grid(axis='x', linestyle='--', alpha=0.9, which='minor')
+    plt.xticks(t_ticks, minor=True,)
+    plt.gca().tick_params(axis='x', which='minor', length=0)
+    TR_ticks = list(range(1, time + 1, 2))
+    TR_strs = ['TR$_{' f'{tick // 2 + 1:.0f}' '}$' for tick in TR_ticks]
+    plt.xticks(TR_ticks, TR_strs, minor=False, fontsize=9)
+
+def plot_EEG_x_fMRI():
+    np.random.seed(0)
     true_resolution = 100
-    time = 1_000
-    # time = 20
+    time = 20
     fMRI_TR = 2
-    amplitude_autocorr = 0.9
-    true_hz = 5
+    amplitude_autocorr = 0.995
+    true_hz = 3
+
+    ts = np.linspace(0, time, time * true_resolution)
+
+
+    fig, axs = plt.subplots(5, 2, figsize=(6.5, 8),
+                            constrained_layout=True)
+
+    osc = np.sin(np.pi * ts * true_hz)
+    plt.sca(axs[0, 0])
+    plt.title(f'{true_hz} Hz oscillation')
+    plt.plot(ts, osc, linewidth=0.5)
+    plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
+    # plt.yticks([-1, 0, 1], ['100%\nVD', '50/50', '100\nPA'])
+    plt.xlim(0, 20)
+
+    amplitude = sample_signal(len(ts), amplitude_autocorr)
+    amplitude = np.abs(amplitude)
+    plt.sca(axs[0, 1])
+    plt.title('Amplitude')
+    plt.plot(ts, amplitude, linewidth=0.5, color='green')
+    plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
+    plt.xlim(0, 20)
+    plt.ylim(0, np.max(amplitude) * 1.1)
+
+    gs = axs[0, 0].get_gridspec()
+    for ax in axs[1, :]:
+        ax.remove()
+    axbig = fig.add_subplot(gs[1, :])
+    osc_a = osc * amplitude
+    # TODO: add noise
+    plt.sca(axbig)
+    plt.title('Oscillation x amplitude')
+    plt.plot(ts, osc_a, linewidth=0.5, color='teal')
+    plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
+    plt.xlim(0, 20)
+
+    VD = osc_a
+    PA = -osc_a
+
+    plt.sca(axs[2, 0])
+    plt.title('True VD & PA signals')
+    plt.plot(ts, VD, linewidth=0.5, color='red', label='VD')
+    plt.plot(ts, PA, linewidth=0.5, color='blue', label='PA')
+    l = plt.legend(frameon=False, loc=(0.505, 0.73), ncol=2,
+                   columnspacing=0.6, handlelength=1, fontsize=12,
+                   handletextpad=0.4)
+    l.get_texts()[0].set_color('red')
+    l.legend_handles[0].set_linewidth(1.05)
+    l.get_texts()[1].set_color('blue')
+    l.legend_handles[1].set_linewidth(1.05)
+    setup_x(time)
+
+
+    true_bins_TR = fMRI_TR * true_resolution
+    true_bins_TR = int(true_bins_TR)
+
+    ts_ = ts.reshape(-1, true_bins_TR).mean(axis=1)
+    VD_ = VD.reshape(-1, true_bins_TR).mean(axis=1)
+    PA_ = PA.reshape(-1, true_bins_TR).mean(axis=1)
+
+    plt.sca(axs[3, 0])
+    plt.title('Measured VD & PA signals')
+    for i in range(len(ts_)):
+        t = ts_[i]
+        plt.plot([t, t], [VD_[i], PA_[i]], color='purple', linewidth=1,
+                 zorder=-1, linestyle='--')
+    plt.scatter(ts_, VD_, linewidth=0.5, color='red', label='VD')
+    plt.scatter(ts_, PA_, linewidth=0.5, color='blue', label='PA')
+    plt.text(16, 0.1, 'VD', color='red', ha='center', fontsize=12, va='center')
+    plt.text(16, -0.117, 'PA', color='blue', ha='center', fontsize=12,
+             va='center')
+    plt.ylim(-.18, .18)
+    setup_x(time)
+
+    plt.sca(axs[4, 0])
+    plt.title(f'|VD - PA| difference')
+    ds = np.abs(VD_ - PA_)
+    plt.scatter(ts_, ds, linewidth=0.5, color='purple')
+    plt.ylim(0, 0.33)
+    plt.yticks([0, 0.1, 0.2, 0.3])
+    setup_x(time)
+
+
+
+
+    tfr_in = osc_a[None, None, :]
+    freqs = [0.5, 3, 10]
+    tfr = mne.time_frequency.tfr_array_morlet(tfr_in,
+                                              sfreq=true_resolution,
+                                              freqs=freqs,
+                                              n_cycles=3,
+                                              zero_mean=True,
+                                              output='power')[0, 0]
+    tfr = np.sqrt(tfr)
+    tfr1 = tfr[0]
+    plt.sca(axs[2, 1])
+    plt.title(f'{freqs[0]} Hz power')
+    plt.plot(ts[true_resolution*2:], tfr1[true_resolution*2:],
+             linewidth=0.5, color='limegreen')
+    tfr1_ = tfr1.reshape(-1, true_bins_TR).mean(axis=1)
+    plt.scatter(ts_[1:], tfr1_[1:], color='darkgreen', alpha=.9, zorder=2)
+    plt.ylim(0, np.max(tfr1) * 1.05)
+    setup_x(time)
+    r, p = stats.pearsonr(tfr1_, ds)
+    print(f'{r=:.4f}')
+
+    tfr2 = tfr[1]
+    plt.sca(axs[3, 1])
+    plt.title(f'{freqs[1]} Hz power')
+    plt.plot(ts, tfr2, linewidth=0.5, color='limegreen')
+    tfr2_ = tfr2.reshape(-1, true_bins_TR).mean(axis=1)
+    plt.scatter(ts_, tfr2_, color='darkgreen', alpha=.9, zorder=2)
+    plt.ylim(0, np.max(tfr2) * 1.05)
+    setup_x(time)
+    r, p = stats.pearsonr(tfr2_, ds)
+    print(f'{r=:.4f}')
+
+    tfr3 = tfr[2]
+    plt.sca(axs[4, 1])
+    plt.title(f'{freqs[2]} Hz power')
+    plt.plot(ts, tfr3, linewidth=0.5, color='limegreen')
+    tfr3_ = tfr3.reshape(-1, true_bins_TR).mean(axis=1)
+    plt.scatter(ts_, tfr3_, color='darkgreen', alpha=.9, zorder=2)
+    plt.ylim(0, np.max(tfr3) * 1.05)
+    setup_x(time)
+    r, p = stats.pearsonr(tfr3_, ds)
+    print(f'{r=:.4f}')
+    labels = ['A'] * 10
+
+    fig.canvas.draw()
+    # axs = axs.flatten()
+    # print(axs)
+    # quit()
+
+
+    ax = axs[0, 0]
+
+    axs = [axs[0, 0], axs[0, 1], #axs[1, 0],
+           axbig,
+           axs[2, 0], axs[3, 0],
+           axs[4, 0], axs[2, 1], axs[3, 1], axs[4, 1]]
+
+    # label = 'A'
+    # labels = ['A'] * 10
+    # bbox = ax.get_tightbbox(fig.canvas.get_renderer())
+    # fig.text(bbox.x0, bbox.y1, label, fontsize=14, va="top",
+    #          ha="left", transform=None)
+    labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
+    from matplotlib.transforms import ScaledTranslation
+
+    for ax, label in zip(axs, labels):
+        try:
+            bbox = ax.get_tightbbox(fig.canvas.get_renderer())
+        except AttributeError:
+            continue
+        # fig.text(bbox.x0, bbox.y1, label, fontsize=14,
+        #          va="top", ha="left", transform=None)
+        ax.text(
+            0.0, 1.0, label, transform=(
+                ax.transAxes + ScaledTranslation(-20/72, +7/72,
+                                                 fig.dpi_scale_trans)),
+             va='bottom', fontweight="bold", fontsize=12)
+
+    # plt.tight_layout()
+    plt.show()
+
+
+def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
+    true_resolution = 100
+
+    fMRI_TR = 2
+    amplitude_autocorr = 0.95
+    true_hz = 3
 
     amplitude = sample_signal(time * true_resolution, amplitude_autocorr,
                               0, 1)
@@ -115,7 +298,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
 
     # d = np.abs(noisy_oscillator_fMRI)
 
-    r, p = stats.spearmanr(d, amplitude_fMRI)
+    # r, p = stats.spearmanr(d, amplitude_fMRI)
 
     if verbose: print('Onto TFR')
     noisy_oscillator_e = osc_a + noise_eeg
@@ -123,7 +306,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
     tfr = mne.time_frequency.tfr_array_morlet(tfr_in,
                                               sfreq=true_resolution,
                                               freqs=np.arange(1, 31),
-                                              n_cycles=7,
+                                              n_cycles=n_cycles,
                                               zero_mean=True,
                                               output='power')[0, 0]
     # tfr = mne.time_frequency.tfr_array_multitaper(tfr_in,
@@ -135,12 +318,18 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
     r_amp_fMRI = stats.spearmanr(amplitude_fMRI, d)[0]
     print(F'{r_amp_fMRI=:.4f}')
     print(f'{tfr.shape=}')
+    print(f'{n_cycles=} | {noise_mag=:.2f} | {amplitude_autocorr=}')
 
-    for hz in np.arange(1, 31):
+    for hz in np.arange(1, tfr.shape[0] + 1):
         r, p = stats.spearmanr(tfr[hz - 1], amplitude)
+        amplitude_TR = amplitude.reshape(-1, true_bins_TR).mean(axis=1)
+        amplitude_fMRI = conv_quick(amplitude_TR)
         tfr_TR = tfr[hz - 1].reshape(-1, true_bins_TR).mean(axis=1)
 
         tfr_fMRI = conv_quick(tfr_TR)
+
+        r_af, p = stats.spearmanr(tfr_fMRI, amplitude_fMRI)
+
         # r_f, p = stats.spearmanr(tfr_TR, d)
         r_f, p = stats.spearmanr(tfr_fMRI, d)
 
@@ -149,31 +338,20 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1):
         # model = smf.ols('tfr ~ d + amplitude', data=df).fit()
         # print(model.summary())
 
-        print(f'{hz=}, {r=:.4f}, {r_f=:.4f}')
-    quit()
+        if hz == true_hz:
+            extra = ' ***'
+        else:
+            extra = ''
+
+        print(f'{hz=}, {r=:.4f}, {r_af=:.4}, {r_f=:.4f}{extra}')
 
 
-    # plt.plot(tfr[30 - 1], linewidth=0.5)
-    # # plt.plot(oscillator)
-    # plt.plot(amplitude)
-    # r_test, _ = stats.pearsonr(tfr[true_hz - 1], amplitude)
-    # plt.title(f'{r_test=:.3f}')
-    # plt.show()
-    # # print(tfr)
-    # print(tfr.shape)
-    # quit()
 
-    # plt.plot(oscillator, linewidth=0.5)
-    # plt.show()
-    # print(f'{r=:.4f}')
-    return r
-
-
-def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100):
+def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     rs = []
     for nsim in tqdm(range(nsims)):
-        noise_mag = .001
-        r = do_EEG_fMRI_sim(noise_mag=noise_mag)
+        noise_mag = 0.5
+        r = do_EEG_fMRI_sim(noise_mag=noise_mag, time=time)
         rs.append(r)
     rs = np.array(rs)
     M = np.mean(rs)
@@ -182,5 +360,15 @@ def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100):
     print(f'{noise_mag:.2f} | {M=:.4f}, {SE=:.4f}')
 
 if __name__ == '__main__':
-    for nm in np.logspace(-2, 2, 10, base=10):
-        do_multiple_EEG_fMRI_sim(nm)
+    do_EEG_fMRI_sim(noise_mag=0.5, time=300_000)
+    # plot_EEG_x_fMRI()
+    # quit()
+
+    # noise_mag = 0.1
+    # r = do_EEG_fMRI_sim(noise_mag=noise_mag, n_cycles=3)
+    # r = do_EEG_fMRI_sim(noise_mag=noise_mag)
+    # r = do_EEG_fMRI_sim(noise_mag=noise_mag, n_cycles=15)
+
+    # for nm in np.logspace(-2, 2, 10, base=10):
+    #     do_EEG_fMRI_sim(nm)
+        # do_multiple_EEG_fMRI_sim(nm)

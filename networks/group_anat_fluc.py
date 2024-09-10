@@ -58,12 +58,18 @@ def get_sn_inc_conn_cache(combine_regions=False, n='7', shuffle_seed=None):
     assert all(sns_task[i] <= sns_task[i+1] for i in range(len(sns_task) - 1))
     bool_overlap = [sn in sns for sn in sns_task]
     sn_inc_conn = sn_inc_conn[bool_overlap]
+    sns_rs = [sn in sns_task for sn in sns]
+    conn_trials = conn_trials[sns_rs]
+
+    assert sn_inc_conn.shape[0] == conn_trials.shape[0], \
+        f'{sn_inc_conn.shape=}, {conn_trials.shape=}'
+
     return conn_trials, sn_inc_conn
 
 @cache
 def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
                        ctrl=True, combine_regions=False, n='7',
-                       ):
+                       sn_vals=False):
     conn_trials, _ = get_sn_inc_conn_cache(combine_regions=combine_regions,
                                            n=n)
     corrs = []
@@ -74,12 +80,14 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
                         ix=ix, ctrl=ctrl)
 
         corrs.append(r)
-
-    return np.nanmean(corrs)
+    if sn_vals:
+        return corrs
+    else:
+        return np.nanmean(corrs)
 
 def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
                       combine_regions=False, n='7', std_d=False,
-                      shuffle_seed=None):
+                      shuffle_seed=None, sn_vals=False):
 
     _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions,
                                            n=n, shuffle_seed=shuffle_seed)
@@ -129,7 +137,9 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     conn_vendor = conn_dd + conn_vv - conn_dv_ant - conn_dv_pos
     inc_vendor = inc_dd + inc_vv - inc_dv_ant - inc_dv_pos
     ef = conn_vendor - inc_vendor
-    if std_d:
+    if sn_vals:
+        return ef
+    elif std_d:
         return np.nanmean(ef) / np.nanstd(ef)
     else:
         return np.nanmean(ef)# / np.nanstd(ef)
@@ -176,10 +186,10 @@ def do_group(num_test=10_000, ctrl_group=False,
     p_d_pos_ = tuple(p_d_pos_)
     p_v_ant_ = tuple(p_v_ant_)
     p_v_pos_ = tuple(p_v_pos_)
+    p_no_ = tuple(p_no_)
 
     get_dists(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_,)
 
-    p_no_ = tuple(p_no_)
     purp_combos = itertools.product(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_)
     purp_combos = list(purp_combos)
     og_r = get_group_avg_rs_r(p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, p_no_,
@@ -208,8 +218,6 @@ def do_group(num_test=10_000, ctrl_group=False,
         if random() > num_test / num_pos:
             continue
         combos_.append((a, b, c, d))
-    #     print(f'{dist=}')
-    # quit()
     combos = combos_
     print(f'{len(combos)=}')
     print(f'{len(purp_combos)=}')

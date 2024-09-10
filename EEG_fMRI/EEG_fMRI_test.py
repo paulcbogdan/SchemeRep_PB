@@ -693,8 +693,8 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
         name2fluc[name] = range_fluc
 
         r = np.arctanh(r)
-        # if 'r' != name[0]:
-        print(f'{name}: {r=:.3f}, {p=:.3f}')
+        if 'r' != name[0]:
+            print(f'{name}: {r=:.3f}, {p=:.3f}')
             # print('TOAST')
 
         name2r[name] = r
@@ -852,7 +852,7 @@ if __name__ == '__main__':
 
                     M_above = np.mean([m > 0 for m in l])
                     # print(f'test: {key}')
-                    if key[0] == 'r': continue
+                    # if key[0] == 'r': continue
                     # if 'r1' in NAME2L:
                     #     continue
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
