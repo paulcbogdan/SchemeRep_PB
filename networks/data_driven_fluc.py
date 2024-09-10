@@ -317,6 +317,7 @@ def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
     # print(highest_is)
     # quit()
     candidates = get_candidates()
+    print('Got candidates')
     triangles = []
     # print(z_both.shape)
     # quit()
@@ -453,6 +454,7 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
                 print(triangles.shape)
 
             highest_is = d_is[sn]
+            n_cnt = 0
             for roi_i in range(triangles.shape[0]):
             # for roi_i in highest_is:
                 for triangle_j in range(triangles.shape[1]):
@@ -461,6 +463,9 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
                     edge0s_total += edge0
                     edge1 = conn_trials[sn_k, triangle[0], triangle[2], :]
                     edge1s_total += edge1
+                    n_cnt += 1
+            edge0s_total /= n_cnt
+            edge1s_total /= n_cnt
     else:
         conn_trials = conn_trials[sns_ok]
         triangles, highest_is = get_task_triangles(shuffle=shuffle, seed=seed,
@@ -580,11 +585,11 @@ if __name__ == '__main__':
     # np.random.seed(0)
     SS_TRIANGLES = False
     # print(f'{SS_TRIANGLES=}')
-    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.2, shuffle=False,
                              ss_triangles=SS_TRIANGLES)
     #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=SS_TRIANGLES)
 
 
