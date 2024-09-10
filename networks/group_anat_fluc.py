@@ -75,7 +75,6 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     corrs = []
     for i in range(conn_trials.shape[0]):
         rs_conn = conn_trials[i]
-
         r = get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn,
                         ix=ix, ctrl=ctrl)
 
@@ -87,7 +86,7 @@ def get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
 
 def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
                       combine_regions=False, n='7', std_d=False,
-                      shuffle_seed=None, sn_vals=False):
+                      shuffle_seed=None, sn_vals=False, ix_lat=False):
 
     _, sn_inc_conn = get_sn_inc_conn_cache(combine_regions=combine_regions,
                                            n=n, shuffle_seed=shuffle_seed)
@@ -97,7 +96,50 @@ def get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=True,
     pva_i = list(pva_i)
     p_no = list(p_no)
 
-    if ix:
+    if ix_lat:
+        inc_dd0 = sn_inc_conn[:, 0, *np.ix_(pda_i[::2], pdp_i[::2])]
+        inc_dd0 = np.nanmean(inc_dd0, axis=(1, 2))
+        inc_dd1 = sn_inc_conn[:, 0, *np.ix_(pda_i[1::2], pdp_i[1::2])]
+        inc_dd1 = np.nanmean(inc_dd1, axis=(1, 2))
+        inc_dd = inc_dd0 + inc_dd1
+        inc_vv0 = sn_inc_conn[:, 0, *np.ix_(pva_i[::2], pvp_i[::2])]
+        inc_vv0 = np.nanmean(inc_vv0, axis=(1, 2))
+        inc_vv1 = sn_inc_conn[:, 0, *np.ix_(pva_i[1::2], pvp_i[1::2])]
+        inc_vv1 = np.nanmean(inc_vv1, axis=(1, 2))
+        inc_vv = inc_vv0 + inc_vv1
+        inc_dv_ant0 = sn_inc_conn[:, 0, *np.ix_(pda_i[::2], pva_i[::2])]
+        inc_dv_ant0 = np.nanmean(inc_dv_ant0, axis=(1, 2))
+        inc_dv_ant1 = sn_inc_conn[:, 0, *np.ix_(pda_i[1::2], pva_i[1::2])]
+        inc_dv_ant1 = np.nanmean(inc_dv_ant1, axis=(1, 2))
+        inc_dv_ant = inc_dv_ant0 + inc_dv_ant1
+        inc_dv_pos0 = sn_inc_conn[:, 0, *np.ix_(pdp_i[::2], pvp_i[::2])]
+        inc_dv_pos0 = np.nanmean(inc_dv_pos0, axis=(1, 2))
+        inc_dv_pos1 = sn_inc_conn[:, 0, *np.ix_(pdp_i[1::2], pvp_i[1::2])]
+        inc_dv_pos1 = np.nanmean(inc_dv_pos1, axis=(1, 2))
+        inc_dv_pos = inc_dv_pos0 + inc_dv_pos1
+
+        conn_dd0 = sn_inc_conn[:, 2, *np.ix_(pda_i[::2], pdp_i[::2])]
+        conn_dd0 = np.nanmean(conn_dd0, axis=(1, 2))
+        conn_dd1 = sn_inc_conn[:, 2, *np.ix_(pda_i[1::2], pdp_i[1::2])]
+        conn_dd1 = np.nanmean(conn_dd1, axis=(1, 2))
+        conn_dd = conn_dd0 + conn_dd1
+        conn_vv0 = sn_inc_conn[:, 2, *np.ix_(pva_i[::2], pvp_i[::2])]
+        conn_vv0 = np.nanmean(conn_vv0, axis=(1, 2))
+        conn_vv1 = sn_inc_conn[:, 2, *np.ix_(pva_i[1::2], pvp_i[1::2])]
+        conn_vv1 = np.nanmean(conn_vv1, axis=(1, 2))
+        conn_vv = conn_vv0 + conn_vv1
+        conn_dv_ant0 = sn_inc_conn[:, 2, *np.ix_(pda_i[::2], pva_i[::2])]
+        conn_dv_ant0 = np.nanmean(conn_dv_ant0, axis=(1, 2))
+        conn_dv_ant1 = sn_inc_conn[:, 2, *np.ix_(pda_i[1::2], pva_i[1::2])]
+        conn_dv_ant1 = np.nanmean(conn_dv_ant1, axis=(1, 2))
+        conn_dv_ant = conn_dv_ant0 + conn_dv_ant1
+        conn_dv_pos0 = sn_inc_conn[:, 2, *np.ix_(pdp_i[::2], pvp_i[::2])]
+        conn_dv_pos0 = np.nanmean(conn_dv_pos0, axis=(1, 2))
+        conn_dv_pos1 = sn_inc_conn[:, 2, *np.ix_(pdp_i[1::2], pvp_i[1::2])]
+        conn_dv_pos1 = np.nanmean(conn_dv_pos1, axis=(1, 2))
+        conn_dv_pos = conn_dv_pos0 + conn_dv_pos1
+
+    elif ix:
         inc_dd = sn_inc_conn[:, 0, *np.ix_(pda_i, pdp_i)]
         inc_dd = np.nanmean(inc_dd, axis=(1, 2))
         inc_vv = sn_inc_conn[:, 0, *np.ix_(pva_i, pvp_i)]

@@ -39,7 +39,9 @@ def print_list_stats(l: list) -> None:
         return
     l.sort()
     print(f'Number of items: {len(l)}')
-    print(f'Mean item: {stat.mean(l):.3f}')
+    SD_l = stat.stdev(l)
+    SD2 = stat.mean(l) + stat.stdev(l) * 2
+    print(f'Mean item: {stat.mean(l):.3f} [{SD_l:.3f}], high = {SD2:.3f}')
     print(f'Median item: {stat.median(l):.3f}')
     print(f'Min item: {min(l):.3f}')
     print(f'Max item: {max(l):.3f}')
@@ -55,7 +57,8 @@ def print_list_stats(l: list) -> None:
 
 def do_group_task_x_rs(combine_regions=True,
                        n='8', std_d=True, shuffle_seed=None, ix=True,
-                       num_test=1_000, skip_other=False, sub_mean=False):
+                       num_test=1_000, skip_other=False, sub_mean=False,
+                       ctrl=False, sub_subj_mean=True):
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other=skip_other, all_roi=False, anat_ver=3,
                   combine_regions=combine_regions, ))
@@ -73,11 +76,17 @@ def do_group_task_x_rs(combine_regions=True,
     print(f'{num_pos=}')
     # og_r = get_group_avg_rs_r(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
     #                           ix=ix, combine_regions=combine_regions, n=n,
-    #                           sn_vals=True)
+    #                           sn_vals=True, ctrl=False)
     # og_d = get_group_level_d(p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no,
     #                          ix=ix, combine_regions=combine_regions,
     #                          n=n, std_d=std_d, shuffle_seed=shuffle_seed,
-    #                          sn_vals=True)
+    #                          sn_vals=True, ix_lat=False)
+    # og_d[og_d < -.4] = -.4
+    # plt.scatter(og_r, og_d)
+    # plt.show()
+    # r, p = stats.spearmanr(og_r, og_d, nan_policy='omit')
+    # print(f'OG: {r=:.3f}, {p=:.3f}')
+    # quit()
 
     combos_ = []
     for (a, b, c, d) in combos:
@@ -114,11 +123,14 @@ def do_group_task_x_rs(combine_regions=True,
 
         og_r = get_group_avg_rs_r(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                   ix=ix, combine_regions=combine_regions, n=n,
-                                  sn_vals=True)
+                                  sn_vals=True, ctrl=ctrl)
         og_d = get_group_level_d(pda_i, pdp_i, pva_i, pvp_i, p_no,
                                  ix=ix, combine_regions=combine_regions,
                                  n=n, std_d=std_d, shuffle_seed=shuffle_seed,
                                  sn_vals=True)
+        if sub_subj_mean:
+            og_r -= np.nanmean(og_r)
+            og_d -= np.nanmean(og_d)
         og_rs.append(og_r)
         og_ds.append(og_d)
 
@@ -133,7 +145,8 @@ def do_group_task_x_rs(combine_regions=True,
     r = np.nanmean(rs)
     M_r = np.nanmean(rs)
     t = np.nanmean(rs) / np.nanstd(rs) * np.sqrt(len(rs))
-    # print(f'{t=:.3f}, {M_r=:.3f}')
+    if shuffle_seed is None:
+        print(f'{t=:.3f}, {M_r=:.3f}')
     # print(rs)
 
     # assert np.sum(np.isnan(og_r)) == 0 and np.sum(np.isnan(og_d)) == 0
@@ -149,8 +162,8 @@ def shuffle_text_r():
     M_rs = []
     for seed in range(100):
         t, M_r = do_group_task_x_rs(shuffle_seed=seed)
-        rs.append(-t)
-        M_rs.append(-M_r)
+        rs.append(t)
+        M_rs.append(M_r)
         print(f'Shuffle: {t=:.2f}, {M_r=:.3f}')
         if seed % 5 == 4:
             print_list_stats(rs)
@@ -158,5 +171,5 @@ def shuffle_text_r():
 
 
 if __name__ == '__main__':
-    shuffle_text_r()
-    # do_group_task_x_rs()
+    do_group_task_x_rs()
+    # shuffle_text_r()

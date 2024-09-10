@@ -441,6 +441,7 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
         d_triangles, d_is = get_task_triangles(shuffle=shuffle, seed=seed,
                                          strongest_efs=strongest_efs,
                                          ss_triangles=ss_triangles)
+
         # print('made d_triangles')
 
         for sn_k, sn in enumerate(sns):
@@ -448,8 +449,8 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
             edge0s_total = np.zeros((conn_trials.shape[0], 206))
             edge1s_total = np.zeros((conn_trials.shape[0], 206))
             triangles = d_triangles[sn]
-            # print(triangles.shape)
-            # quit()
+            if sn_k == 0:
+                print(triangles.shape)
 
             highest_is = d_is[sn]
             for roi_i in range(triangles.shape[0]):
@@ -465,6 +466,7 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
         triangles, highest_is = get_task_triangles(shuffle=shuffle, seed=seed,
                                                    strongest_efs=strongest_efs,
                                                    ss_triangles=ss_triangles)
+        print(triangles.shape)
 
         edge0s_total = np.zeros((conn_trials.shape[0], 206))
         edge1s_total = np.zeros((conn_trials.shape[0], 206))
@@ -485,6 +487,12 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
     t_st = time()
     edge0s = edge0s_total[None, :, :]
     edge1s = edge1s_total[None, :, :]
+    # print(edge0s.shape)
+    # quit()
+    r_gavg = np.nanmean(np.abs(edge0s - edge1s))
+
+    # print(edge0s.shape)
+    # quit()
     # edge0s = np.array(edge0s)#[None, :, :]
     # print(f'{edge0s.shape=}')
     # quit()
@@ -494,7 +502,7 @@ def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
 
     # edge0s = edge0s[:10, :, :]
     # edge1s = edge1s[:, :2, :]
-    r_gavg = numba_corr(edge0s, edge1s)
+    # r_gavg = numba_corr(edge0s, edge1s)
     print(f'{r_gavg=:.7f}') #  | t: {time() - t_st:.2f} s
     # return r_gavg
     # edge0s = np.array(edge0s)
@@ -570,13 +578,13 @@ def calc_triangle_shuffle(res, strongest_efs=0.2, ss_triangles=False):
 if __name__ == '__main__':
     # calc_corr(combine_regions=False)
     # np.random.seed(0)
-    SS_TRIANGLES = True
+    SS_TRIANGLES = False
     # print(f'{SS_TRIANGLES=}')
-    res = calc_triangle_corr(strongest_efs=0.5, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
                              ss_triangles=SS_TRIANGLES)
     #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(res, strongest_efs=0.5, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
 
 

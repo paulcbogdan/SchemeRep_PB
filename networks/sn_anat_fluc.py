@@ -120,10 +120,13 @@ def get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn, ix=True,
         dv_pos = rs_conn[pdp_i, pvp_i, :]
         dv_pos = np.nanmean(dv_pos, axis=0)
 
-    dd = stats.zscore(dd)
-    vv = stats.zscore(vv)
-    dv_ant = stats.zscore(dv_ant)
-    dv_pos = stats.zscore(dv_pos)
+    dd = stats.zscore(dd, nan_policy='omit')
+    vv = stats.zscore(vv, nan_policy='omit')
+    dv_ant = stats.zscore(dv_ant, nan_policy='omit')
+    dv_pos = stats.zscore(dv_pos, nan_policy='omit')
+
+    fluc = np.abs(dd + vv - dv_ant - dv_pos)
+    return np.nanmean(fluc)
 
     dd_vv = dd + vv
 
@@ -269,13 +272,14 @@ def get_group_rs(pda_i, pdp_i, pva_i, pvp_i, p_no, ix=False):
     return np.nanmean(rs)
 
 
-def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
-          skip_other=False, all_roi=False, ix=True, anat_ver=5,
+def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
+          skip_other=True, all_roi=False, ix=True, anat_ver=3,
           n='XXX'):
     if len(inc_conn.shape) == 4:
         std_d = True
     else:
         std_d = False
+    print(f'{std_d=}')
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
                                                          all_roi=all_roi,
@@ -288,11 +292,11 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
     # print('prod')
     combos = list(combos)
     # print('list')
-    skipper = int(num_pos / num_test)
+    # skipper = int(num_pos / num_test)
     # print(f'skip: {skipper}')
     # print(f'{len(combos)=}')
-    skipper = max(1, skipper)
-    combos = combos[::skipper]
+    # skipper = max(1, skipper)
+    # combos = combos[::skipper]
     np.random.shuffle(combos)
     # print('shuffled')
     # print(f'{len(combos)=}')
@@ -300,10 +304,10 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=False,
 
     combos_ = []
     for (a, b, c, d) in combos:
+        if len(combos_) >= num_test:
+            continue
         if len({a, b, c, d}) < 4:
             continue
-        # if np.random.uniform(0, 1) > num_test / num_pos:
-        #     continue
         combos_.append((a, b, c, d))
     combos = combos_
     # print(f'{len(combos)=}')
