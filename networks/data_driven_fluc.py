@@ -28,7 +28,7 @@ def load_rs(combine_regions=False):
                                           combine_regions=combine_regions)
     return conn_trials, sns
 def load_task(combine_regions=True):
-    kwargs = {'fp': 'obj7_fMRI',
+    kwargs = {'fp': 'obj8_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
@@ -311,10 +311,10 @@ def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
     # z_abs = np.abs(z_both)
     # print(z_abs.shape)
 
-    low_thresh = np.nanpercentile(z_both, 10)
+    low_thresh = np.nanpercentile(z_both, strongest_efs*100)
     low_idxs = np.where(z_both < low_thresh)
     low_idxs = np.array(low_idxs)
-    high_thresh = np.nanpercentile(z_both, 90)
+    high_thresh = np.nanpercentile(z_both, 100 - strongest_efs*100)
     high_idxs = np.where(z_both > high_thresh)
     high_idxs = np.array(high_idxs)
     return low_idxs, high_idxs
@@ -622,11 +622,10 @@ if __name__ == '__main__':
     # np.random.seed(0)
     SS_TRIANGLES = False
     # print(f'{SS_TRIANGLES=}')
-    res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
+    res = calc_triangle_corr(strongest_efs=0.5, shuffle=False,
                              ss_triangles=SS_TRIANGLES)
-    #
     # res = calc_triangle_corr(strongest_efs=0.25, shuffle=False,
     #                    ss_triangles=SS_TRIANGLES)
-    calc_triangle_shuffle(res, strongest_efs=0.25, ss_triangles=SS_TRIANGLES)
+    calc_triangle_shuffle(res, strongest_efs=0.5, ss_triangles=SS_TRIANGLES)
 
 

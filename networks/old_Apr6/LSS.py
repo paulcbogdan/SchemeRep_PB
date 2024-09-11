@@ -199,34 +199,12 @@ def get_LSS_img(sn, run, sess=2, only_2bk=True, easy_override=False,
     df_trials.reset_index(drop=True, inplace=True)
     num_nans = df_confounds.isna().sum().sum()
 
-    # print(f'Number of nans in df_confounds: {num_nans=}')
-    # print(f'{df_confounds.isna()=}')
-    # for col in df_confounds.columns:
-    #     num_nans = df_confounds[col].isna().sum()
-    #     print(f'{col=}, {num_nans=}')
-    # print(f'{len(df_trials)=}')
-    # quit()
-
 
     assert num_nans < 10, f'df_confounds: {num_nans=}'
     df_confounds.fillna(0, inplace=True)
     print(f'Running beta-models: {lsa=}')
 
-
-
     logging.debug(f'Running beta-models ({sn}): {lsa=}')
-    # print(img.shape)
-    # quit()
-
-    # print(len(df_trials))
-    # quit()
-    # if not hcp:
-    #     assert len(df_trials) == 38, f'too many trials: {len(df_trials)=}'
-    # return
-    # print(f'{len(df_trials)=}')
-    # quit()
-
-    # log = open(r"H:\PycharmProjects_H\SchemeRep\pb_crash_log.log", "a")
 
 
     if lsa:
