@@ -258,32 +258,40 @@ def LSS_gambling(lsa=True, easy_override=False):
     sns = list(sns)
 
     sns = sorted(sns)
+    print(sns)
     # sns = sns[:-1][::-1]
 
     for sn in sns:
-        fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
-        if lsa:
-            fp_lsa_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
-            if not os.path.exists(fp_lsa_lr) or easy_override:
-                df_events_LR = get_df_events(sn, 'LR')
-                do_LSA(fp_img, df_events_LR, sn, 'LR')
-        else:
-            fp_lss_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
-            if not os.path.exists(fp_lss_lr) or easy_override:
-                df_events_LR = get_df_events(sn, 'LR')
-                do_LSS(fp_img, df_events_LR, sn, 'LR')
+        try:
+            fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
+            if lsa:
+                fp_lsa_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
+                if not os.path.exists(fp_lsa_lr) or easy_override:
+                    df_events_LR = get_df_events(sn, 'LR')
+                    do_LSA(fp_img, df_events_LR, sn, 'LR')
+            else:
+                fp_lss_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
+                if not os.path.exists(fp_lss_lr) or easy_override:
+                    df_events_LR = get_df_events(sn, 'LR')
+                    do_LSS(fp_img, df_events_LR, sn, 'LR')
 
-        fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
-        if lsa:
-            fp_lsa_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
-            if not os.path.exists(fp_lsa_rl) or easy_override:
-                df_events_RL = get_df_events(sn, 'RL')
-                do_LSA(fp_img, df_events_RL, sn, 'RL')
-        else:
-            fp_lss_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
-            if not os.path.exists(fp_lss_rl) or easy_override:
-                df_events_RL = get_df_events(sn, 'RL')
-                do_LSS(fp_img, df_events_RL, sn, 'RL')
+            fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
+            if lsa:
+                fp_lsa_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
+                if not os.path.exists(fp_lsa_rl) or easy_override:
+                    df_events_RL = get_df_events(sn, 'RL')
+                    do_LSA(fp_img, df_events_RL, sn, 'RL')
+            else:
+                fp_lss_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
+                if not os.path.exists(fp_lss_rl) or easy_override:
+                    df_events_RL = get_df_events(sn, 'RL')
+                    do_LSS(fp_img, df_events_RL, sn, 'RL')
+        except FileNotFoundError:
+            print(f'File not found: {sn}')
+        except ValueError as e:
+            print(f'ValueError: {sn}, {e=}')
+        except Exception as e:
+            print(f'ERROR: {sn=}, {e=}')
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     atlas = get_atlas(combine_regions=combine_regions,
@@ -313,8 +321,8 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     return ar
 
 
-def make_conn(combine_regions=False, bilateral=False, drop_neut=True):
-    # TODO: Maybe drop neutral
+def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
+              neut_as_PE=True):
 
     fns = os.listdir(r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA')
     sns = {fn.split('_')[0] for fn in fns}
@@ -331,11 +339,12 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=True):
             continue
 
         # df_lr = df_lr[df_lr['event'] != 'neut']'
-        if drop_neut:
+        if drop_neut or neut_as_PE:
             df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
-
-
-        ar_high = ar[:, df_lr['trial_type'] == 'neut']
+        if neut_as_PE:
+            ar_high = ar[:, df_lr['trial_type'] == 'neut']
+        else:
+            ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
         ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
 
         try:
@@ -345,16 +354,21 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=True):
         except ValueError:
             print(f'Not analyzed connectivity: {sn}')
             continue
-        if drop_neut:
+        if drop_neut or neut_as_PE:
             df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
-        ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
+        if neut_as_PE:
+            ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
+        else:
+            ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
+        # ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
         # print(ar_high2.shape)
         # print(ar_low2.shape)
         # print(ar_high.shape)
         # print(ar_low.shape)
         # quit()
-        if drop_neut:
+        if drop_neut or neut_as_PE:
+            # TODO: account for unequal in two sessions for high PE
             pass
             # assert ar_high.shape[1] * 6 == ar_low.shape[1]
             # assert ar_high2.shape[1] * 6 == ar_low2.shape[1]
@@ -427,11 +441,10 @@ def get_vd_ef(conn, combine_regions=False):
     dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
-    # return dv_pos
     return dd + vv - dv_ant - dv_pos
 
 
-def test_vendor(combine_regions=True, bilateral=False):
+def test_vendor(combine_regions=False, bilateral=False):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral},
@@ -461,8 +474,8 @@ if __name__ == '__main__':
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    # LSS_gambling()
-    test_vendor()
+    LSS_gambling()
+    # test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
