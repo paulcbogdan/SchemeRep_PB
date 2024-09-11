@@ -16,6 +16,9 @@ from nilearn import plotting
 import matplotlib.pyplot as plt
 
 from atlas_utils import get_atlas
+from old.plot_gen import plot_connectivity
+from utils import pickle_wrap
+from vendor_partitioning import get_vendor_partitions
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
@@ -53,7 +56,7 @@ def get_df_events(sn, RL_LR):
     df_trials['trial_type'] = df_trials['same'].apply(
         lambda x: 'low_PE' if x else 'high_PE')
 
-    df_trials.drop(columns=['event', 'block', 'same'], inplace=True)
+    df_trials.drop(columns=['block', 'same'], inplace=True)
 
     return df_trials
 
@@ -131,7 +134,12 @@ def do_LSA(img, df_trials, sn, lr):
 
     fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
 
-
+    img = image.load_img(img)
+    mask = image.load_img(fp_mask)
+    global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
+    df_confounds['global'] = global_signal
+    # print(list(global_signal))
+    # quit()
 
     # MBs = process.memory_info().rss / 1024 / 1024
     # logging.debug(f'Making first level model: {MBs=:.2f}')
@@ -245,38 +253,35 @@ def do_LSS(img, df_trials, sn, lr):
     beta_img.to_filename(fp_lss)
 
 
-def LSS_gambling(lsa=True):
+def LSS_gambling(lsa=True, easy_override=False):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
 
     sns = sorted(sns)
-    print(f'Number of sns: {len(sns)}')
-    quit()
-    # print(sns)
-    # quit()
-    for sn in sns:
+    # sns = sns[:-1][::-1]
 
+    for sn in sns:
         fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
         if lsa:
             fp_lsa_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
-            if not os.path.exists(fp_lsa_lr):
+            if not os.path.exists(fp_lsa_lr) or easy_override:
                 df_events_LR = get_df_events(sn, 'LR')
                 do_LSA(fp_img, df_events_LR, sn, 'LR')
         else:
             fp_lss_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
-            if not os.path.exists(fp_lss_lr):
+            if not os.path.exists(fp_lss_lr) or easy_override:
                 df_events_LR = get_df_events(sn, 'LR')
                 do_LSS(fp_img, df_events_LR, sn, 'LR')
 
         fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
         if lsa:
             fp_lsa_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
-            if not os.path.exists(fp_lsa_rl):
+            if not os.path.exists(fp_lsa_rl) or easy_override:
                 df_events_RL = get_df_events(sn, 'RL')
                 do_LSA(fp_img, df_events_RL, sn, 'RL')
         else:
             fp_lss_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
-            if not os.path.exists(fp_lss_rl):
+            if not os.path.exists(fp_lss_rl) or easy_override:
                 df_events_RL = get_df_events(sn, 'RL')
                 do_LSS(fp_img, df_events_RL, sn, 'RL')
 
@@ -308,37 +313,79 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     return ar
 
 
-def make_conn(combine_regions=False, bilateral=False):
+def make_conn(combine_regions=False, bilateral=False, drop_neut=True):
+    # TODO: Maybe drop neutral
 
     fns = os.listdir(r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA')
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
+    conn_highs = []
+    conn_lows = []
     for sn in tqdm(sns, desc='Making conn'):
-        ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-                            bilateral=bilateral)
-        df_lr = get_df_events(sn, 'LR')
-        ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
+        try:
+            ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+                                bilateral=bilateral)
+            df_lr = get_df_events(sn, 'LR')
+        except ValueError:
+            print(f'Not analyzed connectivity: {sn}')
+            continue
+
+        # df_lr = df_lr[df_lr['event'] != 'neut']'
+        if drop_neut:
+            df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
+
+
+        ar_high = ar[:, df_lr['trial_type'] == 'neut']
         ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
 
-        ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
-                            bilateral=bilateral)
-        df_rl = get_df_events(sn, 'RL')
-        ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
+        try:
+            ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
+                                bilateral=bilateral)
+            df_rl = get_df_events(sn, 'RL')
+        except ValueError:
+            print(f'Not analyzed connectivity: {sn}')
+            continue
+        if drop_neut:
+            df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
+        ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
+        # print(ar_high2.shape)
+        # print(ar_low2.shape)
+        # print(ar_high.shape)
+        # print(ar_low.shape)
+        # quit()
+        if drop_neut:
+            pass
+            # assert ar_high.shape[1] * 6 == ar_low.shape[1]
+            # assert ar_high2.shape[1] * 6 == ar_low2.shape[1]
+            # ar_low = ar_low[:, ::6]
+            # ar_low2 = ar_low2[:, ::6]
+        else:
+            assert ar_high.shape[1] * 3 == ar_low.shape[1]
+            assert ar_high2.shape[1] * 3 == ar_low2.shape[1]
+            ar_low = ar_low[:, ::3]
+            ar_low2 = ar_low2[:, ::3]
 
         ar_high = np.concatenate([ar_high, ar_high2], axis=1)
         ar_low = np.concatenate([ar_low, ar_low2], axis=1)
-        conn_high = np.corrcoef(ar_high)
-        conn_low = np.corrcoef(ar_low)
 
-        plt.imshow(conn_high)
-        plt.colorbar()
-        plt.show()
-        quit()
-    quit()
-        # fp_lsa_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
-        # img_lsa_rl = image.load_img(fp_lsa_rl)
-        # data_lsa_rl = img_lsa_rl.get_fdata()
+        conn_high = np.corrcoef(ar_high)
+        conn_high[np.diag_indices_from(conn_high)] = np.nan
+        conn_low = np.corrcoef(ar_low)
+        conn_low[np.diag_indices_from(conn_low)] = np.nan
+        # plt.imshow(conn_high)
+        # plt.colorbar()
+        # plt.show()
+        # quit()
+        # print(f'{ar_high.shape=}')
+        # print(f'{ar_low.shape=}')
+        # quit()
+        conn_highs.append(conn_high)
+        conn_lows.append(conn_low)
+    conn_highs = np.array(conn_highs)
+    conn_lows = np.array(conn_lows)
+    return conn_highs, conn_lows, sns
+
 def test_LSS_x_LSA():
     fp_LSS = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     img_LSS = image.load_img(fp_LSS).get_fdata()
@@ -366,13 +413,57 @@ def test_LSS_x_LSA():
             # break
     quit()
 
+def get_vd_ef(conn, combine_regions=False):
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', anat=True, weighted=False,
+                              flip=True, thr=.9, scrub=False, anat_ver=3,
+                              combine_regions=combine_regions)
+
+    dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
+    dd = np.nanmean(dd, axis=(1, 2))
+    vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
+    vv = np.nanmean(vv, axis=(1, 2))
+    dv_ant = conn[:, *np.ix_(p_d_ant, p_v_ant)]
+    dv_ant = np.nanmean(dv_ant, axis=(1, 2))
+    dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
+    dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    # return dv_pos
+    return dd + vv - dv_ant - dv_pos
+
+
+def test_vendor(combine_regions=True, bilateral=False):
+    conn_highs, conn_lows, sns = (
+        pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
+                                       'bilateral': bilateral},
+                                       easy_override=True))
+    dif = conn_highs - conn_lows
+    M = np.nanmean(dif, axis=0)
+    SE = stats.sem(dif, axis=0, nan_policy='omit')
+    t = M / SE
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=bilateral, HCP=True,
+                      lifu_labels=False)
+    title = 'ehh'
+    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'], title=title, tile=.01,
+                      no_avg=True, cbar_label='Correlation (r)')
+
+    ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions)
+    ef_low = get_vd_ef(conn_lows, combine_regions=combine_regions)
+    itr = ef_low - ef_high
+    t, p = stats.ttest_1samp(itr, 0)
+    N = itr.shape[0]
+    print(f't[{N - 1}] = {t:.2f}, {p=:.3f}')
+
+
 
 if __name__ == '__main__':
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
     # LSS_gambling()
-    make_conn()
+    test_vendor()
+    # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
 

@@ -11,6 +11,9 @@ def get_sns():
 def unzip_all_gambling():
     sns = get_sns()
     for sn in sns:
+        if sn == '106824':
+            # errors
+            continue
         fp_zip = rf'G:\HCP_G\{sn}_3T_tfMRI_GAMBLING_preproc.zip'
         fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
         if os.path.exists(fp_test_unzip):

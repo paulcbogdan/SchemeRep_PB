@@ -69,6 +69,8 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
                   sn_inc_activity_std[..., None, :, :]
     conn_trials = np.repeat(matrix_mask[None, None, ..., None],
                             conn_trials.shape[-1], axis=4) * conn_trials[..., :]
+    # print(conn_trials.shape)
+    # quit()
 
     dd_flat = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant,
                                              trialwise=False)
