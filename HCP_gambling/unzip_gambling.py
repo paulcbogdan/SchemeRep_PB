@@ -7,6 +7,7 @@ from shutil import copyfileobj
 from zipfile import ZipFile
 from tqdm.auto import tqdm  # could use from tqdm.gui import tqdm
 from tqdm.utils import CallbackIOWrapper
+import time
 
 def get_sns():
     fns = os.listdir(r'G:\HCP_G')
@@ -34,20 +35,23 @@ def extractall(fzip, dest, desc="Extracting"):
                 # print('already did')
                 continue
             # print(f'Extract: {fn}')
+            if fn == 'Movement_AbsoluteRMS_mean.txt': continue
+            Path(dest / i.filename).parent.mkdir(parents=True, exist_ok=True)
             if not getattr(i, "file_size", 0):  # directory
                 zipf.extract(i, fspath(dest))
             else:
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_gambling(override=True):
+def unzip_all_gambling(override=False):
     sns = get_sns()
     if override:
         sns = ['106319', '106824', '111009', '111312']
+    print(f'{len(sns)=}')
     for sn in sns:
-        if sn == '106824' and not override:
-            # errors
-            continue
+        # if sn == '106824' and not override:
+        #     # errors
+        #     continue
         fp_zip = rf'G:\HCP_G\{sn}_3T_tfMRI_GAMBLING_preproc.zip'
         fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
         fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\brainmask_fs.2.nii.gz'
@@ -56,12 +60,13 @@ def unzip_all_gambling(override=True):
         print(f'Unzipping: {sn}')
         fp_unzip = rf'G:\HCP_gambling'
 
-        # try:
-        extractall(fp_zip, fp_unzip)
-        # except FileNotFoundError as e:
-        #     print(f'File not found: {sn}, {e=}')
-        # except ZipFile.BadZipFil
-        #     print(f'Bad zip file: {sn}')
+        try:
+            extractall(fp_zip, fp_unzip)
+        except FileNotFoundError as e:
+            print(f'File not found: {sn}, {e=}')
+            time.sleep(1)
+        except zipfile.BadZipfile:
+            print(f'Bad zip file: {sn}')
 
         # with open(fp_zip, 'rb') as f:
         #     with zipfile.ZipFile(f) as z:

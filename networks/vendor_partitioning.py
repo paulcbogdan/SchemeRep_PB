@@ -202,8 +202,6 @@ def get_vendor_partitions(sn_inc_conn=None, age2idxs=None,
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, _ = \
             pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache')
-        # print(sn_inc_conn.shape)
-        # quit()
 
 
     comb_str = f'_comb' if combine_regions else ''

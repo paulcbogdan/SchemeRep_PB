@@ -16,9 +16,11 @@ from nilearn import plotting
 import matplotlib.pyplot as plt
 
 from atlas_utils import get_atlas
+from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from vendor_partitioning import get_vendor_partitions
+from vendor_partitioning import get_vendor_partitions, do_regression
+import time
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
@@ -258,9 +260,9 @@ def LSS_gambling(lsa=True, easy_override=False):
     sns = list(sns)
 
     sns = sorted(sns)
-    print(sns)
-    # sns = sns[:-1][::-1]
+    sns = sns[::-1]
 
+    bad_sns = []
     for sn in sns:
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
@@ -286,12 +288,19 @@ def LSS_gambling(lsa=True, easy_override=False):
                 if not os.path.exists(fp_lss_rl) or easy_override:
                     df_events_RL = get_df_events(sn, 'RL')
                     do_LSS(fp_img, df_events_RL, sn, 'RL')
+            print(f'Done: {sn}')
         except FileNotFoundError:
             print(f'File not found: {sn}')
+            time.sleep(1)
+            bad_sns.append(sn)
         except ValueError as e:
             print(f'ValueError: {sn}, {e=}')
+            bad_sns.append(sn)
         except Exception as e:
             print(f'ERROR: {sn=}, {e=}')
+            time.sleep(1)
+            bad_sns.append(sn)
+    print(f'{bad_sns=}')
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     atlas = get_atlas(combine_regions=combine_regions,
@@ -322,7 +331,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
 
 
 def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
-              neut_as_PE=True):
+              neut_as_PE=False, regr_M=True):
 
     fns = os.listdir(r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA')
     sns = {fn.split('_')[0] for fn in fns}
@@ -337,6 +346,12 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
         except ValueError:
             print(f'Not analyzed connectivity: {sn}')
             continue
+        except Exception as e:
+            print(f'ERROR: {sn}, {e=}')
+            time.sleep(1)
+            continue
+        if regr_M:
+            ar -= ar.mean(axis=1, keepdims=True)
 
         # df_lr = df_lr[df_lr['event'] != 'neut']'
         if drop_neut or neut_as_PE:
@@ -354,19 +369,24 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
         except ValueError:
             print(f'Not analyzed connectivity: {sn}')
             continue
+        except Exception as e:
+            print(f'ERROR: {sn}, {e=}')
+            time.sleep(1)
+            continue
         if drop_neut or neut_as_PE:
             df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
+
+        if regr_M:
+            ar -= ar.mean(axis=1, keepdims=True)
+
         if neut_as_PE:
             ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         else:
             ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
         # ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
-        # print(ar_high2.shape)
-        # print(ar_low2.shape)
-        # print(ar_high.shape)
-        # print(ar_low.shape)
-        # quit()
+
+
         if drop_neut or neut_as_PE:
             # TODO: account for unequal in two sessions for high PE
             pass
@@ -379,6 +399,12 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
             assert ar_high2.shape[1] * 3 == ar_low2.shape[1]
             ar_low = ar_low[:, ::3]
             ar_low2 = ar_low2[:, ::3]
+
+        # print(f'{ar_high.shape=}')
+        # print(f'{ar_low.shape=}')
+        # print(f'{ar_high2.shape=}')
+        # print(f'{ar_low2.shape=}')
+        # quit()
 
         ar_high = np.concatenate([ar_high, ar_high2], axis=1)
         ar_low = np.concatenate([ar_low, ar_low2], axis=1)
@@ -394,6 +420,9 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
         # print(f'{ar_high.shape=}')
         # print(f'{ar_low.shape=}')
         # quit()
+
+        # TODO: Lateralized connectivity.
+        #  high R-A/high R-P and low L-A/low L-P means A-P connectivity
         conn_highs.append(conn_high)
         conn_lows.append(conn_low)
     conn_highs = np.array(conn_highs)
@@ -427,11 +456,16 @@ def test_LSS_x_LSA():
             # break
     quit()
 
-def get_vd_ef(conn, combine_regions=False):
+def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
                               flip=True, thr=.9, scrub=False, anat_ver=3,
                               combine_regions=combine_regions)
+    if combine_bilateral:
+        p_d_ant = np.array(p_d_ant[::2]) // 2
+        p_d_pos = np.array(p_d_pos[::2]) // 2
+        p_v_ant = np.array(p_v_ant[::2]) // 2
+        p_v_pos = np.array(p_v_pos[::2]) // 2
 
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
     dd = np.nanmean(dd, axis=(1, 2))
@@ -441,36 +475,100 @@ def get_vd_ef(conn, combine_regions=False):
     dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    return dd
     return dd + vv - dv_ant - dv_pos
 
 
 def test_vendor(combine_regions=False, bilateral=False):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
-                                       'bilateral': bilateral},
-                                       easy_override=True))
+                                       'bilateral': bilateral,
+                                       'neut_as_PE': True,
+                                       'drop_neut': False,
+                                       'regr_M': False},
+                                       easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
     SE = stats.sem(dif, axis=0, nan_policy='omit')
     t = M / SE
-    atlas = get_atlas(combine_regions=combine_regions,
-                      combine_bilateral=bilateral, HCP=True,
-                      lifu_labels=False)
-    title = 'ehh'
-    plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'], title=title, tile=.01,
-                      no_avg=True, cbar_label='Correlation (r)')
 
-    ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions)
-    ef_low = get_vd_ef(conn_lows, combine_regions=combine_regions)
+    # t[np.abs(t) > 3] = np.nan
+
+    # print(t.shape)
+    # t_flat = t[np.tril_indices_from(t, k=-1)]
+
+    # z_both = get_SchemeRep_regr(combine_regions=combine_regions)
+    # print(z_both.shape)
+    # quit()
+    # z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
+
+
+    # r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
+    # print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
+
+
+
+
+    if not bilateral:
+        atlas = get_atlas(combine_regions=combine_regions,
+                          combine_bilateral=bilateral, HCP=True,
+                          lifu_labels=False)
+        # t = np.nanmean(dif > 0, axis=0)
+        # t[t > 0] = 1
+        # t[t < 0] = -1
+        plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                          atlas['tick_lows'], title='Gambling', tile=.01,
+                          no_avg=True, cbar_label='Correlation (r)')
+    # quit()
+
+    # t[np.abs(t) < 3] = np.nan
+
+    ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
+                        combine_bilateral=bilateral)
+    ef_low = get_vd_ef(conn_lows, combine_regions=combine_regions,
+                       combine_bilateral=bilateral)
     itr = ef_low - ef_high
     t, p = stats.ttest_1samp(itr, 0)
     N = itr.shape[0]
     print(f't[{N - 1}] = {t:.2f}, {p=:.3f}')
 
+def get_SchemeRep_regr(regress=False, combine_regions=False):
+    kwargs = {'fp': 'obj7_fMRI',
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True,
+              'combine_regions': combine_regions,
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
+        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache')
+    # print(sn_inc_conn.shape)
+    # quit()
+
+    z_both = do_regression(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
+
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=False, HCP=True,
+                      lifu_labels=False)
+    if combine_regions:
+        z_both = z_both[:54, :54]
+    plot_connectivity(z_both, atlas['ticks'], atlas['tick_labels'],
+                      atlas['tick_lows'], title='SchemeRep matrix', tile=.01,
+                      no_avg=True, cbar_label='Correlation (r)')
+    # if combine_regions:
+    #     # print(z_both.shape)
+    #     # print(len(atlas['ROIs']))
+    #     z_both = z_both[np.ix_(len(atlas['ROIs']), len(atlas['ROIs']))]
+    # print(z_both.shape)
+    # quit()
+
+
+    return z_both
 
 
 if __name__ == '__main__':
+    # get_SchemeRep_regr()
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
