@@ -74,11 +74,21 @@ def get_df_events(sn, RL_LR, cont_PE=None):
                 PE = 0 - E
                 E = E * (1 - learning)
             PE_cont.append(PE)
+        #     print(row['event'], f'{PE=:.2f}, {E=:.2f}')
+        # quit()
+        # df_trials['E'] = E
         df_trials['PE'] = PE_cont
         df_trials['PE_abs'] = df_trials['PE'].abs()
+
+
         med_PE = df_trials['PE_abs'].median()
         df_trials['trial_type'] = df_trials['PE_abs'].apply(
             lambda x: 'low_PE' if x < med_PE else 'high_PE')
+
+        pd.set_option('display.max_rows', 2000)
+        # print(f'{med_PE=}')
+        # print(df_trials[['event', 'trial_type', 'PE_abs']])
+        # quit()
 
 
     df_trials.drop(columns=['same'], inplace=True)
@@ -513,7 +523,7 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     return dd + vv - dv_ant - dv_pos
 
 
-def test_vendor(combine_regions=False, bilateral=False):
+def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral,
@@ -521,7 +531,7 @@ def test_vendor(combine_regions=False, bilateral=False):
                                        'drop_neut': False,
                                        'regr_M': True,
                                        'only': None,
-                                       'cont_PE': 0.5},
+                                       'cont_PE': 0.3},
                                        easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
@@ -531,19 +541,13 @@ def test_vendor(combine_regions=False, bilateral=False):
     # t[np.abs(t) > 3] = np.nan
 
     # print(t.shape)
-    # t_flat = t[np.tril_indices_from(t, k=-1)]
-
-    # z_both = get_SchemeRep_regr(combine_regions=combine_regions)
-    # print(z_both.shape)
-    # quit()
-    # z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
-
-
-    # r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
-    # print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
-
-
-
+    if corr_z:
+        t_flat = t[np.tril_indices_from(t, k=-1)]
+        z_both = get_SchemeRep_regr(combine_regions=combine_regions)
+        z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
+        r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
+        print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
+        # quit()
 
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
@@ -576,7 +580,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False):
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=1, cache_dir='cache')
+                    easy_override=True, verbose=1, cache_dir='cache')
     # print(sn_inc_conn.shape)
     # quit()
 
