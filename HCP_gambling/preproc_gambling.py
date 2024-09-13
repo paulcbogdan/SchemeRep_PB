@@ -530,7 +530,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
                                        'neut_as_PE': None,
                                        'drop_neut': False,
                                        'regr_M': False,
-                                       'only': 'loss',
+                                       'only': 'win',
                                        'cont_PE': 0.5},
                                        easy_override=False))
     dif = conn_highs - conn_lows
