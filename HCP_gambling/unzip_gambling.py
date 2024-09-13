@@ -43,11 +43,19 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_gambling(override=False):
+def unzip_all_gambling(override=False, slow_check=False):
     sns = get_sns()
     if override:
         # sns = ['106319', '106824', '111009', '111312']
         sns = ['141826', '141422', '137936', '136126', '135730', '131419', '117021', '115825', '115724', '111009', '106521']
+        sns = ['144226', '146937', '150423', '160729', '169040', '169141', '169343', '169444', '169545', '171431',
+                   '171532', '171734']
+    # sns = ['144226']
+    # from nilearn import image
+    # fp = r'G:\HCP_gambling\144226\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
+    # img = image.load_img(fp)
+    # print(img.shape)
+    # quit()
     print(f'{len(sns)=}')
     sns = sns[::-1]
     for sn in sns:
@@ -55,20 +63,51 @@ def unzip_all_gambling(override=False):
         #     # errors
         #     continue
         fp_zip = rf'G:\HCP_G\{sn}_3T_tfMRI_GAMBLING_preproc.zip'
-        fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
-        fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\brainmask_fs.2.nii.gz'
-        if os.path.exists(fp_test_unzip) and not override:
-            continue
+        missing_checks = [r'tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz',
+                          r'tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz',
+                          r'tfMRI_GAMBLING_RL\brainmask_fs.2.nii.gz',
+                          r'tfMRI_GAMBLING_LR\brainmask_fs.2.nii.gz']
+        if slow_check:
+            do = False
+            for check in missing_checks:
+                fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\{check}'
+                if not os.path.exists(fp_test_unzip):
+                    do = True
+                    break
+                if os.path.getsize(fp_test_unzip) < 1000:
+                    do = True
+                    break
+                if 'LR.nii.gz' in check:
+                    if os.path.getsize(fp_test_unzip) < 150 * 1e6:
+                        do = True
+                        break
+            if not do and not override:
+                print(f'Pass: {sn}')
+                continue
+        else:
+            check = missing_checks[0]
+            fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\{check}'
+            if os.path.exists(fp_test_unzip) and not override:
+                print(f'Pass: {fp_test_unzip=}')
+                continue
+                # print(f'Pass: {fp_test_unzip=}')
+        # fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
+        # fp_test_unzip = rf'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\brainmask_fs.2.nii.gz'
+
+
         print(f'Unzipping: {sn}')
         fp_unzip = rf'G:\HCP_gambling'
 
         try:
-            extractall(fp_zip, fp_unzip, override=override)
+            extractall(fp_zip, fp_unzip, override=True)
         except FileNotFoundError as e:
             print(f'File not found: {sn}, {e=}')
             time.sleep(5)
         except zipfile.BadZipfile:
             print(f'Bad zip file: {sn}')
+        except OSError:
+            print(f'OS error: {sn}')
+            continue
 
         # with open(fp_zip, 'rb') as f:
         #     with zipfile.ZipFile(f) as z:

@@ -523,15 +523,15 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     return dd + vv - dv_ant - dv_pos
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=False):
+def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral,
-                                       'neut_as_PE': None,
+                                       'neut_as_PE': True,
                                        'drop_neut': False,
                                        'regr_M': False,
                                        'only': None,
-                                       'cont_PE': 0.5},
+                                       'cont_PE': None},
                                        easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
@@ -623,8 +623,8 @@ if __name__ == '__main__':
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    LSS_gambling()
-    # test_vendor()
+    # LSS_gambling()
+    test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
