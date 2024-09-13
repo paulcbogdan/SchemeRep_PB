@@ -22,9 +22,10 @@ from utils import pickle_wrap
 from vendor_partitioning import get_vendor_partitions, do_regression
 import time
 
+
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
-def get_df_events(sn, RL_LR):
+def get_df_events(sn, RL_LR, cont_PE=None):
     dir_LR = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{RL_LR}\EVs'
     df_loss_event = pd.read_csv(fr'{dir_LR}\loss_event.txt', delimiter='\t',
                                 header=None, names=['onset', 'duration', 'amplitude'])
@@ -58,7 +59,29 @@ def get_df_events(sn, RL_LR):
     df_trials['trial_type'] = df_trials['same'].apply(
         lambda x: 'low_PE' if x else 'high_PE')
 
-    df_trials.drop(columns=['block', 'same'], inplace=True)
+    if cont_PE is not None:
+        PE_cont = []
+        E = 0
+        learning = cont_PE
+        for idx, row in df_trials.iterrows():
+            if row['event'] == 'win':
+                PE = 1 - E
+                E = E * (1 - learning) + learning
+            elif row['event'] == 'loss':
+                PE = -1 - E
+                E = E * (1 - learning) - learning
+            else:
+                PE = 0 - E
+                E = E * (1 - learning)
+            PE_cont.append(PE)
+        df_trials['PE'] = PE_cont
+        df_trials['PE_abs'] = df_trials['PE'].abs()
+        med_PE = df_trials['PE_abs'].median()
+        df_trials['trial_type'] = df_trials['PE_abs'].apply(
+            lambda x: 'low_PE' if x < med_PE else 'high_PE')
+
+
+    df_trials.drop(columns=['same'], inplace=True)
 
     return df_trials
 
@@ -331,7 +354,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
 
 
 def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
-              neut_as_PE=False, regr_M=True):
+              neut_as_PE=False, regr_M=True, only=None, cont_PE=None):
 
     fns = os.listdir(r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA')
     sns = {fn.split('_')[0] for fn in fns}
@@ -342,7 +365,7 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
         try:
             ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
                                 bilateral=bilateral)
-            df_lr = get_df_events(sn, 'LR')
+            df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE)
         except ValueError:
             print(f'Not analyzed connectivity: {sn}')
             continue
@@ -350,55 +373,66 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
             print(f'ERROR: {sn}, {e=}')
             time.sleep(1)
             continue
-        if regr_M:
-            ar -= ar.mean(axis=1, keepdims=True)
+
 
         # df_lr = df_lr[df_lr['event'] != 'neut']'
+        if only:
+            df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
         if drop_neut or neut_as_PE:
             df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
+
+
+        if regr_M:
+            ar -= ar.mean(axis=1, keepdims=True)
         if neut_as_PE:
             ar_high = ar[:, df_lr['trial_type'] == 'neut']
         else:
             ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
+
+
         ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
 
         try:
             ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
                                 bilateral=bilateral)
-            df_rl = get_df_events(sn, 'RL')
+            df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE)
         except ValueError:
             print(f'Not analyzed connectivity: {sn}')
             continue
         except Exception as e:
             print(f'ERROR: {sn}, {e=}')
-            time.sleep(1)
+            time.sleep(10)
             continue
+        if only:
+            df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
         if drop_neut or neut_as_PE:
             df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
 
+        # print(df_rl[['event', 'block']].value_counts())
+        # print(df_lr[['event', 'block']].value_counts())
+        # quit()
+
         if regr_M:
             ar -= ar.mean(axis=1, keepdims=True)
-
         if neut_as_PE:
             ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         else:
             ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
-        # ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
         ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
 
 
-        if drop_neut or neut_as_PE:
-            # TODO: account for unequal in two sessions for high PE
-            pass
+        # if drop_neut or neut_as_PE:
+        #     # TODO: account for unequal in two sessions for high PE
+        #     pass
             # assert ar_high.shape[1] * 6 == ar_low.shape[1]
             # assert ar_high2.shape[1] * 6 == ar_low2.shape[1]
             # ar_low = ar_low[:, ::6]
             # ar_low2 = ar_low2[:, ::6]
-        else:
-            assert ar_high.shape[1] * 3 == ar_low.shape[1]
-            assert ar_high2.shape[1] * 3 == ar_low2.shape[1]
-            ar_low = ar_low[:, ::3]
-            ar_low2 = ar_low2[:, ::3]
+        # else:
+            # assert ar_high.shape[1] * 3 == ar_low.shape[1]
+            # assert ar_high2.shape[1] * 3 == ar_low2.shape[1]
+            # ar_low = ar_low[:, ::3]
+            # ar_low2 = ar_low2[:, ::3]
 
         # print(f'{ar_high.shape=}')
         # print(f'{ar_low.shape=}')
@@ -459,7 +493,7 @@ def test_LSS_x_LSA():
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=3,
+                              flip=True, thr=.9, scrub=False, anat_ver=5,
                               combine_regions=combine_regions)
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -475,7 +509,7 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
-    return dd
+    # return dv_ant
     return dd + vv - dv_ant - dv_pos
 
 
@@ -483,9 +517,11 @@ def test_vendor(combine_regions=False, bilateral=False):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral,
-                                       'neut_as_PE': True,
+                                       'neut_as_PE': None,
                                        'drop_neut': False,
-                                       'regr_M': False},
+                                       'regr_M': True,
+                                       'only': None,
+                                       'cont_PE': 0.5},
                                        easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
@@ -519,9 +555,7 @@ def test_vendor(combine_regions=False, bilateral=False):
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title='Gambling', tile=.01,
                           no_avg=True, cbar_label='Correlation (r)')
-    # quit()
 
-    # t[np.abs(t) < 3] = np.nan
 
     ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
                         combine_bilateral=bilateral)
@@ -572,8 +606,8 @@ if __name__ == '__main__':
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    LSS_gambling()
-    # test_vendor()
+    # LSS_gambling()
+    test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()

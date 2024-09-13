@@ -11,12 +11,12 @@ import time
 
 def get_sns():
     fns = os.listdir(r'G:\HCP_G')
-    fns = [fn for fn in fns if 'GAMBLING' in fn]
+    fns = [fn for fn in fns if 'GAMBLING' in fn and fn[-4:] == '.zip']
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
     return sns
 
-def extractall(fzip, dest, desc="Extracting"):
+def extractall(fzip, dest, desc="Extracting", override=False):
     """zipfile.Zipfile(fzip).extractall(dest) with progress"""
     dest = Path(dest).expanduser()
     with ZipFile(fzip) as zipf, tqdm(
@@ -31,7 +31,7 @@ def extractall(fzip, dest, desc="Extracting"):
                               'brainmask_fs.2.nii.gz']:
                     continue
             # print(f'Extract: {fn}')
-            if os.path.isfile(fspath(dest / i.filename)):
+            if os.path.isfile(fspath(dest / i.filename)) and not override:
                 # print('already did')
                 continue
             # print(f'Extract: {fn}')
@@ -46,8 +46,10 @@ def extractall(fzip, dest, desc="Extracting"):
 def unzip_all_gambling(override=False):
     sns = get_sns()
     if override:
-        sns = ['106319', '106824', '111009', '111312']
+        # sns = ['106319', '106824', '111009', '111312']
+        sns = ['141826', '141422', '137936', '136126', '135730', '131419', '117021', '115825', '115724', '111009', '106521']
     print(f'{len(sns)=}')
+    sns = sns[::-1]
     for sn in sns:
         # if sn == '106824' and not override:
         #     # errors
@@ -61,10 +63,10 @@ def unzip_all_gambling(override=False):
         fp_unzip = rf'G:\HCP_gambling'
 
         try:
-            extractall(fp_zip, fp_unzip)
+            extractall(fp_zip, fp_unzip, override=override)
         except FileNotFoundError as e:
             print(f'File not found: {sn}, {e=}')
-            time.sleep(1)
+            time.sleep(5)
         except zipfile.BadZipfile:
             print(f'Bad zip file: {sn}')
 
