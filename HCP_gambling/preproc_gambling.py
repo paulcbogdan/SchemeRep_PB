@@ -527,11 +527,11 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral,
-                                       'neut_as_PE': True,
+                                       'neut_as_PE': None,
                                        'drop_neut': False,
                                        'regr_M': False,
-                                       'only': None,
-                                       'cont_PE': None},
+                                       'only': 'loss',
+                                       'cont_PE': 0.5},
                                        easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
