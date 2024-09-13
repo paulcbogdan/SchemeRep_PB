@@ -291,9 +291,9 @@ def do_LSS(img, df_trials, sn, lr):
 def LSS_gambling(lsa=True, easy_override=False):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
-
+    print(f'{len(sns)=}')
     sns = sorted(sns)
-    sns = sns[::-1]
+    # sns = sns[::-1]
 
     bad_sns = []
     for sn in sns:
@@ -503,7 +503,7 @@ def test_LSS_x_LSA():
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=5,
+                              flip=True, thr=.9, scrub=False, anat_ver=3,
                               combine_regions=combine_regions)
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -523,15 +523,15 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     return dd + vv - dv_ant - dv_pos
 
 
-def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
+def test_vendor(combine_regions=False, bilateral=False, corr_z=False):
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
                                        'bilateral': bilateral,
                                        'neut_as_PE': None,
                                        'drop_neut': False,
-                                       'regr_M': True,
+                                       'regr_M': False,
                                        'only': None,
-                                       'cont_PE': 0.3},
+                                       'cont_PE': 0.5},
                                        easy_override=False))
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
@@ -569,6 +569,19 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
     t, p = stats.ttest_1samp(itr, 0)
     N = itr.shape[0]
     print(f't[{N - 1}] = {t:.2f}, {p=:.3f}')
+    n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)
+    plt.plot([0, 0], [0, np.max(n)], 'r--')
+    plt.show()
+
+    plt.hist(itr, range=(-0.4, 0.4), bins=40,
+             cumulative=True, density=True)
+    plt.plot([0, 0], [0, 1], 'r--')
+    plt.plot([-.4, .4], [0.5, 0.5], 'r--')
+    plt.xlim(-0.4, 0.4)
+    plt.ylim(0, 1)
+    plt.show()
+    quit()
+
 
 def get_SchemeRep_regr(regress=False, combine_regions=False):
     kwargs = {'fp': 'obj7_fMRI',
@@ -580,7 +593,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False):
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=True, verbose=1, cache_dir='cache')
+                    easy_override=False, verbose=1, cache_dir='cache')
     # print(sn_inc_conn.shape)
     # quit()
 
@@ -610,8 +623,8 @@ if __name__ == '__main__':
     # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    # LSS_gambling()
-    test_vendor()
+    LSS_gambling()
+    # test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
