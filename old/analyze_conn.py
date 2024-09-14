@@ -8,6 +8,8 @@ import pandas as pd
 
 import statsmodels.formula.api as smf
 
+# test
+
 def replace_w_nan_if_needed(vals):
     clean = []
     for x in vals:
