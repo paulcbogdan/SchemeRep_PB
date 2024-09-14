@@ -21,41 +21,8 @@ from organize_bhv import get_trial_info
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 from functools import cache
-# TODO: check, U:\Cabeza\SchemRep.01\Scripts\RSA\RSAmodels\RSM_VGG16_PCA.mat
-# Lifu used it, per analysis_v2_ENC_bars.m
-
-# def get_stim_RDM_lifu(df_sn, per=True):
-#     from tqdm import tqdm
-#     import scipy.io as io
-#     print('Loading existing...')
-#     if per:
-#         fp_in = r'H:\PycharmProjects_H\SchemeRep\old\RSAmodels' \
-#                 r'\example_deepNeuralNetworkScripts_from_Lifu\RSAmodel\modelRDMs' \
-#                 r'\RSM_VGG16_PCA.mat'
-#     else:
-#         fp_in = r'H:\PycharmProjects_H\SchemeRep\old\RSAmodels\W2Vsemantic_RDM.mat'
-#     mat = io.loadmat(fp_in)
-#     RDM_stim = mat['R']
-#     RDM_new = np.zeros((len(df_sn), len(df_sn)))
-#
-#     tblStim = pd.read_csv(r"SchemRep_tasks\PTBtasks\fullStimList.csv")
-#     tblStim.head()
-#     filelist = tblStim['ObjectFile'].to_list()
-#     name2fps, _ = get_img_fns(get_dict=True)
-#
-#     for obj0 in tqdm(df_sn['obj'], desc='prepping Lifu RDM'):
-#         obj0 = name2fps[obj0].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
-#         for obj1 in df_sn['obj']:
-#             obj1 = name2fps[obj1].replace(r'SchemRep_tasks\PTBtasks\updatedObjectsResampled', '')[1:]
-#             idx0 = filelist.index(obj0)
-#             idx1 = filelist.index(obj1)
-#             RDM_new[idx0, idx1] = RDM_stim[idx0, idx1]
-#             RDM_new[idx1, idx0] = RDM_stim[idx1, idx0]
-#     # pd.DataFrame(RDM_new).to_csv('RDM_stim_lifu.csv')
-#
-#     return RDM_new
 
 
 def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,

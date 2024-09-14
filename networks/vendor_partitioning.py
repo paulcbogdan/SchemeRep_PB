@@ -1,7 +1,7 @@
 
 import os
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from pathlib import Path
 from collections import defaultdict, Counter
@@ -10,9 +10,9 @@ from copy import copy
 import numpy as np
 
 from atlas_utils import get_atlas
-from old_Apr6.ttest_mat import get_stats_graphs
-from old.modularity import get_main_partitions
-from old.network_funcs import load_FC_for_Lifu
+# from ttest_mat import get_stats_graphs
+# from old.modularity import get_main_partitions
+# from old.network_funcs import load_FC_for_Lifu
 from utils import pickle_wrap, stdize
 import matplotlib.pyplot as plt
 

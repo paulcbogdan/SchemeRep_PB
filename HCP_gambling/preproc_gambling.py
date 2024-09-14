@@ -16,14 +16,16 @@ from nilearn import plotting
 import matplotlib.pyplot as plt
 
 from atlas_utils import get_atlas
-from old.network_funcs import load_FC_for_Lifu
+from networks.old.network_funcs import load_FC_for_Lifu
+from networks.vendor_partitioning import get_vendor_partitions, do_regression
+# from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
-from vendor_partitioning import get_vendor_partitions, do_regression
+# from vendor_partitioning import get_vendor_partitions, do_regression
 import time
 
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 def get_df_events(sn, RL_LR, cont_PE=None):
     dir_LR = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{RL_LR}\EVs'
@@ -226,7 +228,7 @@ def do_LSA(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lsa = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
+    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
     beta_img.to_filename(fp_lsa)
     # quit()
 
@@ -284,7 +286,7 @@ def do_LSS(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lss = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS.nii'
+    fp_lss = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS.nii'
     beta_img.to_filename(fp_lss)
 
 
@@ -293,31 +295,33 @@ def LSS_gambling(lsa=True, easy_override=False):
     sns = list(sns)
     print(f'{len(sns)=}')
     sns = sorted(sns)
-    # sns = sns[::-1]
+    # sns = sns
+    sns = sns[::2]
+    sns = sns[::-1]
 
     bad_sns = []
     for sn in sns:
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
             if lsa:
-                fp_lsa_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
+                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
                 if not os.path.exists(fp_lsa_lr) or easy_override:
                     df_events_LR = get_df_events(sn, 'LR')
                     do_LSA(fp_img, df_events_LR, sn, 'LR')
             else:
-                fp_lss_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
+                fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
                 if not os.path.exists(fp_lss_lr) or easy_override:
                     df_events_LR = get_df_events(sn, 'LR')
                     do_LSS(fp_img, df_events_LR, sn, 'LR')
 
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
             if lsa:
-                fp_lsa_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
+                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
                 if not os.path.exists(fp_lsa_rl) or easy_override:
                     df_events_RL = get_df_events(sn, 'RL')
                     do_LSA(fp_img, df_events_RL, sn, 'RL')
             else:
-                fp_lss_rl = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
+                fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
                 if not os.path.exists(fp_lss_rl) or easy_override:
                     df_events_RL = get_df_events(sn, 'RL')
                     do_LSS(fp_img, df_events_RL, sn, 'RL')
@@ -340,7 +344,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
                       combine_bilateral=bilateral,
                       HCP=True)
 
-    fp_lsa_lr = fr'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
+    fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
     img_lsa_lr = image.load_img(fp_lsa_lr)
     data_lsa_lr = img_lsa_lr.get_fdata()
     df_events = get_df_events(sn, 'LR')
@@ -366,7 +370,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
 def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
               neut_as_PE=False, regr_M=True, only=None, cont_PE=None):
 
-    fns = os.listdir(r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA')
+    fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
     conn_highs = []
@@ -474,9 +478,9 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     return conn_highs, conn_lows, sns
 
 def test_LSS_x_LSA():
-    fp_LSS = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
+    fp_LSS = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     img_LSS = image.load_img(fp_LSS).get_fdata()
-    fp_LSA = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSA\100206_LR_LSA.nii'
+    fp_LSA = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\100206_LR_LSA.nii'
     img_LSA = image.load_img(fp_LSA).get_fdata()
 
     for _ in range(100):
@@ -594,8 +598,6 @@ def get_SchemeRep_regr(regress=False, combine_regions=False):
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
-    # print(sn_inc_conn.shape)
-    # quit()
 
     z_both = do_regression(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
 
@@ -620,7 +622,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False):
 
 if __name__ == '__main__':
     # get_SchemeRep_regr()
-    # fp = r'H:\PycharmProjects_H\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
+    # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
     # LSS_gambling()

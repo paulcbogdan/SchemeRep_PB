@@ -10,12 +10,13 @@ from scipy import stats as stats
 from atlas_utils import get_atlas
 from connRSA.conn_utils import get_BNA_ROIs
 from fMRI_proc import get_ROI_vecs
-from old.modularity import get_partition_matrix, get_main_partitions
+from networks.old.modularity import get_partition_matrix
+# from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 from utils import pickle_wrap, stdize
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',

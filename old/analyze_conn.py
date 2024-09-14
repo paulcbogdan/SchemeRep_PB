@@ -20,9 +20,6 @@ def replace_w_nan_if_needed(vals):
             fill_nan = np.full(shape_nan, np.nan)
             x = np.concatenate([x, fill_nan])
             clean.append(x)
-            # print(f'{x.shape=}')
-            # quit()
-            # clean.append(np.full(vals[0].shape, np.nan))
     return np.array(clean)
 
 def random_interaction_stuff(d, d2):
