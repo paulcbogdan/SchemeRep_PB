@@ -23,8 +23,7 @@ from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
-from numba import jit
-
+from numba import jit, prange, njit
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
@@ -558,10 +557,21 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
     #       'lr_separate': True, 'num_sns': 200}
 
 
+    # kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': False, 'regr_M': False,
+    #       'only': None, 'cont_PE': 1.0, 'cont_PE_by_event': True,
+    #       'lr_separate': False, 'num_sns': 500}
+
+    # kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': False, 'regr_M': False,
+    #       'only': None, 'cont_PE': 0.3, 'cont_PE_by_event': True,
+    #       'lr_separate': False, 'num_sns': 200}
+
     kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': False, 'regr_M': False,
-          'only': None, 'cont_PE': 1.0, 'cont_PE_by_event': True,
-          'lr_separate': False, 'num_sns': 500}
+          'neut_as_PE': None, 'drop_neut': True, 'regr_M': True,
+          'only': None, 'cont_PE': 0.5, 'cont_PE_by_event': True,
+          'lr_separate': False, 'num_sns': 200}
+
     print(kw)
     conn_highs, conn_lows, sns = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=False))
@@ -656,48 +666,63 @@ def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
 
     return z_both
 
-@jit(fastmath=True, nopython=True, cache=True)
+@njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def numba_corrcoef(X):
     nrow = X.shape[0]
     ncol = X.shape[1]
     out = np.ones((nrow, nrow))
-    Es = np.empty(nrow)
-    E_sqs = np.empty(nrow)
+    # Es = np.empty(nrow)
+    # E_sqs = np.empty(nrow)
+    denom_parts = np.empty(nrow)
+
+    X_mod = np.empty((nrow, ncol))
     for j in range(nrow):
         s = 0
         ss = 0
         for i in range(ncol):
             s += X[j, i]
             ss += X[j, i] ** 2
-        Es[j] = s / ncol
-        E_sqs[j] = ss / ncol
+        M = s / ncol
+        SD = np.sqrt(ss / ncol - M ** 2)
+        for i in range(ncol):
+            X_mod[j, i] = (X[j, i] - M) / SD
+        # X_mod = (X[j, :] - M) / SD
+    # X = X_mod
 
     for j in range(nrow):
+        s = 0
+        ss = 0
+        for i in range(ncol):
+            s += X_mod[j, i]
+            ss += X_mod[j, i] ** 2
+        # Es[j] = s / ncol
+        # E_sqs[j] = ss / ncol
+        denom_parts[j] = np.sqrt(ss / ncol)# - Es[j] ** 2)
+
+    for j in prange(nrow):
         for k in range(j + 1, nrow):
             if j == k:
                 out[j, k] = 1
                 continue
             prod_sum = 0
-            E_J = Es[j]
-            E_JJ = E_sqs[j]
-            E_K = Es[k]
-            E_KK = E_sqs[k]
+            # E_J = Es[j]
+            # E_JJ = E_sqs[j]
+            # E_K = Es[k]
+            # E_KK = E_sqs[k]
             num_points = ncol
             for i in range(ncol):
-                prod_sum += (X[j, i] * X[k, i])
-
-            E_JK = prod_sum / num_points
-            numerator = E_JK - (E_J * E_K)
-            denominator = np.sqrt((E_JJ - E_J ** 2) * (E_KK - E_K ** 2))
-            out[j, k] = out[k, j] = numerator / denominator
+                prod_sum += (X_mod[j, i] * X_mod[k, i])
+            # E_JK = prod_sum / num_points
+            # numerator = E_JK# - (Es[j] * Es[k])
+            # denominator = denom_parts[j] * denom_parts[k]
+            out[j, k] = out[k, j] = prod_sum / num_points# numerator #/ denominator
     return out
 
 def test_corr():
-    X = np.random.normal(size=(246, 50))
+    X = np.random.normal(size=(10000, 50))
     t_st = time.time()
-    for _ in range(100):
+    for _ in tqdm(range(10)):
         corr_np = np.corrcoef(X)
-        print(corr_np.shape)
     t_end = time.time()
     t_np = t_end - t_st
     print(f'Numpy: {t_end - t_st:.4f}')
@@ -706,12 +731,12 @@ def test_corr():
     corr = numba_corrcoef(X)
     all_same = np.allclose(corr_np, corr)
     print(f'{all_same=}')
-    assert all_same
+    # assert all_same
     t_end = time.time()
     print(f'Numba first: {t_end - t_st:.4f}')
 
     t_st = time.time()
-    for _ in range(100):
+    for _ in range(10):
         corr = numba_corrcoef(X)
     t_end = time.time()
     t_nb = t_end - t_st
@@ -720,12 +745,12 @@ def test_corr():
 
 
 if __name__ == '__main__':
-    # test_corr()
+    test_corr()
     # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
     # LSS_gambling()
-    test_vendor()
+    # test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
