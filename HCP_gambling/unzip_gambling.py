@@ -57,7 +57,7 @@ def unzip_all_gambling(override=False, slow_check=False):
     # print(img.shape)
     # quit()
     print(f'{len(sns)=}')
-    # sns = sns[::-1]
+    sns = sns[::-1]
     for sn in sns:
         # if sn == '106824' and not override:
         #     # errors

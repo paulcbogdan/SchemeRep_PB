@@ -40,6 +40,8 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         # vmin = np.nanmin(M_connect)
         vmax = np.nanquantile(M_connect, 1 - tile)
         print(f'Plot connectivity ({tile=}), {vmin=:.2f}, {vmax=:.2f}')
+        vmin = min(vmin, -vmax)
+        vmax = max(vmax, -vmin)
 
         # vmax = max(vmax, 4)
         # vmax = np.nanmax(M_connect)
