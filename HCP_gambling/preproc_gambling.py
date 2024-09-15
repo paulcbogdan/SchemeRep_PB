@@ -158,7 +158,7 @@ def load_motion(sn, lr):
     df = pd.DataFrame(motion, columns=add_reg_names)
     return df
 
-def do_LSA(img, df_trials, sn, lr):
+def do_LSA(img, df_trials, sn, lr, reg_global=False):
 
     df_trials.reset_index(drop=True, inplace=True)
 
@@ -169,28 +169,27 @@ def do_LSA(img, df_trials, sn, lr):
         condition_counter[trial_condition] += 1
         trial_name = f"{trial_condition}__{condition_counter[trial_condition]:03d}"
         df_trials.loc[i_trial, "trial_type"] = trial_name
-    # print(df_trials)
-    # quit()
 
     frame_times = np.linspace(0, 192, 253, endpoint=False)
     df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
     df_motion = load_motion(sn, lr)
     df_confounds = pd.concat([df_compcor, df_motion], axis=1)
+
+    if reg_global:
+        fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
+        img = image.load_img(img)
+        mask = image.load_img(fp_mask)
+        global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
+        df_confounds['global'] = global_signal
+        # print(global_signal)
+
+
     X1 = make_first_level_design_matrix(
         frame_times,
         df_trials,
         add_regs=df_confounds,
         hrf_model='spm',  #
     )
-
-    fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
-
-    img = image.load_img(img)
-    mask = image.load_img(fp_mask)
-    global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
-    df_confounds['global'] = global_signal
-    # print(list(global_signal))
-    # quit()
 
     # MBs = process.memory_info().rss / 1024 / 1024
     # logging.debug(f'Making first level model: {MBs=:.2f}')
@@ -242,7 +241,8 @@ def do_LSA(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
+    glob_str = '_global' if reg_global else ''
+    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}.nii'
     beta_img.to_filename(fp_lsa)
     # quit()
 
@@ -304,26 +304,30 @@ def do_LSS(img, df_trials, sn, lr):
     beta_img.to_filename(fp_lss)
 
 
-def LSS_gambling(lsa=True, easy_override=False):
+def LSS_gambling(lsa=True, easy_override=False, reg_global=True):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
     print(f'{len(sns)=}')
     sns = sorted(sns)
     # sns = sns
     # sns = sns[1::2]
-    sns = sns[::-1]
+    # sns = sns[::-1]
+    # sns = sns[len(sns)//2:]
     # sns = ['100206']
     # easy_override = True
+
+    glob_str = '_global' if reg_global else ''
+
 
     bad_sns = []
     for sn in sns:
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
             if lsa:
-                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA.nii'
+                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA{glob_str}.nii'
                 if not os.path.exists(fp_lsa_lr) or easy_override:
                     df_events_LR = get_df_events(sn, 'LR')
-                    do_LSA(fp_img, df_events_LR, sn, 'LR')
+                    do_LSA(fp_img, df_events_LR, sn, 'LR', reg_global=reg_global)
             else:
                 fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
                 if not os.path.exists(fp_lss_lr) or easy_override:
@@ -332,10 +336,10 @@ def LSS_gambling(lsa=True, easy_override=False):
 
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
             if lsa:
-                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA.nii'
+                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA{glob_str}.nii'
                 if not os.path.exists(fp_lsa_rl) or easy_override:
                     df_events_RL = get_df_events(sn, 'RL')
-                    do_LSA(fp_img, df_events_RL, sn, 'RL')
+                    do_LSA(fp_img, df_events_RL, sn, 'RL', reg_global=reg_global)
             else:
                 fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
                 if not os.path.exists(fp_lss_rl) or easy_override:
@@ -567,11 +571,14 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
                               flip=True, thr=.9, scrub=False, anat_ver=3,
                               combine_regions=combine_regions)
-    # print(p_d_pos)
+    print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
     # print(p_d_ant)
     # print(p_v_pos)
     # print(p_v_ant)
     # quit()
+
+
+
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
         p_d_pos = np.array(p_d_pos[::2]) // 2
@@ -588,7 +595,13 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    M_overall = np.nanmean(conn, axis=(1, 2))
+
+
     # return dv_ant
+    return dd - dv_ant
+    # return vv - dv_pos
+    # return dv_pos
 
     return dd + vv - dv_ant - dv_pos# - M_overall
 
@@ -604,12 +617,14 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
+def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
+                sub_ROI_expected=False):
     # OKAY. Keep REGR_R as True. However, it is mostly inconsequential
     # Keep dropping Neut = TRUE
     # keep cont_PE_by_event
     # lr_separate has no effect
     # keep cont_PE = .3
+    # cont_PE = 1. sucks. no t effect. some matrix correlation
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'neut_as_PE': None, 'drop_neut': True, 'only': None,
@@ -619,7 +634,7 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'neut_as_PE': None, 'drop_neut': True, 'only': None,
-          'num_sns': 1000, 'cont_PE': 0.30, 'cont_PE_by_event': True,
+          'num_sns': 1000, 'cont_PE': .3, 'cont_PE_by_event': True,
           'regr_M': True, 'lr_separate': False}
 
 
@@ -635,13 +650,31 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
         conn_highs, conn_lows, sns = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
 
-    conn_highs[:, :, 46:] = np.nan
-    conn_highs[:, 46:, :] = np.nan
-    conn_lows[:, :, 46:] = np.nan
-    conn_lows[:, 46:, :] = np.nan
+    if combine_regions:
+        conn_highs[:, :, 46:] = np.nan
+        conn_highs[:, 46:, :] = np.nan
+        conn_lows[:, :, 46:] = np.nan
+        conn_lows[:, 46:, :] = np.nan
+    else:
+        conn_highs[:, :, 210:] = np.nan
+        conn_highs[:, 210:, :] = np.nan
+        conn_lows[:, :, 210:] = np.nan
+        conn_lows[:, 210:, :] = np.nan
 
-    conn_highs -= np.nanmean(conn_highs, axis=(1, 2), keepdims=True)
-    conn_lows -= np.nanmean(conn_lows, axis=(1, 2), keepdims=True)
+    if sub_ROI_expected:
+        ROI_expected = np.nanmean(conn_highs, axis=(0, 2))
+        ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
+        conn_highs -= ROI_expected[None]
+        # ROI_expected = np.sqrt(ROI_expected[:, None] * ROI_expected[None, :])
+        # conn_highs /= ROI_expected[None]
+        ROI_expected = np.nanmean(conn_lows, axis=(0, 2))
+        ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
+        conn_lows -= ROI_expected[None]
+        # ROI_expected = np.sqrt(ROI_expected[:, None] * ROI_expected[None, :])
+        # conn_lows /= ROI_expected[None]
+
+    # conn_highs -= np.nanmean(conn_highs, axis=(1, 2), keepdims=True)
+    # conn_lows -= np.nanmean(conn_lows, axis=(1, 2), keepdims=True)
 
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
@@ -650,7 +683,7 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
 
     if corr_z:
         t_flat = t[np.tril_indices_from(t, k=-1)]
-        z_both = get_SchemeRep_regr(combine_regions=combine_regions)
+        z_both = get_SchemeRep_regr(combine_regions=combine_regions, plot=False)
         z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
         r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
         print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
@@ -660,18 +693,7 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral, HCP=True,
                           lifu_labels=False)
-        # t = np.nanmean(dif > 0, axis=0)
-        # t[t > 0] = 1
-        # t[t < 0] = -1
-        # plt.imshow(t[np.ix_(
-        #                     [188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205,
-        #                      206, 207, 208, 209],
-        #                      [134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145],
-        #                     )])
-        # M = np.nanmean(t)
-        # print(f'{M=}')
-        # plt.colorbar()
-        # plt.show()
+
 
         title = str(kw)
         title_ = ''
@@ -679,6 +701,13 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
             title_ += title[i * 50:(i + 1) * 50] + '\n'
         title = title_
         # quit()
+
+        # p_v_pos = [188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209]
+        # p_d_pos = [134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145]
+        # plt.imshow(t[np.ix_(p_v_pos, p_d_pos)])
+        # plt.colorbar()
+        # plt.show()
+
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='Correlation (r)',
@@ -819,8 +848,8 @@ if __name__ == '__main__':
     # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    # LSS_gambling()
-    test_vendor()
+    LSS_gambling()
+    # test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
