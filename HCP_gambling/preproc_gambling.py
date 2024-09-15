@@ -23,11 +23,12 @@ from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
+from numba import jit
 
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-def get_df_events(sn, RL_LR, cont_PE=None):
+def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
     dir_LR = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{RL_LR}\EVs'
     df_loss_event = pd.read_csv(fr'{dir_LR}\loss_event.txt', delimiter='\t',
                                 header=None, names=['onset', 'duration', 'amplitude'])
@@ -82,16 +83,19 @@ def get_df_events(sn, RL_LR, cont_PE=None):
         df_trials['PE'] = PE_cont
         df_trials['PE_abs'] = df_trials['PE'].abs()
 
-
-        med_PE = df_trials['PE_abs'].median()
-        df_trials['trial_type'] = df_trials['PE_abs'].apply(
-            lambda x: 'low_PE' if x < med_PE else 'high_PE')
+        if cont_pe_by_event:
+            for event in ['loss', 'win', 'neut']:
+                df_event = df_trials[df_trials['event'] == event]
+                med_PE = df_event['PE_abs'].median()
+                df_trials.loc[df_trials['event'] == event, 'trial_type'] = df_trials.loc[
+                    df_trials['event'] == event, 'PE_abs'].apply(
+                    lambda x: 'low_PE' if x < med_PE else 'high_PE')
+        else:
+            med_PE = df_trials['PE_abs'].median()
+            df_trials['trial_type'] = df_trials['PE_abs'].apply(
+                lambda x: 'low_PE' if x < med_PE else 'high_PE')
 
         pd.set_option('display.max_rows', 2000)
-        # print(f'{med_PE=}')
-        # print(df_trials[['event', 'trial_type', 'PE_abs']])
-        # quit()
-
 
     df_trials.drop(columns=['same'], inplace=True)
 
@@ -296,8 +300,10 @@ def LSS_gambling(lsa=True, easy_override=False):
     print(f'{len(sns)=}')
     sns = sorted(sns)
     # sns = sns
-    sns = sns[::2]
+    sns = sns[1::2]
     sns = sns[::-1]
+    # sns = ['100206']
+    # easy_override = True
 
     bad_sns = []
     for sn in sns:
@@ -366,115 +372,125 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     ar = np.array(ar)
     return ar
 
+def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
+              neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
+              cont_PE_by_event=False, lr_separate=False):
 
-def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
-              neut_as_PE=False, regr_M=True, only=None, cont_PE=None):
+    try:
+        ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+                           bilateral=bilateral)
+        df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
+                              cont_pe_by_event=cont_PE_by_event)
+    except ValueError:
+        print(f'Not analyzed connectivity: {sn}')
+        return None, sn
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        # bad_sns.append(sn)
+        time.sleep(1)
+        return None, sn
 
-    fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
-    sns = {fn.split('_')[0] for fn in fns}
-    sns = sorted(list(sns))
-    conn_highs = []
-    conn_lows = []
-    for sn in tqdm(sns, desc='Making conn'):
-        try:
-            ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-                                bilateral=bilateral)
-            df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE)
-        except ValueError:
-            print(f'Not analyzed connectivity: {sn}')
-            continue
-        except Exception as e:
-            print(f'ERROR: {sn}, {e=}')
-            time.sleep(1)
-            continue
+    if only:
+        df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
+    if drop_neut or neut_as_PE:
+        df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
 
+    if regr_M:
+        ar -= ar.mean(axis=1, keepdims=True)
+    if neut_as_PE:
+        ar_high = ar[:, df_lr['trial_type'] == 'neut']
+    else:
+        ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
 
-        # df_lr = df_lr[df_lr['event'] != 'neut']'
-        if only:
-            df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
-        if drop_neut or neut_as_PE:
-            df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
+    ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
 
+    try:
+        ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
+                           bilateral=bilateral)
+        df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
+                              cont_pe_by_event=cont_PE_by_event)
+    except ValueError:
+        print(f'Not analyzed connectivity: {sn}')
+        return None, sn
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        time.sleep(1)
+        # bad_sns.append(sn)
+        return None, sn
+    if only:
+        df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
+    if drop_neut or neut_as_PE:
+        df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
 
-        if regr_M:
-            ar -= ar.mean(axis=1, keepdims=True)
-        if neut_as_PE:
-            ar_high = ar[:, df_lr['trial_type'] == 'neut']
-        else:
-            ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
+    if regr_M:
+        ar -= ar.mean(axis=1, keepdims=True)
+    if neut_as_PE:
+        ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
+    else:
+        ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
+    ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
 
-
-        ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
-
-        try:
-            ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
-                                bilateral=bilateral)
-            df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE)
-        except ValueError:
-            print(f'Not analyzed connectivity: {sn}')
-            continue
-        except Exception as e:
-            print(f'ERROR: {sn}, {e=}')
-            time.sleep(10)
-            continue
-        if only:
-            df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
-        if drop_neut or neut_as_PE:
-            df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
-
-        # print(df_rl[['event', 'block']].value_counts())
-        # print(df_lr[['event', 'block']].value_counts())
-        # quit()
-
-        if regr_M:
-            ar -= ar.mean(axis=1, keepdims=True)
-        if neut_as_PE:
-            ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
-        else:
-            ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
-        ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
-
-
-        # if drop_neut or neut_as_PE:
-        #     # TODO: account for unequal in two sessions for high PE
-        #     pass
-            # assert ar_high.shape[1] * 6 == ar_low.shape[1]
-            # assert ar_high2.shape[1] * 6 == ar_low2.shape[1]
-            # ar_low = ar_low[:, ::6]
-            # ar_low2 = ar_low2[:, ::6]
-        # else:
-            # assert ar_high.shape[1] * 3 == ar_low.shape[1]
-            # assert ar_high2.shape[1] * 3 == ar_low2.shape[1]
-            # ar_low = ar_low[:, ::3]
-            # ar_low2 = ar_low2[:, ::3]
-
-        # print(f'{ar_high.shape=}')
-        # print(f'{ar_low.shape=}')
-        # print(f'{ar_high2.shape=}')
-        # print(f'{ar_low2.shape=}')
-        # quit()
-
+    if lr_separate:
+        conn_high0 = np.corrcoef(ar_high)
+        conn_high0[np.diag_indices_from(conn_high0)] = np.nan
+        conn_low0 = np.corrcoef(ar_low)
+        conn_low0[np.diag_indices_from(conn_low0)] = np.nan
+        conn_high1 = np.corrcoef(ar_high2)
+        conn_high1[np.diag_indices_from(conn_high1)] = np.nan
+        conn_low1 = np.corrcoef(ar_low2)
+        conn_low1[np.diag_indices_from(conn_low1)] = np.nan
+        conn_high = (conn_high0 + conn_high1) / 2
+        conn_low = (conn_low0 + conn_low1) / 2
+    else:
         ar_high = np.concatenate([ar_high, ar_high2], axis=1)
         ar_low = np.concatenate([ar_low, ar_low2], axis=1)
+        print(f'{ar_high.shape=} | {ar_low.shape=}')
 
         conn_high = np.corrcoef(ar_high)
         conn_high[np.diag_indices_from(conn_high)] = np.nan
         conn_low = np.corrcoef(ar_low)
         conn_low[np.diag_indices_from(conn_low)] = np.nan
-        # plt.imshow(conn_high)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
-        # print(f'{ar_high.shape=}')
-        # print(f'{ar_low.shape=}')
-        # quit()
 
-        # TODO: Lateralized connectivity.
-        #  high R-A/high R-P and low L-A/low L-P means A-P connectivity
+
+    # TODO: Lateralized connectivity.
+    #  high R-A/high R-P and low L-A/low L-P means A-P connectivity
+    return conn_high, conn_low
+
+
+def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
+              neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
+              cont_PE_by_event=False, lr_separate=True, num_sns=None):
+
+    fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
+    sns = {fn.split('_')[0] for fn in fns}
+    sns = sorted(list(sns))
+    if sns is not None:
+        sns = sns[:num_sns]
+
+    conn_highs = []
+    conn_lows = []
+    bad_sns = []
+    kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+          'neut_as_PE': neut_as_PE, 'drop_neut': drop_neut, 'regr_M': regr_M,
+          'only': only, 'cont_PE': cont_PE, 'cont_PE_by_event': cont_PE_by_event,
+          'lr_separate': lr_separate}
+
+    for sn in tqdm(sns, desc='Making conn'):
+        kw['sn'] = sn
+        conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw)
+        if conn_high is None:
+            bad_sns.append(sn)
+            continue
+
         conn_highs.append(conn_high)
-        conn_lows.append(conn_low)
+        # print(conn_high.shape)
+        # quit()
+        conn_lows.append(conn_low_sn)
+
+    print(f'{bad_sns=}')
     conn_highs = np.array(conn_highs)
     conn_lows = np.array(conn_lows)
+
     return conn_highs, conn_lows, sns
 
 def test_LSS_x_LSA():
@@ -507,7 +523,7 @@ def test_LSS_x_LSA():
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=3,
+                              flip=True, thr=.9, scrub=False, anat_ver=4,
                               combine_regions=combine_regions)
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -523,28 +539,42 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_pos = conn[:, *np.ix_(p_d_pos, p_v_pos)]
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
-    # return dv_ant
+    # return dv_pos
+    # print(p_v_pos)
+    # quit()
+
     return dd + vv - dv_ant - dv_pos
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
+def test_vendor(combine_regions=True, bilateral=False, corr_z=True):
+    # kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': False, 'regr_M': True,
+    #       'only': None, 'cont_PE': 0.30, 'cont_PE_by_event': True,
+    #       'lr_separate': False, 'num_sns': 500}
+
+    # kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': True, 'regr_M': False,
+    #       'only': None, 'cont_PE': 0.30, 'cont_PE_by_event': True,
+    #       'lr_separate': True, 'num_sns': 200}
+
+
+    kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+          'neut_as_PE': None, 'drop_neut': False, 'regr_M': False,
+          'only': None, 'cont_PE': 1.0, 'cont_PE_by_event': True,
+          'lr_separate': False, 'num_sns': 500}
+    print(kw)
     conn_highs, conn_lows, sns = (
-        pickle_wrap(make_conn, kwargs={'combine_regions': combine_regions,
-                                       'bilateral': bilateral,
-                                       'neut_as_PE': None,
-                                       'drop_neut': False,
-                                       'regr_M': False,
-                                       'only': 'win',
-                                       'cont_PE': 0.5},
-                                       easy_override=False))
+        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+    # if conn_highs.shape[0] < 500:
+    #     conn_highs, conn_lows, sns = (
+    #         pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+    # TODO: Anova by combining conn outputs from only=win only=loss
+
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
     SE = stats.sem(dif, axis=0, nan_policy='omit')
     t = M / SE
 
-    # t[np.abs(t) > 3] = np.nan
-
-    # print(t.shape)
     if corr_z:
         t_flat = t[np.tril_indices_from(t, k=-1)]
         z_both = get_SchemeRep_regr(combine_regions=combine_regions)
@@ -560,10 +590,23 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
         # t = np.nanmean(dif > 0, axis=0)
         # t[t > 0] = 1
         # t[t < 0] = -1
-        plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
-                          atlas['tick_lows'], title='Gambling', tile=.01,
-                          no_avg=True, cbar_label='Correlation (r)')
+        # plt.imshow(t[np.ix_(
+        #                     [188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205,
+        #                      206, 207, 208, 209],
+        #                      [134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145],
+        #                     )])
+        # M = np.nanmean(t)
+        # print(f'{M=}')
+        # plt.colorbar()
+        # plt.show()
 
+        title = str(kw)
+        print(len(title))
+        # quit()
+        plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
+                          atlas['tick_lows'], title=title, tile=.01,
+                          no_avg=True, cbar_label='Correlation (r)')
+        # quit()
 
     ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
                         combine_bilateral=bilateral)
@@ -587,7 +630,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True):
     quit()
 
 
-def get_SchemeRep_regr(regress=False, combine_regions=False):
+def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -606,22 +649,78 @@ def get_SchemeRep_regr(regress=False, combine_regions=False):
                       lifu_labels=False)
     if combine_regions:
         z_both = z_both[:54, :54]
-    plot_connectivity(z_both, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'], title='SchemeRep matrix', tile=.01,
-                      no_avg=True, cbar_label='Correlation (r)')
-    # if combine_regions:
-    #     # print(z_both.shape)
-    #     # print(len(atlas['ROIs']))
-    #     z_both = z_both[np.ix_(len(atlas['ROIs']), len(atlas['ROIs']))]
-    # print(z_both.shape)
-    # quit()
-
+    if plot:
+        plot_connectivity(z_both, atlas['ticks'], atlas['tick_labels'],
+                          atlas['tick_lows'], title='SchemeRep matrix', tile=.01,
+                          no_avg=True, cbar_label='Correlation (r)')
 
     return z_both
 
+@jit(fastmath=True, nopython=True, cache=True)
+def numba_corrcoef(X):
+    nrow = X.shape[0]
+    ncol = X.shape[1]
+    out = np.ones((nrow, nrow))
+    Es = np.empty(nrow)
+    E_sqs = np.empty(nrow)
+    for j in range(nrow):
+        s = 0
+        ss = 0
+        for i in range(ncol):
+            s += X[j, i]
+            ss += X[j, i] ** 2
+        Es[j] = s / ncol
+        E_sqs[j] = ss / ncol
+
+    for j in range(nrow):
+        for k in range(j + 1, nrow):
+            if j == k:
+                out[j, k] = 1
+                continue
+            prod_sum = 0
+            E_J = Es[j]
+            E_JJ = E_sqs[j]
+            E_K = Es[k]
+            E_KK = E_sqs[k]
+            num_points = ncol
+            for i in range(ncol):
+                prod_sum += (X[j, i] * X[k, i])
+
+            E_JK = prod_sum / num_points
+            numerator = E_JK - (E_J * E_K)
+            denominator = np.sqrt((E_JJ - E_J ** 2) * (E_KK - E_K ** 2))
+            out[j, k] = out[k, j] = numerator / denominator
+    return out
+
+def test_corr():
+    X = np.random.normal(size=(246, 50))
+    t_st = time.time()
+    for _ in range(100):
+        corr_np = np.corrcoef(X)
+        print(corr_np.shape)
+    t_end = time.time()
+    t_np = t_end - t_st
+    print(f'Numpy: {t_end - t_st:.4f}')
+
+    t_st = time.time()
+    corr = numba_corrcoef(X)
+    all_same = np.allclose(corr_np, corr)
+    print(f'{all_same=}')
+    assert all_same
+    t_end = time.time()
+    print(f'Numba first: {t_end - t_st:.4f}')
+
+    t_st = time.time()
+    for _ in range(100):
+        corr = numba_corrcoef(X)
+    t_end = time.time()
+    t_nb = t_end - t_st
+    print(f'Numba: {t_end - t_st:.4f}')
+    print(f'Ratio: {t_np/t_nb:.2f}')
+
 
 if __name__ == '__main__':
-    # get_SchemeRep_regr()
+    # test_corr()
     # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)

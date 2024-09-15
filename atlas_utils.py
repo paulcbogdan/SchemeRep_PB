@@ -133,7 +133,7 @@ def add_ROI_info(atlas):
 def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
                  shenyang=True):
     if shenyang:
-        fp_atlas = r'H:\PycharmProjects_H\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
+        fp_atlas = r'C:\PycharmProjects\SchemeRep\Shenyang_R\Atlas\BNA_thr25_resliced_97_115_97.nii'
         img = image.load_img(fp_atlas)
         # print('Shenyang atlas')
     else:
@@ -145,7 +145,7 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
     else:
         fp_labels = r'cache/BNA_labels.txt'
     # fp_labels = r'cache/BNA_labels_Lifu.txt' if lifu_labels else r'cache/BNA_labels.txt'
-    # fp_labels = r'H:\PycharmProjects_H\SchemeRep\cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
+    # fp_labels = r'C:\PycharmProjects\SchemeRep\cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
         data = img.get_fdata()
@@ -172,15 +172,15 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
                         HCP=False, natview=False, lifu_labels=True):
     assert not (HCP and natview), 'HCP= and natview= are mutually exclusive'
     if new_space:
-        # fp_ref = r'H:\PycharmProjects_H\SchemeRep/' \
+        # fp_ref = r'C:\PycharmProjects\SchemeRep/' \
         #          r'fMRI_in/102/Enc_rerun3/obj/' \
         #          r'ENC_sub102_run1_trial1_subset3_pairID29.nii'
-        fp_ref = (r'H:\PycharmProjects_H\SchemeRep\fMRI_in\102'
+        fp_ref = (r'C:\PycharmProjects\SchemeRep\fMRI_in\102'
                   r'\ENC_GM20_LLS1_bpF_full\OBJ'
                   r'\ENC_sub102_run1_trial1_subset3_pairID29_object.nii')
     else:
         raise NotImplementedError
-        # fp_ref = r'H:\PycharmProjects_H\SchemeRep/' \
+        # fp_ref = r'C:\PycharmProjects\SchemeRep/' \
         #          r'fMRI_in/102/all_ENCruns_sorted/objects/' \
         #          r'Day2_Run1_Trial4_UnifiedID53_StimID215_Subset2_pairID15_Con3_Resp4_IsObject1.nii'
     img = image.load_img(fp_ref)
@@ -204,7 +204,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
         atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
                                            target_shape=(61, 73, 61),
                                            interpolation='nearest')
-        # atlas['maps'].to_filename(r'H:\PycharmProjects_H\SchemeRep\test_atlas_natview.nii')
+        # atlas['maps'].to_filename(r'C:\PycharmProjects\SchemeRep\test_atlas_natview.nii')
     else:
         atlas['maps'] = image.resample_to_img(atlas['maps'], img,
                                               interpolation='nearest')
@@ -375,7 +375,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False, split=False,
     return atlas
 
 def org_BNA_coords():
-    fp_coords_pre = r'H:\PycharmProjects_H\SchemeRep\cache\BNA_coords_pre.csv'
+    fp_coords_pre = r'C:\PycharmProjects\SchemeRep\cache\BNA_coords_pre.csv'
     df = pd.read_csv(fp_coords_pre)
     coords = []
     for l_coord, r_coord in zip(df['L_coord'], df['R_coord']):
