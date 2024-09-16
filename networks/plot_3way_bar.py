@@ -43,19 +43,6 @@ def conn_partition_3bar(fp='obj7_fMRI', anat=True, weighted=False,
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
-    # print(df_sns)
-    # quit()
-
-    # sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]
-    # print(sns)
-    # print(len(sns))
-    # sns_YA = [sn for sn in sns if sn[0] == '1']
-    # print(sns_YA)
-    # print(len(sns_YA))
-    # sns_OA = [sn for sn in sns if sn[0] == '2']
-    # print(sns_OA)
-    # print(len(sns_OA))
-    # quit()
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,

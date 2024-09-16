@@ -158,7 +158,7 @@ def load_motion(sn, lr):
     df = pd.DataFrame(motion, columns=add_reg_names)
     return df
 
-def do_LSA(img, df_trials, sn, lr, reg_global=False):
+def do_LSA(img, df_trials, sn, lr, reg_global=False, no_compcor=False):
 
     df_trials.reset_index(drop=True, inplace=True)
 
@@ -171,9 +171,12 @@ def do_LSA(img, df_trials, sn, lr, reg_global=False):
         df_trials.loc[i_trial, "trial_type"] = trial_name
 
     frame_times = np.linspace(0, 192, 253, endpoint=False)
-    df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
     df_motion = load_motion(sn, lr)
-    df_confounds = pd.concat([df_compcor, df_motion], axis=1)
+    if not no_compcor:
+        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
+        df_confounds = pd.concat([df_compcor, df_motion], axis=1)
+    else:
+        df_confounds = df_motion
 
     if reg_global:
         fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
@@ -242,7 +245,9 @@ def do_LSA(img, df_trials, sn, lr, reg_global=False):
     beta_img = image.new_img_like(img, betas)
 
     glob_str = '_global' if reg_global else ''
-    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}.nii'
+    cc_str = '_nocc' if no_compcor else ''
+    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
+    print(f'{fp_lsa=}')
     beta_img.to_filename(fp_lsa)
     # quit()
 
@@ -303,31 +308,62 @@ def do_LSS(img, df_trials, sn, lr):
     fp_lss = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS.nii'
     beta_img.to_filename(fp_lss)
 
+def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
+    itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_highs, combine_regions=combine_regions,
+                                                       combine_bilateral=bilateral)[0]
+    df= pd.DataFrame({'high_PA': dd + vv, 'high_VD': dv_ant + dv_pos,
+                       'high_dd': dd, 'high_vv': vv, 'high_dv_ant': dv_ant,
+                       'high_dv_pos': dv_pos, })
+    itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_lows, combine_regions=combine_regions,
+                                                       combine_bilateral=bilateral)[0]
+    # df = df_high.copy()
+    df['low_PA'] = dd + vv
+    df['low_VD'] = dv_ant + dv_pos
+    df['low_dd'] = dd
+    df['low_vv'] = vv
+    df['low_dv_ant'] = dv_ant
+    df['low_dv_pos'] = dv_pos
+    # df_low = df[['low_PA', 'low_VD', 'low_dd', 'low_vv', 'low_dv_ant', 'low_dv_pos']]
 
-def LSS_gambling(lsa=True, easy_override=False, reg_global=True):
+    for ef in ['PA', 'VD', 'dd', 'vv', 'dv_ant', 'dv_pos']:
+        df[f'{ef}_diff'] = df[f'high_{ef}'] - df[f'low_{ef}']
+        t = stats.ttest_rel(df[f'high_{ef}'], df[f'low_{ef}'])
+        N = np.sum(~np.isnan(df[f'high_{ef}']))
+        print(f'{ef}: t[{N - 1}] = {t:.2f}')
+
+    df = pd.DataFrame({'high_PE': df['high_PA'].to_list() + df['high_VD'].to_list(),
+                       'low_PE': df['low_PA'].to_list() + df['low_VD'].to_list(),
+                       'PA_VD': ['PA'] * len(df) + ['VD'] * len(df)})
+
+    # df_high['PE'] = 'high'
+    # df_vert = pd.concat([df_high, df_low], axis=0).reset_index()
+
+
+def LSS_gambling(lsa=True, easy_override=False, reg_global=True, no_compcor=True):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
     print(f'{len(sns)=}')
     sns = sorted(sns)
     # sns = sns
-    # sns = sns[1::2]
-    # sns = sns[::-1]
+    # sns = sns[:-4:-4]
+    # sns = sns[len(sns)//2 + 3::12]
     # sns = sns[len(sns)//2:]
     # sns = ['100206']
     # easy_override = True
 
     glob_str = '_global' if reg_global else ''
 
+    cc_str = '_nocc' if no_compcor else ''
 
     bad_sns = []
     for sn in sns:
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
             if lsa:
-                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA{glob_str}.nii'
+                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA{glob_str}{cc_str}.nii'
                 if not os.path.exists(fp_lsa_lr) or easy_override:
                     df_events_LR = get_df_events(sn, 'LR')
-                    do_LSA(fp_img, df_events_LR, sn, 'LR', reg_global=reg_global)
+                    do_LSA(fp_img, df_events_LR, sn, 'LR', reg_global=reg_global, no_compcor=no_compcor)
             else:
                 fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
                 if not os.path.exists(fp_lss_lr) or easy_override:
@@ -336,10 +372,10 @@ def LSS_gambling(lsa=True, easy_override=False, reg_global=True):
 
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
             if lsa:
-                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA{glob_str}.nii'
+                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA{glob_str}{cc_str}.nii'
                 if not os.path.exists(fp_lsa_rl) or easy_override:
                     df_events_RL = get_df_events(sn, 'RL')
-                    do_LSA(fp_img, df_events_RL, sn, 'RL', reg_global=reg_global)
+                    do_LSA(fp_img, df_events_RL, sn, 'RL', reg_global=reg_global, no_compcor=no_compcor)
             else:
                 fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
                 if not os.path.exists(fp_lss_rl) or easy_override:
@@ -359,12 +395,15 @@ def LSS_gambling(lsa=True, easy_override=False, reg_global=True):
             bad_sns.append(sn)
     print(f'{bad_sns=}')
 
-def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
+def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
+                  reg_global=False, no_compcor=False):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=bilateral,
                       HCP=True)
 
-    fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA.nii'
+    glob_str = '_global' if reg_global else ''
+    cc_str = '_nocc' if no_compcor else ''
+    fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
     img_lsa_lr = image.load_img(fp_lsa_lr)
     data_lsa_lr = img_lsa_lr.get_fdata()
     df_events = get_df_events(sn, 'LR')
@@ -387,12 +426,13 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False):
     return ar
 
 def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
-              neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
-              cont_PE_by_event=False, lr_separate=False):
+                neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
+                cont_PE_by_event=False, lr_separate=False,
+                reg_global=False, no_compcor=False):
 
     try:
         ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-                           bilateral=bilateral)
+                           bilateral=bilateral, reg_global=reg_global, no_compcor=no_compcor)
         df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
                               cont_pe_by_event=cont_PE_by_event)
     except ValueError:
@@ -422,7 +462,8 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
 
     try:
         ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
-                           bilateral=bilateral)
+                           bilateral=bilateral, reg_global=reg_global,
+                           no_compcor=no_compcor)
         df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
                               cont_pe_by_event=cont_PE_by_event)
     except ValueError:
@@ -482,15 +523,24 @@ def pwrap_get_conn_sn(sn, **kw):
 def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
               neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
               cont_PE_by_event=False, lr_separate=True, num_sns=None,
-              n_jobs=1):
+              n_jobs=1, reg_global=False, no_compcor=False):
 
     fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
+    if reg_global:
+        fns = [fn for fn in fns if 'global' in fn]
+    else:
+        fns = [fn for fn in fns if 'global' not in fn]
+    if no_compcor:
+        fns = [fn for fn in fns if 'nocc' in fn]
+    else:
+        fns = [fn for fn in fns if 'nocc' not in fn]
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
+    print(f'{len(sns)=}')
     if sns is not None:
         sns = sns[:num_sns]
     # sns = sns[:-1]
-    # sns = sns[::-2]
+    # sns = sns[::-1]
 
     conn_highs = []
     conn_lows = []
@@ -498,9 +548,16 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
           'neut_as_PE': neut_as_PE, 'drop_neut': drop_neut, 'regr_M': regr_M,
           'only': only, 'cont_PE': cont_PE, 'cont_PE_by_event': cont_PE_by_event,
-          'lr_separate': lr_separate}
+          'lr_separate': lr_separate, 'reg_global': reg_global,
+          'no_compcor': no_compcor}
 
-    if cont_PE_by_event:
+    if not no_compcor:
+        del kw['no_compcor']
+
+    if no_compcor:
+        from datetime import datetime
+        dt_max = datetime(2024, 9, 15, 19, 50, 0)
+    elif cont_PE_by_event:
         from datetime import datetime
         dt_max = datetime(2024, 9, 15, 11, 0, 0)
     else:
@@ -533,38 +590,12 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
         conn_highs.append(conn_high)
         conn_lows.append(conn_low_sn)
 
-    print(f'{bad_sns=}')
+
     conn_highs = np.array(conn_highs)
     conn_lows = np.array(conn_lows)
 
     return conn_highs, conn_lows, sns
 
-def test_LSS_x_LSA():
-    fp_LSS = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
-    img_LSS = image.load_img(fp_LSS).get_fdata()
-    fp_LSA = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\100206_LR_LSA.nii'
-    img_LSA = image.load_img(fp_LSA).get_fdata()
-
-    for _ in range(100):
-        rand_x = np.random.randint(0, img_LSS.shape[0])
-        rand_y = np.random.randint(0, img_LSS.shape[1])
-        rand_z = np.random.randint(0, img_LSS.shape[2])
-        if np.any(np.isnan(img_LSS[rand_x, rand_y, rand_z, :])):
-            continue
-        if np.any(img_LSS[rand_x, rand_y, rand_z, :] == 0):
-            continue
-        r, p = stats.spearmanr(img_LSS[rand_x, rand_y, rand_z, :],
-                               img_LSA[rand_x, rand_y, rand_z, :])
-        print(f'{r=:.2f}')
-        # plt.scatter(img_LSS[rand_x, rand_y, rand_z, :],
-        #             img_LSA[rand_x, rand_y, rand_z, :])
-        # plt.show()
-        # quit()
-        # print(f'{img_LSS[rand_x, rand_y, rand_z, :]=} | {img_LSA[rand_x, rand_y, rand_z, :]=}')
-            # print(f'{img_LSS[rand_x, rand_y, rand_z]=} | {img_LSA[rand_x, rand_y, rand_z]=}')
-            # print(f'{img_LSS[rand_x, rand_y, rand_z] - img_LSA[rand_x, rand_y, rand_z]}')
-            # break
-    quit()
 
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
@@ -599,11 +630,14 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
 
 
     # return dv_ant
-    return dd - dv_ant
+    # return dd
+    # return dv_ant
     # return vv - dv_pos
     # return dv_pos
 
-    return dd + vv - dv_ant - dv_pos# - M_overall
+    # return dv_pos
+
+    return dd + vv - dv_ant - dv_pos, dd, vv, dv_ant, dv_pos, M_overall
 
 def get_combo(kw):
     kw['only'] = 'loss'
@@ -626,16 +660,24 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
     # keep cont_PE = .3
     # cont_PE = 1. sucks. no t effect. some matrix correlation
 
-    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': None,
-          'num_sns': 1000, 'cont_PE': 0.30, 'cont_PE_by_event': True,
-          'regr_M': True, 'lr_separate': False}
+    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
+    #       'neut_as_PE': False, 'drop_neut': True, 'only': None,
+    #       'num_sns': 1000, 'cont_PE': 0.30, 'cont_PE_by_event': True,
+    #       'regr_M': True, 'lr_separate': False}
 
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': None,
-          'num_sns': 1000, 'cont_PE': .3, 'cont_PE_by_event': True,
-          'regr_M': True, 'lr_separate': False}
+          'neut_as_PE': None, 'drop_neut': True, 'only': 'loss',
+          'num_sns': 1000, 'cont_PE': 0.5, 'cont_PE_by_event': True,
+          'regr_M': False, 'lr_separate': False,
+          'reg_global': True, 'no_compcor': True}
+
+
+    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
+    #       'neut_as_PE': True, 'drop_neut': False, 'only': None,
+    #       'num_sns': 1000, 'cont_PE': None, 'cont_PE_by_event': True,
+    #       'regr_M': True, 'lr_separate': False,
+    #       'reg_global': True}
 
 
     if kw['neut_as_PE']:
@@ -687,6 +729,23 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
         r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
         print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
+    else:
+        r = None
+
+
+        # quit()
+
+    ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
+                        combine_bilateral=bilateral)[0]
+    ef_low = get_vd_ef(conn_lows, combine_regions=combine_regions,
+                       combine_bilateral=bilateral)[0]
+    itr = ef_low - ef_high
+    t_final, p = stats.ttest_1samp(itr, 0)
+    N = itr.shape[0]
+    nans = np.sum(np.isnan(itr))
+    print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.3f}')
+    print(kw)
+
 
 
     if not bilateral:
@@ -699,7 +758,12 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         title_ = ''
         for i in range(len(title) // 50):
             title_ += title[i * 50:(i + 1) * 50] + '\n'
+        title_ += title[(i + 1) * 50:]
         title = title_
+
+        title += f'\nt[{N - nans - 1}/{N - 1}] = {t_final:.2f}'
+        if r is not None:
+            title += f', {r=:.2f}'
         # quit()
 
         # p_v_pos = [188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209]
@@ -712,18 +776,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='Correlation (r)',
                           vmin=-4, vmax=4)
-        # quit()
 
-    ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
-                        combine_bilateral=bilateral)
-    ef_low = get_vd_ef(conn_lows, combine_regions=combine_regions,
-                       combine_bilateral=bilateral)
-    itr = ef_low - ef_high
-    t, p = stats.ttest_1samp(itr, 0)
-    N = itr.shape[0]
-    nans = np.sum(np.isnan(itr))
-    print(f't[{N - nans - 1}/{N - 1}] = {t:.2f}, {p=:.3f}')
-    print(kw)
     quit()
     n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)
     plt.plot([0, 0], [0, np.max(n)], 'r--')
@@ -844,6 +897,7 @@ def test_corr():
 
 
 if __name__ == '__main__':
+    # get_SchemeRep_regr(combine_regions=False, plot=True)
     # test_corr()
     # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
