@@ -24,6 +24,7 @@ from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
 from numba import jit, prange, njit
+import seaborn as sns
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
@@ -310,12 +311,12 @@ def do_LSS(img, df_trials, sn, lr):
 
 def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_highs, combine_regions=combine_regions,
-                                                       combine_bilateral=bilateral)[0]
+                                                       combine_bilateral=bilateral)
     df= pd.DataFrame({'high_PA': dd + vv, 'high_VD': dv_ant + dv_pos,
                        'high_dd': dd, 'high_vv': vv, 'high_dv_ant': dv_ant,
                        'high_dv_pos': dv_pos, })
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_lows, combine_regions=combine_regions,
-                                                       combine_bilateral=bilateral)[0]
+                                                       combine_bilateral=bilateral)
     # df = df_high.copy()
     df['low_PA'] = dd + vv
     df['low_VD'] = dv_ant + dv_pos
@@ -327,13 +328,31 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
 
     for ef in ['PA', 'VD', 'dd', 'vv', 'dv_ant', 'dv_pos']:
         df[f'{ef}_diff'] = df[f'high_{ef}'] - df[f'low_{ef}']
-        t = stats.ttest_rel(df[f'high_{ef}'], df[f'low_{ef}'])
+        t, p = stats.ttest_rel(df[f'high_{ef}'], df[f'low_{ef}'])
         N = np.sum(~np.isnan(df[f'high_{ef}']))
         print(f'{ef}: t[{N - 1}] = {t:.2f}')
 
-    df = pd.DataFrame({'high_PE': df['high_PA'].to_list() + df['high_VD'].to_list(),
-                       'low_PE': df['low_PA'].to_list() + df['low_VD'].to_list(),
-                       'PA_VD': ['PA'] * len(df) + ['VD'] * len(df)})
+    df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['high_VD'].to_list() +
+                                  df['low_PA'].to_list() + df['low_VD'].to_list(),
+                       'PA_VD': ['PA'] * len(df) * 2 + ['VD'] * len(df) * 2,
+                       'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2})
+
+    g = sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df,
+                        kind='bar',
+                        # errci=68,
+                        errorbar=('ci', 68),
+                        # errwidth=1.5,
+                        edgecolor='k',
+                        # capsize=0.1, height=4,
+                        alpha=0.5, linewidth=.7,#.7,
+                        # errwidth=1.2,
+                        capsize=0.05,
+                        # palette=sns.color_palette()
+                        palette=['dodgerblue', 'red'],
+                        height=5, aspect=0.8
+                        )
+    plt.show()
+
 
     # df_high['PE'] = 'high'
     # df_vert = pd.concat([df_high, df_low], axis=0).reset_index()
@@ -537,8 +556,8 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
     print(f'{len(sns)=}')
-    if sns is not None:
-        sns = sns[:num_sns]
+    # if sns is not None:
+    #     sns = sns[:num_sns]
     # sns = sns[:-1]
     # sns = sns[::-1]
 
@@ -578,7 +597,9 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
             conn_lows.append(conn_low_sn)
         # TODO: maybe finish this
 
-    for sn in tqdm(sns, desc='Making conn'):
+    good_sns = []
+    while len(good_sns) < num_sns and (len(sns) > 0):#, total=num_sns):
+        sn = sns.pop()
         kw['sn'] = sn
         conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
                                              easy_override=False,
@@ -589,12 +610,13 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
 
         conn_highs.append(conn_high)
         conn_lows.append(conn_low_sn)
-
+        good_sns.append(sn)
 
     conn_highs = np.array(conn_highs)
     conn_lows = np.array(conn_lows)
 
-    return conn_highs, conn_lows, sns
+    print(f'Final sns: {len(good_sns)=}')
+    return conn_highs, conn_lows, good_sns
 
 
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
@@ -603,12 +625,6 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
                               flip=True, thr=.9, scrub=False, anat_ver=3,
                               combine_regions=combine_regions)
     print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
-    # print(p_d_ant)
-    # print(p_v_pos)
-    # print(p_v_ant)
-    # quit()
-
-
 
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -642,10 +658,11 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
 def get_combo(kw):
     kw['only'] = 'loss'
     conn_highs, conn_lows, sns = (
-        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+        pickle_wrap(make_conn, kwargs=kw, easy_override=True))
     kw['only'] = 'win'
     conn_highs2, conn_lows2, sns2 = (
-        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+        pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+    assert sns == sns2
     conn_highs = np.mean([conn_highs, conn_highs2], axis=0)
     conn_lows = np.mean([conn_lows, conn_lows2], axis=0)
     return conn_highs, conn_lows, sns
@@ -667,17 +684,18 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
 
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': 'loss',
-          'num_sns': 1000, 'cont_PE': 0.5, 'cont_PE_by_event': True,
-          'regr_M': False, 'lr_separate': False,
+          'neut_as_PE': None, 'drop_neut': True, 'only': None,
+          'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
+          'regr_M': True, 'lr_separate': True,
           'reg_global': True, 'no_compcor': True}
+
 
 
     # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
     #       'neut_as_PE': True, 'drop_neut': False, 'only': None,
     #       'num_sns': 1000, 'cont_PE': None, 'cont_PE_by_event': True,
     #       'regr_M': True, 'lr_separate': False,
-    #       'reg_global': True}
+    #        'reg_global': True, 'no_compcor': True}
 
 
     if kw['neut_as_PE']:
@@ -690,7 +708,8 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         conn_highs, conn_lows, sns = get_combo(kw)
     else:
         conn_highs, conn_lows, sns = (
-            pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+            pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+
 
     if combine_regions:
         conn_highs[:, :, 46:] = np.nan
@@ -714,6 +733,9 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         conn_lows -= ROI_expected[None]
         # ROI_expected = np.sqrt(ROI_expected[:, None] * ROI_expected[None, :])
         # conn_lows /= ROI_expected[None]
+
+    bar_vendor(conn_highs, conn_lows, combine_regions, bilateral)
+    quit()
 
     # conn_highs -= np.nanmean(conn_highs, axis=(1, 2), keepdims=True)
     # conn_lows -= np.nanmean(conn_lows, axis=(1, 2), keepdims=True)
@@ -902,8 +924,8 @@ if __name__ == '__main__':
     # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
     # img = image.load_img(fp)
     # print(img.shape)
-    LSS_gambling()
-    # test_vendor()
+    # LSS_gambling()
+    test_vendor()
     # make_conn()
     # unzip_all_gambling()
     # test_LSS_x_LSA()
