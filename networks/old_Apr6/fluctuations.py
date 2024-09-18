@@ -103,10 +103,10 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                               anat_ver=anat_ver,
                               combine_regions=combine_regions)
 
-    print(f'{len(p_d_pos)=}')
-    print(f'{len(p_d_ant)=}')
-    print(f'{len(p_v_pos)=}')
-    print(f'{len(p_v_ant)=}')
+    # print(f'{len(p_d_pos)=}')
+    # print(f'{len(p_d_ant)=}')
+    # print(f'{len(p_v_pos)=}')
+    # print(f'{len(p_v_ant)=}')
 
     if add_hemi:
         ps_hemi = get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
@@ -118,13 +118,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                     get_module_cross_trialwise_z(conn_trials[:, None],
                                                  ps_hemi[key], ps_hemi[key1]))
                 keys_both.append(key_both)
-                # key2conn[key] = get_module_trialwise_z(conn_trials[:, None], p)
-            # print(f'{key}', len(key2conn[key]))
-        networks += keys_both
-        # quit()
 
-    # key2pair = {'dd': (p_d_pos, p_d_ant), 'vv': (p_v_pos, p_v_ant),
-    #             'dv_ant': (p_d_ant, p_v_ant), 'dv_pos': (p_d_pos, p_v_pos),}
+        networks += keys_both
 
     conn_keys, conn_ps = prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos,
                                       p_v_ant, p_v_pos)

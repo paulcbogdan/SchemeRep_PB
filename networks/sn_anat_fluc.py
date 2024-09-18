@@ -2,26 +2,18 @@ import copy
 
 import pandas as pd
 
-from atlas_utils import get_atlas
-from load_more import load_a
-from old.modularity import get_main_partitions
-from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
-from old_Apr6.fluctuations import partial_corr_df
+
+from networks.old.network_funcs import load_FC_for_Lifu
+from networks.vendor_partitioning import get_vendor_partitions, do_regression
 from utils import pickle_wrap, stdize
-from vendor_partitioning import do_regression, get_vendor_partitions
 import numpy as np
 import matplotlib.pyplot as plt
-from nilearn import plotting
 from scipy import stats, spatial
 from functools import cache
 from numba import njit, config, jit
 from time import time
-from data_driven_fluc import load_rs, shuffle_remake
-from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
-from random import random, shuffle
 import itertools
 
 # suppress RuntimeWarning

@@ -1,0 +1,310 @@
+import zipfile
+import os
+os.chdir(r'C:\PycharmProjects\SchemeRep')
+
+from collections import defaultdict
+from copy import deepcopy
+
+import pandas as pd
+from nilearn.image import high_variance_confounds
+from pingouin import partial_corr
+from tqdm import tqdm
+
+from nilearn.glm.first_level import make_first_level_design_matrix, FirstLevelModel
+import numpy as np
+from nilearn import image
+import scipy.stats as stats
+from nilearn import plotting
+
+import matplotlib.pyplot as plt
+
+from HCP_gambling.preproc_gambling import load_motion, get_sn_roi_ar, make_conn, get_vd_ef, get_df_events
+from atlas_utils import get_atlas
+from networks.old.network_funcs import load_FC_for_Lifu
+from networks.sn_anat_fluc import get_quads
+from networks.vendor_partitioning import get_vendor_partitions, do_regression
+# from old.network_funcs import load_FC_for_Lifu
+from old.plot_gen import plot_connectivity
+from utils import pickle_wrap
+# from vendor_partitioning import get_vendor_partitions, do_regression
+import time
+from numba import jit, prange, njit
+import seaborn as sns
+from pathlib import Path
+
+def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
+                      ctrl=True):
+    if ctrl:
+        df = pd.DataFrame({'dd_vv': dd_vv, 'dv_dv': dv_dv,
+                           'pd_no': pd_no, 'ad_no': ad_no,
+                           'av_no': av_no, 'pv_no': pv_no})
+        try:
+            r = partial_corr(df, x='dd_vv', y='dv_dv',
+                             covar=['pd_no', 'ad_no', 'av_no', 'pv_no'],)
+            r = r['r'].values[0]
+            return r
+        except AssertionError: # NaN
+            return np.nan
+    else:
+        r, p = stats.spearmanr(dd_vv, dv_dv)
+        return r
+
+def get_HCP_vendor(sn, lr='LR', combine_regions=False, bilateral=False,
+                   reg_global=True, no_compcor=True, anat_ver=4):
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=bilateral,
+                      HCP=True)
+
+    kw = {'sn': sn, 'lr': lr, 'combine_regions': combine_regions,
+          'bilateral': bilateral,
+          'reg_global': reg_global, 'no_compcor': no_compcor,
+          'rs': True}
+    if no_compcor:
+        from datetime import datetime
+        dt_max = datetime(2024, 9, 17, 17, 0, 0, 0)
+    else:
+        dt_max = None
+
+    ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, dt_max=dt_max)
+    assert len(ar.shape) == 2
+    ar = stats.zscore(ar, axis=1)
+    rs_conn = ar[:, None, :] * ar[None, :, :]
+
+    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(
+        skip_other=False, all_roi=False, anat_ver=anat_ver,
+        combine_regions=combine_regions, p_no_override=False)
+
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_vendor_partitions(age='healthy', anat=True, weighted=False,
+                              flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
+                              combine_regions=combine_regions)
+
+    dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
+    dd = np.nanmean(dd, axis=(0, 1))
+    vv = rs_conn[*np.ix_(p_v_ant, p_v_pos), :]
+    vv = np.nanmean(vv, axis=(0, 1))
+    dd_vv = dd + vv
+    dv_ant = rs_conn[*np.ix_(p_d_ant, p_v_ant), :]
+    dv_ant = np.nanmean(dv_ant, axis=(0, 1))
+    dv_pos = rs_conn[*np.ix_(p_d_pos, p_v_pos), :]
+    dv_pos = np.nanmean(dv_pos, axis=(0, 1))
+    dv_dv = dv_ant + dv_pos
+
+    return dd_vv, dv_dv
+
+    pd_no = np.nanmean(rs_conn[p_d_ant, p_no, :], axis=0)
+    ad_no = np.nanmean(rs_conn[p_d_pos, p_no, :], axis=0)
+    av_no = np.nanmean(rs_conn[p_v_ant, p_no, :], axis=0)
+    pv_no = np.nanmean(rs_conn[p_v_pos, p_no, :], axis=0)
+
+    # r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no)
+    # return r
+
+
+def analyze_HCP_rs(combine_regions=False, bilateral=False,
+                   reg_global=False, no_compcor=False, anat_ver=3):
+
+    fns = os.listdir(r'E:\HCP_RS_clean')
+    if reg_global:
+        fns = [fn for fn in fns if 'global' in fn]
+    else:
+        fns = [fn for fn in fns if 'global' not in fn]
+    if no_compcor:
+        fns = [fn for fn in fns if 'nocc' in fn]
+    else:
+        fns = [fn for fn in fns if 'nocc' not in fn]
+    fns = [fn for fn in fns if 'LR_clean' in fn]
+    sns_rs = {fn.split('_')[0] for fn in fns}
+    sns_rs = sorted(list(sns_rs))
+
+
+    Mvs = []
+    p_changes = []
+    PE_bhv_efs = []
+    bad_sns = []
+    # sns_rs = sns_rs[:-1]
+    # sns_rs = sns_rs[5::6]
+    # sns_rs = sns_rs[::-2]
+    good_sns = []
+
+    if no_compcor:
+        from datetime import datetime
+        dt_max = datetime(2024, 9, 17, 17, 0, 0, 0)
+    else:
+        dt_max = None
+
+    print(f'Candidate sns: {len(sns_rs)}')
+    for sn in tqdm(sns_rs, desc='rs-fMRI loading', position=0, leave=True):
+        kw = {'sn': sn, 'combine_regions': combine_regions,
+              'bilateral': bilateral, 'reg_global': reg_global,
+              'no_compcor': no_compcor, 'anat_ver': anat_ver}
+        try:
+            kw['lr'] = 'RL'
+            dd_vv_rl, dv_dv_rl = pickle_wrap(get_HCP_vendor, kwargs=kw, easy_override=False,
+                                             dt_max=dt_max)
+            kw['lr'] = 'LR'
+            dd_vv, dv_dv = pickle_wrap(get_HCP_vendor, kwargs=kw, easy_override=False,
+                                       dt_max=dt_max)
+
+            Mv = np.nanmean(np.abs(dd_vv - dv_dv))
+            Mv_rl = np.nanmean(np.abs(dd_vv_rl - dv_dv_rl))
+            M_vendor = np.mean([Mv, Mv_rl])
+        except EOFError:
+            bad_sns.append(sn)
+            print(f'{bad_sns=}')
+            continue
+        except Exception as e:
+            bad_sns.append(sn)
+            print(f'ERROR RESTING ({sn}): {e=}')
+            print(f'{bad_sns=}')
+            continue
+        try:
+            p_change_LR, PE_bhv_LR = get_gambling_behavior(sn, 'LR')
+            p_change_RL, PE_bhv_RL = get_gambling_behavior(sn, 'RL')
+            p_change = np.mean([p_change_LR, p_change_RL])
+            PE_bhv = np.mean([PE_bhv_LR, PE_bhv_RL])
+        except FileNotFoundError:
+            continue
+        # except Exception as e:
+        #     bad_sns.append(sn)
+        #     print(f'ERROR TASK ({sn}): {e=}')
+        #     print(f'{bad_sns=}')
+        #     continue
+
+        Mvs.append(M_vendor)
+        p_changes.append(p_change)
+        PE_bhv_efs.append(PE_bhv)
+        good_sns.append(sn)
+
+    M_PE_ef = np.mean(PE_bhv_efs)
+
+    t_PE_bhv, p_PE_bhv = stats.ttest_1samp(PE_bhv_efs, 0)
+    N = len(good_sns)
+    print('-*-***-*-')
+    print(f'PE behavior effect: t[{N - 1}] = {t_PE_bhv:.2f}, p = {p_PE_bhv:.2f}, '
+          f'M ef = {M_PE_ef:.2f}')
+    sns_rs = good_sns
+    task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef, sns_task = (
+        get_task_ef(sns_rs, combine_regions=combine_regions,
+                    anat_ver=anat_ver))
+    overlapping_sns = set(sns_task) & set(sns_rs)
+    overlapping_sns = sorted(list(overlapping_sns))
+    sns_only_in_rs = set(sns_rs) - set(sns_task)
+    sns_only_in_task = set(sns_task) - set(sns_rs)
+    print(f'Overlapping sns: {len(overlapping_sns)}\n'
+          f'\tOnly in RS: {len(sns_only_in_rs)}\n'
+          f'\tOnly in task: {len(sns_only_in_task)}')
+
+    idx_rs = [sns_rs.index(sn) for sn in overlapping_sns]
+    Mvs = [Mvs[i] for i in idx_rs]
+    print(f'{len(Mvs)=}')
+    idx_task = [sns_task.index(sn) for sn in overlapping_sns]
+    task_ef = task_ef[idx_task]
+    p_changes = [p_changes[i] for i in idx_task]
+    PE_bhv_efs = [PE_bhv_efs[i] for i in idx_task]
+    # print(f'{len(itrs)=}')
+    # quit()
+
+    # assert set(sns_itr) - set(sns) == set()
+    # idxs = [sns_itr.index(sn) for sn in sns]
+    # itrs = itrs[idxs]
+
+    r, p = stats.spearmanr(Mvs, p_changes)
+    print(f'RS x change-freq: {r=:.2f}, {p=:.2f}')
+    r, p = stats.spearmanr(Mvs, PE_bhv_efs)
+    print(f'RS x PE-bhv-response: {r=:.2f}, {p=:.2f}')
+    # r, p = stats.spearmanr(Mvs, task_ef)
+    # print(f'RS x task: {r=:.2f}, {p=:.2f}')
+    # r, p = stats.spearmanr(p_changes, task_ef)
+    # print(f'Change-freq x task: {r=:.2f}, {p=:.2f}')
+    # r, p = stats.spearmanr(PE_bhv_efs, task_ef)
+    # print(f'PE-bhv-response x task: {r=:.2f}, {p=:.2f}')
+
+    names = ['itr', 'dd', 'vv', 'dv_ant', 'dv_pos']
+    task_vals = [task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef]
+    for name, vals in zip(names, task_vals):
+        r, p = stats.spearmanr(Mvs, vals)
+        print(f' -*- {name} -*-')
+        print(f'\tRS x task-{name}: {r=:.2f}, {p=:.2f}')
+        r, p = stats.spearmanr(p_changes, vals)
+        print(f'\tChange-freq x task-{name}: {r=:.2f}, {p=:.2f}')
+        r, p = stats.spearmanr(PE_bhv_efs, vals)
+        print(f'\tPE-bhv-response x task-{name}: {r=:.2f}, {p=:.2f}')
+
+def get_task_ef(sns_in, combine_regions=False, anat_ver=3):
+    sns_in = sns_in[::-1]
+    kw = {'combine_regions': combine_regions, 'bilateral': False,
+          'neut_as_PE': None, 'drop_neut': True, 'only': None,
+          'num_sns': None, 'cont_PE': 0.3, 'cont_PE_by_event': True,
+          'regr_M': True, 'lr_separate': True,
+          'reg_global': True, 'no_compcor': True,
+          'sns_set': sns_in}
+    conn_highs, conn_lows, sns = (
+        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+    # assert set(sns_in) - set(sns) == set()
+
+    ef_h, dd_h, vv_h, dv_ant_h, dv_pos_h, M_overall_h = (
+        get_vd_ef(conn_highs, combine_regions=combine_regions,
+                  combine_bilateral=False, anat_ver=anat_ver))
+    ef_l, dd_l, vv_l, dv_ant_l, dv_pos_l, M_overall_l = (
+        get_vd_ef(conn_lows, combine_regions=combine_regions,
+                  combine_bilateral=False, anat_ver=anat_ver))
+    task_ef = ef_l - ef_h
+
+    dd_ef = dd_l - dd_h - M_overall_l + M_overall_h
+    vv_ef = vv_l - vv_h - M_overall_l + M_overall_h
+    dv_ant_ef = dv_ant_l - dv_ant_h - M_overall_l + M_overall_h
+    dv_pos_ef = dv_pos_l - dv_pos_h - M_overall_l + M_overall_h
+    return task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef, sns
+
+def get_gambling_behavior(sn, lr):
+    # QuestionMark.RESP
+
+    df_trials = get_df_events(sn, lr)
+
+    run_num = 2 if lr == 'LR' else 1
+    fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'
+    df = pd.read_csv(fp, delimiter='\t')
+    df.dropna(subset=['QuestionMark.RESP'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    df['RESP_prev'] = df['QuestionMark.RESP'].shift(1)
+    df['RESP_next'] = df['QuestionMark.RESP'].shift(-1)
+    df['RESP_CHANGE'] = df['QuestionMark.RESP'] != df['RESP_next']
+    # df = df.iloc[1:] # drop first row NaN
+    df['RESP_CHANGE'] = df['RESP_CHANGE'].astype(float)
+    df.loc[df['RESP_prev'].isna(), 'RESP_CHANGE'] = np.nan
+
+    df['event'] = df_trials['event']
+    # print(df['event'])
+    # quit()
+    # df.loc[df['RESP_prev'].isna(), 'RESP_CHANGE'] = pd.NA
+
+    # df = df[df['event'] == 'win']
+
+
+    p_change = df['RESP_CHANGE'].sum() / df['RESP_CHANGE'].count()
+
+    n_nan = df['RESP_CHANGE'].isna().sum()
+
+    df['PE'] = df_trials['trial_type']
+    df['event'] = df_trials['event']
+    # df = df[df['event'] == 'win']
+
+    df_PE = df.groupby('PE')['RESP_CHANGE'].mean()
+    PE_ef = df_PE['high_PE'] - df_PE['low_PE']
+
+    df_win = df[df['event'] == 'win']
+    df_loss = df[df['event'] == 'loss']
+
+    df_PE_win = df_win.groupby('PE')['RESP_CHANGE'].mean()
+    df_PE_loss = df_loss.groupby('PE')['RESP_CHANGE'].mean()
+    PE_ef_win = df_PE_win['high_PE'] - df_PE_win['low_PE']
+    PE_ef_loss = df_PE_loss['high_PE'] - df_PE_loss['low_PE']
+    PE_ef = PE_ef_win + PE_ef_loss
+
+    assert n_nan <= 1
+    return p_change, PE_ef
+
+
+if __name__ == '__main__':
+    analyze_HCP_rs()

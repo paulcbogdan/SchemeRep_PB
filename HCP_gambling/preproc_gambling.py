@@ -151,8 +151,11 @@ def lss_transformer(df, row_number):
     df.loc[row_number, "trial_type"] = trial_name
     return df, trial_name
 
-def load_motion(sn, lr):
-    fp_motion = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\Movement_Regressors.txt'
+def load_motion(sn, lr, rs=False, drive='F'):
+    if rs:
+        fp_motion = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\Movement_Regressors.txt'
+    else:
+        fp_motion = fr'{drive}:\HCP_RS_unzipped\{sn}\MNINonLinear\Results\rfMRI_REST1_{lr}\Movement_Regressors.txt'
     motion = np.loadtxt(fp_motion)[:, :12]
     add_reg_names = ["tx", "ty", "tz", "rx", "ry", "rz",
                      "dtx", "dty", "dtz", "drx", "dry", "drz"]
@@ -363,12 +366,6 @@ def LSS_gambling(lsa=True, easy_override=False, reg_global=True, no_compcor=True
     sns = list(sns)
     print(f'{len(sns)=}')
     sns = sorted(sns)
-    # sns = sns
-    # sns = sns[:-4:-4]
-    # sns = sns[len(sns)//2 + 3::12]
-    # sns = sns[len(sns)//2:]
-    # sns = ['100206']
-    # easy_override = True
 
     glob_str = '_global' if reg_global else ''
 
@@ -415,23 +412,26 @@ def LSS_gambling(lsa=True, easy_override=False, reg_global=True, no_compcor=True
     print(f'{bad_sns=}')
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
-                  reg_global=False, no_compcor=False):
+                  reg_global=False, no_compcor=False, rs=False):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=bilateral,
                       HCP=True)
 
     glob_str = '_global' if reg_global else ''
     cc_str = '_nocc' if no_compcor else ''
-    fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
+    if rs:
+        fp_lsa_lr = fr'E:\HCP_RS_clean\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
+    else:
+        fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
     img_lsa_lr = image.load_img(fp_lsa_lr)
     data_lsa_lr = img_lsa_lr.get_fdata()
-    df_events = get_df_events(sn, 'LR')
+    # df_events = get_df_events(sn, 'LR')
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
-    ROI2vecs = {}
-    region2vecs = defaultdict(list)
+    # ROI2vecs = {}
+    # region2vecs = defaultdict(list)
     ar = []
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
@@ -542,7 +542,8 @@ def pwrap_get_conn_sn(sn, **kw):
 def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
               neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
               cont_PE_by_event=False, lr_separate=True, num_sns=None,
-              n_jobs=1, reg_global=False, no_compcor=False):
+              n_jobs=1, reg_global=False, no_compcor=False,
+              sns_set=None):
 
     fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
     if reg_global:
@@ -556,6 +557,10 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     sns = {fn.split('_')[0] for fn in fns}
     sns = sorted(list(sns))
     print(f'{len(sns)=}')
+    if sns_set is not None:
+        sns = [sn for sn in sns if sn in sns_set]
+    if num_sns is None:
+        num_sns = 10_000
     # if sns is not None:
     #     sns = sns[:num_sns]
     # sns = sns[:-1]
@@ -605,7 +610,9 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
                                              easy_override=False,
                                              dt_max=dt_max)
         if conn_high is None:
+        # if sns_set is None:
             bad_sns.append(sn)
+
             continue
 
         conn_highs.append(conn_high)
@@ -619,12 +626,13 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     return conn_highs, conn_lows, good_sns
 
 
-def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
+def get_vd_ef(conn, combine_regions=False, combine_bilateral=False,
+              anat_ver=3):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=3,
+                              flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
                               combine_regions=combine_regions)
-    print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
+    # print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
 
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -633,8 +641,6 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
         p_v_pos = np.array(p_v_pos[::2]) // 2
 
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
-    # print(dd[89])
-    # quit()
     dd = np.nanmean(dd, axis=(1, 2))
     vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
     vv = np.nanmean(vv, axis=(1, 2))
@@ -644,14 +650,6 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
     M_overall = np.nanmean(conn, axis=(1, 2))
 
-
-    # return dv_ant
-    # return dd
-    # return dv_ant
-    # return vv - dv_pos
-    # return dv_pos
-
-    # return dv_pos
 
     return dd + vv - dv_ant - dv_pos, dd, vv, dv_ant, dv_pos, M_overall
 
@@ -668,7 +666,7 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
     # OKAY. Keep REGR_R as True. However, it is mostly inconsequential
     # Keep dropping Neut = TRUE
@@ -684,11 +682,10 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
 
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': None,
+          'neut_as_PE': None, 'drop_neut': False, 'only': None,
           'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
           'regr_M': True, 'lr_separate': True,
           'reg_global': True, 'no_compcor': True}
-
 
 
     # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
@@ -735,7 +732,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         # conn_lows /= ROI_expected[None]
 
     bar_vendor(conn_highs, conn_lows, combine_regions, bilateral)
-    quit()
+    # quit()
 
     # conn_highs -= np.nanmean(conn_highs, axis=(1, 2), keepdims=True)
     # conn_lows -= np.nanmean(conn_lows, axis=(1, 2), keepdims=True)
@@ -793,11 +790,22 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         # plt.imshow(t[np.ix_(p_v_pos, p_d_pos)])
         # plt.colorbar()
         # plt.show()
+        t[np.abs(t) < 3] = np.nan
 
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='Correlation (r)',
                           vmin=-4, vmax=4)
+
+        z_threshed = z_both
+        z_threshed[np.abs(z_threshed) < 2] = np.nan
+
+        z_threshed[np.abs(t) < 3] = np.nan
+        plot_connectivity(z_threshed, atlas['ticks'], atlas['tick_labels'],
+                          atlas['tick_lows'], title=title, tile=.01,
+                          no_avg=True, cbar_label='Correlation (r)',
+                          vmin=-4, vmax=4)
+        # conjunct = np.logical_and(np.abs(t) > 3, np.abs(z_both) > 2)
 
     quit()
     n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)

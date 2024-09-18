@@ -62,15 +62,6 @@ def load_task(combine_regions=True):
 
     quads = [list(quad0), list(quad1), list(quad2), list(quad3)]
 
-    # print(f'{len(quad0)=}')
-    # print(f'{len(quad1)=}')
-    # print(f'{len(quad2)=}')
-    # print(f'{len(quad3)=}')
-    #
-    # print(f'{len(partitions_VD[0])=}')
-    # print(f'{len(partitions_VD[1])=}')
-    # print(f'{len(partitions_PA[0])=}')
-    # print(f'{len(partitions_PA[1])=}')
 
     non_used_nodes = (set(range(246)) - partitions_VD[0] -  partitions_VD[1] -
                       partitions_PA[0] - partitions_PA[1])
@@ -81,51 +72,6 @@ def load_task(combine_regions=True):
 
     return partitions_VD, partitions_PA, list(non_used_quad), quads
 
-    # print(sn_inc_conn.shape)
-    # quit()
-
-    # sn_inc_conn[:, :, 93, :] = np.nan
-    # sn_inc_conn[:, :, :, 93] = np.nan
-
-    # sn_inc_conn =
-
-    # for i in range(246):
-    #     num_nan = np.sum(np.all(np.isnan(sn_inc_activity[:, :, i, :]),
-    #                             axis=(1, 2)), axis=0)
-    #     print(i, ':', num_nan)
-    # quit()
-
-
-
-
-    # print(sn_inc_conn[:, :, 93, 0])
-    # quit()
-
-    # plt.imshow(z_both)
-    # plt.show()
-    # quit()
-    # print(z_both[0, 1])
-
-    # atlas = get_atlas()
-
-    # for k, p in enumerate(partitions):
-    #     # if len(p) < 10: continue
-    #     if k == 3: break
-    #     mat = np.full((246, 246), 0)
-    #
-    #     for i in p:
-    #         for j in p:
-    #             mat[i, j] = 1
-    #     plot_connectivity(mat, atlas=atlas, vmin=0, vmax=2, minimal=False)
-    #
-    # # print(partitions)
-    # quit()
-
-
-
-    # get_vendor_partitions(age='healthy', flip=True, plot=True,
-    #                   scrub=True, easy_override=True, thr=THRESHOLD,
-    #                   combine_regions=False, regress=REGRESS)
 
 def shuffle_rows(sn_roi_act, shuffle_lowhigh=True):
     new_ar = np.full(sn_roi_act.shape, np.nan)
