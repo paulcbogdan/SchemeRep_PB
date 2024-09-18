@@ -15,6 +15,7 @@ import numpy as np
 from nilearn import image
 import scipy.stats as stats
 from nilearn import plotting
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 
@@ -70,10 +71,6 @@ def get_HCP_vendor(sn, lr='LR', combine_regions=False, bilateral=False,
     ar = stats.zscore(ar, axis=1)
     rs_conn = ar[:, None, :] * ar[None, :, :]
 
-    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(
-        skip_other=False, all_roi=False, anat_ver=anat_ver,
-        combine_regions=combine_regions, p_no_override=False)
-
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', anat=True, weighted=False,
                               flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
@@ -81,16 +78,20 @@ def get_HCP_vendor(sn, lr='LR', combine_regions=False, bilateral=False,
 
     dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
     dd = np.nanmean(dd, axis=(0, 1))
+    dd_ = stats.zscore(dd)
     vv = rs_conn[*np.ix_(p_v_ant, p_v_pos), :]
     vv = np.nanmean(vv, axis=(0, 1))
-    dd_vv = dd + vv
+    vv_ = stats.zscore(vv)
+    dd_vv = dd_ + vv_
     dv_ant = rs_conn[*np.ix_(p_d_ant, p_v_ant), :]
     dv_ant = np.nanmean(dv_ant, axis=(0, 1))
+    dv_ant_ = stats.zscore(dv_ant)
     dv_pos = rs_conn[*np.ix_(p_d_pos, p_v_pos), :]
     dv_pos = np.nanmean(dv_pos, axis=(0, 1))
-    dv_dv = dv_ant + dv_pos
+    dv_pos_ = stats.zscore(dv_pos)
+    dv_dv = dv_ant_ + dv_pos_
 
-    return dd_vv, dv_dv
+    return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
 
     pd_no = np.nanmean(rs_conn[p_d_ant, p_no, :], axis=0)
     ad_no = np.nanmean(rs_conn[p_d_pos, p_no, :], axis=0)
@@ -118,7 +119,12 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
     sns_rs = sorted(list(sns_rs))
 
 
+
     Mvs = []
+    DDs = []
+    VVs = []
+    dv_ants = []
+    dv_poss = []
     p_changes = []
     PE_bhv_efs = []
     bad_sns = []
@@ -127,11 +133,7 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
     # sns_rs = sns_rs[::-2]
     good_sns = []
 
-    if no_compcor:
-        from datetime import datetime
-        dt_max = datetime(2024, 9, 17, 17, 0, 0, 0)
-    else:
-        dt_max = None
+    dt_max = datetime(2024, 9, 18, 17, 30, 0, 0)
 
     print(f'Candidate sns: {len(sns_rs)}')
     for sn in tqdm(sns_rs, desc='rs-fMRI loading', position=0, leave=True):
@@ -140,14 +142,18 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
               'no_compcor': no_compcor, 'anat_ver': anat_ver}
         try:
             kw['lr'] = 'RL'
-            dd_vv_rl, dv_dv_rl = pickle_wrap(get_HCP_vendor, kwargs=kw, easy_override=False,
-                                             dt_max=dt_max)
+            dd_vv_rl, dv_dv_rl, dd_rl, vv_rl, dv_ant_rl, dv_pos_rl = pickle_wrap(
+                get_HCP_vendor, kwargs=kw, easy_override=True, dt_max=dt_max)
             kw['lr'] = 'LR'
-            dd_vv, dv_dv = pickle_wrap(get_HCP_vendor, kwargs=kw, easy_override=False,
-                                       dt_max=dt_max)
+            dd_vv, dv_dv, dd, vv, dv_ant, dv_pos = pickle_wrap(
+                get_HCP_vendor, kwargs=kw, easy_override=True, dt_max=dt_max)
 
             Mv = np.nanmean(np.abs(dd_vv - dv_dv))
             Mv_rl = np.nanmean(np.abs(dd_vv_rl - dv_dv_rl))
+            rs_dd = np.nanmean(dd + dd_rl) / 2
+            rs_vv = np.nanmean(vv + vv_rl) / 2
+            rs_dv_ant = np.nanmean(dv_ant + dv_ant_rl) / 2
+            rs_dv_pos = np.nanmean(dv_pos + dv_pos_rl) / 2
             M_vendor = np.mean([Mv, Mv_rl])
         except EOFError:
             bad_sns.append(sn)
@@ -172,6 +178,10 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
         #     continue
 
         Mvs.append(M_vendor)
+        DDs.append(rs_dd)
+        VVs.append(rs_vv)
+        dv_ants.append(rs_dv_ant)
+        dv_poss.append(rs_dv_pos)
         p_changes.append(p_change)
         PE_bhv_efs.append(PE_bhv)
         good_sns.append(sn)
@@ -197,6 +207,10 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
 
     idx_rs = [sns_rs.index(sn) for sn in overlapping_sns]
     Mvs = [Mvs[i] for i in idx_rs]
+    DDs = [DDs[i] for i in idx_rs]
+    VVs = [VVs[i] for i in idx_rs]
+    dv_ants = [dv_ants[i] for i in idx_rs]
+    dv_poss = [dv_poss[i] for i in idx_rs]
     print(f'{len(Mvs)=}')
     idx_task = [sns_task.index(sn) for sn in overlapping_sns]
     task_ef = task_ef[idx_task]
@@ -220,9 +234,16 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
     # r, p = stats.spearmanr(PE_bhv_efs, task_ef)
     # print(f'PE-bhv-response x task: {r=:.2f}, {p=:.2f}')
 
+    df_out = pd.DataFrame({'rs_vendor': Mvs,
+                           'rs_dd': DDs, 'rs_vv': VVs,
+                           'rs_dv_ant': dv_ants, 'rs_dv_pos': dv_poss,
+                           'sns': overlapping_sns, 'p_changes': p_changes,
+                           'PE_bhv_efs': PE_bhv_efs})
+
     names = ['itr', 'dd', 'vv', 'dv_ant', 'dv_pos']
     task_vals = [task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef]
     for name, vals in zip(names, task_vals):
+        df_out[name] = vals
         r, p = stats.spearmanr(Mvs, vals)
         print(f' -*- {name} -*-')
         print(f'\tRS x task-{name}: {r=:.2f}, {p=:.2f}')
@@ -230,6 +251,12 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
         print(f'\tChange-freq x task-{name}: {r=:.2f}, {p=:.2f}')
         r, p = stats.spearmanr(PE_bhv_efs, vals)
         print(f'\tPE-bhv-response x task-{name}: {r=:.2f}, {p=:.2f}')
+
+    glob_str = '_global' if reg_global else ''
+    cc_str = '_nocc' if no_compcor else ''
+    fn_out = fr'fMRI_HCP_results_{anat_ver}{glob_str}{cc_str}.csv'
+    fp_out = fr'C:\PycharmProjects\SchemeRep\{fn_out}'
+    df_out.to_csv(fp_out, index=False)
 
 def get_task_ef(sns_in, combine_regions=False, anat_ver=3):
     sns_in = sns_in[::-1]

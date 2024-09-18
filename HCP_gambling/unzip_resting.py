@@ -40,7 +40,7 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_gambling(override=False, slow_check=False):
+def unzip_all_resting(override=False, slow_check=False):
     sns = get_sns()
 
     # sns = ['144226']
@@ -108,4 +108,4 @@ def unzip_all_gambling(override=False, slow_check=False):
         #         z.extractall(fp_unzip)
 
 if __name__ == '__main__':
-    unzip_all_gambling()
+    unzip_all_resting()

@@ -71,8 +71,8 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
     print(f'\tSaved ({time.time() - t_st:.2f} s): {fp_out=}')
 
 
-def clean_sn_rs_all(easy_override=False, reg_global=True, no_compcor=True,
-                    drive='F'):
+def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
+                    drive='G'):
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
     sns = list(sns)
     print(f'{len(sns)=}')
