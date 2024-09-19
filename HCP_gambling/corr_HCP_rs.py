@@ -135,6 +135,7 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
 
     dt_max = datetime(2024, 9, 18, 17, 30, 0, 0)
 
+    sns_rs = sns_rs[:460]
     print(f'Candidate sns: {len(sns_rs)}')
     for sn in tqdm(sns_rs, desc='rs-fMRI loading', position=0, leave=True):
         kw = {'sn': sn, 'combine_regions': combine_regions,
@@ -143,10 +144,10 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
         try:
             kw['lr'] = 'RL'
             dd_vv_rl, dv_dv_rl, dd_rl, vv_rl, dv_ant_rl, dv_pos_rl = pickle_wrap(
-                get_HCP_vendor, kwargs=kw, easy_override=True, dt_max=dt_max)
+                get_HCP_vendor, kwargs=kw, easy_override=False, dt_max=dt_max)
             kw['lr'] = 'LR'
             dd_vv, dv_dv, dd, vv, dv_ant, dv_pos = pickle_wrap(
-                get_HCP_vendor, kwargs=kw, easy_override=True, dt_max=dt_max)
+                get_HCP_vendor, kwargs=kw, easy_override=False, dt_max=dt_max)
 
             Mv = np.nanmean(np.abs(dd_vv - dv_dv))
             Mv_rl = np.nanmean(np.abs(dd_vv_rl - dv_dv_rl))

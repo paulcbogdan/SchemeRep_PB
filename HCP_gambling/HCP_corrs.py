@@ -12,8 +12,8 @@ if __name__ == "__main__":
     cols = [col for col in cols if '_Compl' not in col]
     ns_cols = cols
 
-    reg_global = True
-    no_compcor = True
+    reg_global = False
+    no_compcor = False
     anat_ver = 3
     glob_str = '_global' if reg_global else ''
     cc_str = '_nocc' if no_compcor else ''
@@ -29,16 +29,22 @@ if __name__ == "__main__":
     # ns_cols = ['DDisc_AUC_200', 'DDisc_AUC_40K']
     # print(df)
     # quit()
-    plt.hist(df['rs_dd'])
-    plt.show()
+
+    # plt.scatter(df['rs_vendor'], df['Age'], alpha=.5)
+    # plt.show()
+    # quit()
 
     print(f'{len(ns_cols)=}')
-    fMRI_cols = ['rs_vendor', 'itr', 'rs_dd', 'rs_vv', 'rs_dv_ant', 'rs_dv_pos']
+    fMRI_cols = ['rs_vendor', 'itr', 'rs_dd', 'rs_vv', 'rs_dv_ant', 'rs_dv_pos',
+                 'dd', 'vv', 'dv_ant', 'dv_pos', 'p_changes', 'PE_bhv_efs']
     for fMRI_col in fMRI_cols:
+        plt.title(fMRI_col)
+        plt.hist(df[fMRI_col])
+        plt.show()
         for ns_col in ns_cols:
             df_ = df.dropna(subset=[fMRI_col, ns_col])
             N = len(df_)
             r, p = stats.spearmanr(df_[fMRI_col], df_[ns_col])
-            if p < .005:
+            if p < .01:
                 print(f'{fMRI_col} x {ns_col} (N = {N}): {r=:.2f}, {p=:.4f}')
             # df[f'{fMRI_col}_{ns_col}'] = df[fMRI_col] - df[ns_col]
