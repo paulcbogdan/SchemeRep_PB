@@ -618,7 +618,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                      double_speed=True, Fz_Pz_abs_dif=False,
                      fz_minus_pz=False,
                      get_max=False, get_max_avg_before=True,
-                     log_freqs=True):
+                     log_freqs=False):
     # changed to remove SFGG
     # dt_max = datetime(2024, day=18, month=3, hour=9) if many_ROI else None
 
@@ -660,7 +660,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
     if log_freqs:
         custom_freqs = np.logspace(-1, 1.7, 100, base=10)
     else:
-        custom_freqs = None
+        custom_freqs = np.linspace(0.5, 50, 100)
+        # print(custom_freqs)
+        # quit()
+        # custom_freqs = None
     custom_freqs = tuple(custom_freqs)
 
 
@@ -671,7 +674,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                    'avg_before': avg_before,
                                    'high_gamma': high_gamma,
                                    'super_slow': super_slow,
-                                   'avg_ref': True, # TODO: toggle
+                                   'avg_ref': True,
                                    'mastoid_ref': False,
                                    'fz_minus_pz': fz_minus_pz,
                                    'delay': False,
