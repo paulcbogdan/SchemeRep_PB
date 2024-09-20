@@ -634,7 +634,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                                     'sanity': False,
                                     'mask': True,
                                     'nofilter': False,
-                                    'n_compcor': 1,
+                                    'n_compcor': 5,
                                     'lateral': False},
                             easy_override=False, verbose=-1,)
 
@@ -656,6 +656,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', avg_before=False,
                  'C1', 'Cz', 'C2', 'C3', 'C4',
                  'CP1', 'CPz', 'CP2', 'CP3', 'CP4',
                  'P1', 'Pz', 'P2', 'P3', 'P4']
+        picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
+        # picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+        #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4',]
+
 
     if log_freqs:
         custom_freqs = np.logspace(-1, 1.7, 100, base=10)
@@ -967,11 +971,12 @@ if __name__ == '__main__':
                           f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e} | '
                           f'{M_above:.1%}')
             # continue
-            if 'r50' not in NAME2L:
+            if 'r50.0' not in NAME2L:
                 continue
             if N == 21 and j == len(SESSES) - 1:
                 # print('done')
-                if 'r1' in NAME2L:
+                if 'r1.0' in NAME2L:
+                    print('PLOTTTT')
                     plot_hz_corrs(NAME2L)
                     # plot_hz_corrs(simple2l)
                     plot_hz_corrs(NAME2L, effect_size=True, plot_se=True)

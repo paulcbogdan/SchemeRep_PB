@@ -684,9 +684,10 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'neut_as_PE': None, 'drop_neut': False, 'only': None,
           'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
-          'regr_M': True, 'lr_separate': True,
+          'regr_M': True, 'lr_separate': False,
           'reg_global': True, 'no_compcor': True}
-
+    # print(kw)
+    # quit()
 
     # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
     #       'neut_as_PE': True, 'drop_neut': False, 'only': None,

@@ -208,15 +208,9 @@ def get_dists(al, bl, cl, dl, combine_regions=True):
                     all_totals.append(total_dist)
     all_total = np.mean(all_totals)
     return all_total
-    # print(f'{all_total=}')
-    # quit()
-                    # print(f'{ab_dist=:.2f}, {ac_dist=:.2f}, {bc_dist=:.2f}, '
-                    #       f'{ad_dist=:.2f}, {bd_dist=:.2f}, {cd_dist=:.2f}')
-
-
 
 def do_group(num_test=10_000, ctrl_group=False,
-             skip_other=True, all_roi=True, ix=True, anat_ver=5,
+             skip_other=True, all_roi=True, ix=True, anat_ver=3,
              combine_regions=True, n='7', std_d=True,
              shuffle_seed=None):
 
@@ -351,7 +345,6 @@ def plot_rs_efs(rs, efs, colors, og_d, og_r, dists,
 
     # colors = [cmap((d - min_dist) / (max_dist - min_dist)) for d in dists]
     colors = [get_color(d, c) for d, c in zip(dists, colors)]
-
 
     plt.title(f'Number: {len(rs)}, {rho=:.3f}, {p=:.4f}\n{combine_regions=},'
               f' {all_roi=}, {n=}, {std_d=}')

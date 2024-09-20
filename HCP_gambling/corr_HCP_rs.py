@@ -93,10 +93,10 @@ def get_HCP_vendor(sn, lr='LR', combine_regions=False, bilateral=False,
 
     return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
 
-    pd_no = np.nanmean(rs_conn[p_d_ant, p_no, :], axis=0)
-    ad_no = np.nanmean(rs_conn[p_d_pos, p_no, :], axis=0)
-    av_no = np.nanmean(rs_conn[p_v_ant, p_no, :], axis=0)
-    pv_no = np.nanmean(rs_conn[p_v_pos, p_no, :], axis=0)
+    # pd_no = np.nanmean(rs_conn[p_d_ant, p_no, :], axis=0)
+    # ad_no = np.nanmean(rs_conn[p_d_pos, p_no, :], axis=0)
+    # av_no = np.nanmean(rs_conn[p_v_ant, p_no, :], axis=0)
+    # pv_no = np.nanmean(rs_conn[p_v_pos, p_no, :], axis=0)
 
     # r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no)
     # return r
@@ -329,6 +329,7 @@ def get_gambling_behavior(sn, lr):
     PE_ef_win = df_PE_win['high_PE'] - df_PE_win['low_PE']
     PE_ef_loss = df_PE_loss['high_PE'] - df_PE_loss['low_PE']
     PE_ef = PE_ef_win + PE_ef_loss
+    # PE_ef = PE_ef_loss
 
     assert n_nan <= 1
     return p_change, PE_ef

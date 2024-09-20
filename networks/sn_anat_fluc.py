@@ -48,6 +48,7 @@ def get_quads(skip_other=False, all_roi=False, anat_ver=3,
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
                               anat_ver=anat_ver, combine_regions=combine_regions)
+
     # print(p_d_pos)
     # print(combine_regions)
     # n_roi = 54 if COMBINE_REGIONS else 246
@@ -92,7 +93,7 @@ def get_rs_fluc_OLD(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn):
     return r
 
 def get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn, ix=True,
-                ctrl=CTRL):
+                ctrl=CTRL, abs=True):
     if ix:
         dd = rs_conn[*np.ix_(pda_i, pdp_i), :]
         dd = np.nanmean(dd, axis=(0, 1))
@@ -117,20 +118,19 @@ def get_rs_fluc(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn, ix=True,
     dv_ant = stats.zscore(dv_ant, nan_policy='omit')
     dv_pos = stats.zscore(dv_pos, nan_policy='omit')
 
-    fluc = np.abs(dd + vv - dv_ant - dv_pos)
-    return np.nanmean(fluc)
-
-    dd_vv = dd + vv
-
-    dv_dv = dv_ant + dv_pos
-    pd_no = np.nanmean(rs_conn[*np.ix_(pdp_i, p_no), :], axis=(0, 1))
-    ad_no = np.nanmean(rs_conn[*np.ix_(pda_i, p_no), :], axis=(0, 1))
-    av_no = np.nanmean(rs_conn[*np.ix_(pva_i, p_no), :], axis=(0, 1))
-    pv_no = np.nanmean(rs_conn[*np.ix_(pvp_i, p_no), :], axis=(0, 1))
-    r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
-                          ctrl=ctrl)
-
-    return r
+    if abs:
+        fluc = np.abs(dd + vv - dv_ant - dv_pos)
+        return np.nanmean(fluc)
+    else:
+        dd_vv = dd + vv
+        dv_dv = dv_ant + dv_pos
+        pd_no = np.nanmean(rs_conn[*np.ix_(pdp_i, p_no), :], axis=(0, 1))
+        ad_no = np.nanmean(rs_conn[*np.ix_(pda_i, p_no), :], axis=(0, 1))
+        av_no = np.nanmean(rs_conn[*np.ix_(pva_i, p_no), :], axis=(0, 1))
+        pv_no = np.nanmean(rs_conn[*np.ix_(pvp_i, p_no), :], axis=(0, 1))
+        r = partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
+                              ctrl=ctrl)
+        return r
 
 def get_task_effect(pda_i, pdp_i, pva_i, pvp_i, p_no, inc_conn, ix=True):
     if ix:
@@ -281,18 +281,9 @@ def do_sn(rs_conn, inc_conn, num_test=2500, ctrl_group=True,
 
     np.random.seed(0)
     combos = itertools.product(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
-    # print('prod')
     combos = list(combos)
-    # print('list')
-    # skipper = int(num_pos / num_test)
-    # print(f'skip: {skipper}')
-    # print(f'{len(combos)=}')
-    # skipper = max(1, skipper)
-    # combos = combos[::skipper]
+
     np.random.shuffle(combos)
-    # print('shuffled')
-    # print(f'{len(combos)=}')
-    # print(combos)
 
     combos_ = []
     for (a, b, c, d) in combos:
