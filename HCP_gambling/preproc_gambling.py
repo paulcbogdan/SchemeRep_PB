@@ -69,16 +69,14 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
                 PE = 0 - E
                 E = E * (1 - learning)
             PE_cont.append(PE)
-        #     print(row['event'], f'{PE=:.2f}, {E=:.2f}')
-        # quit()
-        # df_trials['E'] = E
+
         df_trials['PE'] = PE_cont
         df_trials['PE_abs'] = df_trials['PE'].abs()
 
         if cont_pe_by_event:
             for event in ['loss', 'win', 'neut']:
                 df_event = df_trials[df_trials['event'] == event]
-                med_PE = df_event['PE_abs'].mean()
+                med_PE = df_event['PE_abs'].median()
                 # print(f'{event}: {med_PE=}')
                 df_trials.loc[df_trials['event'] == event, 'trial_type'] = df_trials.loc[
                     df_trials['event'] == event, 'PE_abs'].apply(
