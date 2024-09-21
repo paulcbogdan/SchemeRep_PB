@@ -149,7 +149,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False, clean=False,
     fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC) #** 2
     alt1_signed = MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC
     alt2_abs_sum = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC)
-    alt3_sum_abs = np.abs(MFG_IPL) + np.abs(ATL_LOC) + np.abs(ATL_MFG) + np.abs(IPL_LOC)
-
+    # alt3_sum_abs = np.abs(MFG_IPL) + np.abs(ATL_LOC) + np.abs(ATL_MFG) + np.abs(IPL_LOC)
+    alt3_sum_abs = MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC
 
     return fluc, alt1_signed, alt2_abs_sum, alt3_sum_abs

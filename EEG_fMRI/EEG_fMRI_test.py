@@ -13,6 +13,7 @@ import scipy.stats as stats
 import pandas as pd
 import warnings
 from collections import defaultdict
+import statsmodels.formula.api as smf
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
@@ -36,11 +37,9 @@ def get_hrf(tr=2.1):
 
 
 
-def test_EEG_fMRI_sn(sn='06', sess='01',
-                     double_speed=True,
+def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      get_max=False, get_max_avg_before=True,
-                     log_freqs=False,
-                     just_frontal=True, alt_v=0):
+                     log_freqs=False, just_frontal=True, alt_v=0):
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
@@ -49,6 +48,23 @@ def test_EEG_fMRI_sn(sn='06', sess='01',
                                    'clean': True, 'mask': True, 'nofilter': False,
                                    'n_compcor': 5, 'lateral': False},
                             easy_override=False, verbose=-1, )
+    # r1, _ = stats.spearmanr(fMRI_fluc, alt1_signed)
+    # print(f'Sanity 1: {r1=:.3f}')
+    # r2, _ = stats.spearmanr(fMRI_fluc, alt2_abs_sum)
+    # print(f'Sanity 2: {r2=:.3f}')
+    # r3, _ = stats.spearmanr(fMRI_fluc, alt3_sum_abs)
+    # print(f'Sanity 3: {r3=:.3f}')
+    # return None, None
+
+    # if alt_v > 0:
+    #     if alt_v == 1:
+    #         fMRI_fluc = alt1_signed
+    #     elif alt_v == 2:
+    #         fMRI_fluc = alt2_abs_sum
+    #     elif alt_v == 3:
+    #         fMRI_fluc = alt3_sum_abs
+    #     else:
+    #         raise ValueError(f'Bad alt_v: {alt_v}')
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -110,7 +126,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01',
         return None, None
 
     fMRI_fluc = fMRI_fluc[6:]
-
+    if len(alt3_sum_abs) > len(fMRI_fluc):
+        alt1_signed = alt1_signed[6:]
+        alt2_abs_sum = alt2_abs_sum[6:]
+        alt3_sum_abs = alt3_sum_abs[6:]
 
     # num_nans = np.isnan(EEG_fluc[0, 4]).sum()
 
@@ -161,30 +180,24 @@ def test_EEG_fMRI_sn(sn='06', sess='01',
 
         df['focus'] = stats.zscore(df['focus'])
         df['fMRI_fluc'] = stats.zscore(df['fMRI_fluc'])
-        df['ctrl'] = stats.zscore(df['ctrl'])
+        if alt_v > 0:
+            if alt_v == 1:
+                df['ctrl'] = stats.zscore(alt1_signed)
+            elif alt_v == 2:
+                df['ctrl'] = stats.zscore(alt2_abs_sum)
+            elif alt_v == 3:
+                df['ctrl'] = stats.zscore(alt3_sum_abs)
         df_ = df.dropna()
         if len(df_) < 1:
             name2r[name] = np.nan
             continue
-        # print(df[['ctrl', 'focus', 'fMRI_fluc']])
-        # print(range_fluc)
-        # print(idxs)
-        # quit()
-        # print(df[[name, 'fMRI_fluc']])
-        # quit()
-        # quit()
 
-
-        r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
-
-        # res = smf.ols(f'fMRI_fluc ~ focus + ctrl', data=df_).fit()
-        # r = res.params['focus']
-        # name2r[name] = r
-        # continue
-
-        # print(res.summary())
-        # print(res.params[1])
-        # quit()
+        if alt_v == 0:
+            r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
+        else:
+            res = smf.ols(f'focus ~ fMRI_fluc + ctrl', data=df_).fit()
+            r = res.params['fMRI_fluc']
+        name2r[name] = r
 
         name2fluc[name] = range_fluc
 
