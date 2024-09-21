@@ -208,12 +208,13 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
 #     return ef
     # return dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l
 
-def get_HCP_task_conn(sns, combine_regions, bilateral):
+def get_HCP_task_conn(sns, combine_regions, bilateral,
+                      reg_global, no_compcor):
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'neut_as_PE': None, 'drop_neut': False, 'only': None,
           'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
           'regr_M': True, 'lr_separate': False,
-          'reg_global': False, 'no_compcor': False,
+          'reg_global': reg_global, 'no_compcor': no_compcor,
           'sns_set': list(sns)}
 
     if kw['neut_as_PE']:
@@ -247,9 +248,10 @@ def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     return itr, dd, vv, dv_ant, dv_pos, M_overall
 
 def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                 combine_regions=False, bilateral=False):
+                 combine_regions=False, bilateral=False,
+                 reg_global=True, no_compcor=True):
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'sns': sns}
+          'sns': sns, 'reg_global': reg_global, 'no_compcor': no_compcor}
     sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=False,
                            RAM_cache=True)
 
@@ -347,10 +349,16 @@ def do_analysis(num_test=1_000, ctrl_group=False,
                 combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
+    task_reg_global = True
+    task_no_compcor = True
+    rs_reg_global = False
+    rs_no_compcor = False
+
     sns = find_overlapping_sns()
     bad_sns = {'150423', '171734', '119833', '127933', '128127',
                '127327', '105216', '105014', '203418', '203923',
-               '204016', '201515', '201717', '201818', '202113'}
+               '204016', '201515', '201717', '201818', '202113',
+               '196851', '195647', '195950', '194140', '194645'}
     sns = sorted(list(sns - bad_sns))
     print(f'Found overlapping sns: {len(sns)=}')
     # quit()
@@ -417,11 +425,11 @@ def do_analysis(num_test=1_000, ctrl_group=False,
         rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                                 lr='LR', combine_regions=combine_regions, bilateral=False,
-                                reg_global=False, no_compcor=False)
+                                reg_global=rs_reg_global, no_compcor=rs_no_compcor)
         rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                                 lr='RL', combine_regions=combine_regions, bilateral=False,
-                                reg_global=False, no_compcor=False)
+                                reg_global=rs_reg_global, no_compcor=rs_no_compcor)
         # print(f'{len(rs_efs)=}')
         # print(f'{len(rs_efs2)=}')
         rs_efs = np.nanmean([rs_efs, rs_efs2], axis=0)
@@ -432,7 +440,8 @@ def do_analysis(num_test=1_000, ctrl_group=False,
 
         t_st = time()
         task_efs = get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                combine_regions=combine_regions, bilateral=False)
+                                combine_regions=combine_regions, bilateral=False,
+                                reg_global=task_reg_global, no_compcor=task_no_compcor)
         # print(f'{len(task_efs)=}')
         print(f'\tTask time: {time() - t_st:.5f} s')
         # for rs_ef, sn in zip(rs_efs, sns):

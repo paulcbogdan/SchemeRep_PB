@@ -72,7 +72,7 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
 
 
 def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
-                    drive='G'):
+                    drive='F'):
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
     sns = list(sns)
     print(f'{len(sns)=}')
@@ -81,6 +81,7 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
     sns = {'150423', '171734', '119833', '127933', '128127',
                '127327', '105216', '105014', '203418', '203923',
                '204016', '201515', '201717', '201818', '202113'}
+    sns = sorted(list(sns))
 
     bad_sns = []
     for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):

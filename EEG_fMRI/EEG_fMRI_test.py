@@ -879,8 +879,8 @@ def conv(EEG_fluc):
     else:
         return EEG_fluc
 
+def do_EEG_fMRI_test():
 
-if __name__ == '__main__':
 
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
@@ -982,5 +982,8 @@ if __name__ == '__main__':
                     plot_hz_corrs(NAME2L, effect_size=True, plot_se=True)
                 else:
                     plot_regrs(pd.concat(dfs_l))
+
+if __name__ == '__main__':
+    do_EEG_fMRI_test()
 
 
