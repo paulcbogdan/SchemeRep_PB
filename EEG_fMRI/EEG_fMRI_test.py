@@ -40,7 +40,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01',
                      double_speed=True,
                      get_max=False, get_max_avg_before=True,
                      log_freqs=False,
-                     just_frontal=False, alt_v=0):
+                     just_frontal=True, alt_v=0):
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
@@ -72,22 +72,38 @@ def test_EEG_fMRI_sn(sn='06', sess='01',
 
     custom_freqs = tuple(custom_freqs)
 
+    # kw2 = {'sn': sn, 'sess': sess,
+    #                                'num_TRs': num_TRs,
+    #                                'picks': picks,
+    #                                'avg_before': False,
+    #                                'high_gamma': False,
+    #                                'super_slow': False,
+    #                                'avg_ref': True,
+    #                                'mastoid_ref': False,
+    #                                'fz_minus_pz': False,
+    #                                'delay': False,
+    #                                'double_speed': double_speed,
+    #                                'excl_before': True,
+    #                                'Fz_Pz_abs_dif': False,
+    #                                'get_max': get_max,
+    #                                'get_max_avg_before': get_max_avg_before,
+    #                                'custom_freqs': custom_freqs}
+
+    kw = {'sn': sn, 'sess': sess, 'avg_before': False,
+          'num_TRs': num_TRs, 'picks': picks, 'avg_ref': True,
+          'mastoid_ref': False, 'delay': False,
+          'double_speed': double_speed, 'excl_before': True,
+          'get_max': get_max, 'get_max_avg_before': get_max_avg_before,
+          'custom_freqs': custom_freqs}
+    # for key, val in kw2.items():
+    #     if key in kw:
+    #         assert kw[key] == val
 
     EEG_fluc = pickle_wrap(get_EEG_score_sn,
-                           kwargs={'sn': sn, 'sess': sess,
-                                   'num_TRs': num_TRs,
-                                   'picks': picks,
-                                   'avg_ref': True,
-                                   'mastoid_ref': False,
-                                   'delay': False,
-                                   'double_speed': double_speed,
-                                   'excl_before': True,
-                                   'get_max': get_max,
-                                   'get_max_avg_before': get_max_avg_before,
-                                   'custom_freqs': custom_freqs},
-                           easy_override=True, verbose=-1)
-    print(EEG_fluc)
-    quit()
+                           kwargs=kw,
+                           easy_override=False, verbose=-1)
+    # print(EEG_fluc)
+    # quit()
 
     if EEG_fluc is None:
         print(f'BAD EEG!! ({sn}; {sess})')

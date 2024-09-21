@@ -84,7 +84,7 @@ def load_EEG(sn, sess, num_TRs, dir_eeg, excl_before=False):
 
 
 def get_EEG_score_sn(sn, num_TRs, sess='01', picks=None,
-                     avg_before=True, high_gamma=False,
+                     avg_before=False, high_gamma=False,
                      super_slow=False, avg_ref=True,
                      double_speed=False, excl_before=True,
                      mastoid_ref=False, Fz_Pz_abs_dif=False,
