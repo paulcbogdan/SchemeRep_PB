@@ -43,11 +43,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
-    fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum_abs = pickle_wrap(
+    fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum, alt4_sum_abs = pickle_wrap(
         get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess, 'combine_regions': False,
                                    'clean': True, 'mask': True, 'nofilter': False,
                                    'n_compcor': 5, 'lateral': False},
-                            easy_override=False, verbose=-1, )
+                            easy_override=True, verbose=-1, )
     # r1, _ = stats.spearmanr(fMRI_fluc, alt1_signed)
     # print(f'Sanity 1: {r1=:.3f}')
     # r2, _ = stats.spearmanr(fMRI_fluc, alt2_abs_sum)
@@ -55,16 +55,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
     # r3, _ = stats.spearmanr(fMRI_fluc, alt3_sum_abs)
     # print(f'Sanity 3: {r3=:.3f}')
     # return None, None
-
-    # if alt_v > 0:
-    #     if alt_v == 1:
-    #         fMRI_fluc = alt1_signed
-    #     elif alt_v == 2:
-    #         fMRI_fluc = alt2_abs_sum
-    #     elif alt_v == 3:
-    #         fMRI_fluc = alt3_sum_abs
-    #     else:
-    #         raise ValueError(f'Bad alt_v: {alt_v}')
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -126,10 +116,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         return None, None
 
     fMRI_fluc = fMRI_fluc[6:]
-    if len(alt3_sum_abs) > len(fMRI_fluc):
+    if len(alt3_sum) > len(fMRI_fluc):
         alt1_signed = alt1_signed[6:]
         alt2_abs_sum = alt2_abs_sum[6:]
-        alt3_sum_abs = alt3_sum_abs[6:]
+        alt3_sum = alt3_sum[6:]
+        alt4_sum_abs = alt4_sum_abs[6:]
 
     # num_nans = np.isnan(EEG_fluc[0, 4]).sum()
 
@@ -160,6 +151,25 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
             ranges_ = {f'r{hz}': (hz, hz + 1) for hz in range(1, 51)}
         ranges.update(ranges_)
 
+    ranges = {}
+    for idx, freq in enumerate(custom_freqs):
+        ranges[f'r{freq:.1f}'] = (idx, idx + 1)
+    ranges_bins = {'delta': (1, 4), 'theta': (4, 8),
+                   'alpha': (8, 13), 'beta': (13, 30),
+                   'gamma': (30, 50.5),}
+    custom_freqs = np.array(custom_freqs)
+    for key, tup in ranges_bins.items():
+        low = np.argmin(np.abs(custom_freqs - tup[0]))
+        high = np.argmin(np.abs(custom_freqs - tup[1])) + 1
+        ranges[key] = (low, high)
+    #     print(f'{key}: {low=}, {high=}')
+    # quit()
+        # for freq in custom_freqs:
+        # ranges[key] = (int(tup[0] * 2), int(tup[1] * 2))
+    # print(ranges)
+    # quit()
+    # ranges.update(ranges_bins)
+
     name2fluc = {}
     name2r = {}
 
@@ -168,12 +178,17 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         df = pd.DataFrame({'fMRI_fluc': fMRI_fluc})
         df['sn'] = sn
         df['sess'] = sess
+
         idxs = np.arange(*rng)
+        # print(name)
+        # print(rng)
+        # print(idxs)
         idxs -= 1
-        if name == 'gamma':
-            range_fluc = EEG_fluc[:, idxs[0]:].mean(axis=1)
-        else:
-            range_fluc = EEG_fluc[:, idxs].mean(axis=1)
+        # print(idxs)
+        # if name == 'gamma':
+        #     range_fluc = EEG_fluc[:, idxs[0]:].mean(axis=1)
+        # else:
+        range_fluc = EEG_fluc[:, idxs].mean(axis=1)
         df[name] = range_fluc
         df['focus'] = df[name]
         df['ctrl'] = np.nanmean(stats.zscore(EEG_fluc, axis=1), axis=1)
@@ -186,7 +201,9 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
             elif alt_v == 2:
                 df['ctrl'] = stats.zscore(alt2_abs_sum)
             elif alt_v == 3:
-                df['ctrl'] = stats.zscore(alt3_sum_abs)
+                df['ctrl'] = stats.zscore(alt3_sum)
+            elif alt_v == 4:
+                df['ctrl'] = stats.zscore(alt4_sum_abs)
         df_ = df.dropna()
         if len(df_) < 1:
             name2r[name] = np.nan
