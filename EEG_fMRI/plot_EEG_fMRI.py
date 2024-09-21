@@ -5,15 +5,30 @@ from matplotlib import pyplot as plt
 
 
 def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
-                  flip_VD=True):
+                  flip_VD=True, high_words=False):
     def get_range(hz):
-
-        if hz < 4:
-            return cm(0.05)
+        if hz < 1:
+            return 'dimgray'
+        elif hz < 4:
+            return cm(0.075)
         elif hz < 8:
             return cm(0.3)
         elif hz < 13:
-            return cm(0.63)
+            return cm(0.6)
+        elif hz < 30:
+            return cm(0.75)
+        else:
+            return cm(0.95)
+
+    def get_range_hard(hz):
+        if hz < 1:
+            return 'dimgray'
+        elif hz < 4:
+            return cm(0.075)
+        elif hz < 8:
+            return 'green'
+        elif hz < 13:
+            return 'goldenrod'
         elif hz < 30:
             return cm(0.75)
         else:
@@ -60,21 +75,22 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         high = M + 1 * SE
         low = M - 1 * SE
         c = get_range(hz)
+        c_h = get_range_hard(hz)
         if not t_vals and plot_se:
             plt.plot([hz-0.05, hz-0.05], [low, high], color='gray',
                      alpha=0.8,
                      linewidth=0.5)
-            plt.plot([hz+0.05, hz+0.05], [low, high], color=c,
-                     alpha=0.6,
+            plt.plot([hz+0.05, hz+0.05], [low, high], color=c_h,
+                     alpha=0.8,
                      linewidth=0.75)
 
-            plt.plot([hz, hz], [low, high], color=c, alpha=0.25,
-                     linewidth=3.0)
+            plt.plot([hz, hz], [low, high], color=c, alpha=0.3,
+                     linewidth=2.5)
             plt.plot([hz-.2, hz+.2], [high, high], color='gray',
                      alpha=1, linewidth=0.5)
             plt.plot([hz-.2, hz+.2], [low, low], color='gray',
                      alpha=1, linewidth=0.5)
-        plt.plot(hz, M, 'o', color=c, markersize=3)
+        plt.plot(hz, M, 'o', color=c_h, markersize=2.3)
         hz_all.append(hz)
         M_all.append(M)
     if t_vals:
@@ -104,9 +120,9 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         height_theta = 1.63
         drag = 0.087
         # plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2, 1.4,])
-        plt.yticks([0, 0.3, 0.6, 0.9, 1.2, ])
+        plt.yticks([0, 0.3, 0.6, 0.9, 1.2, 1.5, ])
 
-        plt.ylim(0, 1.5)
+        plt.ylim(0, 1.65)
     else:
         height = 0.068
         height_theta = 0.075
@@ -116,27 +132,44 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     plt.xlim(0.0, 50.5)
     plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
     # plt.gca().set_facecolor('whitesmoke')
-    plt.text(1, height - drag, 'Delta', fontsize=14, c=get_range(2.5),
-             ha='left')
-    plt.text(6, height_theta - drag, 'Theta', fontsize=14, c='green',
-             ha='center')
-    plt.text(11.5, height - drag, 'Alpha', fontsize=14, c='goldenrod',
-             ha='center')
-    plt.text(22, height - drag, 'Beta', fontsize=14, c='orange',
-             ha='center')
-    plt.text(40, height - drag, 'Gamma', fontsize=14, c='red',
-             ha='center')
-
-    # pc = patches.Rectangle((0.25, 0), 3, 0.075,
-    #                        color=get_range(2.5), alpha=0.1)
-    # plt.gca().add_patch(pc)
-    #
-    # pc = patches.Rectangle((3.25, 0), 4, 0.075,
-    #                        color='green', alpha=0.1)
-    # plt.gca().add_patch(pc)
+    if high_words:
+        plt.text(3.25, height - drag, 'Delta', fontsize=14, c=get_range(2.5),
+                 ha='center')
+        plt.text(5.75, height_theta - drag, 'Theta', fontsize=14, c='green',
+                 ha='center')
+        plt.text(9.75, height - drag, 'Alpha', fontsize=14, c='goldenrod',
+                 ha='center')
+        plt.text(21.25, height - drag, 'Beta', fontsize=14, c=get_range(25),
+                 ha='center')
+        plt.text(40, height - drag, 'Gamma', fontsize=14, c=get_range(45),
+                 ha='center')
+    elif effect_size:
+        plt.text(3.25, .05, 'Delta', fontsize=14, c=get_range(2.5),
+                 ha='center')
+        plt.text(5.75, .2, 'Theta', fontsize=14, c='green',
+                 ha='center')
+        plt.text(9.75, .05, 'Alpha', fontsize=14, c='goldenrod',
+                 ha='center')
+        plt.text(21.25, .05, 'Beta', fontsize=14, c=get_range(25),
+                 ha='center')
+        plt.text(40, .05, 'Gamma', fontsize=14, c=get_range(45),
+                 ha='center')
+    else:
+        plt.text(3.25, .002, 'Delta', fontsize=14, c=get_range(2.5),
+                 ha='center')
+        plt.text(5.75, .008, 'Theta', fontsize=14, c='green',
+                 ha='center')
+        plt.text(9.75, .002, 'Alpha', fontsize=14, c='goldenrod',
+                 ha='center')
+        plt.text(21.25, .002, 'Beta', fontsize=14, c=get_range(25),
+                 ha='center')
+        plt.text(40, .002, 'Gamma', fontsize=14, c=get_range(45),
+                 ha='center')
 
     plt.gca().spines[['right', 'top',]].set_visible(False)
     # plt.tight_layout()
+    # plt.gca().set_xscale('log')
+    # plt.xlim(0.5, 50)
     plt.gcf().subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
     ts = int(datetime.now().timestamp())
     if effect_size:
@@ -151,22 +184,3 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plot_hz_corrs(name2r, effect_size=effect_size, t_vals=t_vals,
                       plot_se=plot_se, flip_VD=False)
 
-def plot_psd(PSDs):
-    cm = plt.get_cmap('viridis')
-    nfreq = np.array(PSDs).shape[1]
-    colors = [cm(i / nfreq) for i in range(nfreq)]
-    colors = np.array(colors)
-    M_PSD = np.nanmean(np.array(PSDs), axis=0)
-    for i, l in enumerate(M_PSD):
-        plt.plot(np.arange(1, 52), l, color=colors[i],
-                 alpha=.7)
-    plt.xlim(1, 50)
-    plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
-    plt.xlabel('Hz')
-    plt.ylabel('Power (dB)')
-    plt.gca().spines[['bottom', 'right', 'top']].set_visible(False)
-    plt.grid(axis='x', linestyle='--', alpha=0.7)
-    plt.show()
-
-# ts = int(datetime.now().timestamp())
-# print(ts)

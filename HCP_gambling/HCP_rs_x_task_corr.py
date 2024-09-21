@@ -227,7 +227,7 @@ def get_HCP_task_conn(sns, combine_regions, bilateral,
         conn_highs, conn_lows, sns = get_combo(kw)
     else:
         conn_highs, conn_lows, sns = (
-            pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+            pickle_wrap(make_conn, kwargs=kw, easy_override=True))
     sn2conns = {}
     for sn, conn_high, conn_low in zip(sns, conn_highs, conn_lows):
         sn2conns[sn] = conn_high, conn_low
@@ -252,7 +252,7 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                  reg_global=True, no_compcor=True):
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'sns': sns, 'reg_global': reg_global, 'no_compcor': no_compcor}
-    sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=False,
+    sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=True,
                            RAM_cache=True)
 
     assert set(sns) - set(sn2conns) == set(), f'{set(sns) - set(sn2conns)=}'
@@ -283,7 +283,11 @@ def find_overlapping_sns(reg_global=False, no_compcor=False):
         fns_task = [fn for fn in fns_task if 'nocc' in fn]
     else:
         fns_task = [fn for fn in fns_task if 'nocc' not in fn]
-    sns_task = {fn.split('_')[0] for fn in fns_task}
+    fns_task_LR = [fn for fn in fns_task if 'LR' in fn]
+    fns_task_RL = [fn for fn in fns_task if 'RL' in fn]
+    sns_task_LR = {fn.split('_')[0] for fn in fns_task_LR}
+    sns_task_RL = {fn.split('_')[0] for fn in fns_task_RL}
+    sns_task = sns_task_RL.intersection(sns_task_LR)
 
     fns = os.listdir(r'E:\HCP_RS_clean')
     if reg_global:
@@ -294,58 +298,17 @@ def find_overlapping_sns(reg_global=False, no_compcor=False):
         fns = [fn for fn in fns if 'nocc' in fn]
     else:
         fns = [fn for fn in fns if 'nocc' not in fn]
-    fns = [fn for fn in fns if 'RL_clean' in fn]
-    sns_rs = {fn.split('_')[0] for fn in fns}
+    fns_LR = [fn for fn in fns if 'LR_clean' in fn]
+    fns_RL = [fn for fn in fns if 'RL_clean' in fn]
+    sns_rs_LR = {fn.split('_')[0] for fn in fns_LR}
+    sns_rs_RL = {fn.split('_')[0] for fn in fns_RL}
+    sns_rs = sns_rs_LR.intersection(sns_rs_RL)
     sns_overlap = sns_task.intersection(sns_rs)
-
-    fns = os.listdir(r'E:\HCP_RS_clean')
-    if reg_global:
-        fns = [fn for fn in fns if 'global' in fn]
-    else:
-        fns = [fn for fn in fns if 'global' not in fn]
-    if no_compcor:
-        fns = [fn for fn in fns if 'nocc' in fn]
-    else:
-        fns = [fn for fn in fns if 'nocc' not in fn]
-    fns = [fn for fn in fns if 'LR_clean' in fn]
-    sns_rs2 = {fn.split('_')[0] for fn in fns}
-    sns_overlap2 = sns_task.intersection(sns_rs2)
-    sns_overlap = sns_overlap.intersection(sns_overlap2)
-    # sns_rs = sorted(list(sns_rs))
-    #
-    # reg_global = False
-    # no_compcor = False
-    #
-    # fns_task = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
-    # if reg_global:
-    #     fns_task = [fn for fn in fns_task if 'global' in fn]
-    # else:
-    #     fns_task = [fn for fn in fns_task if 'global' not in fn]
-    # if no_compcor:
-    #     fns_task = [fn for fn in fns_task if 'nocc' in fn]
-    # else:
-    #     fns_task = [fn for fn in fns_task if 'nocc' not in fn]
-    # sns_task2 = {fn.split('_')[0] for fn in fns_task}
-    #
-    # fns = os.listdir(r'E:\HCP_RS_clean')
-    # if reg_global:
-    #     fns = [fn for fn in fns if 'global' in fn]
-    # else:
-    #     fns = [fn for fn in fns if 'global' not in fn]
-    # if no_compcor:
-    #     fns = [fn for fn in fns if 'nocc' in fn]
-    # else:
-    #     fns = [fn for fn in fns if 'nocc' not in fn]
-    # fns = [fn for fn in fns if 'LR_clean' in fn]
-    # # fns = [fn for fn in fns if 'RL_clean' in fn]
-    # sns_rs2 = {fn.split('_')[0] for fn in fns}
-    # # sns_rs2 = sorted(list(sns_rs))
-    # sns_overlap = sns_task2.intersection(sns_rs2).intersection(
-    #     sns_task).intersection(sns_rs)
+    print(f'Number of overlapping sns: {len(sns_overlap)}')
     return sns_overlap
 
 def do_analysis(num_test=1_000, ctrl_group=False,
-                skip_other=True, all_roi=False, ix=True, anat_ver=3,
+                skip_other=False, all_roi=False, ix=True, anat_ver=3,
                 combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
@@ -355,14 +318,7 @@ def do_analysis(num_test=1_000, ctrl_group=False,
     rs_no_compcor = False
 
     sns = find_overlapping_sns()
-    bad_sns = {'150423', '171734', '119833', '127933', '128127',
-               '127327', '105216', '105014', '203418', '203923',
-               '204016', '201515', '201717', '201818', '202113',
-               '196851', '195647', '195950', '194140', '194645'}
-    sns = sorted(list(sns - bad_sns))
-    print(f'Found overlapping sns: {len(sns)=}')
-    # quit()
-    sns = sorted(sns)[:485]
+    sns = sorted(sns)[:500]
     # print(f'{len(sns)=}')
     # quit()
 
@@ -464,14 +420,6 @@ def do_analysis(num_test=1_000, ctrl_group=False,
 
 def test_corrs(task_efs_l, rs_efs_l):
     t_l = []
-    for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l, rs_efs_l)):
-        r, p = stats.spearmanr(task_efs, rs_efs)
-        t_l.append(r)
-    N = len(t_l)
-    t, p = stats.ttest_1samp(t_l, 0)
-    print(f'Across-subject: t[{N - 1}] = {t:.2f}, {p=:.3f}')
-
-    t_l = []
     for i, (task_efs, rs_efs) in enumerate(zip(np.array(task_efs_l).T,
                                                np.array(rs_efs_l).T)):
         r, p = stats.spearmanr(task_efs, rs_efs)
@@ -480,6 +428,13 @@ def test_corrs(task_efs_l, rs_efs_l):
     t, p = stats.ttest_1samp(t_l, 0)
     print(f'Within-subj: t[{N - 1}] = {t:.2f}, {p=:.3f}')
 
+    t_l = []
+    for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l, rs_efs_l)):
+        r, p = stats.spearmanr(task_efs, rs_efs)
+        t_l.append(r)
+    N = len(t_l)
+    t, p = stats.ttest_1samp(t_l, 0)
+    print(f'Across-subject: t[{N - 1}] = {t:.2f}, {p=:.3f}')
+
 if __name__ == '__main__':
     do_analysis()
-

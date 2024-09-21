@@ -72,15 +72,17 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
 
 
 def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
-                    drive='F'):
+                    drive='G'):
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
     sns = list(sns)
     print(f'{len(sns)=}')
     sns = sorted(sns)
+    # sns = {'203418'}
 
-    sns = {'150423', '171734', '119833', '127933', '128127',
-               '127327', '105216', '105014', '203418', '203923',
-               '204016', '201515', '201717', '201818', '202113'}
+    # sns = {'150423', '171734', '119833', '127933', '128127',
+    #            '127327', '105216', '105014', '203418', '203923',
+    #            '204016', '201515', '201717', '201818', '202113'}
+
     sns = sorted(list(sns))
 
     bad_sns = []
@@ -92,13 +94,13 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
             print(f'Error: {sn=}, {e=}')
             bad_sns.append(sn)
 
-    for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
-        try:
-            clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
-                        no_compcor=no_compcor)
-        except Exception as e:
-            print(f'Error: {sn=}, {e=}')
-            bad_sns.append(sn)
+    # for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
+    #     try:
+    #         clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
+    #                     no_compcor=no_compcor)
+    #     except Exception as e:
+    #         print(f'Error: {sn=}, {e=}')
+    #         bad_sns.append(sn)
 
 
 if __name__ == '__main__':

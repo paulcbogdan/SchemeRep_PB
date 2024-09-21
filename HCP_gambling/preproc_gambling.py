@@ -619,15 +619,20 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
                                              easy_override=False,
                                              dt_max=dt_max)
         if conn_high is None:
-        # if sns_set is None:
+            print(f'Bad conn: {sn}, attempting to redo')
+            conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
+                                                 easy_override=True,
+                                                 dt_max=dt_max)
+        if conn_high is None:
+            print('VERY BAD CONN??')
             bad_sns.append(sn)
-
             continue
 
         conn_highs.append(conn_high)
         conn_lows.append(conn_low_sn)
         good_sns.append(sn)
 
+    print(f'{bad_sns=}')
     conn_highs = np.array(conn_highs)
     conn_lows = np.array(conn_lows)
 

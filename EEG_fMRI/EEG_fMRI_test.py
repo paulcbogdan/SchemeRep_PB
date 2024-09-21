@@ -39,7 +39,7 @@ def get_hrf(tr=2.1):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      get_max=False, get_max_avg_before=True,
-                     log_freqs=False, just_frontal=True, alt_v=0):
+                     log_freqs=False, just_frontal=False, alt_v=0):
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
