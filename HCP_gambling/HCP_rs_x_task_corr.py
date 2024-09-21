@@ -21,6 +21,8 @@ from tqdm import tqdm
 from pingouin import partial_corr
 import itertools
 
+from scipy import sparse
+
 # suppress RuntimeWarning
 from warnings import simplefilter
 simplefilter("ignore", category=RuntimeWarning)
@@ -52,20 +54,51 @@ def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
     # t_st = time()
     ar = get_sns_roi_ar_std(tuple(sns), **kw)
     # print(f'RS time: {time() - t_st:.5f} s')
-
-    rs_conn = np.full((len(sns), ar.shape[1], ar.shape[1], ar.shape[2]), np.nan)
-
-    rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :] = (
-            ar[:, p_d_ant, None, :] * ar[:, None, p_d_pos, :])
-    rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :] = (
-            ar[:, p_v_ant, None, :] * ar[:, None, p_v_pos, :])
-    rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :] = (
-            ar[:, p_d_ant, None, :] * ar[:, None, p_v_ant, :])
-    rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :] = (
-            ar[:, p_d_pos, None, :] * ar[:, None, p_v_pos, :])
+    # rs_conn = np.full((len(sns), ar.shape[1], ar.shape[1], ar.shape[2]), np.nan)
+    # n_roi = ar.shape[1]
+    #
+    # rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :] = (
+    #         ar[:, p_d_ant, None, :] * ar[:, None, p_d_pos, :])
+    # rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :] = (
+    #         ar[:, p_v_ant, None, :] * ar[:, None, p_v_pos, :])
+    # rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :] = (
+    #         ar[:, p_d_ant, None, :] * ar[:, None, p_v_ant, :])
+    # rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :] = (
+    #         ar[:, p_d_pos, None, :] * ar[:, None, p_v_pos, :])
     # print(f'RS time: {time() - t_st:.5f} s')
 
-    return rs_conn
+    p_all = list(p_d_ant) + list(p_d_pos) + list(p_v_ant) + list(p_v_pos)
+    p_d_ant_new = np.arange(len(p_d_ant))
+    p_d_pos_new = np.arange(len(p_d_pos)) + len(p_d_ant)
+    p_v_ant_new = np.arange(len(p_v_ant)) + len(p_d_ant) + len(p_d_pos)
+    p_v_pos_new = np.arange(len(p_v_pos)) + len(p_d_ant) + len(p_d_pos) + len(p_v_ant)
+    # rs_conn_compressed = rs_conn[:, *np.ix_(p_all, p_all), :]
+    # print(rs_conn_compressed.shape)
+    # quit()
+
+    map2new = {}
+    for i, p in enumerate(p_all):
+        map2new[p] = i
+
+    rs_conn_compressed = np.full((len(sns), len(p_all), len(p_all), ar.shape[2]), np.nan)
+    rs_conn_compressed[:, *np.ix_(p_d_ant_new, p_d_pos_new), :] = (
+            ar[:, p_d_ant, None, :] * ar[:, None, p_d_pos, :])
+    rs_conn_compressed[:, *np.ix_(p_v_ant_new, p_v_pos_new), :] = (
+            ar[:, p_v_ant, None, :] * ar[:, None, p_v_pos, :])
+    rs_conn_compressed[:, *np.ix_(p_d_ant_new, p_v_ant_new), :] = (
+            ar[:, p_d_ant, None, :] * ar[:, None, p_v_ant, :])
+    rs_conn_compressed[:, *np.ix_(p_d_pos_new, p_v_pos_new), :] = (
+            ar[:, p_d_pos, None, :] * ar[:, None, p_v_pos, :])
+    # rs_conn_compressed
+
+    return rs_conn_compressed, map2new
+
+def uncompress_conn(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                     n_roi):
+    p_all = list(p_d_ant) + list(p_d_pos) + list(p_v_ant) + list(p_v_pos)
+    conn_uncompressed = np.full((conn.shape[0], n_roi, n_roi, conn.shape[3]), np.nan)
+    conn_uncompressed[:, *np.ix_(p_all, p_all), :] = conn
+    return conn_uncompressed
 
 # def get_rs_conn(p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
 #     # ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=True)
@@ -87,9 +120,19 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
           'bilateral': bilateral,
           'reg_global': reg_global, 'no_compcor': no_compcor,
           'rs': True}
-    rs_conn = get_rs_conn_sns(tuple(sns),
+    t_st = time()
+    rs_conn, map2new = get_rs_conn_sns(tuple(sns),
                               tuple(all_pda), tuple(all_pdp),
                               tuple(all_pva), tuple(all_pvp), **kw)
+    print(f'Make compressed time: {time() - t_st:.5f} s')
+    p_d_ant = [map2new[p] for p in p_d_ant]
+    p_d_pos = [map2new[p] for p in p_d_pos]
+    p_v_ant = [map2new[p] for p in p_v_ant]
+    p_v_pos = [map2new[p] for p in p_v_pos]
+
+    # rs_conn = uncompress_conn(rs_conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+    #                           n_roi)
+    # print(f'RS time: {time() - t_st:.5f} s')
 
     dd = rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :]
     dd = np.nanmean(dd, axis=(1, 2))
@@ -283,7 +326,7 @@ def find_overlapping_sns():
 
 def do_analysis(num_test=1_000, ctrl_group=False,
                 skip_other=False, all_roi=False, ix=True, anat_ver=3,
-                combine_regions=True, n='7', std_d=True,
+                combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
     sns = find_overlapping_sns()
