@@ -1,6 +1,6 @@
 import os
 
-from HCP_gambling.preproc_gambling import get_sn_roi_ar, make_conn, get_combo
+from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_combo
 from atlas_utils import get_atlas
 from networks.sn_anat_fluc import get_quads
 import copy

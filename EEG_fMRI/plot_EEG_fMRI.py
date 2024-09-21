@@ -48,13 +48,19 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     upper = 101 if 'r100' in name2r else 51
     hz_all = []
     M_all = []
-    for hz in np.linspace(0.5, 50, 100):
+    if 'r100' in name2r or 'r100.0' in name2r:
+        upper = 100
+        cnt = 200
+    else:
+        upper = 50
+        cnt = 100
+    for hz in np.linspace(0.5, upper, cnt):
         name = f'r{hz:.1f}'
-        if 'r100' in name2r:
-            if hz == 1:
-                print('Skip 0.5 Hz')
-                continue
-            hz /= 2
+        # if 'r100' in name2r:
+        #     if hz == 1:
+        #         print('Skip 0.5 Hz')
+        #         continue
+        #     hz /= 2
 
         SD = np.nanstd(name2r[name], ddof=1)
         SE = SD / np.sqrt(len(name2r[name]))
@@ -180,7 +186,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     plt.savefig(fp_out, dpi=600)
     plt.show()
 
-    if flip_VD:
+    if flip_VD and not effect_size:
         plot_hz_corrs(name2r, effect_size=effect_size, t_vals=t_vals,
                       plot_se=plot_se, flip_VD=False)
 

@@ -39,7 +39,7 @@ def get_hrf(tr=2.1):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      get_max=False, get_max_avg_before=True,
-                     log_freqs=False, just_frontal=False, alt_v=0):
+                     log_freqs=False, just_frontal=True, alt_v=0):
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
@@ -75,25 +75,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         custom_freqs = np.logspace(-1, 1.7, 100, base=10)
     else:
         custom_freqs = np.linspace(0.5, 50, 100)
+    custom_freqs = np.linspace(0.5, 100, 200)
 
     custom_freqs = tuple(custom_freqs)
 
-    # kw2 = {'sn': sn, 'sess': sess,
-    #                                'num_TRs': num_TRs,
-    #                                'picks': picks,
-    #                                'avg_before': False,
-    #                                'high_gamma': False,
-    #                                'super_slow': False,
-    #                                'avg_ref': True,
-    #                                'mastoid_ref': False,
-    #                                'fz_minus_pz': False,
-    #                                'delay': False,
-    #                                'double_speed': double_speed,
-    #                                'excl_before': True,
-    #                                'Fz_Pz_abs_dif': False,
-    #                                'get_max': get_max,
-    #                                'get_max_avg_before': get_max_avg_before,
-    #                                'custom_freqs': custom_freqs}
 
     kw = {'sn': sn, 'sess': sess, 'avg_before': False,
           'num_TRs': num_TRs, 'picks': picks, 'avg_ref': True,
@@ -101,15 +86,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
           'double_speed': double_speed, 'excl_before': True,
           'get_max': get_max, 'get_max_avg_before': get_max_avg_before,
           'custom_freqs': custom_freqs}
-    # for key, val in kw2.items():
-    #     if key in kw:
-    #         assert kw[key] == val
 
-    EEG_fluc = pickle_wrap(get_EEG_score_sn,
-                           kwargs=kw,
+
+    EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs=kw,
                            easy_override=False, verbose=-1)
-    # print(EEG_fluc)
-    # quit()
 
     if EEG_fluc is None:
         print(f'BAD EEG!! ({sn}; {sess})')
@@ -162,13 +142,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         low = np.argmin(np.abs(custom_freqs - tup[0]))
         high = np.argmin(np.abs(custom_freqs - tup[1])) + 1
         ranges[key] = (low, high)
-    #     print(f'{key}: {low=}, {high=}')
-    # quit()
-        # for freq in custom_freqs:
-        # ranges[key] = (int(tup[0] * 2), int(tup[1] * 2))
-    # print(ranges)
-    # quit()
-    # ranges.update(ranges_bins)
+
 
     name2fluc = {}
     name2r = {}
@@ -180,14 +154,9 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         df['sess'] = sess
 
         idxs = np.arange(*rng)
-        # print(name)
-        # print(rng)
-        # print(idxs)
+
         idxs -= 1
-        # print(idxs)
-        # if name == 'gamma':
-        #     range_fluc = EEG_fluc[:, idxs[0]:].mean(axis=1)
-        # else:
+
         range_fluc = EEG_fluc[:, idxs].mean(axis=1)
         df[name] = range_fluc
         df['focus'] = df[name]
@@ -223,10 +192,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
             print(f'{name}: {r=:.3f}, {p=:.3f}')
         name2r[name] = r
 
-    # l = np.nanmean([r for r in name2r.values()])
-    # for name, r in name2r.items():
-    #     name2r[name] = r - l
-    return name2r, df#, psd
+    return name2r, df
 
 
 

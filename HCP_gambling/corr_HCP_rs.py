@@ -19,7 +19,8 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-from HCP_gambling.preproc_gambling import load_motion, get_sn_roi_ar, make_conn, get_vd_ef, get_df_events
+from HCP_gambling.preproc_gambling import get_df_events
+from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_vd_ef
 from atlas_utils import get_atlas
 from networks.old.network_funcs import load_FC_for_Lifu
 from networks.sn_anat_fluc import get_quads
@@ -172,8 +173,15 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
             PE_bhv = np.mean([PE_bhv_LR, PE_bhv_RL])
         except FileNotFoundError:
             continue
+        except TypeError as e:
+            bad_sns.append(sn)
+            print(f'Missing files: {sn}, {e=}')
+            continue
+        except KeyError as e:
+            bad_sns.append(sn)
+            print(f'Missing responses so NaN responses to high/low_PE: {sn}, {e=}')
+            continue
         # except Exception as e:
-        #     bad_sns.append(sn)
         #     print(f'ERROR TASK ({sn}): {e=}')
         #     print(f'{bad_sns=}')
         #     continue
@@ -285,22 +293,70 @@ def get_task_ef(sns_in, combine_regions=False, anat_ver=3):
     dv_pos_ef = dv_pos_l - dv_pos_h - M_overall_l + M_overall_h
     return task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef, sns
 
-def get_gambling_behavior(sn, lr):
+
+def get_gambling_behavior(sn, lr, key='RT_next'):
+    df_trials = get_df_events(sn, lr, cont_pe_by_event=True)
+    run_num = 2 if lr == 'LR' else 1
+    fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'
+    if not os.path.exists(fp):
+        print(f'No file: {fp}')
+        return None, None
+    df = pd.read_csv(fp, delimiter='\t')
+    df = df[df['Procedure[Trial]'] == r'GamblingTrialPROC'].reset_index()
+    n_nans = df['QuestionMark.RESP'].isna().sum()
+    df.dropna(subset=['QuestionMark.RESP', 'QuestionMark.RT'],
+              inplace=True)
+
+    df['RESP_next'] = df['QuestionMark.RESP'].shift(-1)
+    df['RESP_CHANGE'] = df['QuestionMark.RESP'] != df['RESP_next']
+    p_change = df['RESP_CHANGE'].sum() / df['RESP_CHANGE'].count()
+
+    df['RT'] = df['QuestionMark.RT']
+    df['RT_next'] = df['RT'].shift(-1)
+    df['RT_slower'] = df['RT_next'] - df['RT']
+    df['PE'] = df_trials['trial_type']
+    df['event'] = df_trials['event']
+
+    # df = df.groupby('PE')['RT_next'].mean()
+
+    df_win = df[df['event'] == 'win']
+    df_loss = df[df['event'] == 'loss']
+    # print(df['PE'].value_counts())
+    # print(df_win['PE'].value_counts())
+    # print(df_loss['PE'].value_counts())
+    # print('-------------')
+
+
+    df_PE_win = df_win.groupby('PE')['RT_next'].mean()
+    df_PE_loss = df_loss.groupby('PE')['RT_next'].mean()
+    PE_ef_win = df_PE_win['high_PE'] - df_PE_win['low_PE']
+    PE_ef_loss = df_PE_loss['high_PE'] - df_PE_loss['low_PE']
+    PE_ef = PE_ef_win + PE_ef_loss
+    return p_change, PE_ef
+
+def get_gambling_behavior_OLD(sn, lr):
     # QuestionMark.RESP
 
     df_trials = get_df_events(sn, lr)
 
     run_num = 2 if lr == 'LR' else 1
     fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'
+    # df = pd.read_csv(fp, delimiter='\t')
+    # df.dropna(subset=['QuestionMark.RESP'], inplace=True)
+    # df.reset_index(drop=True, inplace=True)
+
     df = pd.read_csv(fp, delimiter='\t')
-    df.dropna(subset=['QuestionMark.RESP'], inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    df = df[df['Procedure[Trial]'] == r'GamblingTrialPROC'].reset_index()
+    n_nans = df['QuestionMark.RESP'].isna().sum()
+    df.dropna(subset=['QuestionMark.RESP', 'QuestionMark.RT'],
+              inplace=True)
+
     df['RESP_prev'] = df['QuestionMark.RESP'].shift(1)
     df['RESP_next'] = df['QuestionMark.RESP'].shift(-1)
     df['RESP_CHANGE'] = df['QuestionMark.RESP'] != df['RESP_next']
     # df = df.iloc[1:] # drop first row NaN
     df['RESP_CHANGE'] = df['RESP_CHANGE'].astype(float)
-    df.loc[df['RESP_prev'].isna(), 'RESP_CHANGE'] = np.nan
+    df.loc[df['RESP_next'].isna(), 'RESP_CHANGE'] = np.nan
 
     df['event'] = df_trials['event']
     # print(df['event'])

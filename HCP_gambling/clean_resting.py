@@ -15,7 +15,8 @@ from nilearn import plotting
 
 import matplotlib.pyplot as plt
 
-from HCP_gambling.preproc_gambling import load_motion, get_sn_roi_ar
+from HCP_gambling.preproc_gambling import load_motion
+from HCP_gambling.HCP_vendor import get_sn_roi_ar
 from atlas_utils import get_atlas
 from networks.old.network_funcs import load_FC_for_Lifu
 from networks.vendor_partitioning import get_vendor_partitions, do_regression
@@ -29,6 +30,7 @@ import seaborn as sns
 from pathlib import Path
 
 def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
+    df_motion = load_motion(sn, lr, drive=drive, rs=True)
     dir_out = r'E:\HCP_RS_clean'
 
     glob_str = '_global' if reg_global else ''
@@ -48,12 +50,12 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
     print(f'\tLoaded rs: {time.time() - t_st:.2f} s')
     t_st = time.time()
 
-    df_motion = load_motion(sn, lr, drive=drive)
     if not no_compcor:
         df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
         df_confounds = pd.concat([df_compcor, df_motion], axis=1)
     else:
         df_confounds = df_motion
+
     if reg_global:
         fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
         img = image.load_img(img)
@@ -86,21 +88,21 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
     sns = sorted(list(sns))
 
     bad_sns = []
-    for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
-        try:
-            clean_sn_rs(sn, 'LR', drive=drive, reg_global=reg_global,
-                        no_compcor=no_compcor)
-        except Exception as e:
-            print(f'Error: {sn=}, {e=}')
-            bad_sns.append(sn)
-
     # for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
     #     try:
-    #         clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
+    #         clean_sn_rs(sn, 'LR', drive=drive, reg_global=reg_global,
     #                     no_compcor=no_compcor)
     #     except Exception as e:
     #         print(f'Error: {sn=}, {e=}')
     #         bad_sns.append(sn)
+
+    for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
+        try:
+            clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
+                        no_compcor=no_compcor)
+        except Exception as e:
+            print(f'Error: {sn=}, {e=}')
+            bad_sns.append(sn)
 
 
 if __name__ == '__main__':

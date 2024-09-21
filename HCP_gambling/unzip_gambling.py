@@ -50,6 +50,9 @@ def unzip_all_gambling(override=False, slow_check=False):
         sns = ['141826', '141422', '137936', '136126', '135730', '131419', '117021', '115825', '115724', '111009', '106521']
         sns = ['144226', '146937', '150423', '160729', '169040', '169141', '169343', '169444', '169545', '171431',
                    '171532', '171734']
+
+    sns = ['150423', '171734', '178748', '182436', '191437', '195041', '198451', '205119', '214423', '322224',
+           '329440', '462139', '547046', '792766', '812746', '859671', '872158', '937160', '972566']
     # sns = ['144226']
     # from nilearn import image
     # fp = r'G:\HCP_gambling\144226\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
@@ -66,7 +69,8 @@ def unzip_all_gambling(override=False, slow_check=False):
         missing_checks = [r'tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz',
                           r'tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz',
                           r'tfMRI_GAMBLING_RL\brainmask_fs.2.nii.gz',
-                          r'tfMRI_GAMBLING_LR\brainmask_fs.2.nii.gz']
+                          r'tfMRI_GAMBLING_LR\brainmask_fs.2.nii.gz',
+                          r'rfMRI_REST1_RL\Movement_Regressors.txt']
         if slow_check:
             do = False
             for check in missing_checks:

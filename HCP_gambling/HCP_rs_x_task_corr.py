@@ -1,6 +1,6 @@
 import os
 
-from HCP_gambling.preproc_gambling import get_sn_roi_ar, make_conn, get_combo
+from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_combo
 from atlas_utils import get_atlas
 from networks.sn_anat_fluc import get_quads
 import copy
@@ -308,7 +308,7 @@ def find_overlapping_sns(reg_global=False, no_compcor=False):
     return sns_overlap
 
 def do_analysis(num_test=1_000, ctrl_group=False,
-                skip_other=False, all_roi=False, ix=True, anat_ver=3,
+                skip_other=True, all_roi=False, ix=True, anat_ver=3,
                 combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
@@ -318,7 +318,7 @@ def do_analysis(num_test=1_000, ctrl_group=False,
     rs_no_compcor = False
 
     sns = find_overlapping_sns()
-    sns = sorted(sns)[:500]
+    # sns = sorted(sns)[:500]
     # print(f'{len(sns)=}')
     # quit()
 
