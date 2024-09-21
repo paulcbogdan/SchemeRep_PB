@@ -292,9 +292,23 @@ def find_overlapping_sns(reg_global=False, no_compcor=False):
         fns = [fn for fn in fns if 'nocc' in fn]
     else:
         fns = [fn for fn in fns if 'nocc' not in fn]
-    fns = [fn for fn in fns if 'LR_clean' in fn]
+    fns = [fn for fn in fns if 'RL_clean' in fn]
     sns_rs = {fn.split('_')[0] for fn in fns}
     sns_overlap = sns_task.intersection(sns_rs)
+
+    fns = os.listdir(r'E:\HCP_RS_clean')
+    if reg_global:
+        fns = [fn for fn in fns if 'global' in fn]
+    else:
+        fns = [fn for fn in fns if 'global' not in fn]
+    if no_compcor:
+        fns = [fn for fn in fns if 'nocc' in fn]
+    else:
+        fns = [fn for fn in fns if 'nocc' not in fn]
+    fns = [fn for fn in fns if 'LR_clean' in fn]
+    sns_rs2 = {fn.split('_')[0] for fn in fns}
+    sns_overlap2 = sns_task.intersection(sns_rs2)
+    sns_overlap = sns_overlap.intersection(sns_overlap2)
     # sns_rs = sorted(list(sns_rs))
     #
     # reg_global = False
@@ -335,9 +349,10 @@ def do_analysis(num_test=1_000, ctrl_group=False,
 
     sns = find_overlapping_sns()
     bad_sns = {'150423', '171734', '119833', '127933', '128127',
-               '127327', '105216', '105014'}
+               '127327', '105216', '105014', '203418', '203923',
+               '204016', '201515', '201717', '201818', '202113'}
     sns = sorted(list(sns - bad_sns))
-    # print(f'Found overlapping sns: {len(sns)=}')
+    print(f'Found overlapping sns: {len(sns)=}')
     # quit()
     sns = sorted(sns)[:485]
     # print(f'{len(sns)=}')

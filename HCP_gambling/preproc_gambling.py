@@ -1,5 +1,6 @@
 import zipfile
 import os
+import zlib
 from collections import defaultdict
 from copy import deepcopy
 
@@ -430,6 +431,11 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
         print(f'{sn=}, {lr=}')
         print(f'{fp_lsa_lr=}')
         raise EOFError
+    except zlib.error:
+        print('zlib.error')
+        print(f'{sn=}, {lr=}')
+        print(f'{fp_lsa_lr=}')
+        raise zlib.error
     data_lsa_lr = img_lsa_lr.get_fdata()
     # df_events = get_df_events(sn, 'LR')
 

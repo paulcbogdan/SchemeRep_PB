@@ -36,7 +36,7 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
 
     fp_out = fr'{dir_out}\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
-    if os.path.exists(fp_out):
+    if os.path.exists(fp_out) and os.path.getsize(fp_out) > 10_000_000:
         print(f'Exists: {fp_out=}')
         return
 
@@ -78,6 +78,9 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
     print(f'{len(sns)=}')
     sns = sorted(sns)
 
+    sns = {'150423', '171734', '119833', '127933', '128127',
+               '127327', '105216', '105014', '203418', '203923',
+               '204016', '201515', '201717', '201818', '202113'}
 
     bad_sns = []
     for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
