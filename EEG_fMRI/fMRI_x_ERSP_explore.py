@@ -5,7 +5,9 @@ from collections import defaultdict
 import numpy as np
 from tqdm import tqdm
 
-from EEG_fMRI.EEG_fMRI_test import get_EEG_score_sn, get_fMRI_ar, conv
+from EEG_fMRI.EEG_fMRI_test import conv
+from EEG_fMRI.fMRI_simul_processing import get_fMRI_ar
+from EEG_fMRI.EEG_processing import get_EEG_score_sn
 from EEG_fMRI.FC_x_ERP import get_sess_setup
 from atlas_utils import get_atlas
 from old.plot_gen import plot_connectivity

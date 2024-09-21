@@ -1,6 +1,8 @@
 from matplotlib import pyplot as plt
 
-from EEG_fMRI.EEG_fMRI_test import load_EEG, get_fMRI_ar, get_EEG_score_sn, conv
+from EEG_fMRI.EEG_fMRI_test import conv
+from EEG_fMRI.fMRI_simul_processing import get_fMRI_ar
+from EEG_fMRI.EEG_processing import load_EEG, get_EEG_score_sn
 from atlas_utils import get_atlas
 
 from utils import pickle_wrap, stdize

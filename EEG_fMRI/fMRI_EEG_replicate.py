@@ -5,7 +5,7 @@ from nilearn.glm.first_level import compute_regressor
 from nilearn.image import high_variance_confounds
 from scipy.interpolate import interpolate
 
-from EEG_fMRI.EEG_fMRI_test import get_fMRI_ar
+from EEG_fMRI.fMRI_simul_processing import get_fMRI_ar
 from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
 from atlas_utils import get_atlas
 from get_HCP_act import img_data2ar
