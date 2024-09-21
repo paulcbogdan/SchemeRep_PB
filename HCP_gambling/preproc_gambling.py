@@ -423,7 +423,13 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
         fp_lsa_lr = fr'E:\HCP_RS_clean\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
     else:
         fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
-    img_lsa_lr = image.load_img(fp_lsa_lr)
+    try:
+        img_lsa_lr = image.load_img(fp_lsa_lr)
+    except EOFError:
+        print('EOFError')
+        print(f'{sn=}, {lr=}')
+        print(f'{fp_lsa_lr=}')
+        raise EOFError
     data_lsa_lr = img_lsa_lr.get_fdata()
     # df_events = get_df_events(sn, 'LR')
 
@@ -437,9 +443,6 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
         roi_data_lsa_lr = data_lsa_lr[atlas_roi]
         vals = roi_data_lsa_lr.mean(axis=0)
-        # print(vals.shape)
-        # quit()
-
         ar.append(vals)
     ar = np.array(ar)
     return ar

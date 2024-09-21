@@ -27,63 +27,140 @@ simplefilter("ignore", category=RuntimeWarning)
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
+# @cache
+def get_sn_roi_ar_std(**kw):
+    ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=False)
+    assert len(ar.shape) == 2
+    ar = stats.zscore(ar, axis=1)
+    return ar
 
-def get_HCP_rs(sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-               lr='LR',
-               combine_regions=False, bilateral=False,
-               reg_global=True, no_compcor=True, anat_ver=4):
-    # atlas = get_atlas(combine_regions=combine_regions,
-    #                   combine_bilateral=bilateral,
-    #                   HCP=True)
-    kw = {'sn': sn, 'lr': lr, 'combine_regions': combine_regions,
+@cache
+def get_sns_roi_ar_std(sns, **kw):
+    ars = []
+    for sn in sns:
+        ar = get_sn_roi_ar_std(sn=sn, **kw)
+        if ar.shape[1] < 1200:
+            ar = np.pad(ar, ((0, 0), (0, 1200 - ar.shape[1])), 'constant',
+                        constant_values=np.nan)
+        assert ar.shape[1] == 1200, f'{sn=}, {ar.shape=}'
+        ars.append(ar)
+    return np.array(ars)
+
+@cache
+def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
+    # ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=True)
+    # t_st = time()
+    ar = get_sns_roi_ar_std(tuple(sns), **kw)
+    # print(f'RS time: {time() - t_st:.5f} s')
+
+    rs_conn = np.full((len(sns), ar.shape[1], ar.shape[1], ar.shape[2]), np.nan)
+
+    rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :] = (
+            ar[:, p_d_ant, None, :] * ar[:, None, p_d_pos, :])
+    rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :] = (
+            ar[:, p_v_ant, None, :] * ar[:, None, p_v_pos, :])
+    rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :] = (
+            ar[:, p_d_ant, None, :] * ar[:, None, p_v_ant, :])
+    rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :] = (
+            ar[:, p_d_pos, None, :] * ar[:, None, p_v_pos, :])
+    # print(f'RS time: {time() - t_st:.5f} s')
+
+    return rs_conn
+
+# def get_rs_conn(p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
+#     # ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=True)
+#     ar = get_sn_roi_ar_std(**kw)
+#
+#     rs_conn = np.full((ar.shape[0], ar.shape[0], ar.shape[1]), np.nan)
+#     rs_conn[*np.ix_(p_d_ant, p_d_pos), :] = ar[p_d_ant, None, :] * ar[None, p_d_pos, :]
+#     rs_conn[*np.ix_(p_v_ant, p_v_pos), :] = ar[p_v_ant, None, :] * ar[None, p_v_pos, :]
+#     rs_conn[*np.ix_(p_d_ant, p_v_ant), :] = ar[p_d_ant, None, :] * ar[None, p_v_ant, :]
+#     rs_conn[*np.ix_(p_d_pos, p_v_pos), :] = ar[p_d_pos, None, :] * ar[None, p_v_pos, :]
+#     # rs_conn = ar[:, None, :] * ar[None, :, :]
+#     return rs_conn
+
+def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                   all_pda, all_pdp, all_pva, all_pvp, lr='LR',
+                   combine_regions=False, bilateral=False,
+                   reg_global=True, no_compcor=True):
+    kw = {'lr': lr, 'combine_regions': combine_regions,
           'bilateral': bilateral,
           'reg_global': reg_global, 'no_compcor': no_compcor,
           'rs': True}
+    rs_conn = get_rs_conn_sns(tuple(sns),
+                              tuple(all_pda), tuple(all_pdp),
+                              tuple(all_pva), tuple(all_pvp), **kw)
 
-    ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=True)
-
-    assert len(ar.shape) == 2
-    ar = stats.zscore(ar, axis=1)
-    rs_conn = ar[:, None, :] * ar[None, :, :]
-
-    # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-    #     get_vendor_partitions(age='healthy', anat=True, weighted=False,
-    #                           flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
-    #                           combine_regions=combine_regions)
-
-    dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
-    dd = np.nanmean(dd, axis=(0, 1))
-    dd_ = stats.zscore(dd)
-    vv = rs_conn[*np.ix_(p_v_ant, p_v_pos), :]
-    vv = np.nanmean(vv, axis=(0, 1))
-    vv_ = stats.zscore(vv)
+    dd = rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :]
+    dd = np.nanmean(dd, axis=(1, 2))
+    dd_ = stats.zscore(dd, axis=1)
+    vv = rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :]
+    vv = np.nanmean(vv, axis=(1, 2))
+    vv_ = stats.zscore(vv, axis=1)
     dd_vv = dd_ + vv_
-    dv_ant = rs_conn[*np.ix_(p_d_ant, p_v_ant), :]
-    dv_ant = np.nanmean(dv_ant, axis=(0, 1))
-    dv_ant_ = stats.zscore(dv_ant)
-    dv_pos = rs_conn[*np.ix_(p_d_pos, p_v_pos), :]
-    dv_pos = np.nanmean(dv_pos, axis=(0, 1))
-    dv_pos_ = stats.zscore(dv_pos)
+    dv_ant = rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :]
+    dv_ant = np.nanmean(dv_ant, axis=(1, 2))
+    dv_ant_ = stats.zscore(dv_ant, axis=1)
+    dv_pos = rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :]
+    dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    dv_pos_ = stats.zscore(dv_pos, axis=1)
     dv_dv = dv_ant_ + dv_pos_
 
-    return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
-
-def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                   lr='LR', combine_regions=False, bilateral=False,
-                   reg_global=True, no_compcor=True, anat_ver=4):
-    dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l = [], [], [], [], [], []
-    efs = []
-    for sn in sns:
-        dd_vv, dv_dv, dd, vv, dv_ant, dv_pos = get_HCP_rs(
-            sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos, lr=lr,
-            combine_regions=combine_regions, bilateral=bilateral,
-            reg_global=reg_global, no_compcor=no_compcor, anat_ver=anat_ver)
-        ef = np.nanmean(np.abs(dd_vv - dv_dv))
-        efs.append(ef)
-
-
-    ef = np.array(efs)
+    ef = np.nanmean(np.abs(dd_vv - dv_dv), axis=1)
     return ef
+
+    # return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
+
+# def get_HCP_rs(sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos, lr='LR',
+#                combine_regions=False, bilateral=False,
+#                reg_global=True, no_compcor=True):
+#     # atlas = get_atlas(combine_regions=combine_regions,
+#     #                   combine_bilateral=bilateral,
+#     #                   HCP=True)
+#     kw = {'sn': sn, 'lr': lr, 'combine_regions': combine_regions,
+#           'bilateral': bilateral,
+#           'reg_global': reg_global, 'no_compcor': no_compcor,
+#           'rs': True}
+#
+#     rs_conn = get_rs_conn(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+#                           **kw)
+#
+#     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+#     #     get_vendor_partitions(age='healthy', anat=True, weighted=False,
+#     #                           flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
+#     #                           combine_regions=combine_regions)
+#
+#     dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
+#     dd = np.nanmean(dd, axis=(0, 1))
+#     dd_ = stats.zscore(dd)
+#     vv = rs_conn[*np.ix_(p_v_ant, p_v_pos), :]
+#     vv = np.nanmean(vv, axis=(0, 1))
+#     vv_ = stats.zscore(vv)
+#     dd_vv = dd_ + vv_
+#     dv_ant = rs_conn[*np.ix_(p_d_ant, p_v_ant), :]
+#     dv_ant = np.nanmean(dv_ant, axis=(0, 1))
+#     dv_ant_ = stats.zscore(dv_ant)
+#     dv_pos = rs_conn[*np.ix_(p_d_pos, p_v_pos), :]
+#     dv_pos = np.nanmean(dv_pos, axis=(0, 1))
+#     dv_pos_ = stats.zscore(dv_pos)
+#     dv_dv = dv_ant_ + dv_pos_
+#
+#     return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
+#
+# def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+#                    lr='LR', combine_regions=False, bilateral=False,
+#                    reg_global=True, no_compcor=True):
+#     dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l = [], [], [], [], [], []
+#     efs = []
+#     for sn in sns:
+#         dd_vv, dv_dv, dd, vv, dv_ant, dv_pos = get_HCP_rs(
+#             sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos, lr=lr,
+#             combine_regions=combine_regions, bilateral=bilateral,
+#             reg_global=reg_global, no_compcor=no_compcor)
+#         ef = np.nanmean(np.abs(dd_vv - dv_dv))
+#         efs.append(ef)
+#     ef = np.array(efs)
+#     return ef
     # return dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l
 
 def get_HCP_task_conn(sns, combine_regions, bilateral):
@@ -93,13 +170,6 @@ def get_HCP_task_conn(sns, combine_regions, bilateral):
           'regr_M': True, 'lr_separate': False,
           'reg_global': True, 'no_compcor': True,
           'sns_set': list(sns)}
-
-    # kw = {'combine_regions': True, 'bilateral': False, 'neut_as_PE': None, 'drop_neut': False, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True, 'reg_global': True, 'no_compcor': True}
-    # print(kw)
-    # kw2 = {'combine_regions': True, 'bilateral': False, 'neut_as_PE': None, 'drop_neut': False, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True, 'reg_global': True, 'no_compcor': True}
-    # # quit()
-    # print(kw2)
-    # quit()
 
     if kw['neut_as_PE']:
         kw['drop_neut'] = False
@@ -133,7 +203,7 @@ def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
 
 def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                  combine_regions=False, bilateral=False):
-    kw = {'combine_regions': False, 'bilateral': False,
+    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'sns': sns}
     sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=False,
                            RAM_cache=True)
@@ -217,29 +287,30 @@ def do_analysis(num_test=1_000, ctrl_group=False,
                 shuffle_seed=None):
 
     sns = find_overlapping_sns()
-    bad_sns = {'150423', '171734'}
+    bad_sns = {'150423', '171734', '119833'}
     sns = sorted(list(sns - bad_sns))
     print(f'Found overlapping sns: {len(sns)=}')
     sns = sorted(sns)[:400]
+    # print(f'{len(sns)=}')
+    # quit()
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
                                                          all_roi=all_roi,
                                                          anat_ver=anat_ver,
                                                          combine_regions=combine_regions)
-    print(p_v_pos)
-    quit(r)
-
-    rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                            lr='LR', combine_regions=combine_regions, bilateral=False,
-                            reg_global=True, no_compcor=True, anat_ver=3)
-    task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                            combine_regions=combine_regions, bilateral=False)
-    r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
-    print(f'Overall: {r=:.2f}, {p=:.2f}')
+    print(f'{p_v_pos=}')
+    # rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+    #                         lr='LR', combine_regions=combine_regions, bilateral=False,
+    #                         reg_global=True, no_compcor=True, anat_ver=3)
+    # task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+    #                         combine_regions=combine_regions, bilateral=False)
+    # r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
+    # print(f'Overall: {r=:.2f}, {p=:.2f}')
 
 
     p_no = tuple(p_no)
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
+    print(f'{num_pos=}')
 
     np.random.seed(0)
     print('Itertools...')
@@ -274,18 +345,53 @@ def do_analysis(num_test=1_000, ctrl_group=False,
             pva_i = [c]
             pvp_i = [d]
 
+        t_st = time()
         rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
-                   lr='LR', combine_regions=combine_regions, bilateral=False,
-                   reg_global=True, no_compcor=True, anat_ver=3)
-        rs_efs -= rs_efs_all
+                                p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                                lr='LR', combine_regions=combine_regions, bilateral=False,
+                                reg_global=True, no_compcor=True)
+        print(f'Resting time: {time() - t_st:.5f} s')
+        # combined regions within-subject effects depend on reg_global?
+
+        t_st = time()
         task_efs = get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 combine_regions=combine_regions, bilateral=False)
+        print(f'\tTask time: {time() - t_st:.5f} s')
+        # for rs_ef, sn in zip(rs_efs, sns):
+        #     print(f'{rs_ef}: {sn}')
+        # print(rs_efs)
+        # print(task_efs)
+        num_nans = np.sum(np.isnan(rs_efs))
+        assert num_nans == 0
         r, p = stats.spearmanr(rs_efs, task_efs)
         task_x_rs.append(r)
         if len(task_x_rs) > 1:
             t, p = stats.ttest_1samp(task_x_rs, 0)
             N = len(task_x_rs)
             print(f't[{N-1}] = {t:.2f}, {p=:.3f}')
+
+        task_efs_l.append(task_efs)
+        rs_efs_l.append(rs_efs)
+
+        test_corrs(task_efs_l, rs_efs_l)
+
+def test_corrs(task_efs_l, rs_efs_l):
+    t_l = []
+    for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l, rs_efs_l)):
+        r, p = stats.spearmanr(task_efs, rs_efs)
+        t_l.append(r)
+    N = len(t_l)
+    t, p = stats.ttest_1samp(t_l, 0)
+    print(f'Across-subject: t[{N - 1}] = {t:.2f}, {p=:.3f}')
+
+    t_l = []
+    for i, (task_efs, rs_efs) in enumerate(zip(np.array(task_efs_l).T,
+                                               np.array(rs_efs_l).T)):
+        r, p = stats.spearmanr(task_efs, rs_efs)
+        t_l.append(r)
+    N = len(t_l)
+    t, p = stats.ttest_1samp(t_l, 0)
+    print(f'Within-subj: t[{N - 1}] = {t:.2f}, {p=:.3f}')
 
 if __name__ == '__main__':
     do_analysis()
