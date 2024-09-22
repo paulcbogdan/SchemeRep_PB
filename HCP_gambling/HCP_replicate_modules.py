@@ -150,13 +150,12 @@ def replicate_vendor():
     tick_lows = np.arange(0, len(cols_order))
     ticks = tick_lows
     tick_labels = cols_order
-    vmax = np.nanquantile(corr, .9)
-    vmin = np.nanquantile(corr, .1)
+    vmax = np.nanquantile(corr, .85)
+    vmin = np.nanquantile(corr, .15)
     plot_connectivity(corr, ticks, tick_labels, tick_lows,
                       title=None, no_avg=True,
                       vmax=vmax, vmin=vmin,
                       minimal=False)
-    # quit()
 
     bool_ar = np.zeros(corr.shape)
     for i in range(corr.shape[0]):

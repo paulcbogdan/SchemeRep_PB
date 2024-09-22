@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 
 def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
-                  flip_VD=True, high_words=False):
+                  flip_VD=True, high_words=False, just_frontal=False):
     def get_range(hz):
         if hz < 1:
             return 'dimgray'
@@ -178,8 +178,9 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     # plt.xlim(0.5, 50)
     plt.gcf().subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
     ts = int(datetime.now().timestamp())
+    frontal_str = '_frontal' if just_frontal else ''
     if effect_size:
-        fp_out = fr'result_pics/other/hz_effect_size_{ts}.png'
+        fp_out = fr'result_pics/other/hz_effect_size_{ts}{frontal_str}.png'
     else:
         last = 'VD' if flip_VD else 'PA'
         fp_out = fr'result_pics/other/hz_corr_{ts}_{last}.png'

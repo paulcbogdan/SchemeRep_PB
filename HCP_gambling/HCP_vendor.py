@@ -343,17 +343,17 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False,
 def get_combo(kw):
     kw['only'] = 'loss'
     conn_highs, conn_lows, sns = (
-        pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     kw['only'] = 'win'
     conn_highs2, conn_lows2, sns2 = (
-        pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+        pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     assert sns == sns2
     conn_highs = np.mean([conn_highs, conn_highs2], axis=0)
     conn_lows = np.mean([conn_lows, conn_lows2], axis=0)
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=True, bilateral=True, corr_z=True,
+def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
@@ -371,6 +371,30 @@ def test_vendor(combine_regions=True, bilateral=True, corr_z=True,
           'reg_global': True, 'no_compcor': True, 'median_split': True,
           'drop_first': True, 'both_bhv': True,
           'reset_trial0': False}
+
+
+    kw = {'combine_regions': False, 'bilateral': False,
+          'neut_as_PE': None, 'drop_neut': True,
+          'only': None, 'num_sns': 1000,
+          'cont_PE': 0.3, 'cont_PE_by_event': True,
+          'regr_M': True, 'lr_separate': False,
+          'reg_global': True, 'no_compcor': True,
+          'median_split': True, 'drop_first': True,
+          'both_bhv': True, 'reset_trial0': True}
+
+    kw = {'combine_regions': False, 'bilateral': False, 'neut_as_PE': None,
+          'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3,
+          'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+          'reg_global': True, 'no_compcor': True, 'median_split': True,
+          'drop_first': True, 'both_bhv': True, 'reset_trial0': True}
+
+    # kw  = {'combine_regions': False, 'bilateral': False, 'neut_as_PE': None,
+    #      'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3,
+    #      'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+    #      'reg_global': True, 'no_compcor': True, 'median_split': True,
+    #      'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
+
+
 
     print(f'{kw=}')
 
@@ -411,19 +435,20 @@ def test_vendor(combine_regions=True, bilateral=True, corr_z=True,
         # conn_lows /= ROI_expected[None]
 
     bar_vendor(conn_highs, conn_lows, combine_regions, bilateral)
-    # quit()
-
-    # conn_highs -= np.nanmean(conn_highs, axis=(1, 2), keepdims=True)
-    # conn_lows -= np.nanmean(conn_lows, axis=(1, 2), keepdims=True)
 
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
     SE = stats.sem(dif, axis=0, nan_policy='omit')
     t = M / SE
 
+    print(t.shape)
+
+
     if corr_z:
         t_flat = t[np.tril_indices_from(t, k=-1)]
         z_both = get_SchemeRep_regr(combine_regions=combine_regions, plot=False)
+        # print(z_both.shape)
+        # quit()
         z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
         r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
         print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')

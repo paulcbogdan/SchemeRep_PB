@@ -39,15 +39,6 @@ def get_fMRI_ar(sn, sess, combine_regions, clean=True, nofilter=False,
             print('\tConfirmed no file')
             return None, None
 
-    # print(img.shape)
-    # img_mask = image.load_img(fp_mask)
-    # print(img_mask.shape)
-    # for i in range(38):
-    #     plt.imshow(mask_img.get_fdata()[:, :, i + 20])
-    #     plt.title(i)
-    #     plt.show()
-    # quit()
-
     if clean:
         df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2,
                                                           mask_img=mask_img,

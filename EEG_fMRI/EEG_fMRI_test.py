@@ -63,7 +63,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
     num_TRs = fMRI_fluc.shape[-1]
 
     if just_frontal:
-        picks = ['F1', 'Fz', 'F2', 'F3', 'F4']
+        picks = ['F1', 'Fz', 'F2', 'F3', 'F4',]
+        picks = ['F1', 'Fz', 'F2']
+        # picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
+        #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4',]
+        # picks = ['Fz', 'F2', 'F3',]
     else:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
                  'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
@@ -75,7 +79,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         custom_freqs = np.logspace(-1, 1.7, 100, base=10)
     else:
         custom_freqs = np.linspace(0.5, 50, 100)
-    custom_freqs = np.linspace(0.5, 100, 200)
+    # custom_freqs = np.linspace(0.5, 100, 200)
 
     custom_freqs = tuple(custom_freqs)
 
@@ -232,7 +236,7 @@ def get_sess_names(only_rs=True):
     return SESSES + SESS_INK + SESS_OTHER
 
 
-def do_EEG_fMRI_test():
+def do_EEG_fMRI_test(just_frontal=True):
     SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
@@ -255,7 +259,7 @@ def do_EEG_fMRI_test():
             if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue
             print(f'- ({SN}; {SESS}) -')
-            name2r, df = test_EEG_fMRI_sn(SN, SESS)
+            name2r, df = test_EEG_fMRI_sn(SN, SESS, just_frontal=just_frontal)
             # print(f'{PSD.shape=}')
             if name2r is None:
                 continue
@@ -306,8 +310,9 @@ def do_EEG_fMRI_test():
                 continue
             if N == 21 and j == len(SESSES) - 1:
                 print('PLOTTTT')
-                plot_hz_corrs(NAME2L)
-                plot_hz_corrs(NAME2L, effect_size=True, plot_se=True)
+                plot_hz_corrs(NAME2L, just_frontal=just_frontal)
+                plot_hz_corrs(NAME2L, effect_size=True, plot_se=True,
+                              just_frontal=just_frontal)
 
 
 if __name__ == '__main__':
