@@ -372,12 +372,10 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     for i, p in enumerate(partitions):
         p_named = [cols_order[j] for j in p]
         print(f'{i}: {p=} ({p_named})')
-    # quit()
 
     corr_v1 = get_partition_matrix(np.ones(corr.shape), partitions[1],
                                    w_zeros=True)
 
-    # corr = np.array(corr)
     plot_connectivity(corr_v0, ticks, tick_labels, tick_lows, title=fp, no_avg=True, vmin=-0.3, vmax=0.3)
 
     plot_connectivity(corr_v1, ticks, tick_labels, tick_lows, title=fp, no_avg=True, vmin=-0.3, vmax=0.3)

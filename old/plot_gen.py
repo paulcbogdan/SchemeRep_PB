@@ -43,9 +43,6 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         vmin = min(vmin, -vmax)
         vmax = max(vmax, -vmin)
 
-        # vmax = max(vmax, 4)
-        # vmax = np.nanmax(M_connect)
-
     if ax is None:
         plt.figure(figsize=(10, 10))
     else:

@@ -173,19 +173,10 @@ def partial_corr_df(df, cols, cov, verbose=1):
     cols = [col for col in cols if col not in cov]
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
     print(df[cols])
-    # quit()
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
-            # if col_i == 'dv_ant' and col_j == 'dv_pos':
-            #     pass
-            # elif (col_i.split('_')[0] in col_j or
-            #         col_j.split('_')[0] in col_i):
-            #     continue
             if i < j:
-                # print(df[[col_i, col_j]])
                 try:
-                    # print(df[[col_i, col_j] + cov])
-                    # quit()
                     out = (pg.partial_corr(data=df, x=col_i, y=col_j,
                                            covar=cov).
                            round(3))
@@ -195,8 +186,6 @@ def partial_corr_df(df, cols, cov, verbose=1):
                 except AssertionError as e:
                     ar[i, j] = np.nan
                     ar[j, i] = np.nan
-
-
 
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
     if verbose:

@@ -1,3 +1,6 @@
+import os
+os.chdir(r'C:\PycharmProjects\SchemeRep')
+
 from collections import defaultdict
 
 import numpy as np
