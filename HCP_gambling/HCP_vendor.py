@@ -112,13 +112,41 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
 def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
                 neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
                 cont_PE_by_event=False, lr_separate=False,
-                reg_global=False, no_compcor=False):
+                reg_global=False, no_compcor=False, median_split=True,
+                drop_first=False, both_bhv=False):
+
+    if both_bhv:
+        try:
+            df_rl, df_lr = get_df_events(sn, 'both', cont_PE=cont_PE,
+                                  cont_pe_by_event=cont_PE_by_event,
+                                  median_split=median_split,
+                                  drop_first=drop_first)
+        except Exception as e:
+            print(f'ERROR in getting df: {sn}, {e=}')
+            # bad_sns.append(sn)
+            time.sleep(1)
+            return None, sn
+    else:
+        try:
+            df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
+                                  cont_pe_by_event=cont_PE_by_event,
+                                  median_split=median_split,
+                                  drop_first=drop_first)
+            df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
+                                  cont_pe_by_event=cont_PE_by_event,
+                                  median_split=median_split,
+                                  drop_first=drop_first)
+        except Exception as e:
+            print(f'ERROR: {sn}, {e=}')
+            # bad_sns.append(sn)
+            time.sleep(1)
+            return None, sn
+
+
 
     try:
         ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
                            bilateral=bilateral, reg_global=reg_global, no_compcor=no_compcor)
-        df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
-                              cont_pe_by_event=cont_PE_by_event)
     except ValueError:
         print(f'Not analyzed connectivity: {sn}')
         return None, sn
@@ -127,8 +155,6 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
         # bad_sns.append(sn)
         time.sleep(1)
         return None, sn
-    # print(df_lr)
-    # quit()
 
     if only:
         df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
@@ -143,13 +169,14 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
         ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
 
     ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
+    # print(f'{ar_low.shape=}')
+    # print(f'{ar_high.shape=}')
+    # quit()
 
     try:
         ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
                            bilateral=bilateral, reg_global=reg_global,
                            no_compcor=no_compcor)
-        df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
-                              cont_pe_by_event=cont_PE_by_event)
     except ValueError:
         print(f'Not analyzed connectivity: {sn}')
         return None, sn
@@ -204,7 +231,8 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
               neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
               cont_PE_by_event=False, lr_separate=True, num_sns=None,
               n_jobs=1, reg_global=False, no_compcor=False,
-              sns_set=None):
+              sns_set=None, median_split=True,
+              drop_first=False, both_bhv=False):
 
     fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
     if reg_global:
@@ -234,34 +262,23 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
           'neut_as_PE': neut_as_PE, 'drop_neut': drop_neut, 'regr_M': regr_M,
           'only': only, 'cont_PE': cont_PE, 'cont_PE_by_event': cont_PE_by_event,
           'lr_separate': lr_separate, 'reg_global': reg_global,
-          'no_compcor': no_compcor}
+          'no_compcor': no_compcor, 'median_split': median_split,
+          'drop_first': drop_first, 'both_bhv': both_bhv}
 
     if not no_compcor:
         del kw['no_compcor']
 
-    if no_compcor:
-        from datetime import datetime
-        dt_max = datetime(2024, 9, 15, 19, 50, 0)
-    elif cont_PE_by_event:
-        from datetime import datetime
-        dt_max = datetime(2024, 9, 15, 11, 0, 0)
-    else:
-        dt_max = None
+    # if no_compcor:
+    #     from datetime import datetime
+    #     dt_max = datetime(2024, 9, 15, 19, 50, 0)
+    # elif cont_PE_by_event:
+    #     from datetime import datetime
+    #     dt_max = datetime(2024, 9, 15, 11, 0, 0)
+    # else:
+    #     dt_max = None
 
-    if n_jobs > 1:
-        from multiprocessing import Pool
-        from functools import partial
-        get_conn_sn_partial = partial(get_conn_sn, **kw)
-
-        with Pool(n_jobs) as p:
-            res = tqdm(p.imap(get_conn_sn_partial, sns), desc='Parallel get_conn_sn')
-        for conn_high, conn_low_sn in res:
-            if conn_high is None:
-                bad_sns.append(conn_low_sn)
-                continue
-            conn_highs.append(conn_high)
-            conn_lows.append(conn_low_sn)
-        # TODO: maybe finish this
+    from datetime import datetime
+    dt_max = datetime(2024, 9, 21, 18, 45, 0)
 
     good_sns = []
     while len(good_sns) < num_sns and (len(sns) > 0):#, total=num_sns):
@@ -276,7 +293,7 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
                                                  easy_override=True,
                                                  dt_max=dt_max)
         if conn_high is None:
-            print('VERY BAD CONN??')
+            print('BAD CONN??')
             bad_sns.append(sn)
             continue
 
@@ -333,7 +350,7 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
     # OKAY. Keep REGR_R as True. However, it is mostly inconsequential
     # Keep dropping Neut = TRUE
@@ -349,12 +366,18 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
 
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': False, 'only': None,
-          'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
+          'neut_as_PE': None, 'drop_neut': True, 'only': None,
+          'num_sns': 500, 'cont_PE': 0.3, 'cont_PE_by_event': False,
           'regr_M': True, 'lr_separate': False,
-          'reg_global': True, 'no_compcor': True}
-    # print(kw)
-    # quit()
+          'reg_global': True, 'no_compcor': True,
+          'median_split': True, 'drop_first': True,
+          'both_bhv': True}
+
+    kw = {'combine_regions': False, 'bilateral': False, 'neut_as_PE': None, 'drop_neut': True, 'only': None, 'num_sns': 500, 'cont_PE': 0.3, 'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True, 'reg_global': True, 'no_compcor': True, 'median_split': True, 'drop_first': False, 'both_bhv': True}
+
+
+    print(f'{kw=}')
+
 
     # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
     #       'neut_as_PE': True, 'drop_neut': False, 'only': None,
@@ -428,6 +451,9 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
                        combine_bilateral=bilateral)[0]
     itr = ef_low - ef_high
     t_final, p = stats.ttest_1samp(itr, 0)
+    # plt.hist(itr)
+    # plt.show()
+    # quit()
     N = itr.shape[0]
     nans = np.sum(np.isnan(itr))
     print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.3f}')
@@ -458,12 +484,26 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
         # plt.imshow(t[np.ix_(p_v_pos, p_d_pos)])
         # plt.colorbar()
         # plt.show()
-        t[np.abs(t) < 3] = np.nan
-
+        # t[np.abs(t) < 3] = np.nan
+        M_high = np.nanmean(conn_highs, axis=0)
+        M_low = np.nanmean(conn_lows, axis=0)
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='Correlation (r)',
                           vmin=-4, vmax=4)
+        # plot_connectivity(M_high, atlas['ticks'], atlas['tick_labels'],
+        #                   atlas['tick_lows'], title=title, tile=.01,
+        #                   no_avg=True, cbar_label='Correlation (r)',
+        #                   )
+        # plot_connectivity(M_low, atlas['ticks'], atlas['tick_labels'],
+        #                   atlas['tick_lows'], title=title, tile=.01,
+        #                   no_avg=True, cbar_label='Correlation (r)',
+        #                   )
+        # plot_connectivity(M_high - M_low, atlas['ticks'], atlas['tick_labels'],
+        #                   atlas['tick_lows'], title=title, tile=.01,
+        #                   no_avg=True, cbar_label='Correlation (r)',
+        #                   )
+        # quit()
 
         z_threshed = z_both
         z_threshed[np.abs(z_threshed) < 2] = np.nan

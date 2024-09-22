@@ -40,12 +40,12 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_resting(override=True, slow_check=False):
+def unzip_all_resting(override=False, slow_check=False):
     sns = get_sns()
 
-    sns = {'150423', '171734', '119833', '127933', '128127',
-               '127327', '105216', '105014', '203418', '203923',
-               '204016', '201515', '201717', '201818', '202113'}
+    # sns = {'150423', '171734', '119833', '127933', '128127',
+    #            '127327', '105216', '105014', '203418', '203923',
+    #            '204016', '201515', '201717', '201818', '202113'}
 
     # sns = ['144226']
     # from nilearn import image
@@ -54,6 +54,8 @@ def unzip_all_resting(override=True, slow_check=False):
     # print(img.shape)
     # quit()
     # print(f'{len(sns)=}')
+    # quit()
+
     # sns = sns[::8]
     for sn in sns:
         # if sn == '106824' and not override:

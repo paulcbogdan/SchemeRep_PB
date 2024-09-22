@@ -18,7 +18,7 @@ from numba import prange, njit
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
+def get_events_PE(sn, RL_LR, cont_PE=None):
     dir_LR = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{RL_LR}\EVs'
     df_loss_event = pd.read_csv(fr'{dir_LR}\loss_event.txt', delimiter='\t',
                                 header=None, names=['onset', 'duration', 'amplitude'])
@@ -49,10 +49,33 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
     df_trials.sort_values('onset', inplace=True)
     df_trials['block'] = df_trials['onset'].apply(get_block)
     df_trials['same'] = df_trials['event'] == df_trials['block']
-    df_trials['trial_type'] = df_trials['same'].apply(
-        lambda x: 'low_PE' if x else 'high_PE')
+    if not cont_PE:
+        df_trials['trial_type'] = df_trials['same'].apply(
+            lambda x: 'low_PE' if x else 'high_PE')
     df_trials.reset_index(drop=True, inplace=True)
     df_trials['block_num'] = df_trials.index // 8
+    return df_trials
+
+# def get_df_events_both(sn, cont_PE=None, cont_pe_by_event=False,
+#                        median_split=True, drop_first=False):
+#     df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
+#     df_trials_LR = get_events_PE(sn, 'LR', cont_PE=cont_PE)
+#     df_trials = pd.concat([df_trials, df_trials_LR], ignore_index=True)
+
+
+def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False,
+                  median_split=True, drop_first=False):
+
+    if RL_LR == 'both':
+        df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
+        df_trials['variant'] = 'RL'
+        df_trials_LR = get_events_PE(sn, 'LR', cont_PE=cont_PE)
+        df_trials_LR['variant'] = 'LR'
+        df_trials = pd.concat([df_trials, df_trials_LR], ignore_index=True)
+    else:
+        df_trials = get_events_PE(sn, RL_LR, cont_PE=cont_PE)
+
+        # df_trials = df_trials[df_trials['trial_within_block'] != 0]
 
     if cont_PE is not None:
         PE_cont = []
@@ -73,16 +96,28 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
         df_trials['PE'] = PE_cont
         df_trials['PE_abs'] = df_trials['PE'].abs()
 
+        if drop_first:
+            if RL_LR == 'both':
+                df_trials['trial_within_block'] = list(range(8)) * 8
+            else:
+                df_trials['trial_within_block'] = list(range(8)) * 4
+            df_trials.loc[df_trials['trial_within_block'] == 0, 'PE_abs'] = np.nan
+
         if cont_pe_by_event:
             for event in ['loss', 'win', 'neut']:
                 df_event = df_trials[df_trials['event'] == event]
-                med_PE = df_event['PE_abs'].median()
-                # print(f'{event}: {med_PE=}')
+                if median_split:
+                    med_PE = df_event['PE_abs'].median()
+                else:
+                    med_PE = df_event['PE_abs'].mean()
                 df_trials.loc[df_trials['event'] == event, 'trial_type'] = df_trials.loc[
                     df_trials['event'] == event, 'PE_abs'].apply(
-                    lambda x: 'low_PE' if x < med_PE else 'high_PE')
+                    lambda x: 'low_PE' if x < med_PE else 'high_PE' if ~pd.isna(x) else 'dropped')
         else:
-            med_PE = df_trials['PE_abs'].median()
+            if median_split:
+                med_PE = df_trials['PE_abs'].median()
+            else:
+                med_PE = df_trials['PE_abs'].mean()
             df_trials['trial_type'] = df_trials['PE_abs'].apply(
                 lambda x: 'low_PE' if x < med_PE else 'high_PE')
 
@@ -90,7 +125,46 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False):
 
     df_trials.drop(columns=['same'], inplace=True)
 
-    return df_trials
+    if drop_first:
+        if RL_LR == 'both':
+            df_trials['trial_within_block'] = list(range(8)) * 8
+        else:
+            df_trials['trial_within_block'] = list(range(8)) * 4
+        df_trials.loc[df_trials['trial_within_block'] == 0, 'trial_type'] = 'dropped'
+
+    if median_split and cont_pe_by_event: # odd number
+        df_lw = df_trials[df_trials['event'] != 'neut']
+
+        df_loss = df_lw[df_lw['event'] == 'loss']
+        df_loss_low = df_loss[df_loss['trial_type'] == 'low_PE']
+        df_loss_high = df_loss[df_loss['trial_type'] == 'high_PE']
+        if len(df_loss_low) > len(df_loss_high):
+            df_trials.loc[df_loss_low.index[-1], 'trial_type'] = 'drop'
+            # print('over')
+        elif len(df_loss_low) < len(df_loss_high):
+            df_trials.loc[df_loss_high.index[-1], 'trial_type'] = 'drop'
+            # print('over')
+        df_win = df_lw[df_lw['event'] == 'win']
+        df_win_low = df_win[df_win['trial_type'] == 'low_PE']
+        df_win_high = df_win[df_win['trial_type'] == 'high_PE']
+        if len(df_win_low) > len(df_win_high):
+            df_trials.loc[df_win_low.index[-1], 'trial_type'] = 'drop'
+            # print('over')
+        elif len(df_win_low) < len(df_win_high):
+            df_trials.loc[df_win_high.index[-1], 'trial_type'] = 'drop'
+            # print('over')
+
+        df_lw = df_trials[df_trials['event'] != 'neut']
+        df_low = df_lw[df_lw['trial_type'] == 'low_PE']
+        df_high = df_lw[df_lw['trial_type'] == 'high_PE']
+        assert len(df_low) == len(df_high), f'{len(df_low)=}, {len(df_high)=}'
+
+    if RL_LR == 'both':
+        df_trials_RL = df_trials[df_trials['variant'] == 'RL']
+        df_trials_LR = df_trials[df_trials['variant'] == 'LR']
+        return df_trials_RL, df_trials_LR
+    else:
+        return df_trials
 
 
 def lss_transformer(df, row_number):

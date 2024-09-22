@@ -1,5 +1,8 @@
 import zipfile
 import os
+
+from HCP_gambling.HCP_behavior import get_gambling_behavior_good
+
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from collections import defaultdict
@@ -166,21 +169,27 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
             print(f'ERROR RESTING ({sn}): {e=}')
             print(f'{bad_sns=}')
             continue
-        try:
-            p_change_LR, PE_bhv_LR = get_gambling_behavior(sn, 'LR')
-            p_change_RL, PE_bhv_RL = get_gambling_behavior(sn, 'RL')
-            p_change = np.mean([p_change_LR, p_change_RL])
-            PE_bhv = np.mean([PE_bhv_LR, PE_bhv_RL])
-        except FileNotFoundError:
-            continue
-        except TypeError as e:
+        p_change, PE_bhv, high_PE, low_PE = (
+            get_gambling_behavior_good(sn, ))
+        if PE_bhv is None:
             bad_sns.append(sn)
-            print(f'Missing files: {sn}, {e=}')
+            print(f'Bad behavior files: {sn}')
             continue
-        except KeyError as e:
-            bad_sns.append(sn)
-            print(f'Missing responses so NaN responses to high/low_PE: {sn}, {e=}')
-            continue
+
+        #     p_change_LR, PE_bhv_LR = get_gambling_behavior(sn, 'LR')
+        #     p_change_RL, PE_bhv_RL = get_gambling_behavior(sn, 'RL')
+        #     p_change = np.mean([p_change_LR, p_change_RL])
+        #     PE_bhv = np.mean([PE_bhv_LR, PE_bhv_RL])
+        # except FileNotFoundError:
+        #     continue
+        # except TypeError as e:
+        #     bad_sns.append(sn)
+        #     print(f'Missing files: {sn}, {e=}')
+        #     continue
+        # except KeyError as e:
+        #     bad_sns.append(sn)
+        #     print(f'Missing responses so NaN responses to high/low_PE: {sn}, {e=}')
+        #     continue
         # except Exception as e:
         #     print(f'ERROR TASK ({sn}): {e=}')
         #     print(f'{bad_sns=}')
@@ -202,6 +211,12 @@ def analyze_HCP_rs(combine_regions=False, bilateral=False,
     print('-*-***-*-')
     print(f'PE behavior effect: t[{N - 1}] = {t_PE_bhv:.2f}, p = {p_PE_bhv:.2f}, '
           f'M ef = {M_PE_ef:.2f}')
+    print('-*-***-*-')
+
+    r, p = stats.spearmanr(Mvs, p_changes)
+    print(f'PRE OVERLAP EXCLUDE | RS x change-freq: {r=:.2f}, {p=:.2f}')
+    r, p = stats.spearmanr(Mvs, PE_bhv_efs)
+    print(f'PRE OVERLAP EXCLUDE | RS x PE-bhv-response: {r=:.2f}, {p=:.2f}')
     sns_rs = good_sns
     task_ef, dd_ef, vv_ef, dv_ant_ef, dv_pos_ef, sns_task = (
         get_task_ef(sns_rs, combine_regions=combine_regions,

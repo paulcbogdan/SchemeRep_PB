@@ -8,7 +8,12 @@ import numpy as np
 from HCP_gambling.preproc_gambling import get_df_events
 
 def semi_do_bhv_df(sn, lr, cont_PE=.3):
-    df_trials = get_df_events(sn, lr, cont_pe_by_event=True, cont_PE=cont_PE)
+    try:
+        df_trials = get_df_events(sn, lr, cont_pe_by_event=True, cont_PE=cont_PE,
+                              median_split=True)
+    except FileNotFoundError:
+        print(f'No win.txt or loss.txt: {sn}, {lr}')
+        return None
     run_num = 2 if lr == 'LR' else 1
     fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'
     if not os.path.exists(fp):
@@ -33,13 +38,14 @@ def semi_do_bhv_df(sn, lr, cont_PE=.3):
     return df
 
 
-def get_gambling_behavior_df(sn, lr, key='RT_next', cont_PE=0.3):
+def get_gambling_behavior_good(sn, key='RT_next', cont_PE=0.3,
+                               ctrl_trial_num_close=True):
     df_lr = semi_do_bhv_df(sn, 'LR', cont_PE=cont_PE)
     if df_lr is None:
-        return None, None
+        return None, None, None, None
     df_rl = semi_do_bhv_df(sn, 'RL', cont_PE=cont_PE)
     if df_rl is None:
-        return None, None
+        return None, None, None, None
     df = pd.concat([df_lr, df_rl], ignore_index=True)
 
     p_change = df['RESP_CHANGE'].sum() / df['RESP_CHANGE'].count()
@@ -56,44 +62,51 @@ def get_gambling_behavior_df(sn, lr, key='RT_next', cont_PE=0.3):
     # print(df[['RT', 'RT_next', 'event', 'PE']])
     # quit()
     try:
-        df_PE_win = df_win.groupby(['PE', 'trial_within_block'])[key].mean()
-        # print(('high_PE', 3) in df_PE_win)
-        # print(df_PE_win)
-        for trial in range(1, 7):
-            if ('high_PE', trial) not in df_PE_win.index:
-                df_PE_win.loc[('low_PE', trial)] = np.nan
-            if ('low_PE', trial) not in df_PE_win.index:
-                df_PE_win.loc[('high_PE', trial)] = np.nan
-        df_PE_win.dropna(inplace=True)
-        df_PE_win = df_PE_win.groupby('PE').mean()
+        if ctrl_trial_num_close:
+            df_PE_win = df_win.groupby(['PE', 'trial_within_block'])[key].mean()
 
-        df_PE_loss = df_loss.groupby(['PE', 'trial_within_block'])[key].mean()
-        # print(df_PE_loss)
-        # quit()
-        for trial in range(1, 7):
-            if ('high_PE', trial) not in df_PE_loss.index:
-                df_PE_loss.loc[('low_PE', trial)] = np.nan
-            if ('low_PE', trial) not in df_PE_loss.index:
-                df_PE_loss.loc[('high_PE', trial)] = np.nan
-        df_PE_loss.dropna(inplace=True)
-        df_PE_loss = df_PE_loss.groupby('PE').mean()
-        # df_PE_loss = df_loss.groupby('PE')[key].mean()
+            for trial in range(1, 7):
+                if ('high_PE', trial) not in df_PE_win.index:
+                    df_PE_win.loc[('low_PE', trial)] = np.nan
+                if ('low_PE', trial) not in df_PE_win.index:
+                    df_PE_win.loc[('high_PE', trial)] = np.nan
+            df_PE_win.dropna(inplace=True)
+            df_PE_win = df_PE_win.groupby('PE').mean()
 
-        # print(df_PE_win)
+            df_PE_loss = df_loss.groupby(['PE', 'trial_within_block'])[key].mean()
+            # print(df_PE_loss)
+            # quit()
+            for trial in range(1, 7):
+                if ('high_PE', trial) not in df_PE_loss.index:
+                    df_PE_loss.loc[('low_PE', trial)] = np.nan
+                if ('low_PE', trial) not in df_PE_loss.index:
+                    df_PE_loss.loc[('high_PE', trial)] = np.nan
+            df_PE_loss.dropna(inplace=True)
+            df_PE_loss = df_PE_loss.groupby('PE').mean()
+        else:
+            df_PE_win = df_win.groupby('PE')[key].mean()
+            df_PE_loss = df_loss.groupby('PE')[key].mean()
 
         PE_ef_win = df_PE_win['high_PE'] - df_PE_win['low_PE']
         PE_ef_loss = df_PE_loss['high_PE'] - df_PE_loss['low_PE']
 
+        high_PE_M = (df_PE_win['high_PE'] + df_PE_loss['high_PE']) / 2
+        low_PE_M = (df_PE_win['low_PE'] + df_PE_loss['low_PE']) / 2
+
+        # high_PE_M = df_PE_win['high_PE']
+        # low_PE_M = df_PE_win['low_PE']
+
     except KeyError:
-        return None, None
-    PE_ef = PE_ef_loss + PE_ef_win
+        return None, None, None, None
+    PE_ef = PE_ef_loss# + PE_ef_win
+    # PE_ef = PE_ef_win
     # print(f'{PE_ef_win=}')
     # print(f'{PE_ef_loss=}')
     # quit()
     # PE_ef = df['RT'].mean()
-    print(f'{PE_ef=:.3f}')
+    # print(f'{PE_ef=:.3f}')
 
-    return p_change, PE_ef
+    return p_change, PE_ef, high_PE_M, low_PE_M
 
 
 def get_task_sns(reg_global=True, no_compcor=True):
@@ -116,24 +129,34 @@ def get_task_sns(reg_global=True, no_compcor=True):
 def do_HCP_bhv_analysis():
     sns = get_task_sns(reg_global=True, no_compcor=True)
     efs_l = []
-    M_m = []
-    for sn in tqdm(sns, desc='looping through behavior sns'):
-        sn_efs = []
-        p_change, sn_efs = get_gambling_behavior_df(sn, None)
-        if sn_efs is None:
+    # M_m = []
+    high_PE_l = []
+    low_PE_l = []
+    for sn in sns:
+        p_change, sn_ef, high_PE, low_PE = (
+            get_gambling_behavior_good(sn, ))
+        if sn_ef is None:
             continue
         # for lr in ['LR', 'RL']:
         #     p_change, PE_ef = get_gambling_behavior_df(sn, lr)
         #     if PE_ef is None:
         #         continue
         #     sn_efs.append(PE_ef)
-        efs_l.append(np.nanmean(sn_efs))
-        M = np.nanmean(sn_efs)
-        M_m.append(M)
+        assert not np.isnan(sn_ef)
+        efs_l.append(sn_ef)
+
         N = np.sum(~np.isnan(efs_l))
-        t, p = stats.ttest_1samp(efs_l, 0, nan_policy='omit')
-        GM = np.nanmean(M_m)
-        print(f't[{N-1}] = {t=:.2f}, {p=:.4f} | {GM=:.3f}')
+        t, p = stats.ttest_1samp(efs_l, 0)
+        print(f't[{N-1}] = {t=:.2f}, {p=:.4f}')
+
+        low_PE_l.append(low_PE)
+        high_PE_l.append(high_PE)
+        low_M = np.mean(low_PE_l)
+        low_SD = np.std(low_PE_l)
+        high_M = np.mean(high_PE_l)
+        high_SD = np.std(high_PE_l)
+        print(f'\t{high_M=:.2f} [{high_SD=:.2f}], {low_M=:.2f} [{low_SD=:.2f}]')
+        print()
 
 if __name__ == '__main__':
     do_HCP_bhv_analysis()
