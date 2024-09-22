@@ -113,14 +113,14 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
                 neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
                 cont_PE_by_event=False, lr_separate=False,
                 reg_global=False, no_compcor=False, median_split=True,
-                drop_first=False, both_bhv=False):
+                drop_first=False, both_bhv=False, reset_trial0=False):
 
     if both_bhv:
         try:
             df_rl, df_lr = get_df_events(sn, 'both', cont_PE=cont_PE,
                                   cont_pe_by_event=cont_PE_by_event,
                                   median_split=median_split,
-                                  drop_first=drop_first)
+                                  drop_first=drop_first, reset_trial0=reset_trial0)
         except Exception as e:
             print(f'ERROR in getting df: {sn}, {e=}')
             # bad_sns.append(sn)
@@ -131,11 +131,13 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
             df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
                                   cont_pe_by_event=cont_PE_by_event,
                                   median_split=median_split,
-                                  drop_first=drop_first)
+                                  drop_first=drop_first,
+                                  reset_trial0=reset_trial0)
             df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
                                   cont_pe_by_event=cont_PE_by_event,
                                   median_split=median_split,
-                                  drop_first=drop_first)
+                                  drop_first=drop_first,
+                                  reset_trial0=reset_trial0)
         except Exception as e:
             print(f'ERROR: {sn}, {e=}')
             # bad_sns.append(sn)
@@ -232,7 +234,7 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
               cont_PE_by_event=False, lr_separate=True, num_sns=None,
               n_jobs=1, reg_global=False, no_compcor=False,
               sns_set=None, median_split=True,
-              drop_first=False, both_bhv=False):
+              drop_first=False, both_bhv=False, reset_trial0=False):
 
     fns = os.listdir(r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA')
     if reg_global:
@@ -263,7 +265,8 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
           'only': only, 'cont_PE': cont_PE, 'cont_PE_by_event': cont_PE_by_event,
           'lr_separate': lr_separate, 'reg_global': reg_global,
           'no_compcor': no_compcor, 'median_split': median_split,
-          'drop_first': drop_first, 'both_bhv': both_bhv}
+          'drop_first': drop_first, 'both_bhv': both_bhv,
+          'reset_trial0': reset_trial0}
 
     if not no_compcor:
         del kw['no_compcor']
@@ -350,20 +353,8 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=True, bilateral=True, corr_z=True,
                 sub_ROI_expected=False):
-    # OKAY. Keep REGR_R as True. However, it is mostly inconsequential
-    # Keep dropping Neut = TRUE
-    # keep cont_PE_by_event
-    # lr_separate has no effect
-    # keep cont_PE = .3
-    # cont_PE = 1. sucks. no t effect. some matrix correlation
-
-    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-    #       'neut_as_PE': False, 'drop_neut': True, 'only': None,
-    #       'num_sns': 1000, 'cont_PE': 0.30, 'cont_PE_by_event': True,
-    #       'regr_M': True, 'lr_separate': False}
-
 
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'neut_as_PE': None, 'drop_neut': True, 'only': None,
@@ -373,18 +364,15 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
           'median_split': True, 'drop_first': True,
           'both_bhv': True}
 
-    kw = {'combine_regions': False, 'bilateral': False, 'neut_as_PE': None, 'drop_neut': True, 'only': None, 'num_sns': 500, 'cont_PE': 0.3, 'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True, 'reg_global': True, 'no_compcor': True, 'median_split': True, 'drop_first': False, 'both_bhv': True}
-
+    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
+          'neut_as_PE': None, 'drop_neut': True, 'only': 'combo',
+          'num_sns': 1000, 'cont_PE': 0.3,
+          'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+          'reg_global': True, 'no_compcor': True, 'median_split': True,
+          'drop_first': True, 'both_bhv': True,
+          'reset_trial0': False}
 
     print(f'{kw=}')
-
-
-    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-    #       'neut_as_PE': True, 'drop_neut': False, 'only': None,
-    #       'num_sns': 1000, 'cont_PE': None, 'cont_PE_by_event': True,
-    #       'regr_M': True, 'lr_separate': False,
-    #        'reg_global': True, 'no_compcor': True}
-
 
     if kw['neut_as_PE']:
         kw['drop_neut'] = False
@@ -396,7 +384,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         conn_highs, conn_lows, sns = get_combo(kw)
     else:
         conn_highs, conn_lows, sns = (
-            pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+            pickle_wrap(make_conn, kwargs=kw, easy_override=False))
 
 
     if combine_regions:

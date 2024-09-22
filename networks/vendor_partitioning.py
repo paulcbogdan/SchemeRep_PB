@@ -1,6 +1,9 @@
 
 import os
 
+from networks.old.modularity import get_main_partitions
+from networks.old.network_funcs import load_FC_for_Lifu
+
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from pathlib import Path

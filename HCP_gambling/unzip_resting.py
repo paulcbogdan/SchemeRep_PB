@@ -55,7 +55,8 @@ def unzip_all_resting(override=False, slow_check=False):
     # quit()
     # print(f'{len(sns)=}')
     # quit()
-
+    # print(f'{len(sns)=}')
+    # quit()
     # sns = sns[::8]
     for sn in sns:
         # if sn == '106824' and not override:

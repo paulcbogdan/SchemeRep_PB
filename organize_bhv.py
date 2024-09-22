@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # TODO: measure where congruent is more correlated object x scene
 
@@ -457,6 +458,7 @@ def get_trial_info_(sn, ret=True, incl_lures=False):
     # print(f'{matches1234=}, {matches14=}, {matches14_strict=}')
 
     df_sn = include_BL(df_sn, sn)
+
     if ret:
         df_sn = include_conceptual(df_sn, sn)
         df_sn = include_vis(df_sn, sn, incl_lures=incl_lures)
@@ -636,9 +638,10 @@ def include_conceptual(df_sn, sn):
     return df_sn
 
 def fill_obj2trial_obj2run(obj2trial, obj2run):
+
     contained_runs = set(obj2run.values())
     missing_runs = set(range(1, 4)) - contained_runs
-    assert len(missing_runs) <= 1
+    assert len(missing_runs) <= 1, f'{missing_runs=}'
     obj2run_ = defaultdict(lambda: list(missing_runs)[0])
     obj2run_.update(obj2run)
     obj2run = obj2run_
@@ -848,7 +851,7 @@ if __name__ == '__main__':
     # print(df_sn)
     pd.set_option('display.width', None)
     pd.set_option('display.max_rows', None)
-    df_sn = get_trial_info_('115')
+    df_sn = get_trial_info_('102')
     df_sn.sort_values(by='obj_trial', inplace=True)
     print(df_sn[['obj_trial', 'bl_trial', 'obj']])
 

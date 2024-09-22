@@ -1,21 +1,25 @@
-from analyze_rs import prep_conn_ps
+# from analyze_rs import prep_conn_ps
 from atlas_utils import get_atlas
-from load_more import load_a, get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
+from networks.analyze_rs import prep_conn_ps
+from networks.load_more import load_a, get_module_cross_trialwise_z
+from networks.old_Apr6.vendor_lmers import get_module_trialwise_z
+from networks.vendor_partitioning import get_vendor_partitions
+# from load_more import load_a, get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap, stdize
 from collections import defaultdict
 
-from old_Apr6.vendor_lmers import get_module_trialwise_z
+# from old_Apr6.vendor_lmers import get_module_trialwise_z
 from scipy import stats
 import pandas as pd
 import numpy as np
 import pingouin as pg
 
 import matplotlib.pyplot as plt
-from vendor_partitioning import get_vendor_partitions
+# from vendor_partitioning import get_vendor_partitions
 from functools import partial
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # TODO: set up windows backups
 
@@ -125,7 +129,7 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
                                       p_v_ant, p_v_pos)
     for key, (p0, p1) in zip(conn_keys, conn_ps):
     # for key, (p0, p1) in key2pair.items():
-        if key != 'pd_no': continue
+    #     if key != 'pd_no': continue
         key2conn[key] = get_module_cross_trialwise_z(conn_trials[:, None],
                                                      p0, p1)
         # print(key2conn[key])
@@ -168,6 +172,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
 def partial_corr_df(df, cols, cov, verbose=1):
     cols = [col for col in cols if col not in cov]
     ar = np.full((len(cols), len(cols)), np.nan, dtype=float)
+    print(df[cols])
+    # quit()
     for i, col_i in enumerate(cols):
         for j, col_j in enumerate(cols):
             # if col_i == 'dv_ant' and col_j == 'dv_pos':
@@ -178,15 +184,19 @@ def partial_corr_df(df, cols, cov, verbose=1):
             if i < j:
                 # print(df[[col_i, col_j]])
                 try:
+                    # print(df[[col_i, col_j] + cov])
+                    # quit()
                     out = (pg.partial_corr(data=df, x=col_i, y=col_j,
                                            covar=cov).
                            round(3))
+
+                    ar[i, j] = out['r'].values[0]
+                    ar[j, i] = ar[i, j]
                 except AssertionError as e:
                     ar[i, j] = np.nan
                     ar[j, i] = np.nan
 
-                ar[i, j] = out['r'].values[0]
-                ar[j, i] = ar[i, j]
+
 
     df_result = pd.DataFrame(ar, index=cols, columns=cols)
     if verbose:

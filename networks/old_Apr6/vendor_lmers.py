@@ -1,5 +1,10 @@
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+
+from networks.old.modularity import get_partition_matrix
+from networks.old.network_funcs import load_FC_for_Lifu
+from networks.vendor_partitioning import get_vendor_partitions
+
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 # import sys
 # from analyze_rs import load_resting_data, load_act_conn
 from atlas_utils import get_atlas
@@ -10,10 +15,10 @@ from functools import cache
 import numpy as np
 import pandas as pd
 
-from load_more import get_module_cross_trialwise_z, get_dfs_conn_trials, get_hemi_vendor_df
-from old.modularity import get_partition_matrix
-from old.network_funcs import load_FC_for_Lifu
-from vendor_partitioning import get_vendor_partitions
+# from load_more import get_module_cross_trialwise_z, get_dfs_conn_trials, get_hemi_vendor_df
+# from old.modularity import get_partition_matrix
+# from old.network_funcs import load_FC_for_Lifu
+# from vendor_partitioning import get_vendor_partitions
 from utils import timing, pickle_wrap, stdize, get_formula_cols
 import scipy.stats as stats
 from warnings import filterwarnings
@@ -81,7 +86,9 @@ def get_hemi_cross_vendor_df(fp='obj7_fMRI', scrub=False, anat=False):
 @cache
 def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
                   hemis=True, roiwise=False, zscore=True,
-                  anat_ver=2):
+                  anat_ver=2, anat_version=None):
+    if anat_version is not None:
+        anat_ver = anat_version
     kwargs = {'fp': fp,
               'key': 'inc',
               'atlas_name': 'BNA',

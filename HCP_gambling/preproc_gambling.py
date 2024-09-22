@@ -54,6 +54,7 @@ def get_events_PE(sn, RL_LR, cont_PE=None):
             lambda x: 'low_PE' if x else 'high_PE')
     df_trials.reset_index(drop=True, inplace=True)
     df_trials['block_num'] = df_trials.index // 8
+    df_trials['trials_all'] = list(range(len(df_trials)))
     return df_trials
 
 # def get_df_events_both(sn, cont_PE=None, cont_pe_by_event=False,
@@ -64,13 +65,13 @@ def get_events_PE(sn, RL_LR, cont_PE=None):
 
 
 def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False,
-                  median_split=True, drop_first=False):
+                  median_split=True, drop_first=False, reset_trial0=False):
 
     if RL_LR == 'both':
-        df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
-        df_trials['variant'] = 'RL'
         df_trials_LR = get_events_PE(sn, 'LR', cont_PE=cont_PE)
         df_trials_LR['variant'] = 'LR'
+        df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
+        df_trials['variant'] = 'RL'
         df_trials = pd.concat([df_trials, df_trials_LR], ignore_index=True)
     else:
         df_trials = get_events_PE(sn, RL_LR, cont_PE=cont_PE)
@@ -82,6 +83,8 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False,
         E = 0
         learning = cont_PE
         for idx, row in df_trials.iterrows():
+            if row['trials_all'] == 0 and reset_trial0:
+                E = 0
             if row['event'] == 'win':
                 PE = 1 - E
                 E = E * (1 - learning) + learning

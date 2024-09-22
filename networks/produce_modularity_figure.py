@@ -1,5 +1,5 @@
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 import numpy as np
 import pandas as pd
@@ -256,6 +256,8 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
                   'Lda_Lva', 'Rda_Rva',
                   'Ldp_Rdp', 'Lvp_Rvp',
                   'Lda_Rda', 'Lva_Rva', ]
+    # print(list(df.columns))
+    # quit()
 
 
     # Bonus diagonals
@@ -299,6 +301,9 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     # print(df[['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
     #           'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',
     #           'FC_all']])
+    # quit()
+
+    # print(df)
     # quit()
 
     corr = partial_corr_df(df.copy(), cols_order, #['dd', 'vv', 'dv_ant', 'dv_pos'],
@@ -425,8 +430,8 @@ def plot_meta_corr_matrix(fp='con7_fMRI', hemis=True):
     print(f'{fp=}')
 
 if __name__ == '__main__':
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
+    # pd.set_option('display.max_columns', None)
+    # pd.set_option('display.width', None)
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
 

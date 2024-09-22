@@ -27,6 +27,7 @@ def load_rs(combine_regions=False):
                                           norm_std=False,
                                           combine_regions=combine_regions)
     return conn_trials, sns
+
 def load_task(combine_regions=True):
     kwargs = {'fp': 'obj8_fMRI',
               'key': 'inc',

@@ -96,7 +96,7 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
             print(f'Error: {sn=}, {e=}')
             bad_sns.append(sn)
 
-    for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
+    # for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
         try:
             clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
                         no_compcor=no_compcor)
