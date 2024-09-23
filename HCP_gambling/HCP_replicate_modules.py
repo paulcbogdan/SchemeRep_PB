@@ -126,7 +126,7 @@ def replicate_vendor():
                   combine_regions=False))
 
     mats_all = []
-    for sn in sns[:100]:
+    for sn in sns[:500]:
         sn_mats = []
         for lr in ['LR', 'RL']:
             kw = {'sn': sn, 'lr': lr,

@@ -122,8 +122,8 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plt.yticks([0, 1, 2, 3, 4, 5, 6,])
         plt.ylim(0, 6.)
     elif effect_size:
-        height = 1.47
-        height_theta = 1.63
+        height = 1.53
+        height_theta = 1.68
         drag = 0.087
         # plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2, 1.4,])
         plt.yticks([0, 0.3, 0.6, 0.9, 1.2, 1.5, ])

@@ -40,7 +40,7 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_resting(override=False, slow_check=False):
+def unzip_all_resting(override=False, slow_check=True):
     sns = get_sns()
 
     # sns = {'150423', '171734', '119833', '127933', '128127',
@@ -57,6 +57,7 @@ def unzip_all_resting(override=False, slow_check=False):
     # quit()
     # print(f'{len(sns)=}')
     # quit()
+    # sns = ['100206']
     # sns = sns[::8]
     for sn in sns:
         # if sn == '106824' and not override:
@@ -66,7 +67,8 @@ def unzip_all_resting(override=False, slow_check=False):
         missing_checks = [r'rfMRI_REST1_RL\rfMRI_REST1_RL.nii.gz',
                           r'rfMRI_REST1_LR\rfMRI_REST1_LR.nii.gz',
                           r'rfMRI_REST1_RL\brainmask_fs.2.nii.gz',
-                          r'rfMRI_REST1_LR\brainmask_fs.2.nii.gz']
+                          r'rfMRI_REST1_LR\brainmask_fs.2.nii.gz',
+                          r'rfMRI_REST1_LR\Movement_Regressors.txt']
         if slow_check:
             do = False
             for check in missing_checks:

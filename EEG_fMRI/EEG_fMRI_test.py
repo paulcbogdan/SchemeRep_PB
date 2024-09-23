@@ -39,7 +39,7 @@ def get_hrf(tr=2.1):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      get_max=False, get_max_avg_before=True,
-                     log_freqs=False, just_frontal=True, alt_v=0):
+                     log_freqs=False, just_frontal=True, alt_v=5):
 
     assert not (get_max and get_max_avg_before), 'Only have one true'
 
@@ -47,13 +47,15 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess, 'combine_regions': False,
                                    'clean': True, 'mask': True, 'nofilter': False,
                                    'n_compcor': 5, 'lateral': False},
-                            easy_override=True, verbose=-1, )
-    # r1, _ = stats.spearmanr(fMRI_fluc, alt1_signed)
-    # print(f'Sanity 1: {r1=:.3f}')
-    # r2, _ = stats.spearmanr(fMRI_fluc, alt2_abs_sum)
-    # print(f'Sanity 2: {r2=:.3f}')
-    # r3, _ = stats.spearmanr(fMRI_fluc, alt3_sum_abs)
-    # print(f'Sanity 3: {r3=:.3f}')
+                            easy_override=False, verbose=-1, )
+    r1, _ = stats.spearmanr(fMRI_fluc, alt1_signed)
+    print(f'Sanity 1: {r1=:.3f}')
+    r2, _ = stats.spearmanr(fMRI_fluc, alt2_abs_sum)
+    print(f'Sanity 2: {r2=:.3f}')
+    r3, _ = stats.spearmanr(fMRI_fluc, alt3_sum)
+    print(f'Sanity 3: {r3=:.3f}')
+    r4, _ = stats.spearmanr(fMRI_fluc, alt4_sum_abs)
+    print(f'Sanity 4: {r4=:.3f}')
     # return None, None
 
     if fMRI_fluc is None:
@@ -64,7 +66,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
     if just_frontal:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',]
-        picks = ['F1', 'Fz', 'F2']
+        # picks = ['F1', 'Fz', 'F2']
         # picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
         #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4',]
         # picks = ['Fz', 'F2', 'F3',]
@@ -177,6 +179,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                 df['ctrl'] = stats.zscore(alt3_sum)
             elif alt_v == 4:
                 df['ctrl'] = stats.zscore(alt4_sum_abs)
+            df['ctrl_one'] = stats.zscore(alt1_signed)
+            df['ctrl_two'] = stats.zscore(alt2_abs_sum)
+            df['ctrl_three'] = stats.zscore(alt3_sum)
+            df['ctrl_four'] = stats.zscore(alt4_sum_abs)
+
         df_ = df.dropna()
         if len(df_) < 1:
             name2r[name] = np.nan
@@ -184,6 +191,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
         if alt_v == 0:
             r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
+        if alt_v == 5:
+            res = smf.ols(f'focus ~ fMRI_fluc + ctrl_one + ctrl_two + '
+                          f'ctrl_three', data=df_).fit()
+            r = res.params['fMRI_fluc']
         else:
             res = smf.ols(f'focus ~ fMRI_fluc + ctrl', data=df_).fit()
             r = res.params['fMRI_fluc']
@@ -193,7 +204,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
         r = np.arctanh(r)
         if 'r' != name[0]:
-            print(f'{name}: {r=:.3f}, {p=:.3f}')
+            print(f'{name}: {r=:.3f}')
         name2r[name] = r
 
     return name2r, df

@@ -67,8 +67,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG',
                        'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
                        'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'PCC', 'ACC', 'EVC',
-                       'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
-                       'Tha']
+                       'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str', 'Tha']
 
     # tick_labels = tick_labels[::-1]
 
@@ -103,13 +102,13 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
 
         # test = cbar.ax.get_yticklabels()
         # print(f'{test=}')
-        cbar.ax.tick_params(labelsize=fontsize * 1.2)
+        cbar.ax.tick_params(labelsize=fontsize * 1.75)
 
         tick_tests = cbar.ax.get_yticklabels()[1:-1]  # ends aren't shown for some reason
         lowest_val = tick_tests[0]._y
         not_neg = lowest_val >= 0
-        cbar.set_label(cbar_label, rotation=-90, labelpad=15 + not_neg * 15,
-                       fontsize=fontsize * 1.5)
+        cbar.set_label(cbar_label, rotation=-90, labelpad=20 + not_neg * 15,
+                       fontsize=fontsize * 1.75)
 
     if tick_low is not None or tick_high is not None:
         ticks = list(cbar.get_ticks())[1:-1]

@@ -24,6 +24,7 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     df= pd.DataFrame({'high_PA': dd + vv, 'high_VD': dv_ant + dv_pos,
                        'high_dd': dd, 'high_vv': vv, 'high_dv_ant': dv_ant,
                        'high_dv_pos': dv_pos, })
+
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_lows, combine_regions=combine_regions,
                                                        combine_bilateral=bilateral)
     # df = df_high.copy()
@@ -41,11 +42,25 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
         N = np.sum(~np.isnan(df[f'high_{ef}']))
         print(f'{ef}: t[{N - 1}] = {t:.2f}')
 
-    df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['high_VD'].to_list() +
-                                  df['low_PA'].to_list() + df['low_VD'].to_list(),
+    # M_PA = (df['high_PA'] + df['low_PA']) / 2
+    # df['high_PA'] -= M_PA
+    # df['low_PA'] -= M_PA
+    # M_VD = (df['high_VD'] + df['low_VD']) / 2
+    # df['high_VD'] -= M_VD
+    # df['low_VD'] -= M_VD
+
+    # df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['high_VD'].to_list() +
+    #                          df['low_PA'].to_list() + df['low_VD'].to_list(),
+    #                    'PA_VD': ['PA'] * len(df) * 2 + ['VD'] * len(df) * 2,
+    #                    'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2})
+
+    df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['low_PA'].to_list() +
+                             df['high_VD'].to_list() + df['low_VD'].to_list(),
                        'PA_VD': ['PA'] * len(df) * 2 + ['VD'] * len(df) * 2,
                        'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2})
 
+    plt.rcParams.update({'font.size': 21,
+                         'font.sans-serif': 'Arial'})
     g = sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df,
                         kind='bar',
                         # errci=68,
@@ -54,17 +69,20 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
                         edgecolor='k',
                         # capsize=0.1, height=4,
                         alpha=0.5, linewidth=.7,#.7,
-                        # errwidth=1.2,
+                        errwidth=1.2,
                         capsize=0.05,
                         # palette=sns.color_palette()
                         palette=['dodgerblue', 'red'],
                         height=5, aspect=0.8
                         )
+    plt.ylabel('Mean connectivity')
+    g._legend.remove()
+    g.set_xticklabels(['High PE', 'Low PE'])
+    plt.tight_layout()
+    plt.xlabel('')
+    fp = fr'result_pics/other/Study_1B_vendor.png'
+    plt.savefig(fp, dpi=600)
     plt.show()
-
-
-    # df_high['PE'] = 'high'
-    # df_vert = pd.concat([df_high, df_low], axis=0).reset_index()
 
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
@@ -353,37 +371,37 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
 
-    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': None,
-          'num_sns': 500, 'cont_PE': 0.3, 'cont_PE_by_event': False,
-          'regr_M': True, 'lr_separate': False,
-          'reg_global': True, 'no_compcor': True,
-          'median_split': True, 'drop_first': True,
-          'both_bhv': True}
+    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': True, 'only': None,
+    #       'num_sns': 500, 'cont_PE': 0.3, 'cont_PE_by_event': False,
+    #       'regr_M': True, 'lr_separate': False,
+    #       'reg_global': True, 'no_compcor': True,
+    #       'median_split': True, 'drop_first': True,
+    #       'both_bhv': True}
+    #
+    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
+    #       'neut_as_PE': None, 'drop_neut': True, 'only': 'combo',
+    #       'num_sns': 1000, 'cont_PE': 0.3,
+    #       'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+    #       'reg_global': True, 'no_compcor': True, 'median_split': True,
+    #       'drop_first': True, 'both_bhv': True,
+    #       'reset_trial0': False}
+    #
+    #
+    # kw = {'combine_regions': False, 'bilateral': False,
+    #       'neut_as_PE': None, 'drop_neut': True,
+    #       'only': None, 'num_sns': 1000,
+    #       'cont_PE': 0.3, 'cont_PE_by_event': True,
+    #       'regr_M': True, 'lr_separate': False,
+    #       'reg_global': True, 'no_compcor': True,
+    #       'median_split': True, 'drop_first': True,
+    #       'both_bhv': True, 'reset_trial0': True}
 
-    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-          'neut_as_PE': None, 'drop_neut': True, 'only': 'combo',
-          'num_sns': 1000, 'cont_PE': 0.3,
-          'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
-          'reg_global': True, 'no_compcor': True, 'median_split': True,
-          'drop_first': True, 'both_bhv': True,
-          'reset_trial0': False}
-
-
-    kw = {'combine_regions': False, 'bilateral': False,
-          'neut_as_PE': None, 'drop_neut': True,
-          'only': None, 'num_sns': 1000,
-          'cont_PE': 0.3, 'cont_PE_by_event': True,
-          'regr_M': True, 'lr_separate': False,
-          'reg_global': True, 'no_compcor': True,
-          'median_split': True, 'drop_first': True,
-          'both_bhv': True, 'reset_trial0': True}
-
-    kw = {'combine_regions': False, 'bilateral': False, 'neut_as_PE': None,
-          'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3,
+    kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
+          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
           'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
           'reg_global': True, 'no_compcor': True, 'median_split': True,
           'drop_first': True, 'both_bhv': True, 'reset_trial0': True}
@@ -477,7 +495,7 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral, HCP=True,
-                          lifu_labels=False)
+                          lifu_labels=combine_regions)
 
 
         title = str(kw)
@@ -500,10 +518,23 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         # t[np.abs(t) < 3] = np.nan
         M_high = np.nanmean(conn_highs, axis=0)
         M_low = np.nanmean(conn_lows, axis=0)
+        # print(len(atlas['tick_labels']))
+        # print(len(atlas['ticks']))
+        # quit()
+        if combine_regions:
+            atlas['ticks'] = atlas['ticks'][:23]
+            atlas['tick_labels'] = atlas['tick_labels'][:23]
+            atlas['tick_lows'] = atlas['tick_lows'][:23]
+            t = t[:46, :46]
+            fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\other\Study_1B_PE_matrix.png'
+        else:
+            fp_out = None
+
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,
-                          no_avg=True, cbar_label='Correlation (r)',
-                          vmin=-4, vmax=4)
+                          no_avg=True, cbar_label='t-value',
+                          vmin=-6, vmax=6, fp=fp_out)
+
         # plot_connectivity(M_high, atlas['ticks'], atlas['tick_labels'],
         #                   atlas['tick_lows'], title=title, tile=.01,
         #                   no_avg=True, cbar_label='Correlation (r)',
@@ -518,14 +549,14 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         #                   )
         # quit()
 
-        z_threshed = z_both
-        z_threshed[np.abs(z_threshed) < 2] = np.nan
-
-        z_threshed[np.abs(t) < 3] = np.nan
-        plot_connectivity(z_threshed, atlas['ticks'], atlas['tick_labels'],
-                          atlas['tick_lows'], title=title, tile=.01,
-                          no_avg=True, cbar_label='Correlation (r)',
-                          vmin=-4, vmax=4)
+        # z_threshed = z_both
+        # z_threshed[np.abs(z_threshed) < 2] = np.nan
+        #
+        # z_threshed[np.abs(t) < 3] = np.nan
+        # plot_connectivity(z_threshed, atlas['ticks'], atlas['tick_labels'],
+        #                   atlas['tick_lows'], title=title, tile=.01,
+        #                   no_avg=True, cbar_label='Correlation (r)',
+        #                   vmin=-4, vmax=4)
         # conjunct = np.logical_and(np.abs(t) > 3, np.abs(z_both) > 2)
 
     quit()
@@ -559,7 +590,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
 
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False, HCP=True,
-                      lifu_labels=False)
+                      lifu_labels=True)
     if combine_regions:
         z_both = z_both[:54, :54]
     if plot:
