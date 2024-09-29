@@ -5,11 +5,10 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy import stats
-from tqdm.contrib.telegram import tqdm
 
 from atlas_utils import get_atlas
 from connRSA.conn_regress import do_regr_RSA_sn
-from connRSA.information_connectivity import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
+from connRSA.old_Sep29.information_connectivity import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
 from connRSA.old.conn_x_RSA_lmer import get_idxs
 from connRSA.single_trial_conn import prep_fps
 from old.network_funcs import load_FC_for_Lifu

@@ -1,30 +1,13 @@
 from time import time
 
-from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
-    jit_volume_searchlight
-from connRSA.conn_utils import mask_img
-
 t_st = time()
-from functools import cache
-from pathlib import Path
 
-from numba import jit, njit, prange, set_num_threads, config
-import numba as nb
-from scipy.interpolate import RegularGridInterpolator
-
-import utils
 from atlas_utils import get_atlas
-from connRSA.searchlight import do_downsample
-from connRSA.single_trial_conn import prep_vecs, prep_fps
-from fMRI_proc import within_run_to_nan
-from org_sns import get_sns
-from organize_bhv import get_trial_info, sort_df_sn
 import numpy as np
 import matplotlib.pyplot as plt
 
-from stim import get_stim_RDM
 from nilearn import plotting, image
-import scipy.stats as stats
+
 
 def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
            dic='searchlight'):

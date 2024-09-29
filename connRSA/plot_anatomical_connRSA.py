@@ -1,11 +1,8 @@
-from matplotlib.colors import ListedColormap
-
 from atlas_utils import get_atlas
-from vendor_partitioning import get_vendor_partitions
 import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
-from information_connectivity import get_idxs
+from connRSA.old_Sep29.information_connectivity import get_idxs
 
 
 def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=True): # 'turbo'

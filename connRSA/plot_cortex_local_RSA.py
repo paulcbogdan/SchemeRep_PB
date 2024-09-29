@@ -2,7 +2,6 @@ from atlas_utils import get_atlas
 from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.conn_regress import plot_stacked_bars, prep_ROI_avg, run_all_sn
 from connRSA.conn_utils import get_BNA_ROIs
-from old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from utils import pickle_wrap
 

@@ -7,13 +7,13 @@ from connRSA.conn_analyze_IRAFs import ROI2NETWORK
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
-from old.networks import prep_networks
+from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
 from utils import pickle_wrap, stdize
 import warnings
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 import numpy as np
 import scipy.stats as stats

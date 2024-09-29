@@ -6,7 +6,7 @@ from numpy import ma as ma
 from scipy import stats as stats
 from tqdm import tqdm
 
-from connRSA.conn_RSA import get_trial_x_trial_RSM
+from connRSA.old_Sep29.conn_RSA import get_trial_x_trial_RSM
 from connRSA.conn_utils import get_trial_x_trial
 
 

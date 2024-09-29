@@ -5,8 +5,8 @@ from tqdm import tqdm
 from pprint import pprint
 
 from atlas_utils import get_atlas
-from conn_RSA import RSA_sn
-from conn_ERS import ERS_sn
+from connRSA.old_Sep29.conn_RSA import RSA_sn
+from connRSA.old_Sep29.conn_ERS import ERS_sn
 from conn_report import report_results
 from connRSA.old.conn_old import visualize_region_matrix, visualize_ROIs, RSA_ROI, RSA_ROI_pairwise, RSA_edgewise
 from conn_utils import get_BNA_ROIs

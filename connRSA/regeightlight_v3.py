@@ -513,7 +513,7 @@ if __name__ == '__main__':
     STRICT27 = False
     for MULT27 in [True, ]:  # True, False,
         for SEMANTIC in [True, False]:  # False, True,
-            for NETWORK in ['OC_T', ]: # 'OC_T',
+            for NETWORK in ['cortex', ]: # 'OC_T',
                 # eightlight(semantic=SEMANTIC,
                 #            radius1=2, downsample1=6, resample1=1,
                 #            radius2=6, downsample2=1,
