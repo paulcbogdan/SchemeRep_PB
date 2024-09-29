@@ -188,7 +188,7 @@ def norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type, objs):
 def get_semantic_vectors(normalize=True):
     # fit using python 3.11
     norm_string = '_norm' if normalize else ''
-    fp_vecs = rf'H:\PycharmProjects_H\SchemeRep\cache/schemerep_sem_vecs{norm_string}.pkl'
+    fp_vecs = rf'C:\PycharmProjects\SchemeRep\cache\schemerep_sem_vecs{norm_string}.pkl'
     d_vecs = pickle_wrap(lambda: get_semantic_vectors_(normalize), fp_vecs,
                          easy_override=False, verbose=-1)
     return d_vecs

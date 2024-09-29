@@ -40,7 +40,7 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
         df[f'{ef}_diff'] = df[f'high_{ef}'] - df[f'low_{ef}']
         t, p = stats.ttest_rel(df[f'high_{ef}'], df[f'low_{ef}'])
         N = np.sum(~np.isnan(df[f'high_{ef}']))
-        print(f'{ef}: t[{N - 1}] = {t:.2f}')
+        print(f'{ef}: t[{N - 1}] = {t:.2f}, {p=:.4f}')
 
     # M_PA = (df['high_PA'] + df['low_PA']) / 2
     # df['high_PA'] -= M_PA
@@ -68,7 +68,7 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
                         # errwidth=1.5,
                         edgecolor='k',
                         # capsize=0.1, height=4,
-                        alpha=0.5, linewidth=.7,#.7,
+                        alpha=0.7, linewidth=.7,#.7,
                         errwidth=1.2,
                         capsize=0.05,
                         # palette=sns.color_palette()
@@ -80,6 +80,8 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     g.set_xticklabels(['High PE', 'Low PE'])
     plt.tight_layout()
     plt.xlabel('')
+    plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
+    plt.xlim(-.5, 1.5)
     fp = fr'result_pics/other/Study_1B_vendor.png'
     plt.savefig(fp, dpi=600)
     plt.show()
@@ -95,6 +97,9 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     cc_str = '_nocc' if no_compcor else ''
     if rs:
         fp_lsa_lr = fr'E:\HCP_RS_clean\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
+        if not os.path.exists(fp_lsa_lr):
+            fp_lsa_lr = fr'C:\HCP_RS_clean\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
+            assert os.path.exists(fp_lsa_lr)
     else:
         fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
     try:
@@ -371,7 +376,7 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
 
     # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
@@ -487,7 +492,8 @@ def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
     # quit()
     N = itr.shape[0]
     nans = np.sum(np.isnan(itr))
-    print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.3f}')
+    F = t_final ** 2
+    print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.4f}, F = {F:.2f}')
     print(kw)
 
 

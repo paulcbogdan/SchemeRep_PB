@@ -4,7 +4,7 @@ from datetime import datetime
 from connRSA.old.conn_plot import pie_charts
 from connRSA.conn_report import lmer_stats
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from collections import defaultdict
 
@@ -12,7 +12,7 @@ from conn_utils import get_BNA_ROIs
 from organize_bhv import get_trial_info
 from single_trial_conn import run_settings
 from conn_report import report_results
-from old.networks import prep_networks
+# from old.networks import prep_networks
 from utils import pickle_wrap
 import pandas as pd
 import numpy as np

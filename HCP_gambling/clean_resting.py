@@ -29,12 +29,25 @@ from numba import jit, prange, njit
 import seaborn as sns
 from pathlib import Path
 
-def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
+def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False,
+                out_drive='C'):
     df_motion = load_motion(sn, lr, drive=drive, rs=True)
-    dir_out = r'E:\HCP_RS_clean'
+    dir_out = fr'{out_drive}:\HCP_RS_clean'
+
+    dir_out_C = fr'C:\HCP_RS_clean'
+    dir_out_E = fr'E:\HCP_RS_clean'
 
     glob_str = '_global' if reg_global else ''
     cc_str = '_nocc' if no_compcor else ''
+
+    fp_out_C = fr'{dir_out_C}\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
+    if os.path.exists(fp_out_C) and os.path.getsize(fp_out_C) > 10_000_000:
+        print(f'Exists (C): {fp_out_C=}')
+        return
+    fp_out_E = fr'{dir_out_E}\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
+    if os.path.exists(fp_out_E) and os.path.getsize(fp_out_E) > 10_000_000:
+        print(f'Exists (E): {fp_out_E=}')
+        return
 
     fp_out = fr'{dir_out}\{sn}_REST1_{lr}_clean{glob_str}{cc_str}.nii.gz'
     Path(fp_out).parent.mkdir(parents=True, exist_ok=True)
@@ -44,7 +57,7 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
 
     fp_rs = fr'{drive}:\HCP_RS_unzipped\{sn}\MNINonLinear\Results\rfMRI_REST1_{lr}\rfMRI_REST1_{lr}.nii.gz'
     fp_mask = fr'{drive}:\HCP_RS_unzipped\{sn}\MNINonLinear\Results\rfMRI_REST1_{lr}\brainmask_fs.2.nii.gz'
-    print(f'Doing: {sn}, {lr}')
+    print(f'Doing: {sn}, {lr}, {fp_out=}')
     t_st = time.time()
     img = image.load_img(fp_rs)
     print(f'\tLoaded rs: {time.time() - t_st:.2f} s')
@@ -74,10 +87,10 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False):
 
 
 def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
-                    drive='G'):
+                    drive='G', out_drive='C'):
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
     sns = list(sns)
-    print(f'{len(sns)=}')
+    # print(f'{len(sns)=}')
     sns = sorted(sns)
     # sns = {'203418'}
 
@@ -89,9 +102,10 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
 
     bad_sns = []
     for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
+
         try:
             clean_sn_rs(sn, 'LR', drive=drive, reg_global=reg_global,
-                        no_compcor=no_compcor)
+                        no_compcor=no_compcor, out_drive=out_drive)
         except Exception as e:
             print(f'Error: {sn=}, {e=}')
             bad_sns.append(sn)
@@ -99,7 +113,7 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
     # for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
         try:
             clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
-                        no_compcor=no_compcor)
+                        no_compcor=no_compcor, out_drive=out_drive)
         except Exception as e:
             print(f'Error: {sn=}, {e=}')
             bad_sns.append(sn)

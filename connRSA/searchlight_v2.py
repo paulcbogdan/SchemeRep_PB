@@ -9,7 +9,9 @@ from connRSA.conn_utils import mask_img
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
     jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img, prep_data_Ms
 from connRSA.searchlight_plot import plot_t
-from old.networks import prep_networks
+from networks.old.networks import prep_networks
+
+# from old.networks import prep_networks
 
 t_st = time()
 from functools import cache

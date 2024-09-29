@@ -3,6 +3,7 @@ from collections import defaultdict
 from time import time
 import numpy as np
 from matplotlib import pyplot as plt
+from nilearn import image
 
 import utils
 
@@ -488,6 +489,11 @@ def get_t(searched_all):
 
 
 if __name__ == '__main__':
+    # fp_test = r'C:\PycharmProjects\SchemeRep\fMRI_in\127\BL_rerun7\BL/BL_sub127_run1_trial27_subset1_pairID9.nii'
+    # img = image.load_img(fp_test)
+    # print(img)
+    # quit()
+
     # TODO: calculate number of voxels contributing to each searchlight
     #   percentage filled by location...
 

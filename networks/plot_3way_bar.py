@@ -228,7 +228,7 @@ def plot_con_vs_inc(df_agg, skip_plot=False, mean_norm=True):
                         # errwidth=1.5,
                         edgecolor='k',
                         # capsize=0.1, height=4,
-                        alpha=0.5, linewidth=.7,#.7,
+                        alpha=0.7, linewidth=.7,#.7,
                         errwidth=1.2,
                         capsize=0.05,
                         # palette=sns.color_palette()
