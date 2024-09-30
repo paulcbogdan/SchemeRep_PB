@@ -353,7 +353,7 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     return sns_overlap
 
 def do_analysis(num_test=1_000, ctrl_group=False,
-                skip_other=False, all_roi=False, ix=True, anat_ver=3,
+                skip_other=True, all_roi=False, ix=True, anat_ver=3,
                 combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
@@ -366,6 +366,7 @@ def do_analysis(num_test=1_000, ctrl_group=False,
 
     sns = sorted(sns)[:1000]
     print(f'{len(sns)=}')
+    print(f'{skip_other=}')
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
                                                          all_roi=all_roi,
