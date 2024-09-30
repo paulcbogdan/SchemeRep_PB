@@ -227,7 +227,8 @@ def get_HCP_task_conn(sns, combine_regions, bilateral,
           'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.3,
           'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
           'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
-          'drop_first': True, 'both_bhv': True, 'reset_trial0': True}
+          'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
+    print(f'{kw=}')
 
     kw['sns_set'] = list(sns)
 
@@ -241,7 +242,7 @@ def get_HCP_task_conn(sns, combine_regions, bilateral,
         conn_highs, conn_lows, sns = get_combo(kw)
     else:
         conn_highs, conn_lows, sns = (
-            pickle_wrap(make_conn, kwargs=kw, easy_override=True))
+            pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     sn2conns = {}
     for sn, conn_high, conn_low in zip(sns, conn_highs, conn_lows):
         sn2conns[sn] = conn_high, conn_low
@@ -352,7 +353,7 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     return sns_overlap
 
 def do_analysis(num_test=1_000, ctrl_group=False,
-                skip_other=True, all_roi=False, ix=True, anat_ver=3,
+                skip_other=False, all_roi=False, ix=True, anat_ver=3,
                 combine_regions=False, n='7', std_d=True,
                 shuffle_seed=None):
 
