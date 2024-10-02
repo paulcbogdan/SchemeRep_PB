@@ -1,15 +1,11 @@
-import pickle
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs, get_ROI_vecs_
-from organize_bhv import get_trial_info
-from old.plot_gen import plot_connectivity
-from stim import get_stim_RDM, get_DNN_vecs, scipy_dist, prune_RSM_outliers
-from utils import get_RSA_fn, tril_flat, stdize, pb_outer_euc, pb_outer, pickle_wrap
+from fMRI_proc import get_ROI_vecs
+from stim import scipy_dist
+from utils import tril_flat, stdize, pb_outer_euc, pb_outer, pickle_wrap
 import scipy.stats as stats
 
 import warnings
@@ -18,21 +14,6 @@ from time import time
 warnings.filterwarnings('ignore', message='Mean of empty slice')
 warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
 
-
-def roimap2np(ROI2ar, only_some=None):
-    l = []
-    for ROI, ar in ROI2ar.items():
-        if only_some:
-            for ROI_ in only_some:
-                if ROI_ in ROI:
-                    break
-            else:
-                continue
-        l.append(ar)
-    # print(np.array(l).shape)
-    l = np.array(l)
-    print(f'Data shape: {l.shape}')
-    return l
 
 def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False,
                              stdize=True):

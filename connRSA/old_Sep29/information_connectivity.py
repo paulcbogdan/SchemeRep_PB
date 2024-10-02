@@ -11,13 +11,13 @@ from scipy import stats
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import get_ERS_scores
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
-from old.network_funcs import load_FC_for_Lifu
-from old.networks import prep_networks
+from networks.old.networks import prep_networks
+
 from old.plot_gen import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info, sort_df_sn
@@ -36,7 +36,7 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 def rearrange_RSM():
     pass

@@ -10,8 +10,12 @@ from nilearn import plotting, image
 
 
 def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
-           dic='searchlight'):
+           dic='searchlight', thresh=2.40):
+    # t[59] = 2.65, p = .0052
+    # t[59] = 2.40, p = .0098
+
     t_M = np.nanmean(t)
+
 
     print(f'{t_M=:.3f}')
     t_min = np.nanmin(t)
@@ -33,6 +37,7 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
         t = np.maximum(t, 0)
     t_img = image.new_img_like(atlas['maps'], t)
 
+    t_img = image.threshold_img(t_img, thresh)
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
@@ -52,34 +57,20 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
     print(f'{vabs=}')
     # quit()
 
-    fp_out = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{dic}\{fn}.png'
     cmap = 'inferno' if only_positive else 'turbo'
     if flip_color:
         title = title.replace('Blue', 'XXX')
         title = title.replace('Red', 'Blue')
         title = title.replace('XXX', 'Red')
         cmap += '_r'
-    # plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
-    #                           vmax=vabs, output_file=fp_out, plot_abs=False,
-    #                           threshold=.01, title=title,
-    #                           colorbar=True, cmap=cmap)
 
-    # plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
-    #                           vmax=vabs, plot_abs=False,
-    #                           threshold=2.85, title=title,
-    #                           colorbar=True, cmap=cmap,
-    #                           )
-    # plt.savefig(fp_out, dpi=300)
-    # plt.show()
-    # plt.rcParams.update({#'font.size': 40,
-    #                      'font.sans-serif': 'Arial'})
 
     d_clean = 'cleanlight'
-    fp_clean = fr'H:\PycharmProjects_H\SchemeRep\result_pics\{d_clean}\{fn}.png'
+    fp_clean = fr'C:\PycharmProjects\SchemeRep\result_pics\{d_clean}\{fn}.png'
     fig = plt.figure(figsize=(8, 4.5))
     full_sns = '60,' in fn
 
-    plotting.plot_glass_brain(t_img, vmin=0 if only_positive else -vabs,
+    plotting.plot_glass_brain(t_img, vmin=thresh if only_positive else -vabs,
                               display_mode='xz', vmax=vabs, plot_abs=False,
                               threshold=.001, cmap=cmap, annotate=False,
                               resampling_interpolation='nearest',
@@ -87,22 +78,3 @@ def plot_t(t, title, vabs=None, fn='', only_positive=True, flip_color=False,
                               figure=fig)
     plt.savefig(fp_clean, dpi=300)
     plt.show()
-
-    # plotting.plot_stat_map(t_img, display_mode='y',
-    #                        cut_coords=tuple(range(-70, 20, 6)),
-    #                        vmin=0 if only_positive else -vabs,
-    #                        vmax=vabs,
-    #                        threshold=2, title=title,
-    #                        colorbar=True, cmap=cmap,
-    #                        )
-    #
-    # plt.show()
-    #
-    # plotting.plot_stat_map(t_img, display_mode='mosaic',
-    #                        vmin=0 if only_positive else -vabs,
-    #                        vmax=vabs,
-    #                        threshold=2, title=title,
-    #                        colorbar=True, cmap=cmap,
-    #                        )
-    #
-    # plt.show()

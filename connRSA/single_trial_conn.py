@@ -1,4 +1,7 @@
 import os
+
+from networks.old.networks import prep_networks
+
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from tqdm import tqdm

@@ -4,7 +4,7 @@ from time import time
 from matplotlib import pyplot as plt, image as mpimg
 
 from atlas_utils import get_atlas
-from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_utils import mask_img
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
     jit_volume_searchlight, do_int_downsample, do_int_upsample, convert_back_to_img, prep_data_Ms
@@ -30,7 +30,7 @@ from stim import get_stim_RDM
 t_end = time()
 print(f'Import time: {t_end - t_st:.2f}')
 
-config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba'
+config.CACHE_DIR = r'C:\PycharmProjects\SchemeRep\cache\numba'
 
 NAN_VAL = 10000001
 
@@ -383,35 +383,12 @@ print(f'Startup time: {t_end - t_st:.2f}')
 if __name__ == '__main__':
     set_num_threads(1)
     t_end = time()
-    # test_searchlight(downsample=6, radius=2, flip=False,
-    #                  semantic=True, resample=1,
-    #                  network='OC_IT')
-    #
-    # test_searchlight(downsample=1, radius=12, flip=False,
-    #                  semantic=True, resample=1,
-    #                  network='OC_IT')
 
-    SEMANTIC = False
-
-    # test_searchlight(radius=3, downsample=4, flip=False,
-    #                  semantic=SEMANTIC, resample=1,
-    #                  network='OC_T')
     THRESHOLD = 0.25
-    for NETWORK in ['cortex',  ]: # 'OC_IT',  'cortex', 'IT', 'IT', 'Occipital', 'OC_T',
+    for NETWORK in ['cortex',  ]:
         for SEMANTIC in [True, False]:
-            # test_searchlight(radius=14, downsample=1, flip=False,
-            #                  semantic=SEMANTIC, resample=40,
-            #                  network=NETWORK)
-            #
-            # test_searchlight(radius=12, downsample=1, flip=False,
-            #                  semantic=SEMANTIC, resample=40,
-            #                  network=NETWORK)
 
             test_searchlight(radius=6, downsample=1, flip=False,
                              semantic=SEMANTIC, resample=10,
                              network=NETWORK, threshold=THRESHOLD)
-            # test_searchlight(radius=1, downsample=12, flip=False,
-            #                  semantic=SEMANTIC, resample=1,
-            #                  network=NETWORK)
-
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import prep_ROI_avg, do_regr_RSA_sn
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps

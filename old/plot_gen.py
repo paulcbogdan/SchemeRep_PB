@@ -8,7 +8,7 @@ from nilearn import image
 from nilearn import plotting
 
 from atlas_utils import get_combined_BNA, get_atlas
-
+from scipy import signal
 
 def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                       atlas=None, title='', fp=None, ax=None,
@@ -137,7 +137,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
 def get_split_cmap(vabs, thresh, cmap, blue_half=False,
-                   black_line=0, full_range=False):
+                   black_line=0, full_range=False, inferno_half=False):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
@@ -169,21 +169,34 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False,
         else:
             vals_colored = cmap(np.linspace(0.05, .9, n))
     #I don't like the purple...
-    vals_low = vals_colored[:int(n_colored/2)]
-    # print(len(vals_low))
-    # quit()
-    vals_high = vals_colored[-int(n_colored/2):]
+    if inferno_half:
+        vals_high = vals_colored
+    else:
+        vals_low = vals_colored[:int(n_colored/2)]
+        vals_high = vals_colored[-int(n_colored/2):]
 
+    if inferno_half:
+        cutoff = int(thresh / vabs * len(vals_gray))
+        cutoff_flip = len(vals_gray) - cutoff
+        vals_gray = vals_gray[:cutoff]
+        # print(vals_high.shape)
+        # quit()
 
-
-    # vals_low = vals_colored[:500]
-    # vals_high = vals_colored[500:]
-
-
-    # vals_low = vals_colored[int(n/10):int(n/2)]
-    # vals_high = vals_colored[int(n/2):n-int(n/10)]
-
-    if blue_half:
+        x = np.linspace(0, 1, cutoff_flip)
+        xp = np.linspace(0, 1, len(vals_high))
+        vals_high = [np.interp(x, xp, vals_high[:, i]) for i in range(4)]
+        vals_high = np.array(vals_high).T
+        # print(vals_high)
+        # quit()
+        # print(vals_high.shape)
+        # quit()
+        # vals_high = vals_high[cutoff:]
+        # vals_high = vals_high[vals_high.shape[0] // 2:]
+        if black_line > 0:
+            vals_gray[-1:] = [0, 0, 0, 1]
+            vals_high[:1] = [0, 0, 0, 1]
+        vals = np.concatenate([vals_gray, vals_high])
+    elif blue_half:
         vals_gray = vals_gray[:vals_gray.shape[0] // 4]
         vals_high = vals_high[vals_high.shape[0] // 2:]
         if black_line > 0:

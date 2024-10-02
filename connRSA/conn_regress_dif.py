@@ -1,16 +1,21 @@
+import os
 from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import stats
 
-from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import send_to_specific, do_regr_RSA_sn, prep_ROI_avg, get_title
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
-from old.networks import prep_networks
+from networks.old.networks import prep_networks
+# from old.networks import prep_networks
 from org_sns import get_sns
 from utils import pickle_wrap
+
+os.chdir(r'C:\PycharmProjects\SchemeRep')
+
 
 def get_stars(p, no_cross=True):
     if p < .001:
@@ -53,6 +58,7 @@ def interaction_bars(kwargs):
                 else:
                     kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
                 kwargs['ROIs_ctrl'] = []
+                print(f'{kwargs=}')
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1, easy_override=False)
 
@@ -184,12 +190,13 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
             #     beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
             #                                     verbose=-1)
             # else:
+            # print(kwargs)
+            # quit()
             beta1, beta2, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                            verbose=-1, easy_override=False)
+                                            verbose=-1, easy_override=True)
             if np.isnan(beta1):
                 continue
-            # print(f'{beta1=:.3f}, {beta2=:.3f}')
-
+            # print(f'{beta1=:}, {beta2=:}')
 
             if beta2 is None:
                 if '_M' in kwargs['ROI_focus']:
@@ -197,11 +204,11 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
                     beta1 = 0
                 else:
                     beta2 = 0
-            # quit()
 
             betas1_all[i, j] = beta1
             betas2_all[i, j] = beta2
             betas_dif_all[i, j] = dif
+    # quit()
 
     betas1_all *= 1000
     betas2_all *= 1000
@@ -303,13 +310,15 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     regress_row = False
 
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
-    # target_ROIs = ['OC_IT']
+    # target_ROIs = ['IT']
+    # target_ROIs = ['Occipital']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
 
         regions = set(prep_networks(
             network_setting=ROI2NETWORK[target_ROI])[target_ROI])
+
         ROIs_match = [ROI for region in regions
                           for ROI in get_BNA_ROIs() if region in ROI]
         ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
@@ -327,18 +336,20 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
                      ERS_alt=False, **kwargs)
 
         kwargs['ROI_focus'] = f'{target_ROI}_BOLD'
+
         if big_voxel:
             kwargs['ROI_focus'] += '_cmb'
         # kwargs['ROI_focus'] = f'{target_ROI}_M'
 
-        kwargs['ROIs_ctrl'] = []#f'{target_ROI}_M'] # + ROI_lvl_control[1:]
         if inter:
+            kwargs['ROIs_ctrl'] = []
             interaction_bars(kwargs)
             return
         elif strict_corr:
             kwargs['ROIs_ctrl'] = ROI_lvl_control
             strict_correlations(kwargs)
             return
+        kwargs['ROIs_ctrl'] = [f'{target_ROI}_M'] # + ROI_lvl_control[1:]
         plot_beta_dif_bars(kwargs)
 
 def strict_correlations(kwargs):
@@ -552,17 +563,26 @@ def interaction_within_region(region='Occipital'):
     #         capsize=5, linewidth=1., edgecolor='k')
     plt.show()
 
+def plot_Figure5_bars():
+    do_regr_dif(semantic=False, inter=False, strict_corr=False,
+                big_voxel=False)
+    do_regr_dif(semantic=True, inter=False, strict_corr=False,
+                big_voxel=False)
+    # do_regr_dif(semantic=True, inter=False, strict_corr=False)
+    quit()
+
+
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    interaction_within_region()
-    interaction_within_region('IT')
-    #
-    quit()
+    plot_Figure5_bars()
+    # interaction_within_region()
+    # interaction_within_region('IT')
+    # quit()
     # do_regr_dif()
-    do_regr_dif(semantic=True)
-    do_regr_dif(semantic=False)
+    # do_regr_dif(semantic=True)
+    # do_regr_dif(semantic=False, inter=False)
 
     # do_regr_dif(semantic=False)
 

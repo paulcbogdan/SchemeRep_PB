@@ -159,6 +159,10 @@ def prep_networks(network_setting=1):
                                'CG',
                                'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
                                'EVC', 'LOC', 'sOcG']}
+    elif network_setting == 29:
+        networks = {'FP': ['IFG', 'MFG', 'IPL', 'SPL'],
+                    'FPT': ['IFG', 'MFG', 'IPL', 'SPL', 'STG'],
+                    'DMN': ['ACC', 'PCC', 'STS', 'OrG', 'SFG']}
     elif network_setting == -1:
         networks = {}
 

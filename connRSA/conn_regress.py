@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 from atlas_utils import get_atlas
-from connRSA.conn_analyze_IRAFs import ROI2NETWORK
+from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
@@ -232,7 +232,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    fp0, fp1, four_tasks, cv=False,
                    regress_row=True, return_dif=False):
 
-    dir_in = fr'H:/PycharmProjects_H/SchemeRep/cache/conn_RSA/ars/RSA'
+    dir_in = fr'C:/PycharmProjects/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
@@ -332,13 +332,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
 
-    # if np.sum(np.isnan(X)) > 0:
-    #     plt.title(f'X, {sn}')
-    #     plt.imshow(X, aspect='auto', interpolation='none')
-    #     plt.show()
-    #
-    #     plt.plot(flat_stim)
-    #     plt.show()
 
     assert np.sum(np.isnan(X)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
 
@@ -491,7 +484,7 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
 
     return np.nanmean(scores), np.nanmean(r_sqs)
 
-def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
+def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=True,
                skip_sns_bonus=None):
     z_l = []
     r_sqs = []
@@ -916,7 +909,8 @@ def do_regr():
 
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
-    target_ROIs = ['OC_IT']
+    # target_ROIs = ['FPT', 'DMN', 'FP']
+    # target_ROIs = ['Parietal']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:

@@ -401,10 +401,10 @@ def eightlight(semantic=True, second_level='corr', flip=False,
         threshold, small_Ms, super64, mini8, superdensity,
         no_y_dim, strict27, first_level)
 
-    tile_max = 8
-    plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
-    plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
-    tile_dif = 4
+    # tile_max = 8
+    # plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
+    # plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
+    tile_dif = 5
     plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False,
            flip_color=True, dic=dic)
 
