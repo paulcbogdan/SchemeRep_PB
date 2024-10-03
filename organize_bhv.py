@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import os
 from pathlib import Path
+from functools import cache
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # TODO: measure where congruent is more correlated object x scene
@@ -275,6 +276,7 @@ def sort_df_sn(df_sn, fp):
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
     return df_sn, sess
 
+@cache
 def get_trial_info(sn, easy_override=False, ret=True, incl_lures=False,
                    verbose=-1, only_one=False):
     # ret may not be needed. added in 11/25/2025 but it wasnt needed

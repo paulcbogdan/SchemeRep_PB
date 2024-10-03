@@ -59,10 +59,10 @@ def get_Schaefer_atlas():
     regions.sort()
     for region in regions:
         l = region_nums[region]
-    # for region, l in region_nums.items():
         ticks.append(np.mean(l))
         tick_labels.append(region)
         tick_lows.append(l[0])
+
 
     # print(tick_labels)
     # quit()
@@ -109,6 +109,7 @@ def add_ROI_info(atlas):
         ROI_regions.append(region)
         ROI_regions_laterality.append(region_LR)
         region_nums[region].append(i)#int(ROI_num)-1)
+
     ticks = []
     tick_labels = []
     tick_lows = []

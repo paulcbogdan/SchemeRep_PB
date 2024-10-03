@@ -168,6 +168,8 @@ def interaction_bars(kwargs):
 
 def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
     fps = prep_fps(kwargs['four_tasks'])
+
+    # fps = ['con7_fMRI']
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
@@ -196,7 +198,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
                                             verbose=-1, easy_override=True)
             if np.isnan(beta1):
                 continue
-            # print(f'{beta1=:}, {beta2=:}')
+            print(f'{beta1=:}, {beta2=:}')
 
             if beta2 is None:
                 if '_M' in kwargs['ROI_focus']:
@@ -208,7 +210,6 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
             betas1_all[i, j] = beta1
             betas2_all[i, j] = beta2
             betas_dif_all[i, j] = dif
-    # quit()
 
     betas1_all *= 1000
     betas2_all *= 1000
@@ -231,7 +232,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
     bar_names = ['Local', 'Distributed', ]
     colors = ['dodgerblue', 'crimson', ]
 
-    t_dif, p_dif = stats.ttest_rel(M_sns1, M_sns2)
+    t_dif, p_dif = stats.ttest_rel(M_sns1, M_sns2, nan_policy='omit')
     # t_dif, p_dif = stats.wilcoxon(M_sns1, M_sns2)
 
     M1_pos_p = np.nanmean(M_sns1 > 0)
@@ -240,13 +241,11 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
 
 
 
-    # print(M)
-
     print(f'{t_dif=:.3f} (N = {len(M_sns1)}) {p_dif=:.3f} | '
           f'{M1_pos_p=:.1%} - {M2_pos_p=:.1%}: {dif_p:.1%} | '
           f'') # {r=:.3f}
-    r, p = stats.pearsonr(M_sns1, M_sns2)
-    print(f'{r=:.3f}')
+    # r, p = stats.pearsonr(M_sns1, M_sns2)
+    # print(f'{r=:.3f}')
     # return
     plt.bar(bar_names, [M2, M1], yerr=[SE2, SE1],
             label='2', color=colors, capsize=5,
@@ -310,6 +309,7 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     regress_row = False
 
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
+    target_ROIs = ['FP', 'DMN', 'FPT']
     # target_ROIs = ['IT']
     # target_ROIs = ['Occipital']
 

@@ -24,8 +24,7 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                      do_sort=False, fp_all=False, voxelwise=False,
                      regionwise=False, combine_regions=False, get_df_sn=False,
                      loose_sns=False, combine_bilateral=False,
-                     strict_sns=False,
-                     ):
+                     strict_sns=False,):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
