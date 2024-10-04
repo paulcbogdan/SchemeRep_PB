@@ -15,7 +15,8 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
                       t=False, no_avg=True, cbar_label='', vmin=None, vmax=None,
                       xlabel=None, ylabel=None, tile=.001,
                       tick_low=None, tick_high=None, minimal=False,
-                      colorbar=True, cmap='turbo', adjust_HC_AMY=True):
+                      colorbar=True, cmap='turbo', adjust_HC_AMY=True,
+                      dontoverride=False):
 
     if atlas is not None:
         ticks = atlas['ticks']
@@ -57,7 +58,9 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         plt.ylabel('Encoding object presentation (abs-dif IRAF)')
         plt.ylabel(ylabel)
 
-    if M_connect.shape[0] == 52:
+    if dontoverride:
+        pass
+    elif M_connect.shape[0] == 52:
         ticks = 0.5 + np.arange(26) * 2
         tick_labels = ['SFG', 'MFG', 'IFG', 'OrG', 'PrG', 'PCL', 'ATL', 'STG', 'MTG', 'ITG', 'FuG', 'PhG', 'pSTS',
                        'SPL', 'IPL', 'Pcun', 'PoG', 'INS', 'CG', 'EVC', 'LOC', 'sOcG', 'Amyg', 'Hipp', 'Str',
