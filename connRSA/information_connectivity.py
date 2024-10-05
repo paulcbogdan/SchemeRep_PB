@@ -276,6 +276,8 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                 dir_focus = (fr'{dir_root}/{fp0}_{fp1}_{trial_similarity}_'
                              fr'{stdize_by_run}')
                 fp = f'{dir_focus}/{sn}_{ROI}_BOLD.npy'
+                # print(fp)
+                # quit()
 
                 if nan_block:
                     if fp1 not in fp12block2objs:

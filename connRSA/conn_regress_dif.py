@@ -397,7 +397,7 @@ def strict_correlations(kwargs):
         print(f'{cond=}, {t=:.3f}, {p=:.3f}')
     return
 
-def interaction_within_region(region='Occipital'):
+def plot_Figure6_bars(region='Occipital'):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -447,13 +447,16 @@ def interaction_within_region(region='Occipital'):
                 if cond[0] in ['Occipital', 'IT']:
                     kwargs['semantic'] = cond[1]
                     kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
+                    # kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
+                    # print(kwargs['ROI_focus'])
+
                     kwargs['ROIs_ctrl'] = []
                 else:
                     kwargs['semantic'] = cond[0]
                     if cond[1] == 'Local':
                         kwargs['ROI_focus'] = f'{region}_M'
                     else:
-                        kwargs['ROI_focus'] = f'{region}_BOLD'
+                        kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
                     kwargs['ROIs_ctrl'] = []
 
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
@@ -576,9 +579,9 @@ import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    plot_Figure5_bars()
+    # plot_Figure5_bars()
     # interaction_within_region()
-    # interaction_within_region('IT')
+    plot_Figure6_bars('IT')
     # quit()
     # do_regr_dif()
     # do_regr_dif(semantic=True)

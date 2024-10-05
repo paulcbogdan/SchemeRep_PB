@@ -241,10 +241,12 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
     for i in range(corrs_all.shape[1]):
         corrs = corrs_all[:, i]
 
-        networks = ['Occipital', 'ITL', 'Parietal', 'PFC']
+        networks = ['Occipital', 'ITL', 'Parietal', 'PFC',
+                    'OC_T']
         network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
                         'Parietal': 'Parietal', 'PFC': 'PFC',
-                        'IT': 'Temporal'}
+                        'IT': 'Temporal', 'OC': 'Occipital',
+                        'OC_T': 'OC_T'}
 
         # networks = [key]
         # network2name = {key: key}
@@ -260,6 +262,7 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
             net2idxs[net] = idxs
             net_corr = corrs[:, idxs][:, :, idxs]
             net_sn_vals = np.nanmean(net_corr, axis=(1, 2))
+
             # net_M = np.nanmean(net_sn_vals)
             # net_SD = np.nanstd(net_sn_vals, ddof=1)
             # net_SE = net_SD / np.sqrt(np.sum(~np.isnan(net_sn_vals)))
@@ -277,6 +280,7 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
             # df_it = df[df['net'] == 'Temporal']
             # df_dif = df_oc['conn'].values - df_it['conn'].values
             # df = pd.DataFrame({'sn': df_it['sn'].values, 'conn': df_dif})
+
             df = df[df['net'].isin([[key], network2name[key]])]
 
         df['fp'] = fps[i]
@@ -287,7 +291,7 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
     return df
 
 def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
-                  ERS=False):
+                  ERS=False, big_voxelwise=False):
     if key == 'OC_IT' and False:
         df_OC = get_RSA_betas('Occipital', ctrl_within=ctrl_within)
         df_ITL = get_RSA_betas('ITL', ctrl_within=ctrl_within)
@@ -302,7 +306,8 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
               'RDM_method': 'within_nan',
               'stdize_by_run': False,
               'regress_row': False, 'four_tasks': '7',
-              'ROI_focus': f'{key}_M' if get_local else f'{key}_BOLD',
+              'ROI_focus': f'{key}_M' if get_local else
+              (f'{key}_BOLD_cmb' if big_voxelwise else f'{key}_BOLD'),
               'ROIs_ctrl': [f'{key}_M'] if ctrl_within else [],
               }
 
@@ -451,34 +456,29 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='OC_IT', semantic=True):
+def corr_RSA_conn(main_key='IT', semantic=False):
     df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
-                           semantic=semantic)
+                           semantic=semantic, big_voxelwise=True)
     df_rsa_local = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
                                  semantic=semantic)
 
     df_rsa['local'] = df_rsa_local['beta1']
-    # print(len(df_rsa))
-    # quit()
     df = pd.merge(df_conn, df_rsa, on=['sn', 'fp'])
-    # print(df)
 
     df = df.dropna()
-    print(df)
-    # df = df.sort_values('conn')
-    # print(df)
-    # quit()
 
-    # plt.hist(df['conn'], bins=20)
-    # plt.show()
-    # quit()
-
-    # df[['beta1', 'conn']] = stats.zscore(df[['beta1', 'conn']])
-
-    # quit()
     df.sort_values('conn', inplace=True)
+
+    df = df[df['conn'] < .65] # one outlier
+
+    import statsmodels.formula.api as smf
+
+    formula = 'conn ~ beta1 + local'
+    model = smf.ols(formula, data=df)
+    results = model.fit()
+    print(results.summary())
 
     # df = df[df['conn'].abs() < 3]
     # df = df[df['beta1'].abs() < 3]

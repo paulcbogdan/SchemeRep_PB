@@ -101,7 +101,7 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
     #         results_bold_sep)
 
 
-def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
+def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=True):
     # 'SFG' and most single regions represent all combined_regions
     # Don't modify the below ones
     # RSA = True
@@ -131,10 +131,10 @@ def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
 if __name__ == '__main__':
     targets = ['Occipital', 'IT', 'ITL', 'Parietal', 'PFC', 'OC_IT',
                'SFG']
-    targets = ['OC', 'IT', 'OC_IT']
-    # targets = ['FP', 'DMN', 'FPT']
+    # targets = ['OC', 'IT', 'OC_IT']
+    targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
     # targets = ['ITL']
-    for sem_per in [False]:
+    for sem_per in [True, False]:
         for target in targets[::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target)
 
