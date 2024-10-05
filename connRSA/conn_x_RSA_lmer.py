@@ -10,8 +10,8 @@ from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import prep_ROI_avg, do_regr_RSA_sn
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
-from old.network_funcs import load_FC_for_Lifu
-from old.networks import prep_networks
+from networks.old.networks import prep_networks
+
 from org_sns import get_sns
 from organize_bhv import get_trial_info, sort_df_sn
 from utils import pickle_wrap, get_formula_cols, stdize
@@ -178,7 +178,6 @@ def run_IRAF_connRSA():
 
         sns = df['sn'].unique()
 
-
         conn_kwargs = {'drop_con': False, 'four_tasks': four_tasks,
                        'sns': sns, 'do_base': False, 'target_ROI': target_ROI}
         df_conn = pickle_wrap(get_df_single_trial_conn, None,
@@ -283,8 +282,6 @@ def get_df_single_trial_conn(sns, drop_con=False, four_tasks='7',
         #     sn_st_PFC = sn_single_trial_conn[:, *np.ix_(PFC_idxs,
         #                                                  PFC_idxs), :]
         #     sn_st_PFC = np.nanmean(sn_st_PFC, axis=(1, 2))
-
-
 
         sess = (fp.split('_')[0].replace('2', '').replace('3', '').
                 replace('4', '').replace('7', '').replace('8', ''))

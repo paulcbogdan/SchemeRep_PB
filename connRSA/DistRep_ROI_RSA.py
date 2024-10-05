@@ -1,9 +1,11 @@
 import os
 from datetime import datetime
 
+from connRSA.single_trial_conn import run_settings
+
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-from single_trial_conn import run_settings
+# from single_trial_conn import run_settings
 from conn_report import report_results
 from utils import pickle_wrap
 
@@ -99,10 +101,10 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
     #         results_bold_sep)
 
 
-def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL'):
+def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
     # 'SFG' and most single regions represent all combined_regions
     # Don't modify the below ones
-    RSA = True
+    # RSA = True
     conn = 'prod'
     trial_similarity = 'corr'
     second_order = 'spear'
@@ -129,6 +131,7 @@ def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL'):
 if __name__ == '__main__':
     targets = ['Occipital', 'IT', 'ITL', 'Parietal', 'PFC', 'OC_IT',
                'SFG']
+    targets = ['OC', 'IT', 'OC_IT']
     # targets = ['FP', 'DMN', 'FPT']
     # targets = ['ITL']
     for sem_per in [False]:

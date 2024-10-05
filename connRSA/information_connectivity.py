@@ -36,7 +36,7 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 
 import os
-os.chdir(r'C:\PycharmProjects\SchemeRep')
+os.chdir(r'/')
 
 def rearrange_RSM():
     pass

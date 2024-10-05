@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 from organize_bhv import get_trial_info
-from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise
+from connRSA.conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial, prep_for_pairwise
 from utils import stdize
 
 

@@ -2,7 +2,7 @@ from atlas_utils import get_atlas
 import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
-from connRSA.old_Sep29.information_connectivity import get_idxs
+from connRSA.information_connectivity import get_idxs
 
 
 def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=True): # 'turbo'

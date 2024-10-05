@@ -6,7 +6,7 @@ from scipy import stats as stats
 
 from fMRI_proc import RDM_x_RDM_by_run, RDM_x_RDM, get_IRAFs
 from organize_bhv import get_trial_info
-from conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
+from connRSA.conn_utils import get_conn_vecs, get_ROI_vecs_wrap, get_trial_x_trial
 from stim import get_stim_RDM, prune_RSM_outliers
 from utils import stdize
 from scipy.spatial import distance

@@ -8,15 +8,16 @@ from scipy import stats
 
 from atlas_utils import get_atlas
 from connRSA.conn_regress import do_regr_RSA_sn
-from connRSA.old_Sep29.information_connectivity import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
-from connRSA.old.conn_x_RSA_lmer import get_idxs
+from connRSA.information_connectivity import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
+from connRSA.conn_x_RSA_lmer import get_idxs
 from connRSA.single_trial_conn import prep_fps
-from old.network_funcs import load_FC_for_Lifu
+from networks.old.network_funcs import load_FC_for_Lifu
+# from old.network_funcs import load_FC_for_Lifu
 from org_sns import get_sns
 from utils import pickle_wrap
 
 import os
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 def prep_var_ERS(trialwise=True):
     # semantic = False
@@ -72,12 +73,13 @@ def prep_var_ERS(trialwise=True):
         print(f'Doing: {sn}')
         try:
             fp2ROI2iNPS = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
-                            easy_override=False, dt_max=dt_max)
+                            easy_override=True, dt_max=dt_max)
 
         except AttributeError:
             fp2ROI2iNPS = pickle_wrap(get_cross_ERS_mat, kwargs=kwargs, verbose=-1,
                             easy_override=True, dt_max=dt_max)
         v = np.nanstd(fp2ROI2iNPS, axis=1)
+        print(f'{v=:}')
         # v = np.sqrt(v)
 
         fp_pair2cnt = {}
@@ -208,6 +210,7 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
                                    easy_override=False, dt_max=dt_max)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
+
         # corr = np.nanmean(sn_corrs, axis=0)
         corrs.append(sn_corrs)
 
@@ -257,9 +260,9 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
             net2idxs[net] = idxs
             net_corr = corrs[:, idxs][:, :, idxs]
             net_sn_vals = np.nanmean(net_corr, axis=(1, 2))
-            net_M = np.nanmean(net_sn_vals)
-            net_SD = np.nanstd(net_sn_vals, ddof=1)
-            net_SE = net_SD / np.sqrt(np.sum(~np.isnan(net_sn_vals)))
+            # net_M = np.nanmean(net_sn_vals)
+            # net_SD = np.nanstd(net_sn_vals, ddof=1)
+            # net_SE = net_SD / np.sqrt(np.sum(~np.isnan(net_sn_vals)))
             df_as_l['net'].extend([network2name[net]]*len(sns))
             df_as_l['sn'].extend(sns)
             df_as_l['conn'].extend(net_sn_vals)
@@ -291,7 +294,6 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
         df = pd.concat([df_OC, df_ITL])
         df = df.groupby(['sn', 'fp']).mean().reset_index()
         return df
-
 
 
     kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
@@ -449,9 +451,8 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='IT', semantic=True):
-    df_conn = prep_conn_corrs(main_key, ERS=True, semantic=False)
-    # df_conn = prep_var_ERS()
+def corr_RSA_conn(main_key='OC_IT', semantic=True):
+    df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
                            semantic=semantic)
@@ -465,6 +466,7 @@ def corr_RSA_conn(main_key='IT', semantic=True):
     # print(df)
 
     df = df.dropna()
+    print(df)
     # df = df.sort_values('conn')
     # print(df)
     # quit()
@@ -480,19 +482,22 @@ def corr_RSA_conn(main_key='IT', semantic=True):
 
     # df = df[df['conn'].abs() < 3]
     # df = df[df['beta1'].abs() < 3]
+    r, p = stats.spearmanr(df['conn'], df['beta1'])
+    plt.title(f'{main_key=}, {r=:.3f}, {p=:.4f}')
     plt.scatter(df['conn'], df['beta1'])
     plt.show()
+    quit()
     # quit()
     # print(df['conn'])
 
 
     print(f'{len(df)=}')
 
-    from pymer4.models import Lmer
-    formula = 'conn ~ beta1 + (1 |sn) + (1|fp)' #
-    model = Lmer(formula, data=df) # local +
-    model.fit(summarize=False)
-    print(model.summary())
+    # from pymer4.models import Lmer
+    # formula = 'conn ~ beta1 + (1 |sn) + (1|fp)' #
+    # model = Lmer(formula, data=df) # local +
+    # model.fit(summarize=False)
+    # print(model.summary())
 
 
     # df = df.groupby('sn')[['conn', 'beta1']].mean()
@@ -504,7 +509,7 @@ def corr_RSA_conn(main_key='IT', semantic=True):
     # print(f'local: {r=:.3f}, {p=:.4f}')
 
 def trialwise_corr():
-    df_ERS = prep_var_ERS(trialwise=True)
+    # df_ERS = prep_var_ERS(trialwise=True)
     df = get_dist_IRAFs(key='IT', ctrl_within=True)
     df = pd.merge(df, df_ERS, on=['sn', 'fp', 'obj'])
     r, p = stats.spearmanr(df['conn'], df['beta1'], nan_policy='omit')
@@ -558,11 +563,11 @@ def RSA_x_RSA():
 
 
 if __name__ == '__main__':
-    RSA_x_RSA()
+    # RSA_x_RSA()
     # trialwise_corr()
     # prep_var_ERS()
     # get_dist_IRAFs(key='IT')
-    # corr_RSA_conn()
+    corr_RSA_conn()
     # DF = prep_conn_corrs(ERS=True)
     # get_RSA_betas()
 

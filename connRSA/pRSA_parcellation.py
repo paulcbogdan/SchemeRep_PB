@@ -380,10 +380,10 @@ def get_idx2(fps, atlas_name):
 
 # OG_big_fix
 def analyze_ventral_stream(semantic=True,
-                           atlas_name='OC_T',
+                           atlas_name='OC_T_split',
                            # atlas_name='whole',
                            spearman=True, M_ROI=True,
-                           regr=True, neighbor_mask=True):
+                           regr=True, neighbor_mask=False):
 
     fps = prep_fps('7')
     kw = {'fps': fps, 'semantic': semantic}
@@ -401,10 +401,14 @@ def analyze_ventral_stream(semantic=True,
     maps_new, _, ventral_roi_idxs, neighbors, ticks, tick_labels, tick_lows = (
         prep_ventral_stream_atlas(atlas_name, num_neighbors=32))
 
+    st_oc = tick_lows[-2]
+
+
     idx2RSMs = {}
     conn_RSA = np.full((len(ventral_roi_idxs), len(ventral_roi_idxs)), np.nan)
-    for idx0 in tqdm(ventral_roi_idxs, desc='evaluating pairs'):
+    for idx0 in tqdm(ventral_roi_idxs[-3::-3], desc='evaluating pairs'):
         for idx1 in range(idx0):
+            # if idx0 >= st_oc or idx1 >= st_oc: continue
             if neighbor_mask:
                 if idx1 not in neighbors[idx0] and idx0 not in neighbors[idx1]:
                     continue
@@ -422,10 +426,10 @@ def analyze_ventral_stream(semantic=True,
                 #        / (out[:, 0] + 0.5 * (out[:, 1] + out[:, 2])))
                 # dif = out[:, 0] - 0.5 * (out[:, 1] + out[:, 2])
                 # dif = 0.5 * (out[:, 1] + out[:, 2])
-                dif = out[:, 0]
+                dif = out[:, 0] - 0.5 * (out[:, 1] + out[:, 2])
             else:
                 corr_M, corr_both = out[0], out[1]
-                dif = corr_both - corr_M
+                dif = corr_both# - corr_M
                 # dif = corr_both
             nans = np.isnan(dif)
             dif = dif[~nans]
@@ -447,7 +451,7 @@ def analyze_ventral_stream(semantic=True,
 
     # p = [64, 65] are LOC
 
-    med = np.nanquantile(conn_RSA, .5)
+    med = np.nanquantile(conn_RSA, .8)
     print(f'{med=:.3f}')
     bool_RSA = (conn_RSA > med).astype(int)
 
