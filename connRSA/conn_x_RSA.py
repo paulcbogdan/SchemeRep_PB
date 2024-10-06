@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from scipy import stats
+from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from connRSA.conn_regress import do_regr_RSA_sn
@@ -168,7 +169,7 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
         fps = [fp for fp in fps if 'con' not in fp]
     ERS_scores_all = []
 
-    for i, sn in enumerate(sns):#, desc=f'Looping IC: {cross=}'):
+    for i, sn in enumerate(tqdm(sns, desc='prepping conn')):#, desc=f'Looping IC: {cross=}'):
         # print(f'Onto: {sn}')
         kwargs['sn'] = sn
         if IRAF:
@@ -188,11 +189,12 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
 
             sn_corrs, ERS_scores = pickle_wrap(get_cross_ERS_mat,
                                                kwargs=kwargs, verbose=-1,
-                                               easy_override=True,
+                                               easy_override=False,
                                                dt_max=dt_max)
             ERS_scores = np.array(ERS_scores)
 
             ERS_scores_all.append(ERS_scores)
+            # print(ERS_scores)
         elif cross:
             kwargs['second_order'] = second_order
             kwargs['within_nan'] = True
@@ -242,11 +244,11 @@ def prep_conn_corrs(key, ERS=False, semantic=True, trialwise=True):
         corrs = corrs_all[:, i]
 
         networks = ['Occipital', 'ITL', 'Parietal', 'PFC',
-                    'OC_T']
+                    'OC_T', 'Ventral']
         network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
                         'Parietal': 'Parietal', 'PFC': 'PFC',
                         'IT': 'Temporal', 'OC': 'Occipital',
-                        'OC_T': 'OC_T'}
+                        'OC_T': 'OC_T', 'Ventral': 'Ventral'}
 
         # networks = [key]
         # network2name = {key: key}
@@ -347,7 +349,7 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
     df_all = []
     for i in range(len(fps)):
         df = pd.DataFrame({'sn': sns, 'beta1': betas1_all[:, i],
-                           'fp': fps[i]})
+                           'fp': fps[i], 'beta2': betas2_all[:, i],})
         df_all.append(df)
     df = pd.concat(df_all)
     return df
@@ -461,13 +463,14 @@ def corr_RSA_conn(main_key='IT', semantic=True):
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
                            semantic=semantic, big_voxelwise=True)
+
     df_rsa_local = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
                                  semantic=semantic)
 
     df_rsa['local'] = df_rsa_local['beta1']
     df = pd.merge(df_conn, df_rsa, on=['sn', 'fp'])
 
-    df = df.dropna()
+    df = df.dropna(subset=['local', 'beta1'])
 
     df.sort_values('conn', inplace=True)
 
@@ -479,6 +482,10 @@ def corr_RSA_conn(main_key='IT', semantic=True):
     model = smf.ols(formula, data=df)
     results = model.fit()
     print(results.summary())
+    # formula = 'conn ~ local'
+    # model = smf.ols(formula, data=df)
+    # results = model.fit()
+    # print(results.summary())
 
     # df = df[df['conn'].abs() < 3]
     # df = df[df['beta1'].abs() < 3]
@@ -486,6 +493,7 @@ def corr_RSA_conn(main_key='IT', semantic=True):
     plt.title(f'{main_key=}, {r=:.3f}, {p=:.4f}')
     plt.scatter(df['conn'], df['beta1'])
     plt.show()
+    df.to_csv('df_conn_x_RSA.csv', index=False)
     return
     quit()
     # quit()
@@ -572,7 +580,7 @@ if __name__ == '__main__':
     # DF = prep_conn_corrs(ERS=True)
     # get_RSA_betas()
 
-    corr_RSA_conn(main_key='Occipital', semantic=True)
+    # corr_RSA_conn(main_key='Occipital', semantic=True)
 
 
 

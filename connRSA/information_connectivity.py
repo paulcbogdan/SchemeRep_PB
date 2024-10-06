@@ -16,6 +16,7 @@ from connRSA.conn_regress import get_ERS_scores
 from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
+from networks.old.network_funcs import load_FC_for_Lifu
 from networks.old.networks import prep_networks
 
 from old.plot_gen import plot_connectivity
@@ -36,10 +37,8 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 
 import os
-os.chdir(r'/')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-def rearrange_RSM():
-    pass
 
 @cache
 def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
@@ -705,7 +704,8 @@ def run_IC_analysis(ERS=True, regress_FC=True):
     corrs = np.array(corrs)
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
 
-    corrs_FC, M_ventral_FC, M_occ_FC, sns_FC = (
+    # M_ventral_FC, M_occ_FC,
+    corrs_FC, sns_FC = (
         pickle_wrap(plot_FC_mat, None, easy_override=False, dt_max=dt_max))
 
     title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'

@@ -380,7 +380,7 @@ def get_idx2(fps, atlas_name):
 
 # OG_big_fix
 def analyze_ventral_stream(semantic=True,
-                           atlas_name='OC_T_split',
+                           atlas_name='OC_T',
                            # atlas_name='whole',
                            spearman=True, M_ROI=True,
                            regr=True, neighbor_mask=False):
@@ -406,7 +406,7 @@ def analyze_ventral_stream(semantic=True,
 
     idx2RSMs = {}
     conn_RSA = np.full((len(ventral_roi_idxs), len(ventral_roi_idxs)), np.nan)
-    for idx0 in tqdm(ventral_roi_idxs[-3::-3], desc='evaluating pairs'):
+    for idx0 in tqdm(ventral_roi_idxs, desc='evaluating pairs'):
         for idx1 in range(idx0):
             # if idx0 >= st_oc or idx1 >= st_oc: continue
             if neighbor_mask:

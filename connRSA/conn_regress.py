@@ -911,6 +911,7 @@ def do_regr():
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
     # target_ROIs = ['FPT', 'DMN', 'FP']
     target_ROIs = ['IT']
+    target_ROIs = ['Ventral']
     # target_ROIs = ['Parietal']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []

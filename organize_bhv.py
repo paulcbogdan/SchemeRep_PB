@@ -558,6 +558,13 @@ def add_onset_time(df_sn, sn):
             assert sn == '133' or sn == '138'
             # TODO: investigate 212...
 
+CNT_CON_RESPS = {'OA': {
+                        'old': {'old': 0, 'new': 0, None: 0},
+                        'new': {'old': 0, 'new': 0, None: 0}},
+                'YA': {
+                        'old': {'old': 0, 'new': 0, None: 0},
+                        'new': {'old': 0, 'new': 0, None: 0}}
+                }
 
 def include_conceptual(df_sn, sn):
     conc_root = fr'fMRI_in/{sn}'
@@ -602,6 +609,16 @@ def include_conceptual(df_sn, sn):
             resp = mat_enc['pdata'][0][0][9][0][i][0]
             obj2resp[obj] = None if pd.isna(resp) else int(resp)
             obj2rt[obj] = mat_enc['pdata'][0][0][10][0][i][0]
+
+            if sn[0] == '1':
+                yo = 'YA'
+            elif sn[0] == '2':
+                yo = 'OA'
+            else:
+                raise ValueError
+            old_new_str = 'new' if old_new else 'old'
+            resp_str = None if pd.isna(resp) else 'new' if resp < 3 else 'old'
+            CNT_CON_RESPS[yo][old_new_str][resp_str] += 1
 
             glob_conc7 = fr'{conc_root}/CON_rerun7/CONC/RCON_sub{sn}_run{run}_trial{trial}_*.nii'
             glob_conc7 = glob(glob_conc7)
@@ -652,6 +669,14 @@ def fill_obj2trial_obj2run(obj2trial, obj2run):
     obj2trial = obj2trial_
     return obj2trial, obj2run
 
+CNT_VIS_RESPS = {'OA': {'similar': {'similar': 0, 'old': 0, 'new': 0, None: 0},
+                        'old': {'similar': 0, 'old': 0, 'new': 0, None: 0},
+                        'new': {'similar': 0, 'old': 0, 'new': 0, None: 0}},
+                'YA': {'similar': {'similar': 0, 'old': 0, 'new': 0, None: 0},
+                        'old': {'similar': 0, 'old': 0, 'new': 0, None: 0},
+                        'new': {'similar': 0, 'old': 0, 'new': 0, None: 0}}
+                }
+
 def include_vis(df_sn, sn, incl_lures=False):
     # TODO: investigate why 138 is missing run3 visual retrieval
     # Figure out the trial breakdown
@@ -693,6 +718,15 @@ def include_vis(df_sn, sn, incl_lures=False):
             old_similar_new = 'old' if old_similar_new == 0 else \
                 'similar' if old_similar_new == 1 else 'new'
             obj2type[obj] = old_similar_new
+            # print(old_similar_new)
+            if sn[0] == '1':
+                yo = 'YA'
+            elif sn[0] == '2':
+                yo = 'OA'
+            else:
+                raise ValueError
+            resp_non = None if pd.isna(resp) else resp
+            CNT_VIS_RESPS[yo][old_similar_new][resp_non] += 1
 
             if sn == '138' and run == 3: # has original preprocessing but no rerun betas?
                 continue
@@ -727,6 +761,8 @@ def include_vis(df_sn, sn, incl_lures=False):
         obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
+
+
 
         if incl_lures:
             l_lures = []
@@ -855,8 +891,9 @@ if __name__ == '__main__':
     pd.set_option('display.max_rows', None)
     df_sn = get_trial_info_('102')
     df_sn.sort_values(by='obj_trial', inplace=True)
-    print(df_sn[['obj_trial', 'bl_trial', 'obj']])
-
+    # print(df_sn[['obj_trial', 'bl_trial', 'obj']])
+    # print(CNT_VIS_RESPS)
+    # print(CNT_CON_RESPS)
     # df_sn = get_trial_info_('132')
     # df_sn.sort_values(by='obj_trial', inplace=True)
     # print(df_sn[['obj7_fMRI', 'obj_trial']])

@@ -4,7 +4,7 @@ def prep_networks(network_setting=1):
     if network_setting == 1:
         networks = {
             'Occipital': ['EVC', 'LOC', 'sOcG'],
-            'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG'],
+            'Ventral': ['ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG'],
             'Dorsal': ['SPL', 'IPL', 'Pcun', 'pSTS'],
             #'dPFC': ['IFG', 'MFG', 'SFG'],
             #'PFC_Occ': ['IFG', 'MFG', 'SFG', 'EVC', 'LOC', 'sOcG'],

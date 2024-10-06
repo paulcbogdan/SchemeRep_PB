@@ -4,7 +4,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from organize_bhv import get_trial_info
+from organize_bhv import get_trial_info, CNT_CON_RESPS, CNT_VIS_RESPS
 import warnings
 import pandas as pd
 
@@ -106,6 +106,8 @@ def test_fp(fp='obj3_fMRI', ages=(1, 2)):
             if not has_vis_hits:
                 warnings.warn(f'{sn} has no visual memory data in {fp}')
 
+            print(CNT_CON_RESPS)
+            print(CNT_VIS_RESPS)
 
 def get_shenyang_subjects():
     sns_str = '102 103 105 106 107 108 110 111 112 114 116 117 120 123 124 ' \
