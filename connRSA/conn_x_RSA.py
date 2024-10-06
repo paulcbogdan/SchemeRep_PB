@@ -458,7 +458,7 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='IT', semantic=True):
+def corr_RSA_conn(main_key='ITL', semantic=False):
     df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
@@ -474,7 +474,7 @@ def corr_RSA_conn(main_key='IT', semantic=True):
 
     df.sort_values('conn', inplace=True)
 
-    # df = df[df['conn'] < .65] # one outlier
+    # df = df[df['conn'] < .5] # one outlier
 
     import statsmodels.formula.api as smf
 

@@ -309,9 +309,9 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     regress_row = False
 
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
-    target_ROIs = ['FP', 'DMN', 'FPT']
+    # target_ROIs = ['FP', 'DMN', 'FPT']
     # target_ROIs = ['IT']
-    # target_ROIs = ['Occipital']
+    target_ROIs = ['Occipital', 'ITL']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
@@ -449,15 +449,15 @@ def plot_Figure6_bars(region='Occipital'):
                     kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
                     # kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
                     # print(kwargs['ROI_focus'])
-
                     kwargs['ROIs_ctrl'] = []
                 else:
                     kwargs['semantic'] = cond[0]
                     if cond[1] == 'Local':
                         kwargs['ROI_focus'] = f'{region}_M'
+                        # kwargs['ROIs_ctrl'] = [f'{region}_BOLD_cmb']
                     else:
                         kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
-                    kwargs['ROIs_ctrl'] = []
+                    kwargs['ROIs_ctrl'] = [] # f'{region}_M'
 
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1, easy_override=False)
@@ -479,6 +479,7 @@ def plot_Figure6_bars(region='Occipital'):
     oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
     ITL_ef = cond2betas[conds[2]] - cond2betas[conds[3]]
     ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
+    print(conds)
 
     print(f'Interaction: {t=:.3f}, {p=:.3f}')
     print(f'\tOccipital: {oc_t=:.3f}, {oc_p=:.3f}')
@@ -581,7 +582,9 @@ sys.setrecursionlimit(10000)
 if __name__ == '__main__':
     # plot_Figure5_bars()
     # interaction_within_region()
-    plot_Figure6_bars('IT')
+    plot_Figure6_bars('ITL')
+    # plot_Figure6_bars('Occipital')
+
     # quit()
     # do_regr_dif()
     # do_regr_dif(semantic=True)
