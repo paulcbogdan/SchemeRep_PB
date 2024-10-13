@@ -580,9 +580,9 @@ import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    # plot_Figure5_bars()
+    plot_Figure5_bars()
     # interaction_within_region()
-    plot_Figure6_bars('ITL')
+    # plot_Figure6_bars('IT')
     # plot_Figure6_bars('Occipital')
 
     # quit()

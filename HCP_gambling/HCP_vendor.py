@@ -57,34 +57,88 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['low_PA'].to_list() +
                              df['high_VD'].to_list() + df['low_VD'].to_list(),
                        'PA_VD': ['PA'] * len(df) * 2 + ['VD'] * len(df) * 2,
-                       'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2})
+                       'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2,
+                       'sn': list(range(len(df))) * 4})
 
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
-    g = sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df,
-                        kind='bar',
-                        # errci=68,
-                        errorbar=('ci', 68),
-                        # errwidth=1.5,
-                        edgecolor='k',
-                        # capsize=0.1, height=4,
-                        alpha=0.7, linewidth=.7,#.7,
-                        errwidth=1.2,
-                        capsize=0.05,
-                        # palette=sns.color_palette()
-                        palette=['dodgerblue', 'red'],
-                        height=5, aspect=0.8
-                        )
-    plt.ylabel('Mean connectivity')
-    g._legend.remove()
-    g.set_xticklabels(['High PE', 'Low PE'])
-    plt.tight_layout()
-    plt.xlabel('')
+    # g = sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df,
+    #                     kind='bar',
+    #                     # errci=68,
+    #                     errorbar=('ci', 68),
+    #                     # errwidth=1.5,
+    #                     edgecolor='k',
+    #                     # capsize=0.1, height=4,
+    #                     alpha=0.7, linewidth=.7,#.7,
+    #                     errwidth=1.2,
+    #                     capsize=0.05,
+    #                     # palette=sns.color_palette()
+    #                     palette=['dodgerblue', 'red'],
+    #                     height=5, aspect=0.8
+    #                     )
+    # plt.ylabel('Mean connectivity')
+    # g._legend.remove()
+    # g.set_xticklabels(['High PE', 'Low PE'])
+    # plt.tight_layout()
+    # plt.xlabel('')
+    # plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
+    # plt.xlim(-.5, 1.5)
+    # fp = fr'result_pics/other/Study_1B_vendor.png'
+    # plt.savefig(fp, dpi=600)
+    # plt.show()
+
+    df_PA = df[df['PA_VD'] == 'PA']
+    df_PA['FC'] -= df_PA.groupby('sn')['FC'].transform('mean')
+
+    df_VD = df[df['PA_VD'] == 'VD']
+    df_VD['FC'] -= df_VD.groupby('sn')['FC'].transform('mean')
+
+    fig, axs = plt.subplots(1, 2, figsize=(6, 5))
+
+    # tips = sns.load_dataset('tips')
+    # sns.boxplot(x='day', y='total_bill', data=tips, ax=axs[0])
+    # sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df_VD,
+    #             ax=axs[0])
+    plt.sca(axs[0])
+    g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_PA,
+                    errorbar=('ci', 68), edgecolor='k',
+                    alpha=0.7, linewidth=.7, errwidth=1.2,
+                    capsize=0.05, palette=['dodgerblue'],
+                    ax=axs[0], legend=False,
+                    )
     plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
     plt.xlim(-.5, 1.5)
+    plt.ylim(-.023, .023)
+    g.set_xticklabels(['High\nPE', 'Low\nPE'])
+    plt.ylabel('Mean connectivity')
+    plt.xlabel('')
+    plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
+    plt.tick_params(axis='x', which='both', bottom=False, top=False)
+
+
+    plt.sca(axs[1])
+    g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_VD,
+                    errorbar=('ci', 68), edgecolor='k',
+                    alpha=0.7, linewidth=.7, errwidth=1.2,
+                    capsize=0.05, palette=['red'], #height=5,
+                    ax=axs[1], legend=False,
+                    )
+    plt.ylabel('')
+    g.set_xticklabels(['High\nPE', 'Low\nPE'])
+    plt.xlabel('')
+    plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
+    plt.yticks([-.01, 0, .01])
+    plt.xlim(-.5, 1.5)
+    plt.ylim(-.0115, .0115)
+    plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
+    plt.tick_params(axis='x', which='both', bottom=False, top=False)
     fp = fr'result_pics/other/Study_1B_vendor.png'
-    plt.savefig(fp, dpi=600)
+    # plt.savefig(fp, dpi=600)
+    plt.tight_layout()
+
     plt.show()
+
+    quit()
 
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
@@ -458,6 +512,18 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         # conn_lows /= ROI_expected[None]
 
     bar_vendor(conn_highs, conn_lows, combine_regions, bilateral)
+
+    overall = (conn_highs + conn_lows) / 2
+    print(f'{overall.shape=}')
+
+    plt.rcParams.update({'font.size': 16,
+                         'font.sans-serif': 'Arial'})
+    # M = np.nanmean(overall, axis=0)
+    # M_flat = M.flatten()
+    # plt.hist(M_flat, bins=100)
+    # plt.title('HCP FC histogram')
+    # plt.show()
+    # quit()
 
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)

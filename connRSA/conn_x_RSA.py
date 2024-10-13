@@ -16,6 +16,7 @@ from networks.old.network_funcs import load_FC_for_Lifu
 # from old.network_funcs import load_FC_for_Lifu
 from org_sns import get_sns
 from utils import pickle_wrap
+import matplotlib
 
 import os
 os.chdir(r'C:\PycharmProjects\SchemeRep')
@@ -458,16 +459,24 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='ITL', semantic=False):
+def corr_RSA_conn(main_key='Occipital', semantic=False):
     df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
-                           semantic=semantic, big_voxelwise=True)
+                           semantic=True, big_voxelwise=True)
+
+    df_rsa_per = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
+                           semantic=False, big_voxelwise=True)
+    df_rsa['beta1_per'] = df_rsa_per['beta1']
 
     df_rsa_local = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
-                                 semantic=semantic)
+                                 semantic=True)
+
+    df_rsa_local_per = get_RSA_betas(main_key, ctrl_within=False, get_local=True,
+                                 semantic=False)
 
     df_rsa['local'] = df_rsa_local['beta1']
+    df_rsa['local_per'] = df_rsa_local_per['beta1']
     df = pd.merge(df_conn, df_rsa, on=['sn', 'fp'])
 
     df = df.dropna(subset=['local', 'beta1'])
@@ -478,7 +487,7 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
 
     import statsmodels.formula.api as smf
 
-    formula = 'conn ~ beta1 + local'
+    formula = 'beta1 ~ conn'
     model = smf.ols(formula, data=df)
     results = model.fit()
     print(results.summary())
@@ -489,9 +498,34 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
 
     # df = df[df['conn'].abs() < 3]
     # df = df[df['beta1'].abs() < 3]
+    plt.rcParams.update({'font.sans-serif': 'Arial',
+                         'font.size': 14,
+                         'figure.figsize': (5, 4),
+                         'mathtext.default': 'regular' })
+
     r, p = stats.spearmanr(df['conn'], df['beta1'])
-    plt.title(f'{main_key=}, {r=:.3f}, {p=:.4f}')
-    plt.scatter(df['conn'], df['beta1'])
+    # plt.title(f'{main_key=}, {r=:.3f}, {p=:.4f}')
+    plt.scatter(df['conn'], df['beta1'],
+                facecolors=('dodgerblue', 0.5),
+                edgecolors=(0, 0, 0, 0.5),
+                )
+    plt.xlabel('Mean temporal lobe\n$RSM_{local}$-$RSM_{local}$ correlation')
+    plt.ylabel('Temporal lobe distributed\nsemantic RSA effect')
+
+    low = np.nanquantile(df['conn'], 0.00)
+    high = np.nanquantile(df['conn'], 1.0)
+
+    df_pred = pd.DataFrame({'conn': np.linspace(low, high, 1000),})
+    pred = results.predict(exog=df_pred)
+    plt.plot(df_pred['conn'], pred, color='k',
+             linestyle='--', alpha=.8)
+
+    matplotlib.colors.colorConverter.to_rgba('mediumseagreen', alpha=.5)
+    plt.gca().spines[['right', 'top']].set_visible(False)
+    plt.tight_layout()
+    semantic_str = '_semantic' if semantic else '_perceptual'
+    fp_fig = fr'result_pics/connRSA/RSM_RSM_x_RSA_{main_key}{semantic_str}.png'
+    plt.savefig(fp_fig, dpi=600)
     plt.show()
     df.to_csv('df_conn_x_RSA.csv', index=False)
     return

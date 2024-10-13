@@ -753,11 +753,22 @@ def run_IC_analysis(ERS=True, regress_FC=True):
     fn_out = r'NPS' if ERS else 'RSM'
     fn_out += '_regressed' if regress_FC else ''
     fn_out += '.png'
-    fp_fig = fr'connRSA/FC_figs/{fn_out}'
+    fp_fig = fr'result_pics/connRSA/{fn_out}'
+
+
+    M = M[:210, :210]
+    if len(atlas['ticks']) == 24:
+        atlas['ticks'] = atlas['ticks'][:-4]
+        atlas['tick_labels'] = atlas['tick_labels'][:-4]
+        atlas['tick_lows'] = atlas['tick_lows'][:-4]
+
+    vmax = np.nanquantile(M, .98)
+    vmin = np.nanquantile(M, .02)
 
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'], title=title, tile=.01,
-                      no_avg=True, cbar_label='Correlation (r)', fp=fp_fig)
+                      atlas['tick_lows'], title=title, vmin=vmin, vmax=vmax,
+                      no_avg=True, cbar_label='Correlation (r)', fp=fp_fig,
+                      adjust_HC_AMY=False, dontoverride=True)
 
 
 def plot_FC_mat(drop_con=False, four_tasks='7'):
@@ -789,14 +800,33 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
         corrs.append(sn_conn)
 
     corrs = np.nanmean(corrs, axis=0)
+
+    plt.rcParams.update({'font.size': 16,
+                         'font.sans-serif': 'Arial'})
     M = np.nanmean(corrs, axis=0)
+    M_flat = M.flatten()
+    plt.hist(M_flat, bins=100)
+    plt.title('SchemeRep FC histogram')
+    plt.show()
+    quit()
+
     atlas = get_atlas(lifu_labels=False)
     fn_out = r'basic_FC.png'
-    fp_fig = fr'connRSA/FC_figs/{fn_out}'
+    fp_fig = fr'result_pics/connRSA/{fn_out}'
     plot_network_M(corrs, None, sns, fn_out)
 
+    M = M[:210, :210]
+    if len(atlas['ticks']) == 24:
+        atlas['ticks'] = atlas['ticks'][:-4]
+        atlas['tick_labels'] = atlas['tick_labels'][:-4]
+        atlas['tick_lows'] = atlas['tick_lows'][:-4]
+
+    vmax = np.nanquantile(M, .98)
+    vmin = np.nanquantile(M, .02)
+
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'],
+                      atlas['tick_lows'], vmin=vmin, vmax=vmax, dontoverride=True,
+                      adjust_HC_AMY=False,
                       title='Functional connectivity', fp=fp_fig,
                       no_avg=True, cbar_label='Correlation (r)',)
 
@@ -805,11 +835,8 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
 
 if __name__ == '__main__':
-    # plot_FC_mat(drop_con=False, four_tasks='7')
-    # quit()
-
     plt.rcParams.update({'font.sans-serif': 'Arial'})
-
-    run_IC_analysis(ERS=True, regress_FC=True)
-    run_IC_analysis(ERS=False, regress_FC=True)
+    plot_FC_mat(drop_con=False, four_tasks='7')
+    run_IC_analysis(ERS=True, regress_FC=False)
+    run_IC_analysis(ERS=False, regress_FC=False)
     # plot_FC_mat()
