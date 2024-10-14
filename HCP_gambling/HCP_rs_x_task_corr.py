@@ -31,7 +31,8 @@ os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # @cache
 def get_sn_roi_ar_std(**kw):
-    ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=False)
+    ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=False,
+                     verbose=-1)
     assert len(ar.shape) == 2
     ar = stats.zscore(ar, axis=1)
     return ar
@@ -210,24 +211,19 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
 
 def get_HCP_task_conn(sns, combine_regions, bilateral,
                       reg_global, no_compcor):
-    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
-    #       'neut_as_PE': None, 'drop_neut': False, 'only': None,
-    #       'num_sns': 1000, 'cont_PE': 0.3, 'cont_PE_by_event': True,
-    #       'regr_M': True, 'lr_separate': False,
-    #       'reg_global': reg_global, 'no_compcor': no_compcor,
-    #       'sns_set': list(sns)}
-
-    # kw = {'combine_regions': combine_regions, 'bilateral': bilateral, 'neut_as_PE': None,
-    #       'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
-    #       'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
-    #       'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
-    #       'drop_first': True, 'both_bhv': True, 'reset_trial0': True}
 
     kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
-          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
+          'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.5,
           'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
           'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
           'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
+
+    # below = decent rs x task
+    # kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
+    #       'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
+    #       'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+    #       'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
+    #       'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
     print(f'{kw=}')
 
     kw['sns_set'] = list(sns)
@@ -363,6 +359,8 @@ def do_analysis(num_test=1_000, ctrl_group=False,
     rs_no_compcor = False
 
     sns = find_overlapping_sns()
+
+    print(f'{sns=}')
 
     sns = sorted(sns)[:1000]
     print(f'{len(sns)=}')
