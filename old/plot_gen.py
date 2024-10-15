@@ -96,6 +96,9 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         plt.show()
         return
     plt.title(title, fontsize=fontsize * 1.75, pad=12)
+    # print(len(ticks))
+    # print(len(tick_labels))
+    # quit()
     plt.yticks(ticks, tick_labels, fontsize=fontsize)
     plt.xticks(ticks, tick_labels, fontsize=fontsize, rotation=90)
     if colorbar:

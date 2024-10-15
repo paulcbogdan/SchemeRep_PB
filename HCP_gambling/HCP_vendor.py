@@ -108,7 +108,7 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
                     )
     plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
     plt.xlim(-.5, 1.5)
-    plt.ylim(-.023, .023)
+    plt.ylim(-.026, .026)
     g.set_xticklabels(['High\nPE', 'Low\nPE'])
     plt.ylabel('Mean connectivity')
     plt.xlabel('')
@@ -129,13 +129,12 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
     plt.yticks([-.01, 0, .01])
     plt.xlim(-.5, 1.5)
-    plt.ylim(-.0115, .0115)
+    plt.ylim(-.013, .013)
     plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
     plt.tick_params(axis='x', which='both', bottom=False, top=False)
-    fp = fr'result_pics/other/Study_1B_vendor.png'
-    # plt.savefig(fp, dpi=600)
     plt.tight_layout()
-
+    fp = fr'result_pics/other/Study_1B_vendor_v2.png'
+    plt.savefig(fp, dpi=600)
     plt.show()
 
 
@@ -433,11 +432,11 @@ def get_combo(kw):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
+def test_vendor(combine_regions=True, bilateral=False, corr_z=True,
                 sub_ROI_expected=False):
 
     kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
-          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.5,
+          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
           'cont_PE_by_event': True,
           'regr_M': True, 'lr_separate': True,
           'reg_global': True, 'no_compcor': True, 'median_split': True,
@@ -614,19 +613,19 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         #                   vmin=-4, vmax=4)
         # conjunct = np.logical_and(np.abs(t) > 3, np.abs(z_both) > 2)
 
-    quit()
-    n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)
-    plt.plot([0, 0], [0, np.max(n)], 'r--')
-    plt.show()
-
-    plt.hist(itr, range=(-0.4, 0.4), bins=40,
-             cumulative=True, density=True)
-    plt.plot([0, 0], [0, 1], 'r--')
-    plt.plot([-.4, .4], [0.5, 0.5], 'r--')
-    plt.xlim(-0.4, 0.4)
-    plt.ylim(0, 1)
-    plt.show()
-    quit()
+    # quit()
+    # n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)
+    # plt.plot([0, 0], [0, np.max(n)], 'r--')
+    # plt.show()
+    #
+    # plt.hist(itr, range=(-0.4, 0.4), bins=40,
+    #          cumulative=True, density=True)
+    # plt.plot([0, 0], [0, 1], 'r--')
+    # plt.plot([-.4, .4], [0.5, 0.5], 'r--')
+    # plt.xlim(-0.4, 0.4)
+    # plt.ylim(0, 1)
+    # plt.show()
+    # quit()
 
 
 def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):

@@ -319,9 +319,9 @@ def plot_massive_hemi_corr_matrix(fp='rs_medium', anat=True, scrub=False,
     # plt.imshow(corr, cmap='turbo', vmin=-0.15, vmax=0.15)
     # plt.show()
     # tick_labels = ['' for _ in range(len(ticks))]
-    plot_connectivity(corr, ticks, tick_labels, tick_lows,
+    plot_connectivity(-corr, ticks, tick_labels, tick_lows,
                       title=None, no_avg=True, vmin=-0.15, vmax=0.15,
-                      minimal=True)
+                      minimal=True, cmap='RdYlBu')
     # quit()
 
 

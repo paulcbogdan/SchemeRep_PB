@@ -44,6 +44,9 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
     else:
         cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
+    # cmap = get_split_cmap(0.3, 0, 'RdYlBu', blue_half=False)
+    cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
+
 
     from matplotlib import rcParams, cm
 
@@ -83,7 +86,8 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
         cbar.outline.set_visible(False)
 
     # cbar.ax.set_title('t-value', fontsize=47, pad=15)
-
+    cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
+    # cbar.outline.set_visible(False)
     cbar.ax.xaxis.set_tick_params(width=2)
     # plt.tight_layout(rect=(0, 0.1, 1, 0.1))
     plt.show()

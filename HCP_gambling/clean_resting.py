@@ -91,8 +91,13 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
     sns = list(sns)
     # print(f'{len(sns)=}')
+    # quit()
     sns = sorted(sns)
     # sns = {'203418'}
+
+    sns = {'263436',
+               '119833', '186949', '196952', '202820', '284646'}
+
 
     # sns = {'150423', '171734', '119833', '127933', '128127',
     #            '127327', '105216', '105014', '203418', '203923',

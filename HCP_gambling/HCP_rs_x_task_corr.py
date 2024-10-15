@@ -51,32 +51,27 @@ def get_sns_roi_ar_std(sns, **kw):
 
 @cache
 def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
-    # ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=True)
-    # t_st = time()
-    ar = get_sns_roi_ar_std(tuple(sns), **kw)
+    # print(kw['lr'])
+    print('CONFIRM:', kw['lr'])
+    if kw['lr'] == 'LR_RL':
+        kw_lr = kw.copy()
+        kw_lr['lr'] = 'LR'
+        ar = get_sns_roi_ar_std(tuple(sns), **kw_lr)
+        kw_rl = kw.copy()
+        kw_rl['lr'] = 'RL'
+        ar2 = get_sns_roi_ar_std(tuple(sns), **kw_rl)
+        print(ar.shape)
+        ar = np.concatenate([ar, ar2], axis=-1)
+    else:
+        ar = get_sns_roi_ar_std(tuple(sns), **kw)
     print(f'{ar.shape=}')
-    # print(f'RS time: {time() - t_st:.5f} s')
-    # rs_conn = np.full((len(sns), ar.shape[1], ar.shape[1], ar.shape[2]), np.nan)
-    # n_roi = ar.shape[1]
-    #
-    # rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :] = (
-    #         ar[:, p_d_ant, None, :] * ar[:, None, p_d_pos, :])
-    # rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :] = (
-    #         ar[:, p_v_ant, None, :] * ar[:, None, p_v_pos, :])
-    # rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :] = (
-    #         ar[:, p_d_ant, None, :] * ar[:, None, p_v_ant, :])
-    # rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :] = (
-    #         ar[:, p_d_pos, None, :] * ar[:, None, p_v_pos, :])
-    # print(f'RS time: {time() - t_st:.5f} s')
+
 
     p_all = list(p_d_ant) + list(p_d_pos) + list(p_v_ant) + list(p_v_pos)
     p_d_ant_new = np.arange(len(p_d_ant))
     p_d_pos_new = np.arange(len(p_d_pos)) + len(p_d_ant)
     p_v_ant_new = np.arange(len(p_v_ant)) + len(p_d_ant) + len(p_d_pos)
     p_v_pos_new = np.arange(len(p_v_pos)) + len(p_d_ant) + len(p_d_pos) + len(p_v_ant)
-    # rs_conn_compressed = rs_conn[:, *np.ix_(p_all, p_all), :]
-    # print(rs_conn_compressed.shape)
-    # quit()
 
     map2new = {}
     for i, p in enumerate(p_all):
@@ -118,7 +113,8 @@ def uncompress_conn(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
 def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                    all_pda, all_pdp, all_pva, all_pvp, lr='LR',
                    combine_regions=False, bilateral=False,
-                   reg_global=True, no_compcor=True):
+                   reg_global=True, no_compcor=True,
+                   ix=True):
     kw = {'lr': lr, 'combine_regions': combine_regions,
           'bilateral': bilateral,
           'reg_global': reg_global, 'no_compcor': no_compcor,
@@ -137,86 +133,62 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     #                           n_roi)
     # print(f'RS time: {time() - t_st:.5f} s')
 
-    dd = rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :]
-    dd = np.nanmean(dd, axis=(1, 2))
+    if ix:
+        dd = rs_conn[:, *np.ix_(p_d_ant, p_d_pos), :]
+        dd = np.nanmean(dd, axis=(1, 2))
+    else:
+        dd = rs_conn[:, p_d_ant, p_d_pos, :]
+        dd = np.nanmean(dd, axis=1)
     dd_ = stats.zscore(dd, axis=1)
-    vv = rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :]
-    vv = np.nanmean(vv, axis=(1, 2))
+    if ix:
+        vv = rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :]
+        vv = np.nanmean(vv, axis=(1, 2))
+    else:
+        vv = rs_conn[:, p_v_ant, p_v_pos, :]
+        vv = np.nanmean(vv, axis=1)
+    # vv = rs_conn[:, *np.ix_(p_v_ant, p_v_pos), :]
+    # vv = np.nanmean(vv, axis=(1, 2))
     vv_ = stats.zscore(vv, axis=1)
     dd_vv = dd_ + vv_
-    dv_ant = rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :]
-    dv_ant = np.nanmean(dv_ant, axis=(1, 2))
+    if ix:
+        dv_ant = rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :]
+        dv_ant = np.nanmean(dv_ant, axis=(1, 2))
+    else:
+        dv_ant = rs_conn[:, p_d_ant, p_v_ant, :]
+        dv_ant = np.nanmean(dv_ant, axis=1)
+    # dv_ant = rs_conn[:, *np.ix_(p_d_ant, p_v_ant), :]
+    # dv_ant = np.nanmean(dv_ant, axis=(1, 2))
     dv_ant_ = stats.zscore(dv_ant, axis=1)
-    dv_pos = rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :]
-    dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    if ix:
+        dv_pos = rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :]
+        dv_pos = np.nanmean(dv_pos, axis=(1, 2))
+    else:
+        dv_pos = rs_conn[:, p_d_pos, p_v_pos, :]
+        dv_pos = np.nanmean(dv_pos, axis=1)
+    # dv_pos = rs_conn[:, *np.ix_(p_d_pos, p_v_pos), :]
+    # dv_pos = np.nanmean(dv_pos, axis=(1, 2))
     dv_pos_ = stats.zscore(dv_pos, axis=1)
     dv_dv = dv_ant_ + dv_pos_
 
     ef = np.nanmean(np.abs(dd_vv - dv_dv), axis=1)
     return ef
 
-    # return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
-
-# def get_HCP_rs(sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos, lr='LR',
-#                combine_regions=False, bilateral=False,
-#                reg_global=True, no_compcor=True):
-#     # atlas = get_atlas(combine_regions=combine_regions,
-#     #                   combine_bilateral=bilateral,
-#     #                   HCP=True)
-#     kw = {'sn': sn, 'lr': lr, 'combine_regions': combine_regions,
-#           'bilateral': bilateral,
-#           'reg_global': reg_global, 'no_compcor': no_compcor,
-#           'rs': True}
-#
-#     rs_conn = get_rs_conn(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-#                           **kw)
-#
-#     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-#     #     get_vendor_partitions(age='healthy', anat=True, weighted=False,
-#     #                           flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
-#     #                           combine_regions=combine_regions)
-#
-#     dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
-#     dd = np.nanmean(dd, axis=(0, 1))
-#     dd_ = stats.zscore(dd)
-#     vv = rs_conn[*np.ix_(p_v_ant, p_v_pos), :]
-#     vv = np.nanmean(vv, axis=(0, 1))
-#     vv_ = stats.zscore(vv)
-#     dd_vv = dd_ + vv_
-#     dv_ant = rs_conn[*np.ix_(p_d_ant, p_v_ant), :]
-#     dv_ant = np.nanmean(dv_ant, axis=(0, 1))
-#     dv_ant_ = stats.zscore(dv_ant)
-#     dv_pos = rs_conn[*np.ix_(p_d_pos, p_v_pos), :]
-#     dv_pos = np.nanmean(dv_pos, axis=(0, 1))
-#     dv_pos_ = stats.zscore(dv_pos)
-#     dv_dv = dv_ant_ + dv_pos_
-#
-#     return dd_vv, dv_dv, dd, vv, dv_ant, dv_pos
-#
-# def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-#                    lr='LR', combine_regions=False, bilateral=False,
-#                    reg_global=True, no_compcor=True):
-#     dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l = [], [], [], [], [], []
-#     efs = []
-#     for sn in sns:
-#         dd_vv, dv_dv, dd, vv, dv_ant, dv_pos = get_HCP_rs(
-#             sn, p_d_ant, p_d_pos, p_v_ant, p_v_pos, lr=lr,
-#             combine_regions=combine_regions, bilateral=bilateral,
-#             reg_global=reg_global, no_compcor=no_compcor)
-#         ef = np.nanmean(np.abs(dd_vv - dv_dv))
-#         efs.append(ef)
-#     ef = np.array(efs)
-#     return ef
-    # return dd_vv_l, dv_dv_l, dd_l, vv_l, dv_ant_l, dv_pos_l
-
 def get_HCP_task_conn(sns, combine_regions, bilateral,
                       reg_global, no_compcor):
 
+    # kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
+    #       'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.5,
+    #       'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
+    #       'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
+    #       'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
+
     kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
-          'drop_neut': True, 'only': None, 'num_sns': 1000, 'cont_PE': 0.5,
-          'cont_PE_by_event': True, 'regr_M': True, 'lr_separate': True,
-          'reg_global': reg_global, 'no_compcor': no_compcor, 'median_split': True,
-          'drop_first': False, 'both_bhv': True, 'reset_trial0': True}
+          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
+          'cont_PE_by_event': True,
+          'regr_M': True, 'lr_separate': True,
+          'reg_global': True, 'no_compcor': True, 'median_split': True,
+          'drop_first': False, 'both_bhv': True, 'reset_trial0': True,
+          }
 
     # below = decent rs x task
     # kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
@@ -341,17 +313,18 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     print(f'Overall RS: N = {len(sns_rs)}')
 
     sns_overlap = sns_task.intersection(sns_rs)
-
     bad_sns = {'263436'}
+    # bad_sns = {'263436',
+    #            '119833', '186949', '196952', '202820', '284646'}
     sns_overlap = sorted(list(sns_overlap - bad_sns))
 
     print(f'Number of overlapping non-bad sns: {len(sns_overlap)}')
     return sns_overlap
 
-def do_analysis(num_test=1_000, ctrl_group=False,
-                skip_other=True, all_roi=False, ix=True, anat_ver=3,
-                combine_regions=False, n='7', std_d=True,
-                shuffle_seed=None):
+def do_analysis(num_test=10_000, ctrl_group=False,
+                skip_other=True, all_roi=False, ix=False, anat_ver=3,
+                combine_regions=False, std_d=True,
+                shuffle_seed=None, concat_rs_ar=False):
 
     task_reg_global = True
     task_no_compcor = True
@@ -370,18 +343,31 @@ def do_analysis(num_test=1_000, ctrl_group=False,
                                                          all_roi=all_roi,
                                                          anat_ver=anat_ver,
                                                          combine_regions=combine_regions)
+    # print(p_d_ant)
+    # quit()
     p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all, p_no_all = (
         get_quads(False, all_roi=all_roi, anat_ver=anat_ver,
                   combine_regions=combine_regions))
 
-    print(f'{p_v_pos=}')
-    # rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-    #                         lr='LR', combine_regions=combine_regions, bilateral=False,
-    #                         reg_global=True, no_compcor=True, anat_ver=3)
-    # task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-    #                         combine_regions=combine_regions, bilateral=False)
-    # r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
-    # print(f'Overall: {r=:.2f}, {p=:.2f}')
+    if ix:
+        rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                lr='LR', combine_regions=combine_regions, bilateral=False,
+                                reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                    ix=ix)
+        rs_efs_all_rl = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                lr='RL', combine_regions=combine_regions, bilateral=False,
+                                reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                       ix=ix)
+        rs_efs_all = np.nanmean([rs_efs_all, rs_efs_all_rl], axis=0)
+
+        task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                                combine_regions=combine_regions, bilateral=False)
+        task_efs_all = np.abs(task_efs_all)
+        r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
+        print(f'Overall: {r=:.4f}, {p=:.2f}')
+    # quit()
 
 
     p_no = tuple(p_no)
@@ -422,19 +408,39 @@ def do_analysis(num_test=1_000, ctrl_group=False,
             pvp_i = [d]
 
         t_st = time()
-        rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='LR', combine_regions=combine_regions, bilateral=False,
-                                reg_global=rs_reg_global, no_compcor=rs_no_compcor)
-        rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='RL', combine_regions=combine_regions, bilateral=False,
-                                reg_global=rs_reg_global, no_compcor=rs_no_compcor)
-        # print(f'{len(rs_efs)=}')
-        # print(f'{len(rs_efs2)=}')
-        rs_efs = np.nanmean([rs_efs, rs_efs2], axis=0)
-        # print(rs_efs.shape)
+        if concat_rs_ar:
+            rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+                                    p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                    lr='LR_RL', combine_regions=combine_regions, bilateral=False,
+                                    reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                    ix=ix)
+        else:
+            rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+                                    p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                    lr='LR', combine_regions=combine_regions, bilateral=False,
+                                    reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                    ix=ix)
+            rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+                                     p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                     lr='RL', combine_regions=combine_regions, bilateral=False,
+                                     reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                     ix=ix)
+            rs_efs = np.nanmean([rs_efs, rs_efs2], axis=0)
+        # rs_efs = np.abs(rs_efs)
+
+        print(f'{ctrl_group=}')
+        print(f'{ix=}')
+        if ctrl_group:
+            rs_efs -= np.nanmean(rs_efs)
+
+        # nan_idxs = np.isnan(rs_efs)
+        # nan_sns = sns[nan_idxs]
+        # print(f'{np.where(nan_idxs)=}')
+        # nan_sns = [sns[idx] for idx in nan_idxs]
+        # nan_sns = [sn for (sn, nan) in zip(sns, nan_idxs) if nan]
+        # print(f'{nan_sns=}')
         # quit()
+
         print(f'Resting time: {time() - t_st:.5f} s')
         # combined regions within-subject effects depend on reg_global?
 
@@ -442,14 +448,18 @@ def do_analysis(num_test=1_000, ctrl_group=False,
         task_efs = get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 combine_regions=combine_regions, bilateral=False,
                                 reg_global=task_reg_global, no_compcor=task_no_compcor)
-        # print(f'{len(task_efs)=}')
+        # task_efs = np.abs(task_efs)
+        if ctrl_group:
+            task_efs -= np.nanmean(task_efs)
+
         print(f'\tTask time: {time() - t_st:.5f} s')
         # for rs_ef, sn in zip(rs_efs, sns):
         #     print(f'{rs_ef}: {sn}')
         # print(rs_efs)
         # print(task_efs)
         num_nans = np.sum(np.isnan(rs_efs))
-        assert num_nans == 0
+        # p_nan = num_nans / len(rs_efs)
+        assert num_nans == 0, f'{num_nans=}, f{rs_efs.shape=}'
         # r, p = stats.spearmanr(rs_efs, task_efs)
         # task_x_rs.append(r)
         # if len(task_x_rs) > 1:
@@ -460,6 +470,7 @@ def do_analysis(num_test=1_000, ctrl_group=False,
         task_efs_l.append(task_efs)
         rs_efs_l.append(rs_efs)
 
+        print(f'{concat_rs_ar=}')
         test_corrs(task_efs_l, rs_efs_l)
 
 def test_corrs(task_efs_l, rs_efs_l):
@@ -468,16 +479,22 @@ def test_corrs(task_efs_l, rs_efs_l):
                                                np.array(rs_efs_l).T)):
         r, p = stats.spearmanr(task_efs, rs_efs)
         t_l.append(r)
+    within_l = t_l
+    print(f'{within_l=}')
+
     N = len(t_l)
     M_r = np.nanmean(t_l)
-    t, p = stats.ttest_1samp(t_l, 0)
-    print(f'Within-subj: Mean r = {M_r:.3f}, '
-          f't[{N - 1}] = {t:.2f}, {p=:.3f}')
+    t_within, p_within = stats.ttest_1samp(t_l, 0)
 
     t_l = []
     for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l, rs_efs_l)):
         r, p = stats.spearmanr(task_efs, rs_efs)
         t_l.append(r)
+    across_l = t_l
+    print(f'{across_l=}')
+    print(f'Within-subj: Mean r = {M_r:.3f}, '
+          f't[{N - 1}] = {t_within:.2f}, p={p_within:.3f}')
+
     N = len(t_l)
     M_r = np.nanmean(t_l)
     t, p = stats.ttest_1samp(t_l, 0)

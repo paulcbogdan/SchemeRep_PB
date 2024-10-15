@@ -25,6 +25,8 @@ def extractall(fzip, dest, desc="Extracting", override=False):
     ) as pbar:
         for i in zipf.infolist():
             fn = os.path.split(i.filename)[-1]
+            # print(fn)
+            # quit()
             if '.nii' in fn or '.gii' in fn:
                 if fn not in ['rfMRI_REST1_RL.nii.gz',
                               'rfMRI_REST1_LR.nii.gz',
@@ -40,8 +42,11 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_resting(override=False, slow_check=True):
+def unzip_all_resting(override=True, slow_check=True):
     sns = get_sns()
+
+    # sns = {'263436',
+    #            '119833', '186949', '196952', '202820', '284646'}
 
     # sns = {'150423', '171734', '119833', '127933', '128127',
     #            '127327', '105216', '105014', '203418', '203923',
@@ -58,7 +63,7 @@ def unzip_all_resting(override=False, slow_check=True):
     # print(f'{len(sns)=}')
     # quit()
     # sns = ['100206']
-    # sns = sns[::8]
+    # sns = sns[::-1]
     for sn in sns:
         # if sn == '106824' and not override:
         #     # errors
@@ -100,6 +105,8 @@ def unzip_all_resting(override=False, slow_check=True):
         print(f'Unzipping: {sn}')
         dest_unzip = rf'G:\HCP_RS_unzipped'
         Path(dest_unzip).mkdir(exist_ok=True, parents=True)
+        # print(dest_unzip)
+        # quit()
 
         try:
             extractall(fp_zip, dest_unzip, override=True)
