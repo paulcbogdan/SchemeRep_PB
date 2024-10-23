@@ -42,7 +42,7 @@ def extractall(fzip, dest, desc="Extracting", override=False):
                 with zipf.open(i) as fi, open(fspath(dest / i.filename), "wb") as fo:
                     copyfileobj(CallbackIOWrapper(pbar.update, fi), fo)
 
-def unzip_all_resting(override=True, slow_check=True):
+def unzip_all_resting(override=False, slow_check=True):
     sns = get_sns()
 
     # sns = {'263436',

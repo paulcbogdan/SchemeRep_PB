@@ -89,19 +89,21 @@ def plot_EEG_x_fMRI():
     plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
     plt.xlim(0, 20)
 
+    osc_a *= -1
+
     VD = osc_a
     PA = -osc_a
 
     plt.sca(axs[2, 0])
-    plt.title('True VD & PA signals')
-    plt.plot(ts, VD, linewidth=0.5, color='red', label='VD')
+    plt.title('True PA & VD signals')
     plt.plot(ts, PA, linewidth=0.5, color='blue', label='PA')
+    plt.plot(ts, VD, linewidth=0.5, color='red', label='VD')
     l = plt.legend(frameon=False, loc=(0.505, 0.73), ncol=2,
                    columnspacing=0.6, handlelength=1, fontsize=12,
                    handletextpad=0.4)
-    l.get_texts()[0].set_color('red')
+    l.get_texts()[0].set_color('blue')
     l.legend_handles[0].set_linewidth(1.05)
-    l.get_texts()[1].set_color('blue')
+    l.get_texts()[1].set_color('red')
     l.legend_handles[1].set_linewidth(1.05)
     setup_x(time)
 
@@ -114,21 +116,26 @@ def plot_EEG_x_fMRI():
     PA_ = PA.reshape(-1, true_bins_TR).mean(axis=1)
 
     plt.sca(axs[3, 0])
-    plt.title('Measured VD & PA signals')
+    plt.title('Measured PA & VD signals')
     for i in range(len(ts_)):
         t = ts_[i]
         plt.plot([t, t], [VD_[i], PA_[i]], color='purple', linewidth=1,
                  zorder=-1, linestyle='--')
     plt.scatter(ts_, VD_, linewidth=0.5, color='red', label='VD')
     plt.scatter(ts_, PA_, linewidth=0.5, color='blue', label='PA')
-    plt.text(16, 0.1, 'VD', color='red', ha='center', fontsize=12, va='center')
-    plt.text(16, -0.117, 'PA', color='blue', ha='center', fontsize=12,
+    # plt.text(16, 0.1, 'VD', color='red', ha='center', fontsize=12, va='center')
+    # plt.text(16, -0.117, 'PA', color='blue', ha='center', fontsize=12,
+    #          va='center')
+    plt.text(16, 0.1, 'PA', color='blue', ha='center', fontsize=12, va='center')
+    plt.text(16, -0.117, 'VD', color='red', ha='center', fontsize=12,
              va='center')
+
+
     plt.ylim(-.18, .18)
     setup_x(time)
 
     plt.sca(axs[4, 0])
-    plt.title(f'|VD - PA| difference')
+    plt.title(f'|PA - VD| difference')
     ds = np.abs(VD_ - PA_)
     plt.scatter(ts_, ds, linewidth=0.5, color='purple')
     plt.ylim(0, 0.33)
@@ -217,6 +224,8 @@ def plot_EEG_x_fMRI():
              va='bottom', fontweight="bold", fontsize=12)
 
     # plt.tight_layout()
+    fp_out = fr'result_pics/other/EEG_fMRI_sim.png'
+    plt.savefig(fp_out, dpi=600)
     plt.show()
 
 
@@ -263,40 +272,6 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
     # d = np.abs(np.fft.fft(noisy_oscillator_fMRI))
     d = np.abs(noisy_oscillator_fMRI - noisy_osc_inv_fMRI)
 
-    # ts_fMRI = np.linspace(0, time, time // fMRI_TR)
-    # m_fMRI = np.max(noisy_oscillator_fMRI)
-
-    # plt.plot(ts_fMRI, noisy_oscillator_TR)
-    # plt.plot(ts_fMRI, noisy_osc_inv_TR)
-    # plt.plot(ts_fMRI, np.abs(noisy_oscillator_TR - noisy_osc_inv_TR))
-    #
-    # d0 = np.abs(noisy_osc.reshape(-1, true_bins_TR).mean(axis=1) -
-    #             noisy_osc_inv.reshape(-1, true_bins_TR).mean(axis=1))
-    # d1 = np.abs(noisy_osc - noisy_osc_inv).reshape(-1, true_bins_TR).mean(axis=1)
-    # d = conv_quick(d1)
-    #
-    # plt.plot(ts_fMRI, d1)
-    #
-    # ts_true = np.linspace(0, time, time * true_resolution,)
-    #
-    # plt.plot(ts_true, noisy_osc, linewidth=0.5, alpha=.2)
-    # plt.plot(ts_true, noisy_osc_inv, linewidth=0.5, alpha=.2)
-    #
-    # plt.show()
-    # quit()
-
-    # d0 = np.abs(noisy_osc.reshape(-1, true_bins_TR).mean(axis=1) -
-    #             noisy_osc_inv.reshape(-1, true_bins_TR).mean(axis=1))
-    #
-    # d1 = np.abs(noisy_osc - noisy_osc_inv).reshape(-1, true_bins_TR).mean(axis=1)
-    # # d1 = conv_quick(d)
-    # r, p = stats.spearmanr(d0, d1)
-    # plt.hist2d(d0, d1, bins=100)
-    # plt.show()
-    # print('d0 vs d1', r)
-    # quit()
-
-    # d = np.abs(noisy_oscillator_fMRI)
 
     # r, p = stats.spearmanr(d, amplitude_fMRI)
 
@@ -360,8 +335,8 @@ def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     print(f'{noise_mag:.2f} | {M=:.4f}, {SE=:.4f}')
 
 if __name__ == '__main__':
-    do_EEG_fMRI_sim(noise_mag=0.5, time=300_000)
-    # plot_EEG_x_fMRI()
+    # do_EEG_fMRI_sim(noise_mag=0.5, time=300_000)
+    plot_EEG_x_fMRI()
     # quit()
 
     # noise_mag = 0.1

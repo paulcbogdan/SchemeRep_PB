@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from connRSA.information_connectivity import get_idxs
 
 
-def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=True): # 'turbo'
+def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
 
 
     atlas = get_atlas(combine_regions=False)
@@ -35,9 +35,26 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=True): # 'turbo'
     fig = plt.figure(figsize=(4.2, 5))
 
     plotting.plot_glass_brain(img, cmap='turbo',#plt.get_cmap(cmap),
-                              black_bg=False, vmin=0.5,
+                              black_bg=False,
+                              vmin=0.5,
                               resampling_interpolation='nearest',
-                              display_mode='x', figure=fig)
+                              display_mode='x', figure=fig,
+                              alpha=.0
+                              # bg_img=None
+                              )
+    # plotting.plot_img(img, cmap='turbo',  # plt.get_cmap(cmap),
+    #                           black_bg=True,
+    #                           vmin=0.5,
+    #                           resampling_interpolation='nearest',
+    #                           display_mode='x', figure=fig,
+    #                           # bg_img=None
+    #                           )
+    # plotting.plot_roi(img, cmap='turbo',#plt.get_cmap(cmap),
+    #                           # black_bg=False,
+    #                           vmin=0.5,
+    #                           resampling_interpolation='nearest',
+    #                           display_mode='x', figure=fig,
+    #                           bg_img=None)
     plt.show()
 
 
@@ -72,4 +89,4 @@ def do_slicing(data):
 
 if __name__ == '__main__':
     for target in ['Occipital', 'IT', 'ITL', 'Parietal', 'PFC', 'OC_IT']:
-        plot_large_avg_ROIs(target)
+        plot_large_avg_ROIs(target, )

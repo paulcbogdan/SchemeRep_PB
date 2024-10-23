@@ -50,7 +50,6 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
     #                                easy_override=False, verbose=1,
     #                                cache_dir=dir_results)
     #     report_results(results_conn, do_lmer=False)
-        # quit()
 
     if ('RDM_method' in settings and (settings['RDM_method'] is not None) and
             'complex_mean' in settings['RDM_method']):

@@ -109,7 +109,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plt.ylabel(r'Effect size', labelpad=7)
     else:
         if flip_VD:
-            plt.ylabel(f'Connectivity (|VD-PA|)\n× ' + r'Power (A$^{\rm 2}$)',
+            plt.ylabel(f'Connectivity (|PA-VD|)\n× ' + r'Power (A$^{\rm 2}$)',
                        labelpad=7, fontsize=13)
         else:
             plt.ylabel(f'Connectivity (|PA-VD|)\n× ' + r'Power (A$^{\rm 2}$)',
@@ -190,4 +190,3 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     if flip_VD and not effect_size:
         plot_hz_corrs(name2r, effect_size=effect_size, t_vals=t_vals,
                       plot_se=plot_se, flip_VD=False)
-

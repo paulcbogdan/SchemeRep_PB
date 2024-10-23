@@ -188,6 +188,7 @@ def get_HCP_task_conn(sns, combine_regions, bilateral,
           'regr_M': True, 'lr_separate': True,
           'reg_global': True, 'no_compcor': True, 'median_split': True,
           'drop_first': False, 'both_bhv': True, 'reset_trial0': True,
+          'sns_final': True
           }
 
     # below = decent rs x task
@@ -313,18 +314,22 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     print(f'Overall RS: N = {len(sns_rs)}')
 
     sns_overlap = sns_task.intersection(sns_rs)
-    bad_sns = {'263436'}
+    bad_sns = {'263436',}
+               # '100206', '100408', '100307', '100610'}
     # bad_sns = {'263436',
     #            '119833', '186949', '196952', '202820', '284646'}
     sns_overlap = sorted(list(sns_overlap - bad_sns))
+    # print(sns_overlap)
+    # quit()
 
     print(f'Number of overlapping non-bad sns: {len(sns_overlap)}')
     return sns_overlap
 
 def do_analysis(num_test=10_000, ctrl_group=False,
                 skip_other=True, all_roi=False, ix=False, anat_ver=3,
-                combine_regions=False, std_d=True,
-                shuffle_seed=None, concat_rs_ar=False):
+                combine_regions=True, std_d=True,
+                shuffle_seed=None, concat_rs_ar=False, lateral=False,
+                ctrl_group2=True):
 
     task_reg_global = True
     task_no_compcor = True
@@ -333,13 +338,14 @@ def do_analysis(num_test=10_000, ctrl_group=False,
 
     sns = find_overlapping_sns()
 
-    print(f'{sns=}')
 
     sns = sorted(sns)[:1000]
     print(f'{len(sns)=}')
+    print(f'{sns=}')
+    quit()
     print(f'{skip_other=}')
 
-    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other,
+    p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = get_quads(skip_other or lateral,
                                                          all_roi=all_roi,
                                                          anat_ver=anat_ver,
                                                          combine_regions=combine_regions)
@@ -351,14 +357,14 @@ def do_analysis(num_test=10_000, ctrl_group=False,
 
     if ix:
         rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='LR', combine_regions=combine_regions, bilateral=False,
-                                reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                    p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                    lr='LR', combine_regions=combine_regions, bilateral=False,
+                                    reg_global=rs_reg_global, no_compcor=rs_no_compcor,
                                     ix=ix)
         rs_efs_all_rl = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='RL', combine_regions=combine_regions, bilateral=False,
-                                reg_global=rs_reg_global, no_compcor=rs_no_compcor,
+                                       p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+                                       lr='RL', combine_regions=combine_regions, bilateral=False,
+                                       reg_global=rs_reg_global, no_compcor=rs_no_compcor,
                                        ix=ix)
         rs_efs_all = np.nanmean([rs_efs_all, rs_efs_all_rl], axis=0)
 
@@ -367,8 +373,6 @@ def do_analysis(num_test=10_000, ctrl_group=False,
         task_efs_all = np.abs(task_efs_all)
         r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
         print(f'Overall: {r=:.4f}, {p=:.2f}')
-    # quit()
-
 
     p_no = tuple(p_no)
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
@@ -387,6 +391,8 @@ def do_analysis(num_test=10_000, ctrl_group=False,
         if len({a, b, c, d}) < 4:
             continue
         combos_.append((a, b, c, d))
+        if lateral:
+            combos_.append((a + 1, b + 1, c + 1, d + 1))
     combos = combos_
 
     # print('Running...')
@@ -467,31 +473,54 @@ def do_analysis(num_test=10_000, ctrl_group=False,
         #     N = len(task_x_rs)
         #     print(f't[{N-1}] = {t:.2f}, {p=:.3f}')
 
+
+
         task_efs_l.append(task_efs)
         rs_efs_l.append(rs_efs)
 
-        print(f'{concat_rs_ar=}')
-        test_corrs(task_efs_l, rs_efs_l)
+        import pickle
+        print(np.array(task_efs_l).shape)
+        if np.array(task_efs_l).shape[1] % 10 == 0:
 
-def test_corrs(task_efs_l, rs_efs_l):
+            str_shape = '_' + str(np.array(task_efs_l).shape)
+            fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\HCP_rs_x_task_corr_{str_shape}_task.pkl'
+            with open(fp_pkl, 'wb') as f:
+                pickle.dump(task_efs_l, f)
+            fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\HCP_rs_x_task_corr_{str_shape}_rs.pkl'
+            with open(fp_pkl, 'wb') as f:
+                pickle.dump(rs_efs_l, f)
+
+        print(f'{concat_rs_ar=}')
+        test_corrs(task_efs_l, rs_efs_l, ctrl_group2=ctrl_group2)
+
+def test_corrs(task_efs_l, rs_efs_l, ctrl_group2=True):
+
     t_l = []
     for i, (task_efs, rs_efs) in enumerate(zip(np.array(task_efs_l).T,
                                                np.array(rs_efs_l).T)):
         r, p = stats.spearmanr(task_efs, rs_efs)
         t_l.append(r)
     within_l = t_l
-    print(f'{within_l=}')
+    # print(f'{within_l=}')
 
     N = len(t_l)
     M_r = np.nanmean(t_l)
     t_within, p_within = stats.ttest_1samp(t_l, 0)
 
     t_l = []
-    for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l, rs_efs_l)):
+    # if ctrl_spear:
+    #     pass
+    if ctrl_group2:
+        # task_efs_l_ = np.array(task_efs_l) - np.nanmean(task_efs_l, axis=0)[None, :]
+        task_efs_l_ = np.array(task_efs_l) - np.nanmean(task_efs_l, axis=1)[:, None]
+    else:
+        task_efs_l_ = np.array(task_efs_l)
+    # print(f'{np.array(task_efs_l).shape=}')
+    for i, (task_efs, rs_efs) in enumerate(zip(task_efs_l_, rs_efs_l)):
         r, p = stats.spearmanr(task_efs, rs_efs)
         t_l.append(r)
     across_l = t_l
-    print(f'{across_l=}')
+    # print(f'{across_l=}')
     print(f'Within-subj: Mean r = {M_r:.3f}, '
           f't[{N - 1}] = {t_within:.2f}, p={p_within:.3f}')
 
