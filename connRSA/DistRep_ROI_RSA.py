@@ -6,7 +6,7 @@ from connRSA.single_trial_conn import run_settings
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # from single_trial_conn import run_settings
-from conn_report import report_results
+from connRSA.old_Oct29.conn_report import report_results
 from utils import pickle_wrap
 
 

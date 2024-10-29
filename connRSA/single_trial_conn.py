@@ -10,7 +10,7 @@ from pprint import pprint
 from atlas_utils import get_atlas
 from connRSA.old_Sep29.conn_RSA import RSA_sn
 from connRSA.old_Sep29.conn_ERS import ERS_sn
-from conn_report import report_results
+from connRSA.old_Oct29.conn_report import report_results
 from connRSA.old.conn_old import visualize_region_matrix, visualize_ROIs, RSA_ROI, RSA_ROI_pairwise, RSA_edgewise
 from conn_utils import get_BNA_ROIs
 # from old.networks import prep_networks
@@ -341,59 +341,3 @@ def run_analysis(RSA=True, semantic=False, do_networks=1,
         report_results(results, do_lmer=True)
     else:
         visualize_region_matrix(results, plot_lmer=True)
-
-def run_analysis_toggles():
-    # RDM_method = 'clever_std_complex_mean'
-    # RDM_method = 'clever_std'
-    RDM_method = 'within_nan'
-    trial_similarity_toggle = ['corr']#, 'corr']
-    four_tasks_toggle = ['7']
-    conn_toggle = ['prod', 'euc']
-    split_toggle = [False]
-    # atlas = 'schaefer'
-    atlas = 'BNA'
-    # atlas = None
-    age = 'healthy'
-    # age = 1
-    combine_regions = False
-    # plotting = 'regions'
-    # plotting = 'ROIs_PFC2_ctrl'
-    # plotting = 'ROIs'
-    plotting = None
-    # 'ROIs_ctrl' # no ROI is above t=2.1 for whole-brain
-    # plotting = 'regions'
-    # second_order = 'spear'
-    second_order = 'spear'
-    # analyses = [(True, True)]
-    # analyses = [(True, False)]
-    # analyses = [(False, False), (True, True), (True, False)]
-    # analyses = [(False, False)]
-    analyses = [(True, False)]
-    # analyses = [(True, True)]
-    for trial_similarity in trial_similarity_toggle:
-        for four_tasks in four_tasks_toggle:
-            for do_networks in [1]:
-                for conn in conn_toggle:
-                    for split in split_toggle:
-                        for (RSA, semantic) in analyses:
-                            try:
-                                run_analysis(conn=conn,
-                                             trial_similarity=trial_similarity,
-                                             four_tasks=four_tasks,
-                                             split=split,
-                                             RSA=RSA, semantic=semantic,
-                                             do_networks=do_networks,
-                                             RDM_method=RDM_method,
-                                             combine_regions=combine_regions,
-                                             second_order=second_order,
-                                             age=age, plotting=plotting,
-                                             atlas=atlas,
-                                             stdize_by_run=True)
-                            except AssertionError as e:
-                                print(f'Assertion no bueno: {e}')
-                                pass
-
-if __name__ == '__main__':
-    EASY_OVERRIDE = False
-    run_analysis_toggles()
-

@@ -2,7 +2,7 @@ from atlas_utils import get_atlas
 import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
-from connRSA.information_connectivity import get_idxs
+from connRSA.conn_Fig6 import get_idxs
 
 
 def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
@@ -16,6 +16,7 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     #     print(f'{region_OG} | {region}: {ROI}')
 
     rois = sorted(get_idxs(system))
+    print(f'{system} | number of ROIs: {len(rois)}')
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
 
@@ -38,17 +39,12 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
                               black_bg=False,
                               vmin=0.5,
                               resampling_interpolation='nearest',
-                              display_mode='x', figure=fig,
-                              alpha=.0
+                              display_mode='x',
+                              figure=fig,
+                              # alpha=.0
                               # bg_img=None
                               )
-    # plotting.plot_img(img, cmap='turbo',  # plt.get_cmap(cmap),
-    #                           black_bg=True,
-    #                           vmin=0.5,
-    #                           resampling_interpolation='nearest',
-    #                           display_mode='x', figure=fig,
-    #                           # bg_img=None
-    #                           )
+
     # plotting.plot_roi(img, cmap='turbo',#plt.get_cmap(cmap),
     #                           # black_bg=False,
     #                           vmin=0.5,

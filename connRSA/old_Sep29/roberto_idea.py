@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 
-from connRSA.information_connectivity import get_cross_ERS_mat, get_idxs, get_cross_IRAF_mat
+from connRSA.conn_Fig6 import get_cross_ERS_mat, get_idxs, get_cross_IRAF_mat
 from connRSA.single_trial_conn import prep_fps
 from utils import pickle_wrap
 import numpy as np
