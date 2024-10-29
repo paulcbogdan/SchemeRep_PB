@@ -166,15 +166,21 @@ def interaction_bars(kwargs):
     plt.show()
 
 
-def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
+def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False,
+                       drop_partial_bad_runs=False):
     fps = prep_fps(kwargs['four_tasks'])
 
-    # fps = ['con7_fMRI']
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
                 ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+    # '132' # has corrupted run 3
+    # '138' # Bad retrieval session for run 3
+    # '224' # Was not able to finish the last run of encoding
+    # '234' # Was not able to finish the first run of encoding
+
+    # sns = ['132', '138', '224', '224']
 
     betas1_all = np.full((len(sns), len(fps)), np.nan)
     betas2_all = np.full((len(sns), len(fps)), np.nan)
@@ -185,20 +191,14 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
             kwargs['return_dif'] = True
             kwargs['sn'] = sn
             kwargs['fp'] = fp
-            if (sn, fp) in bad_tups:
-                continue
+            if drop_partial_bad_runs:
+                if (sn, fp) in bad_tups:
+                    continue
 
-            # if corr:
-            #     beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-            #                                     verbose=-1)
-            # else:
-            # print(kwargs)
-            # quit()
             beta1, beta2, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                             verbose=-1, easy_override=True)
             if np.isnan(beta1):
                 continue
-            print(f'{beta1=:}, {beta2=:}')
 
             if beta2 is None:
                 if '_M' in kwargs['ROI_focus']:
@@ -222,7 +222,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
     M2 = np.nanmean(M_sns2)
     SE2 = np.nanstd(M_sns2) / np.sqrt(len(M_sns2))
     t2, p2 = stats.ttest_1samp(M_sns2, 0)
-    print(f'{t1=:.3f} {t2=:.3f}')
+    print(f'{t1=:.3f}, {M1=:.2f} | {t2=:.3f}, {M2=:.2f}')
 
     fig = plt.figure(figsize=(4.2, 5))
     fontsize = 20
@@ -267,13 +267,14 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False):
         # minus height accounts for asterisks not being centered in its box
         stars1_height = (M1 - SE1) * .5 - height * .053
         stars_fs = 45 if stars1 not in ['NS', '†']  else 24
-        plt.text(0, stars1_height, stars1, ha='center', va='center',
+        plt.text(1, stars1_height, stars1, ha='center', va='center',
                  color='w', fontsize=stars_fs)
     if M2 > 0 and p2 < .1:
         stars2 = get_stars(p2)
+        # print(f'{p2=:.4f}, {p1=:.4f}')
         stars2_height = (M2 - SE2) * .5 - height * .053
         stars_fs = 45 if stars2 not in ['NS', '†'] else 24
-        plt.text(1, stars2_height, stars2, ha='center', va='center',
+        plt.text(0, stars2_height, stars2, ha='center', va='center',
                  color='w', fontsize=stars_fs)
 
 
@@ -311,7 +312,7 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
     # target_ROIs = ['FP', 'DMN', 'FPT']
     # target_ROIs = ['IT']
-    target_ROIs = ['Occipital', 'ITL']
+    target_ROIs = ['ITL'] # DECIDE FINALIZE ITL or IT
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
@@ -397,7 +398,7 @@ def strict_correlations(kwargs):
         print(f'{cond=}, {t=:.3f}, {p=:.3f}')
     return
 
-def plot_Figure6_bars(region='Occipital'):
+def plot_FigureS1_bars_region(region='Occipital'):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -575,21 +576,13 @@ def plot_Figure5_bars():
     # do_regr_dif(semantic=True, inter=False, strict_corr=False)
     quit()
 
+def plot_FigureS1_bars():
+    # plot_FigureS1_bars_region('Occipital')
+    plot_FigureS1_bars_region('ITL')
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    plot_Figure5_bars()
-    # interaction_within_region()
-    # plot_Figure6_bars('IT')
-    # plot_Figure6_bars('Occipital')
-
-    # quit()
-    # do_regr_dif()
-    # do_regr_dif(semantic=True)
-    # do_regr_dif(semantic=False, inter=False)
-
-    # do_regr_dif(semantic=False)
-
-
+    plot_FigureS1_bars()
+    # plot_Figure5_bars()

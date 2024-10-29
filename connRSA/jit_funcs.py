@@ -175,7 +175,7 @@ def prep_data_Ms(data_2d, neighbors):
     return out
 
 
-@njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
+# @njit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
 def jit_volume_searchlight(mask, radius=2, threshold=0.5, resample=1):
     X_len = mask.shape[0]
     Y_len = mask.shape[1]
@@ -198,6 +198,7 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5, resample=1):
     # Define sphere as points relative to a center (e.g., [-1, 0, 2])
     radius_sq = radius * radius
     rel_points = np.full(((radius * 2) ** 3, 3), NAN_VAL, dtype=np.int32)
+    print(f'{rel_points.shape=}')
     cnt = 0
     for x in range(-radius, radius+1):
         for y in range(-radius, radius+1):
@@ -206,6 +207,8 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5, resample=1):
                     rel_points[cnt, :] = [x, y, z]
                     cnt += 1
     rel_points = rel_points[:cnt]
+    print(f'{rel_points.shape=}')
+    quit()
     max_cnt = rel_points.shape[0]
 
     if resample > 1:

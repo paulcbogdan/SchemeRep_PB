@@ -459,7 +459,8 @@ def get_plain_corr():
         corrs.append(sn_conn)
     return np.array(corrs).transpose((1, 0, 2, 3))
 
-def corr_RSA_conn(main_key='Occipital', semantic=False):
+# TODO: FINALIZE IT or ITL
+def corr_RSA_conn(main_key='ITL', semantic=False):
     df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
@@ -527,8 +528,8 @@ def corr_RSA_conn(main_key='Occipital', semantic=False):
     fp_fig = fr'result_pics/connRSA/RSM_RSM_x_RSA_{main_key}{semantic_str}.png'
     plt.savefig(fp_fig, dpi=600)
     plt.show()
-    df.to_csv('df_conn_x_RSA.csv', index=False)
-    return
+    df.to_csv(r'C:\PycharmProjects\SchemeRep\df_conn_x_RSA.csv', index=False)
+    print('SAVED .CSV')
     quit()
     # quit()
     # print(df['conn'])

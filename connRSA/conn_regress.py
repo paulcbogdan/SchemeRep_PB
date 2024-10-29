@@ -236,14 +236,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
-    # try:
     with open(fp_focus, 'rb') as f:
         RSM_focus = np.load(f)
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
-    # except ValueError as e:
-    #     print(f'{e=}')
-    #     quit()
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 
@@ -265,18 +261,27 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 continue
             with open(fp_ctrl, 'rb') as f:
                 RSM_ctrl = np.load(f)
+                # plt.imshow(RSM_ctrl)
+                # plt.show()
+                # quit()
                 RSM_ctrl_l.append(RSM_ctrl)
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
             flat_ctrl_l.append(flat_ctrls)
         flat_ctrls = np.array(flat_ctrl_l).T
 
         nan_cols = np.isnan(flat_ctrls).any(axis=0)
+        # print(f'{nan_cols=}')
+        # quit()
         n_nans_cols = np.sum(nan_cols)
         n_bad_cols = n_nans_cols + n_skip_cols
         n_good_cols = len(ROIs_ctrl) - n_bad_cols
         n_ctrls = len(ROIs_ctrl)
 
-        if n_good_cols == 0: # accommodate the sns with missing runs
+        bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
+                    ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
+        if (sn, fp) in bad_tups: # Missing one run from these scans
+            pass
+        elif n_good_cols == 0: # accommodate the sns with missing runs
             print(f'No good columns ({sn}, {fp})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
             good_rows = ~np.isnan(flat_ctrls).any(axis=1)
@@ -318,6 +323,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             return IRAFs_focus
             # M = np.nanmean(IRAFs_focus)
             # return M, (M ** 2) * np.sign(M)
+        # print(f'{flat_itr.shape=}')
+        # print(f'{flat_focus.shape=}')
+        # print(f'{flat_ctrls.shape=}')
+        # quit()
 
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:

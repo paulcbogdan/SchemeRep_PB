@@ -19,6 +19,7 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     print(f'{system} | number of ROIs: {len(rois)}')
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
+    return
 
     if voxelwise:
         vmin = np.min(data[data > 0.5])
@@ -53,6 +54,7 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     #                           bg_img=None)
     plt.show()
 
+NUM_VOXELS_ALL = []
 
 def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
     if scramble_order:
@@ -61,8 +63,13 @@ def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
     rois = np.array(rois) + 1
     data_ = data.copy()
     data = np.zeros(data.shape)
+    global NUM_VOXELS_ALL
+    num_voxels_system = []
     for i, roi in enumerate(rois):
         # if roi == 74: continue
+        num_voxels = np.sum(data_ == roi)
+        NUM_VOXELS_ALL.append(num_voxels)
+        num_voxels_system.append(num_voxels)
         if idx_cnt:
             data[data_ == roi] = i + 1
         else:
@@ -70,6 +77,28 @@ def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
     if not idx_cnt:
         lowest_roi = np.min(rois)
         data[data >= lowest_roi] -= (lowest_roi - 1)
+
+
+
+    low_num_voxels_system = np.min(num_voxels_system)
+    high_num_voxels_system = np.max(num_voxels_system)
+    median_num_voxels_system = np.median(num_voxels_system)
+    mean_num_voxels_system = np.mean(num_voxels_system)
+    SD_num_voxels_system = np.std(num_voxels_system)
+    print(f'{low_num_voxels_system=:.0f} | {high_num_voxels_system=:.0f} | {median_num_voxels_system=:.0f} | '
+          f'M = {mean_num_voxels_system:.0f} [SD = {SD_num_voxels_system:.0f}]')
+    plt.hist(num_voxels_system, bins=32, range=(0, 1600))
+    plt.show()
+
+    if len(NUM_VOXELS_ALL) > 100:
+        low_num_voxels = np.min(NUM_VOXELS_ALL)
+        high_num_voxels = np.max(NUM_VOXELS_ALL)
+        median_num_voxels = np.median(NUM_VOXELS_ALL)
+        mean_num_voxels = np.mean(NUM_VOXELS_ALL)
+        SD_num_voxels = np.std(NUM_VOXELS_ALL)
+        print('-' * 50)
+        print(f'{low_num_voxels=:.0f} | {high_num_voxels=:.0f} | {median_num_voxels=:.0f} | '
+              f'M = {mean_num_voxels:.0f} [SD = {SD_num_voxels:.0f}]')
 
     return data
 
@@ -84,5 +113,6 @@ def do_slicing(data):
     return data
 
 if __name__ == '__main__':
-    for target in ['Occipital', 'IT', 'ITL', 'Parietal', 'PFC', 'OC_IT']:
+    # 'ITL', 'OC_IT'
+    for target in ['Occipital', 'IT', 'Parietal', 'PFC']:
         plot_large_avg_ROIs(target, )

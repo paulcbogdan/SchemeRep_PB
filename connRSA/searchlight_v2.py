@@ -385,10 +385,11 @@ if __name__ == '__main__':
     t_end = time()
 
     THRESHOLD = 0.25
+    # THRESHOLD = 0.26
     for NETWORK in ['cortex',  ]:
         for SEMANTIC in [True, False]:
 
-            test_searchlight(radius=6, downsample=1, flip=False,
+            test_searchlight(radius=5, downsample=1, flip=False,
                              semantic=SEMANTIC, resample=10,
                              network=NETWORK, threshold=THRESHOLD)
 
