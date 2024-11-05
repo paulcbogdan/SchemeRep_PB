@@ -26,7 +26,7 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
                           mask_ROIs=None, mult27=False, m_rsm=False,
                           threshold=0.25, super64=False, mini8=False,
                           superdensity=False, no_y_dim=False,
-                          strict27=False, ): # first_level='corr'
+                          strict27=False, cube=True): # first_level='corr'
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
@@ -37,7 +37,7 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
            'flip': flip, 'radius': radius2, 'downsample': downsample2,
            'resample': resample2, 'mask_ROIs': mask_ROIs,
            'threshold': threshold, 'get_sphere_Ms': True,
-           'get_vox2center': True}
+           'get_vox2center': True, 'cube': cube}
     fMRI_RDMs2, mask2, centers2, mask_downsample_pre2, data_Ms, voxel2center = (
         utils.pickle_wrap(full_get_RDMs, kwargs=kw2, verbose=0,
                           easy_override=False))
@@ -56,7 +56,8 @@ def wrapped_jit_cubelight(sn, fp_fMRI_col, semantic,
         kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
                'flip': flip, 'radius': radius1_, 'downsample': downsample1,
                'resample': resample1, 'mask_ROIs': mask_ROIs,
-               'threshold': threshold, 'no_RDMs': True}
+               'threshold': threshold, 'no_RDMs': True,
+               'cube': cube}
         centers1, mask, mask_downsample_pre = (
             utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
                               easy_override=False))
@@ -320,7 +321,10 @@ def eightlight(semantic=True, second_level='corr', flip=False,
         mask_ROIs = None
 
     base_shape = None
-    # sns = sns[-30:]
+    # sns = sns[-35:-18]
+    # sns = sns[4::5]
+    # sns = sns[-7:]
+
     # sns = sns[:8] +b sns[-25:-18]
     # sns = sns[-30:-20] + sns[-10:]
     # sns = sns
@@ -401,12 +405,12 @@ def eightlight(semantic=True, second_level='corr', flip=False,
         threshold, small_Ms, super64, mini8, superdensity,
         no_y_dim, strict27, first_level)
 
-    # tile_max = 8
-    # plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
-    # plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
-    tile_dif = 5
+    tile_max = 8
+    plot_t(t1, title=title1, vabs=tile_max, fn=fn1, dic=dic)
+    plot_t(t2, title=title2, vabs=tile_max, fn=fn2, dic=dic)
+    tile_dif = 4
     plot_t(t_dif, title=title3, vabs=tile_dif, fn=fn3, only_positive=False,
-           flip_color=True, dic=dic)
+           flip_color=True, dic=dic, thresh=2)
 
 def get_titles_fns(flip, semantic, network, sample_size, downsample1, radius1,
                    downsample2, radius2, eightlight=False, use_sum_reg=False,
@@ -512,7 +516,7 @@ if __name__ == '__main__':
     NO_Y_DIM = False
     STRICT27 = False
     for MULT27 in [True, ]:  # True, False,
-        for SEMANTIC in [True, False]:  # False, True,
+        for SEMANTIC in [False]:  # False, True,
             for NETWORK in ['cortex', ]: # 'OC_T',
                 # eightlight(semantic=SEMANTIC,
                 #            radius1=2, downsample1=6, resample1=1,
@@ -548,8 +552,8 @@ if __name__ == '__main__':
                 #            no_y_dim=NO_Y_DIM, )
 
                 eightlight(semantic=SEMANTIC,
-                           radius1=2, downsample1=6, resample1=1,
-                           radius2=6, downsample2=1,
+                           radius1=2, downsample1=5, resample1=1,
+                           radius2=5, downsample2=1,
                            resample2=1,#10 if NETWORK == 'cortex' else 1,
                            network=NETWORK, do_con=DO_CON,
                            use_sum_reg=USE_SUM_REG, mult27=MULT27,

@@ -818,10 +818,18 @@ def include_BL(df_sn, sn):
         for i in range(38):
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
+            # print(obj)
 
             obj2run[obj] = run
             obj2trial[obj] = trial + 38 * (run - 1)
             do_BL_move(bl_root, run, trial)
+            resp = mat_enc['pdata'][0][0][9][0][i][0]
+            # for k in range(12):
+            #     resp = mat_enc['pdata'][0][0][k][0][i][0]
+            #     print(resp)
+            #     quit()
+            #
+            # print(resp)
 
             # print(f'BL: {obj}')
 
@@ -840,6 +848,8 @@ def include_BL(df_sn, sn):
                 obj2fp8[obj] = None
 
     else:
+        # print(obj2resp)
+        # quit()
         df_sn['bl_resp'] = df_sn['obj'].map(obj2resp)
         df_sn['bl_fMRI'] = df_sn['obj'].map(obj2fp)
         df_sn['bl2_fMRI'] = df_sn['obj'].map(obj2fp2)

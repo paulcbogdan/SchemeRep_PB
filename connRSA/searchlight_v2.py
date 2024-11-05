@@ -55,7 +55,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
                   resample=1, flip=False, mask_ROIs=None,
                   resample_filterer=None, threshold=0.25,
                   get_sphere_Ms=False, no_RDMs=False,
-                  get_vox2center=False, ): # first_level='corr'
+                  get_vox2center=False, cube=True): # first_level='corr'
     df_sn = get_trial_info(sn)
     df_sn, _ = sort_df_sn(df_sn, fp_fMRI_col)
 
@@ -88,7 +88,7 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
 
     centers, neighbors, voxel2idx_centers = (
         jit_volume_searchlight(mask, radius=radius, threshold=threshold,
-                               resample=resample))
+                               resample=resample, cube=cube))
 
     if no_RDMs:
         if centers.shape[0] == 0:
