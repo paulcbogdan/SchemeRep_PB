@@ -7,7 +7,7 @@ from old.plot_gen import my_plot_surf
 from utils import pickle_wrap
 
 import os
-os.chdir(r'/')
+# os.chdir(r'/')
 
 # import warnings
 # warnings.filterwarnings("error")

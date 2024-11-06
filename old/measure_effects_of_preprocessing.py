@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs
+from Study1A.load_data_Study1A import get_ROI_vecs
 from org_sns import get_sns, get_shenyang_subjects
 from organize_bhv import get_trial_info
 import scipy.stats as stats

@@ -8,14 +8,12 @@ import pandas as pd
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from org_sns import get_sns
-from old_Apr6.ttest_mat import get_stats_graphs
-
+from Study1A.partition_VD_PA import get_1sample_ttest_matrix
 
 from scipy import stats
 
 from atlas_utils import get_atlas
-from old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity, my_plot_surf
 from utils import pickle_wrap, stdize
 import numpy as np
@@ -280,7 +278,7 @@ def get_paired_ttest_zs(fp='obj7_fMRI', combine_regions=False,
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     idxs = age2idxs[age]
     M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph = \
-        get_stats_graphs(sn_inc_conn[idxs, 0, :, :],
+        get_1sample_ttest_matrix(sn_inc_conn[idxs, 0, :, :],
                          sn_inc_conn[idxs, 1, :, :])
 
     trils = np.tril_indices_from(p_graph, k=-1)

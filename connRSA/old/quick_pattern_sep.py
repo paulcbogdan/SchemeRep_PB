@@ -13,7 +13,7 @@ from org_sns import get_sns
 from organize_bhv import get_trial_info
 from utils import pickle_wrap
 
-os.chdir(r'/')
+# os.chdir(r'/')
 
 def plot_group(df, group, title):
     df = df[df['age'] == group]

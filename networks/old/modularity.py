@@ -72,16 +72,6 @@ def get_partition_matrix(mat, idx, w_zeros=False):
         slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
         return mat[slicer]
 
-def get_partition_cross(mat, idx0, idx1):
-    try:
-        meshy = np.ix_(idx0, idx1)
-    except ValueError as e:
-        print(f'{e=}')
-        print(f'{idx0=}')
-        print(f'{idx1=}')
-        quit()
-    slicer = tuple([slice(None)] * (mat.ndim - 2) + [meshy[0], meshy[1]])
-    return mat[slicer]
 
 def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                  corr=None, edges=None, edge_weights=None):
@@ -110,7 +100,7 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                       'SM': 'darkturquoise', 'DAN': 'green', 'VAN': 'fuchsia',
                       'Limbic': 'burlywood', 'FPCN': 'orange', 'DMN': 'red'}
 
-    if 'ttest_modules' in dir_out:
+    if 'ttest_modules' in dir_out or 'Fig2' in dir_out:
         network_colors = {'Uncertain': 'k', 'Visual': 'k',
                           'SM': 'k', 'DAN': 'k', 'VAN': 'k',
                           'Limbic': 'k', 'FPCN': 'k', 'DMN': 'k'}
@@ -119,7 +109,7 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
         glass_kw['vmin'] = -3.5
         glass_kw['vmax'] = 3.5
         glass_kw['linewidths'] = 3.
-        if 'flipTrue' in dir_out:
+        if 'PA_' in dir_out :
             chord_kw['vmax'] = 2
             glass_kw['vmax'] = 2
             edge_weights = -edge_weights
@@ -138,10 +128,6 @@ def plot_nichord(coords, fn, title, dir_out='nichord_plots',
                      title=title, chord_kwargs=chord_kw,
                      glass_kwargs=glass_kw,
                      only1glass=False)
-    # print(f'{dir_out=}')
-    # print(f'{fn=}')
-    # quit()
-
 def get_BNA_coords(code='BNA'):
     if code == 'BNA':
         coords = [[-5, 15, 54], [7, 16, 54], [-18, 24, 53], [22, 26, 51], [-11, 49, 40], [13, 48, 40], [-18, -1, 65],
@@ -185,29 +171,24 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
     partitions = [p for p in partitions]
     return partitions, matrix_mask
 
-def plot_partitions(partitions, M_conn_masked, fn_str, coords=None,
+def plot_partitions(partitions, M_conn_masked, coords=None,
                     dir_out=None, dir_out_full=None, title_extra=''):
     if coords is None:
         coords = get_BNA_coords()
     for i, p in enumerate(partitions):
         if len(p) < 5:
             continue
-        print(f'Plotting partition: {i} | {p=}')
         M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
         assert M_corr_part.shape in [(246, 246), (54, 54)]
-        fn = f'{fn_str}_p{i}_Feb9.png'
-        print(f'Plot: {fn=}')
+        fn = f'module_{i}.png'
         title = f'Partition {i + 1}{title_extra}'
-        # cur_dir = os.getcwd()
-        cur_dir = r'H:\PycharmProjects_H\SchemeRep'
+        cur_dir = os.getcwd()
         if dir_out_full:
             dir_out_ = dir_out_full
-        elif dir_out:
-            dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
-        # elif overlapping:
-        #     dir_out_ = f'{cur_dir}/result_pics/nichord/{overlapping}'
         else:
-            dir_out_ = f'{cur_dir}/result_pics/nichord'
+            dir_out_ = f'{cur_dir}/result_pics/nichord/{dir_out}'
+
+        print(f'Plotting partition: {i} | {p=}, {fn=}')
         print(f'\t{dir_out_=}')
         plot_nichord(coords, fn, title, corr=M_corr_part,
                      dir_out=dir_out_, )

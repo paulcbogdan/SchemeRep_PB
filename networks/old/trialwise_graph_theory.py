@@ -5,13 +5,13 @@ from tqdm import tqdm
 from old.modularity import get_partition_matrix, get_partition_cross
 from vendor_partitioning import get_vendor_partitions
 
-os.chdir(r'/')
+# os.chdir(r'/')
 
 import numpy as np
 import pandas as pd
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs
+from Study1A.load_data_Study1A import get_ROI_vecs
 from organize_bhv import get_trial_info
 from utils import timing, stdize, pickle_wrap
 from load_more import get_dfs_conn_trials

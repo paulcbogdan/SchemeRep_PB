@@ -1,8 +1,8 @@
 import os
 
 from networks.old.modularity import get_partition_matrix
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.vendor_partitioning import get_vendor_partitions
+from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 # import sys
@@ -103,9 +103,9 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
     #     get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=anat, weighted=False,
-                              flip=True, thr=.9, scrub=scrub,
-                              anat_ver=anat_ver)
+        get_VD_PA_partitions(age='healthy', anat=anat, weighted=False,
+                             do_PA=True, thr=.9, scrub=scrub,
+                             anat_ver=anat_ver)
 
     assert set(p_d_pos).intersection(p_d_ant) == set()
     assert set(p_d_pos).intersection(p_v_ant) == set()

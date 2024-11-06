@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as stats
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs
+from Study1A.load_data_Study1A import get_ROI_vecs
 from organize_bhv import get_trial_info
 from old.plot_gen import plot_connectivity
 from connRSA.single_trial_conn import corr_matrix_last_two_dim

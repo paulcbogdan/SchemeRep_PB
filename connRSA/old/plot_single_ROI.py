@@ -5,7 +5,7 @@ from utils import pickle_wrap
 from single_trial_conn import run_settings
 
 import os
-os.chdir(r'/')
+# os.chdir(r'/')
 
 def plot_single_ROI():
 

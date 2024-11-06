@@ -1,41 +1,24 @@
-import zipfile
 import os
 
 from HCP_gambling.HCP_behavior import get_gambling_behavior_good
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-from collections import defaultdict
-from copy import deepcopy
-
 import pandas as pd
-from nilearn.image import high_variance_confounds
 from pingouin import partial_corr
 from tqdm import tqdm
 
-from nilearn.glm.first_level import make_first_level_design_matrix, FirstLevelModel
 import numpy as np
-from nilearn import image
 import scipy.stats as stats
-from nilearn import plotting
 from datetime import datetime
-
-import matplotlib.pyplot as plt
 
 from HCP_gambling.preproc_gambling import get_df_events
 from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_vd_ef
 from atlas_utils import get_atlas
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.sn_anat_fluc import get_quads
-from networks.vendor_partitioning import get_vendor_partitions, do_regression
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 # from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
-import time
-from numba import jit, prange, njit
-import seaborn as sns
-from pathlib import Path
 
 def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
                       ctrl=True):
@@ -76,9 +59,9 @@ def get_HCP_vendor(sn, lr='LR', combine_regions=False, bilateral=False,
     rs_conn = ar[:, None, :] * ar[None, :, :]
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=anat_ver,
-                              combine_regions=combine_regions)
+        get_VD_PA_partitions(age='healthy', anat=True, weighted=False,
+                             do_PA=True, thr=.9, scrub=False, anat_ver=anat_ver,
+                             combine_regions=combine_regions)
 
     dd = rs_conn[*np.ix_(p_d_ant, p_d_pos), :]
     dd = np.nanmean(dd, axis=(0, 1))

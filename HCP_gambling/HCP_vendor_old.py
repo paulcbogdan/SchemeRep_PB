@@ -1,4 +1,3 @@
-import zipfile
 import os
 from collections import defaultdict
 from copy import deepcopy
@@ -11,19 +10,18 @@ from nilearn.glm.first_level import make_first_level_design_matrix, FirstLevelMo
 import numpy as np
 from nilearn import image
 import scipy.stats as stats
-from nilearn import plotting
 
 import matplotlib.pyplot as plt
 
 from atlas_utils import get_atlas
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.vendor_partitioning import get_vendor_partitions, do_regression
+from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.partition_VD_PA import get_VD_PA_partitions, get_regression_matrix
 # from old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
-from numba import jit, prange, njit
+from numba import prange, njit
 import seaborn as sns
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
@@ -627,9 +625,9 @@ def make_conn_old(combine_regions=False, bilateral=False, drop_neut=False,
 
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=3,
-                              combine_regions=combine_regions)
+        get_VD_PA_partitions(age='healthy', anat=True, weighted=False,
+                             do_PA=True, thr=.9, scrub=False, anat_ver=3,
+                             combine_regions=combine_regions)
     print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
 
     if combine_bilateral:
@@ -853,7 +851,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
         pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
-    z_both = do_regression(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
+    z_both = get_regression_matrix(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
 
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False, HCP=True,

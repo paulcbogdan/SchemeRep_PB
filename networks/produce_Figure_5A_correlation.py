@@ -1,22 +1,12 @@
 # see fluctuations.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd
 
-from analyze_rs import prep_conn_ps
-from atlas_utils import get_atlas
-from load_more import load_a, get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
-from old.plot_gen import plot_connectivity
 from old_Apr6.fluctuations import get_df_networks, partial_corr_df
-from utils import pickle_wrap, stdize
-from collections import defaultdict
+from utils import pickle_wrap
 
-from old_Apr6.vendor_lmers import get_module_trialwise_z
 from scipy import stats
 import pandas as pd
 import numpy as np
-import pingouin as pg
 
-import matplotlib.pyplot as plt
-from vendor_partitioning import get_vendor_partitions
-from functools import partial
 import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 

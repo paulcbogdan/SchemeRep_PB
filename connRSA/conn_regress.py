@@ -2,9 +2,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from atlas_utils import get_atlas
+from atlas_utils import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
-from connRSA.conn_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from networks.old.networks import prep_networks

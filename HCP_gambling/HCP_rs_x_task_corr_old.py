@@ -1,24 +1,13 @@
 import os
 
 from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_combo
-from atlas_utils import get_atlas
 from networks.sn_anat_fluc import get_quads
-import copy
 
-import pandas as pd
-
-
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.vendor_partitioning import get_vendor_partitions, do_regression
-from utils import pickle_wrap, stdize
+from utils import pickle_wrap
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy import stats, spatial
+from scipy import stats
 from functools import cache
-from numba import njit, config, jit
-from time import time
 from tqdm import tqdm
-from pingouin import partial_corr
 import itertools
 
 # suppress RuntimeWarning

@@ -1,21 +1,16 @@
-import copy
-
 import pandas as pd
 
 from atlas_utils import get_atlas
 from load_more import load_a
 from old.modularity import get_main_partitions
-from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from old_Apr6.fluctuations import partial_corr_df
 from utils import pickle_wrap, stdize
-from vendor_partitioning import do_regression, get_vendor_partitions
+from Study1A.partition_VD_PA import get_regression_matrix, get_VD_PA_partitions
 import numpy as np
-import matplotlib.pyplot as plt
-from nilearn import plotting
 from scipy import stats, spatial
 from functools import cache
-from numba import njit, config, jit
+from numba import config, jit
 from time import time
 
 config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba_test'
@@ -46,11 +41,11 @@ def load_task(combine_regions=True):
              if roi in bad_rois]
     sn_inc_conn[..., bad_j, :] = np.nan
     sn_inc_conn[..., :, bad_j] = np.nan
-    z_both = do_regression(sn_inc_conn, flip=False, nans=True)
+    z_both = get_regression_matrix(sn_inc_conn, flip=False, nans=True)
     partitions_VD, _ = get_main_partitions(z_both)
 
 
-    z_both = do_regression(sn_inc_conn, flip=True, nans=True)
+    z_both = get_regression_matrix(sn_inc_conn, flip=True, nans=True)
     partitions_PA, _ = get_main_partitions(z_both)
 
     partitions_VD = [set(partitions_VD[0]), set(partitions_VD[1])]
@@ -231,7 +226,7 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
         sn_inc_conn[..., bad_j, :] = np.nan
         sn_inc_conn[..., :, bad_j] = np.nan
         lowest_bad_j = min(bad_j)
-        z_both = do_regression(sn_inc_conn, flip=False, nans=True)
+        z_both = get_regression_matrix(sn_inc_conn, flip=False, nans=True)
         z_both = z_both[:lowest_bad_j, :lowest_bad_j]
         low_idxs, high_idxs = (
             get_triangles_from_z(z_both, strongest_efs=strongest_efs))
@@ -309,9 +304,9 @@ def calc_corr(combine_regions=False):
 
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=3,
-                              combine_regions=combine_regions)
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
+                             anat_ver=3,
+                             combine_regions=combine_regions)
 
     partitions_VD = [p_d_ant + p_d_pos, p_v_ant + p_v_pos]
     partitions_PA = [p_d_ant + p_v_ant, p_d_pos + p_v_pos]

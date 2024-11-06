@@ -1,9 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from atlas_utils import get_atlas
+from atlas_utils import get_atlas, get_BNA_ROIs
 from connRSA.conn_regress import run_all_sn, get_title
-from connRSA.conn_utils import get_BNA_ROIs
 from old.plot_gen import my_plot_surf, get_split_cmap
 from utils import pickle_wrap
 

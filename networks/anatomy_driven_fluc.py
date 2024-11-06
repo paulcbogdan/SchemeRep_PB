@@ -1,23 +1,10 @@
-import copy
-
 import pandas as pd
 
 from atlas_utils import get_atlas
 from data_driven_fluc import load_rs
-from load_more import load_a
-from old.modularity import get_main_partitions
-from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
 from old_Apr6.fluctuations import partial_corr_df
-from utils import pickle_wrap, stdize
-from vendor_partitioning import do_regression, get_vendor_partitions
 import numpy as np
-import matplotlib.pyplot as plt
-from nilearn import plotting
-from scipy import stats, spatial
-from functools import cache
-from numba import njit, config, jit
-from time import time
+from scipy import stats
 
 
 def calc_anat_corr(shuffle=False):

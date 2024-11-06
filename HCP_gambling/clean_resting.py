@@ -1,32 +1,15 @@
-import zipfile
 import os
-from collections import defaultdict
-from copy import deepcopy
 
 import pandas as pd
 from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
-from nilearn.glm.first_level import make_first_level_design_matrix, FirstLevelModel
-import numpy as np
 from nilearn import image
-import scipy.stats as stats
-from nilearn import plotting
-
-import matplotlib.pyplot as plt
 
 from HCP_gambling.preproc_gambling import load_motion
-from HCP_gambling.HCP_vendor import get_sn_roi_ar
-from atlas_utils import get_atlas
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.vendor_partitioning import get_vendor_partitions, do_regression
 # from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
-from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
-from numba import jit, prange, njit
-import seaborn as sns
 from pathlib import Path
 
 def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False,

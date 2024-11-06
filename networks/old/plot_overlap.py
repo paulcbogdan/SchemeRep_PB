@@ -1,5 +1,5 @@
 from modularity import get_main_partitions, get_BNA_coords
-from networks.old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from utils import pickle_wrap
 
 if __name__ == '__main__':

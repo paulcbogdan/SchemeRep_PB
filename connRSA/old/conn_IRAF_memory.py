@@ -2,7 +2,7 @@ import pandas as pd
 
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import prep_ROI_avg, do_regr_RSA_sn
-from connRSA.conn_utils import get_BNA_ROIs
+from atlas_utils import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from old.networks import prep_networks
 from org_sns import get_sns
@@ -10,7 +10,7 @@ from organize_bhv import get_trial_info, sort_df_sn
 from utils import pickle_wrap, get_formula_cols
 
 import os
-os.chdir(r'/')
+# os.chdir(r'/')
 
 
 

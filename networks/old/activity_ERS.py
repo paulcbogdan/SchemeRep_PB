@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs
+from Study1A.load_data_Study1A import get_ROI_vecs
 from old.plot_gen import my_plot_surf
 from org_sns import get_sns, get_sns_l
 from organize_bhv import get_trial_info

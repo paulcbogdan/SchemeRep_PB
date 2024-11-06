@@ -552,8 +552,8 @@ if __name__ == '__main__':
                 #            no_y_dim=NO_Y_DIM, )
 
                 eightlight(semantic=SEMANTIC,
-                           radius1=2, downsample1=5, resample1=1,
-                           radius2=5, downsample2=1,
+                           radius1=2, downsample1=6, resample1=1,
+                           radius2=6, downsample2=1,
                            resample2=1,#10 if NETWORK == 'cortex' else 1,
                            network=NETWORK, do_con=DO_CON,
                            use_sum_reg=USE_SUM_REG, mult27=MULT27,

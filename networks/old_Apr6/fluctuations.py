@@ -1,12 +1,12 @@
 # from analyze_rs import prep_conn_ps
 from atlas_utils import get_atlas
 from networks.analyze_rs import prep_conn_ps
-from networks.load_more import load_a, get_module_cross_trialwise_z
+from networks.load_more import load_a
+from Study1A.extract_FC import get_FC_between_ROIs
 from networks.old_Apr6.vendor_lmers import get_module_trialwise_z
-from networks.vendor_partitioning import get_vendor_partitions
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 # from load_more import load_a, get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
-from old.plot_gen import plot_connectivity
-from utils import pickle_wrap, stdize
+from utils import pickle_wrap
 from collections import defaultdict
 
 # from old_Apr6.vendor_lmers import get_module_trialwise_z
@@ -15,7 +15,6 @@ import pandas as pd
 import numpy as np
 import pingouin as pg
 
-import matplotlib.pyplot as plt
 # from vendor_partitioning import get_vendor_partitions
 from functools import partial
 import os
@@ -103,9 +102,9 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     networks = list(key2conn)
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=anat_ver,
-                              combine_regions=combine_regions)
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
+                             anat_ver=anat_ver,
+                             combine_regions=combine_regions)
 
     # print(f'{len(p_d_pos)=}')
     # print(f'{len(p_d_ant)=}')
@@ -119,8 +118,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
             for key1, p1 in ps_hemi.items():
                 key_both = f'{key}_{key1}'
                 key2conn[key_both] = (
-                    get_module_cross_trialwise_z(conn_trials[:, None],
-                                                 ps_hemi[key], ps_hemi[key1]))
+                    get_FC_between_ROIs(conn_trials[:, None],
+                                        ps_hemi[key], ps_hemi[key1]))
                 keys_both.append(key_both)
 
         networks += keys_both
@@ -130,8 +129,8 @@ def get_df_networks(fp='pb_lss', norm_std=False, zscore=False, f=None,
     for key, (p0, p1) in zip(conn_keys, conn_ps):
     # for key, (p0, p1) in key2pair.items():
     #     if key != 'pd_no': continue
-        key2conn[key] = get_module_cross_trialwise_z(conn_trials[:, None],
-                                                     p0, p1)
+        key2conn[key] = get_FC_between_ROIs(conn_trials[:, None],
+                                            p0, p1)
         # print(key2conn[key])
         # print(key2conn[key].shape)
         # print(conn_trials)

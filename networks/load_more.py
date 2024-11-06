@@ -9,14 +9,12 @@ from nilearn.image import high_variance_confounds
 from scipy import stats as stats
 from tqdm import tqdm
 
-from old_Apr6.LSS import get_LSS_img
+from Study1A.extract_FC import get_FC_between_ROIs
 from atlas_utils import get_atlas
-from old.modularity import get_partition_cross
-from old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from org_sns import get_sns
-from organize_bhv import get_trial_info
-from utils import pickle_wrap, timing, stdize, load_ni_w_nan_fps
-from vendor_partitioning import get_vendor_partitions
+from utils import pickle_wrap, timing, stdize
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 
 
 def load_a(fp='pb_lss', norm_std=False, f=None, combine_regions=False):
@@ -81,33 +79,6 @@ def load_a(fp='pb_lss', norm_std=False, f=None, combine_regions=False):
     return sn_roi_act, sns, conn_trials
 
 
-def get_module_cross_trialwise_z(conn_trials, p_mod0, p_mod1, trialwise=True,
-                                 transpose=True):
-    if transpose:
-        conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
-    conn_trials_cross = get_partition_cross(conn_trials, p_mod0, p_mod1)
-    # print(np.nanmean(conn_trials_cross[0, 0, ], axis=(1, 2)))
-
-
-    flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
-                                                conn_trials_cross.shape[1],
-                                                conn_trials_cross.shape[2], -1))
-    # print(flat_cross.shape)
-    # quit()
-    if trialwise:
-        agg_zs = np.nanmean(flat_cross, axis=-1)
-        agg_zs = np.nanmean(agg_zs, axis=1) # omit inc axis
-        # print(agg_zs)
-        # print(agg_zs.shape)
-        # print(conn_trials_cross.shape)
-        # quit()
-        return agg_zs
-    else:
-        rs = np.nanmean(flat_cross, axis=2)
-        agg_rs = np.nanmean(rs, axis=-1)
-        return agg_rs
-
-
 @timing
 def get_dfs_conn_trials(fp='obj7_fMRI', single=False, squeeze=False,
                         combine_regions=False):
@@ -145,8 +116,8 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
                        anat_version=1):
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=anat, scrub=scrub,
-                              anat_ver=anat_version)
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=anat, scrub=scrub,
+                             anat_ver=anat_version)
 
     atlas = get_atlas()
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos,}
@@ -180,9 +151,9 @@ def get_hemi_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
         for j, p1 in enumerate(ps_hemi):
             # if i >= j:
             #     continue
-            sn_agg_trials_dd = get_module_cross_trialwise_z(conn_trials,
-                                                            ps_hemi[p0],
-                                                            ps_hemi[p1])
+            sn_agg_trials_dd = get_FC_between_ROIs(conn_trials,
+                                                   ps_hemi[p0],
+                                                   ps_hemi[p1])
             # if p0 == 'dp' and p1 == 'da':
                 # print(sn_agg_trials_dd[:, 5])
                 # print(sn_agg_trials_dd)
@@ -327,46 +298,6 @@ def get_sn_rs(sn, clean=True, compcor=True, light=False, medium=False,
     return data
 
 
-def get_sn_raw_enc(sn):
-    fp_in = fr'G:\SchemeRep_raw_data_dir_preproc\{sn}\ENC\BOLD_run1.nii'
-    try:
-        img = image.load_img(fp_in)
-    except ValueError:
-        return np.full((97, 115, 97, 276), np.nan)
-    confounds = pd.DataFrame(high_variance_confounds(img, percentile=1))
-    img = image.clean_img(img, confounds=confounds)
-    data = img.get_fdata()
-    return data
-
-
-def get_LSS_SchemeRep(sn, run=1, lsa=False, easy_override=False):
-    if sn in ['116', '125', '135', '138']:
-        data = np.full((97, 115, 97, 38), np.nan)
-    else:
-        data = get_LSS_img(sn, run, hcp=False, lsa=lsa, easy_override=easy_override)
-    data_mask = sanity_load(sn)
-
-    data_bads = np.isnan(data_mask)[..., :data.shape[-1]]
-    num_nans = np.sum(data_bads[..., 0])
-    print(f'{sn}, {num_nans=}')
-    data[data_bads] = np.nan
-
-    # print(data_mask.shape)
-    # print(data.shape)
-    # # quit()
-
-    return data
-
-
-def sanity_load(sn):
-    df_sn = get_trial_info(sn)
-    # print(df_sn[['obj_trial', 'obj']])
-    # quit()
-    data, _ = load_ni_w_nan_fps(df_sn['obj7_fMRI'])
-    # data = img.get_fdata()
-    return data
-
-
 def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
                       sanity=False, combine_regions=False, sns_key='loose',
                       compcor=True, clean=True, light=False, medium=False,
@@ -397,22 +328,18 @@ def load_resting_data(raw_enc=False, lss_enc=False, lsa=False, YA_only=False,
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
         logging.debug(f'{sn=}')
 
-        if sanity:
-            data = pickle_wrap(sanity_load, kwargs={'sn': sn})
-        elif lss_enc:
-            data = get_LSS_SchemeRep(sn, lsa=lsa, easy_override=False)
-        elif raw_enc:
-            data = pickle_wrap(get_sn_raw_enc, kwargs={'sn': sn})
-        else:
+        # if sanity:
+        #     data = pickle_wrap(sanity_load, kwargs={'sn': sn})
+        # else:
 
-            data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': clean,
-                                                  'compcor': compcor,
-                                                  'light': light,
-                                                  'medium': medium,
-                                                  'trad': trad,
-                                                  'near_OG': near_OG,
-                                                  'true_OG': true_OG},
-                               easy_override=False)
+        data = pickle_wrap(get_sn_rs, kwargs={'sn': sn, 'clean': clean,
+                                              'compcor': compcor,
+                                              'light': light,
+                                              'medium': medium,
+                                              'trad': trad,
+                                              'near_OG': near_OG,
+                                              'true_OG': true_OG},
+                           easy_override=False)
 
         ar = []
 

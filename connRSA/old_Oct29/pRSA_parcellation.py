@@ -1,13 +1,9 @@
 from collections import defaultdict
-from pickle import FALSE
-
-from PIL.ImImagePlugin import split
 
 import utils
 from atlas_utils import get_atlas
 from connRSA.single_trial_conn import prep_fps, prep_vecs
 from networks.old.modularity import get_partition_matrix
-from networks.old.network_funcs import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info
@@ -17,7 +13,7 @@ import numpy as np
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
 from functools import cache
-from numba import jit, njit, prange
+from numba import jit, njit
 from tqdm import tqdm
 from scipy import stats
 from nilearn import image

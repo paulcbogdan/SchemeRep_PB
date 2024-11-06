@@ -164,57 +164,6 @@ def make_csv(d, age):
     age_str = '_YA' if age == 1 else '_OA'
     df.to_csv(f'scene_RSA_shenyang{age_str}.csv', index=False)
 
-def analyze_ROIs(age=1, early=True, semantic=True, inc=None,
-                 bilateral=False, combine_regions=True,
-                 vec_prod=False, PCA_obj=True,
-                 org_by_region=False, rxr=False,
-                 run_lmer=False,
-                 DNN_layer=2, fp_fMRI_col='scn7_fMRI',
-                 verbose=True, fp=None, require_all_sns=True,
-                 req_all_N=False, key='scn'):
-    if fp is None:
-        fn = get_RSA_fn(inc=inc, age=age, semantic=semantic,
-                        DNN_layer=DNN_layer,
-                         fp_fMRI_col=fp_fMRI_col, PCA_obj=PCA_obj,
-                         bilateral=bilateral, combine_regions=combine_regions,
-                         vec_prod=vec_prod, org_by_region=org_by_region,
-                         )
-        fp = fr'cache/RSA/{fn}.pkl'
-
-    with open(fp, 'rb') as file:
-        d = pickle.load(file)
-    make_csv(d, age=age)
-    # quit()
-    atlas = get_atlas(combine_regions=combine_regions or org_by_region,
-                      combine_bilateral=bilateral or org_by_region)
-    region2color = setup_colors(atlas)
-    colors = []
-    ts = []
-    ps = []
-    d['sns'] = list(d['sns'])
-    # d['sns'].remove('138')
-    num_sns = len(d['sns'])
-    for ROI, region in zip(atlas['ROIs'], atlas['ROI_regions']):
-        if run_lmer:
-            t, p = do_lmer(d, key, ROI, hits_only=True)
-            M0 = 0
-            N = 0
-        else:
-            M0, t, p, N = do_ttest(d, key, ROI, wilcox=False)
-        if req_all_N and N != num_sns:
-            continue
-        ts.append(t)
-        ps.append(p)
-        color = region2color[region]
-        colors.append(color)
-        if verbose: print(f'{ROI}, {M0=:.3f}, {t=:.3f}, {p=:.3f}, {N=}')
-    if verbose:
-        title_short = make_title_str('', key, age, DNN_layer, semantic,
-                                     short=True, fp=fp_fMRI_col)
-        my_plot_surf(np.array(ts), atlas, title_short)
-        do_pb_ROI_plot(ps, ts, colors, atlas, title_short, region2color)
-    return ts, num_sns
-
 def ROI_YA_vs_OA(semantic=True, inc=None,
                  bilateral=False, combine_regions=True,
                  vec_prod=False, PCA_obj=True,

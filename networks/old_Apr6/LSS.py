@@ -2,7 +2,7 @@ import os
 
 from nilearn.plotting import plot_design_matrix
 
-os.chdir(r'/')
+# os.chdir(r'/')
 from collections import defaultdict
 
 import numpy as np

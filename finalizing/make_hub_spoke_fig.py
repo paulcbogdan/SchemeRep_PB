@@ -4,7 +4,7 @@ from matplotlib.colors import ListedColormap
 from atlas_utils import get_atlas
 from nilearn import plotting
 
-from finalizing.make_Fig3_matrix import get_beta_graph
+from Study1A.make_Fig3_matrix import get_beta_graph
 from old.network_funcs import load_FC_for_Lifu
 from old_Apr6.ttest_mat import get_stats_graphs
 

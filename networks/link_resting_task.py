@@ -1,19 +1,16 @@
 import os
-import pickle
-
-from tqdm import tqdm
 
 from HCP import load_HCP_act
 from atlas_utils import get_atlas
 from get_HCP_act import load_HCP
 from old.analyze_ROIs import setup_colors
-from old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from old.plot_gen import plot_connectivity
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from utils import pickle_wrap, stdize
-from load_more import get_dfs_conn_trials, load_resting_data, load_act_conn
+from load_more import load_resting_data, load_act_conn
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -104,8 +101,6 @@ def act2conn(sn_roi_act, flatten=True, conn_euc=False):
     return sn_roi_conn
 
 def plot_ranks(idx2rank, atlas, n_roi=246, do_conn=True, split=.5):
-    from nichord import convert_matrix, get_idx_to_label
-    from nichord.combine import plot_and_combine
     if do_conn:
         print(f'{idx2rank=}')
         trils = np.tril_indices(n_roi, -1)

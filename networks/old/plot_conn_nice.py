@@ -10,8 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from atlas_utils import get_atlas
-from connRSA.conn_utils import get_BNA_ROIs
+from atlas_utils import get_atlas, get_BNA_ROIs
 from old.network_clf import generic_prep
 from old.plot_gen import my_plot_surf, plot_connectivity
 from utils import stdize, run_two_sample_on_2D, pickle_wrap

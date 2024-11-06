@@ -1,17 +1,13 @@
-import copy
-
 import pandas as pd
 
 
-from networks.old.network_funcs import load_FC_for_Lifu
-from networks.vendor_partitioning import get_vendor_partitions, do_regression
-from utils import pickle_wrap, stdize
+from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.partition_VD_PA import get_VD_PA_partitions
+from utils import pickle_wrap
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import stats, spatial
+from scipy import stats
 from functools import cache
-from numba import njit, config, jit
-from time import time
 from tqdm import tqdm
 from pingouin import partial_corr
 import itertools
@@ -46,8 +42,8 @@ def get_quads(skip_other=False, all_roi=False, anat_ver=3,
               combine_regions=COMBINE_REGIONS, p_no_override=False):
     # print(combine_regions)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=anat_ver, combine_regions=combine_regions)
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
+                             anat_ver=anat_ver, combine_regions=combine_regions)
 
     # print(p_d_pos)
     # print(combine_regions)
@@ -70,8 +66,8 @@ def get_quads(skip_other=False, all_roi=False, anat_ver=3,
 
     if p_no_override:
         p_dorsal, p_ventral, p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, matrix_mask = \
-            get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                                  anat_ver=3, combine_regions=combine_regions)
+            get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
+                                 anat_ver=3, combine_regions=combine_regions)
         p_no = [i for i in range(n_roi) if i not in p_d_ant_ + p_d_pos_ +
                 p_v_ant_ + p_v_pos_]
     # p_no = []

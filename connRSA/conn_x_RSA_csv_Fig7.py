@@ -12,7 +12,7 @@ from connRSA.conn_regress import do_regr_RSA_sn
 from connRSA.conn_Fig6 import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
 from connRSA.old_Oct29.conn_x_RSA_lmer import get_idxs
 from connRSA.single_trial_conn import prep_fps
-from networks.old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 # from old.network_funcs import load_FC_for_Lifu
 from org_sns import get_sns
 from utils import pickle_wrap

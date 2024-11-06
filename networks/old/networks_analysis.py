@@ -1,7 +1,7 @@
 import numpy as np
 
 from modularity import get_partition_matrix, get_main_partitions
-from networks.old.network_funcs import load_FC_for_Lifu, reconfiguration, \
+from Study1A.load_data_Study1A import load_FC_for_Lifu, reconfiguration, \
     analyze_subject_specific
 from network_clf import generic_prep
 from subject_specific import graph_theory

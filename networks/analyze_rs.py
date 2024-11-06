@@ -14,8 +14,9 @@ from old.modularity import get_modules, get_partition_matrix
 from old.plot_gen import plot_connectivity
 from utils import pickle_wrap
 from old_Apr6.vendor_lmers import get_module_trialwise_z
-from load_more import get_module_cross_trialwise_z, load_act_conn
-from vendor_partitioning import get_vendor_partitions
+from load_more import load_act_conn
+from Study1A.extract_FC import get_FC_between_ROIs
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 
 
 def high_variance_conn_confounds(conn_trials, tile=.02, n_confounds=5):
@@ -211,7 +212,7 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
     conn_trials[:, 0, diag[0], diag[1], :] = np.nan
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False)
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False)
 
     p_d_ant = p_d_ant[:32]  # Making all equal length
     p_d_pos = p_d_pos[:32]
@@ -222,7 +223,7 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
                                       p_v_ant, p_v_pos)
     key2conn = {}
     for key, (p0, p1) in zip(conn_keys, conn_ps):
-        key2conn[key] = get_module_cross_trialwise_z(conn_trials, p0, p1)
+        key2conn[key] = get_FC_between_ROIs(conn_trials, p0, p1)
 
     act_keys = ['dp', 'da', 'vp', 'va']
     act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
@@ -236,9 +237,9 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
         for i, p0 in enumerate(ps_hemi):
             for j, p1 in enumerate(ps_hemi):
                 key = f'{p0}_{p1}'
-                key2conn_hemi[key] = get_module_cross_trialwise_z(conn_trials,
-                                                                  ps_hemi[p0],
-                                                                  ps_hemi[p1])
+                key2conn_hemi[key] = get_FC_between_ROIs(conn_trials,
+                                                         ps_hemi[p0],
+                                                         ps_hemi[p1])
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials, list(range(246)))
 
     if roiwise:
@@ -247,8 +248,8 @@ def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
         for i in range(246):
             for quad in quads:
                 key2conn[f'{quad}_{i}'] = \
-                    get_module_cross_trialwise_z(conn_trials, [i],
-                                                 quad2p[quad])
+                    get_FC_between_ROIs(conn_trials, [i],
+                                        quad2p[quad])
             key2p_M[f'M_{i}'] = sn_roi_act[:, i, :]
 
 

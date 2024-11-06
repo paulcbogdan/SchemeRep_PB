@@ -1,12 +1,12 @@
 import numpy as np
 
-from load_more import get_module_cross_trialwise_z
-from old.network_funcs import load_FC_for_Lifu
+from Study1A.extract_FC import get_FC_between_ROIs
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from old_Apr6.fluctuations import partial_corr_df, get_df_networks
 from utils import pickle_wrap, stdize
 import pandas as pd
 
-from vendor_partitioning import get_vendor_partitions
+from Study1A.partition_VD_PA import get_VD_PA_partitions
 from scipy import stats
 import matplotlib.pyplot as plt
 
@@ -58,8 +58,8 @@ def get_sn2ef(fp='obj7_fMRI', anat=True, weighted=False,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=anat, weighted=weighted,
-                              flip=True, thr=.9, scrub=False, anat_ver=anat_ver)
+        get_VD_PA_partitions(age='healthy', anat=anat, weighted=weighted,
+                             do_PA=True, thr=.9, scrub=False, anat_ver=anat_ver)
     n_rois = sn_inc_activity.shape[2]
     # matrix_mask = np.ones((n_rois, n_rois), dtype=bool)
     matrix_mask[~matrix_mask] = np.nan
@@ -70,19 +70,19 @@ def get_sn2ef(fp='obj7_fMRI', anat=True, weighted=False,
     conn_trials = np.repeat(matrix_mask[None, None, ..., None],
                             conn_trials.shape[-1], axis=4) * conn_trials[..., :]
 
-    dd_flat = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_d_ant,
-                                             trialwise=False)
-    vv_flat = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_v_ant,
-                                             trialwise=False)
-    dv_ant = get_module_cross_trialwise_z(conn_trials, p_d_ant, p_v_ant,
-                                            trialwise=False)
-    dv_pos = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_pos,
-                                            trialwise=False)
+    dd_flat = get_FC_between_ROIs(conn_trials, p_d_pos, p_d_ant,
+                                  trialwise=False)
+    vv_flat = get_FC_between_ROIs(conn_trials, p_v_pos, p_v_ant,
+                                  trialwise=False)
+    dv_ant = get_FC_between_ROIs(conn_trials, p_d_ant, p_v_ant,
+                                 trialwise=False)
+    dv_pos = get_FC_between_ROIs(conn_trials, p_d_pos, p_v_pos,
+                                 trialwise=False)
 
-    dv_cross = get_module_cross_trialwise_z(conn_trials, p_d_pos, p_v_ant,
-                                            trialwise=False)
-    vd_cross = get_module_cross_trialwise_z(conn_trials, p_v_pos, p_d_ant,
-                                            trialwise=False)
+    dv_cross = get_FC_between_ROIs(conn_trials, p_d_pos, p_v_ant,
+                                   trialwise=False)
+    vd_cross = get_FC_between_ROIs(conn_trials, p_v_pos, p_d_ant,
+                                   trialwise=False)
 
     flat_within = np.stack((dd_flat, vv_flat), axis=-1)
     agg_within = np.nanmean(flat_within, axis=-1)

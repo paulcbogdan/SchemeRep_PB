@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from fMRI_proc import get_ROI_vecs
+from Study1A.load_data_Study1A import get_ROI_vecs
 from old_Apr6.fluctuations import get_df_networks
 from org_sns import get_sns
 from organize_bhv import get_trial_info

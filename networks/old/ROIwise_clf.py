@@ -6,8 +6,7 @@ import numpy as np
 from sklearn.model_selection import StratifiedGroupKFold, cross_val_score
 from sklearn.svm import SVC
 
-from atlas_utils import get_atlas
-from connRSA.conn_utils import get_BNA_ROIs
+from atlas_utils import get_atlas, get_BNA_ROIs
 from old.network_clf import generic_prep
 from old.plot_gen import my_plot_surf
 from utils import stdize

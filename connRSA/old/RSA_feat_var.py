@@ -20,7 +20,7 @@ from time import time
 from numba import jit, prange
 
 import os
-os.chdir(r'/')
+# os.chdir(r'/')
 
 @cache
 def get_M_RSM(sn, fp, trial_similarity, stdize_by_run, second_order):

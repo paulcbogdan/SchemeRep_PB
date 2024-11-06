@@ -6,27 +6,21 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from numba import jit, prange
-from scipy import spatial
 from scipy import stats
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
+from atlas_utils import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import get_ERS_scores
-from connRSA.conn_utils import get_BNA_ROIs
-from connRSA.single_trial_conn import prep_vecs, prep_fps
+from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
-from networks.old.network_funcs import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC_for_Lifu
 from networks.old.networks import prep_networks
 
 from old.plot_gen import plot_connectivity
-from org_sns import get_sns
 from organize_bhv import get_trial_info, sort_df_sn
-from stim import get_semantic_vectors
 from utils import pickle_wrap, stdize
 from functools import cache
-from sklearn import decomposition
-import statsmodels.formula.api as smf
 import seaborn as sns
 
 
