@@ -165,17 +165,17 @@ def get_roi_ar_from_img(fp, dir_lr, cond0, cond1, combine_regions):
 
     return ar
 
-def img_data2ar(data, atlas):
-    ar = []
-    for j, (ROI, ROI_num, region) in enumerate(zip(atlas['ROIs'],
-                                                   atlas['ROI_nums'],
-                                                   atlas['ROI_regions']
-                                                   )):
-        atlas_roi = atlas['maps'].get_fdata() == ROI_num
-        region_vecs = data[atlas_roi]
-        ts = np.nanmean(region_vecs, axis=0)
-        ar.append(ts)
-    return np.array(ar)
+# def img_data2ar(data, atlas):
+#     ar = []
+#     for j, (ROI, ROI_num, region) in enumerate(zip(atlas['ROIs'],
+#                                                    atlas['ROI_nums'],
+#                                                    atlas['ROI_regions']
+#                                                    )):
+#         atlas_roi = atlas['maps'].get_fdata() == ROI_num
+#         region_vecs = data[atlas_roi]
+#         ts = np.nanmean(region_vecs, axis=0)
+#         ar.append(ts)
+#     return np.array(ar)
 
 def get_idxs(fp_ev):
     if '2bk.txt' in fp_ev or '0bk.txt' in fp_ev:

@@ -1,15 +1,16 @@
-from Study1A.modularity_funcs import get_partition_matrix, get_FC_between_ROIs
-from Utils.atlas_funcs import get_atlas
-from Study2A.load_Study2A_funcs import load_rs_BOLD
-from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
-
-from Utils.pickle_wrap_funcs import pickle_wrap
 from collections import defaultdict
 
-from scipy import stats
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pingouin as pg
+from scipy import stats
+
+from Study1A.modularity_funcs import get_partition_matrix, get_FC_between_ROIs
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
+from Study2A.load_Study2A_funcs import load_rs_BOLD
+from Utils.atlas_funcs import get_atlas
+from Utils.pickle_wrap_funcs import pickle_wrap
+
 
 def get_network_partitions():
     from nichord.coord_labeler import get_idx_to_label
@@ -22,9 +23,10 @@ def get_network_partitions():
         network2p[network].append(i)
     return network2p
 
+
 def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     atlas = get_atlas()
-    ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos,}
+    ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos, }
     ps_hemi = defaultdict(list)
     for key, p in ps.items():
         for i in p:
@@ -34,7 +36,6 @@ def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
             else:
                 ps_hemi[f'R{key}'].append(i)
     return ps_hemi
-
 
 
 def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
@@ -101,6 +102,7 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
     df = pd.DataFrame(df_as_d)
     networks += ['dd', 'vv', 'dv_ant', 'dv_pos']
     return df, networks
+
 
 def partial_corr_df(df, cols, cov, verbose=1):
     cols = [col for col in cols if col not in cov]
@@ -170,7 +172,6 @@ def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
                  'av_no_L', 'av_no_R',
                  ]
 
-
     p_d_pos_L = [i for i in p_d_pos if i % 2 == 0]
     p_d_pos_R = [i for i in p_d_pos if i % 2 == 1]
     p_d_ant_L = [i for i in p_d_ant if i % 2 == 0]
@@ -208,5 +209,5 @@ def get_module_trialwise_z(sn_inc_conn_trials, p_module):
     sn_inc_flat_trails_dd = sn_inc_conn_trials_dd[:, :, :,
                             tridx_dd[0], tridx_dd[1]]
     sn_inc_agg_trials_dd = np.nanmean(sn_inc_flat_trails_dd, axis=-1)
-    sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
+    sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1)  # omit inc axis
     return sn_agg_trials_dd

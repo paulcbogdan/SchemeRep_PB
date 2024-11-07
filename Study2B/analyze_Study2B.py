@@ -1,6 +1,5 @@
 import os
 import pathlib
-from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
@@ -8,13 +7,13 @@ os.chdir(path)
 from pathlib import Path
 
 import pickle
-import os
 
 from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
-from scipy import stats
+import scipy.stats as stats
 from functools import cache
 from time import time
 from tqdm import tqdm
@@ -22,7 +21,9 @@ import itertools
 
 # suppress RuntimeWarning
 from warnings import simplefilter
+
 simplefilter("ignore", category=RuntimeWarning)
+
 
 def get_sn_roi_ar_std(**kw):
     ar = pickle_wrap(get_sn_roi_ar, kwargs=kw, RAM_cache=False,
@@ -30,6 +31,7 @@ def get_sn_roi_ar_std(**kw):
     assert len(ar.shape) == 2
     ar = stats.zscore(ar, axis=1)
     return ar
+
 
 @cache
 def get_sns_roi_ar_std(sns, **kw):
@@ -42,6 +44,7 @@ def get_sns_roi_ar_std(sns, **kw):
         assert ar.shape[1] == 1200, f'{sn=}, {ar.shape=}'
         ars.append(ar)
     return np.array(ars)
+
 
 @cache
 def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
@@ -81,12 +84,14 @@ def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
 
     return rs_conn_compressed, map2new
 
+
 def uncompress_conn(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                     n_roi):
+                    n_roi):
     p_all = list(p_d_ant) + list(p_d_pos) + list(p_v_ant) + list(p_v_pos)
     conn_uncompressed = np.full((conn.shape[0], n_roi, n_roi, conn.shape[3]), np.nan)
     conn_uncompressed[:, *np.ix_(p_all, p_all), :] = conn
     return conn_uncompressed
+
 
 def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                    all_pda, all_pdp, all_pva, all_pvp, lr='LR',
@@ -98,8 +103,8 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
           'no_compcor': no_compcor, 'rs': True}
     t_st = time()
     rs_conn, map2new = get_rs_conn_sns(tuple(sns),
-                              tuple(all_pda), tuple(all_pdp),
-                              tuple(all_pva), tuple(all_pvp), **kw)
+                                       tuple(all_pda), tuple(all_pdp),
+                                       tuple(all_pva), tuple(all_pvp), **kw)
     print(f'Make compressed time: {time() - t_st:.5f} s')
     p_d_ant = [map2new[p] for p in p_d_ant]
     p_d_pos = [map2new[p] for p in p_d_pos]
@@ -143,10 +148,11 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     ef = np.nanmean(np.abs(dd_vv - dv_dv), axis=1)
     return ef
 
+
 def get_HCP_task_conn(combine_regions):
     kw = {'combine_regions': combine_regions, 'bilateral': False,
           'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
-          'drop_first': False, 'reset_trial0': True,}
+          'drop_first': False, 'reset_trial0': True, }
 
     if kw['only'] == 'combo':
         conn_highs, conn_lows, sns = get_combo(kw)
@@ -157,6 +163,7 @@ def get_HCP_task_conn(combine_regions):
     for sn, conn_high, conn_low in zip(sns, conn_highs, conn_lows):
         sn2conns[sn] = conn_high, conn_low
     return sn2conns
+
 
 def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
@@ -171,9 +178,10 @@ def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     itr = dd + vv - dv_ant - dv_pos
     return itr, dd, vv, dv_ant, dv_pos, M_overall
 
+
 def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                  combine_regions=False):
-    kw = {'combine_regions': combine_regions,}
+    kw = {'combine_regions': combine_regions, }
     sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=True,
                            RAM_cache=True)
 
@@ -189,17 +197,14 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
         get_dd_etc(conn_low, p_d_ant, p_d_pos, p_v_ant, p_v_pos))
     return itr_l - itr_h
 
+
 def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
                          reg_global=False, no_compcor=False):
-
     fp = r'Study1B/final_HCP_subjects.txt'
     with open(fp, 'r') as f:
         s = f.read()
     s = s.replace('\n', '').replace(' ', '')
     sns = s.split(',')
-
-
-
 
     fns_task = os.listdir(r'HCP_gambling/LSA')
     if reg_global_task:
@@ -256,17 +261,16 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     print(f'Overall RS: N = {len(sns_rs)}')
 
     sns_overlap = sns_task.intersection(sns_rs)
-    bad_sns = {'263436',} # missing task file (at least on the computer running this)
+    bad_sns = {'263436', }  # missing task file (at least on the computer running this)
 
     sns_overlap = sorted(list(sns_overlap - bad_sns))
-
 
     print(f'Number of overlapping non-bad sns: {len(sns_overlap)}')
     return sns_overlap
 
+
 def run_analysis_Study2B(num_test=10_000, skip_other=True,
                          combine_regions=False):
-
     fp = r'Study1B/final_HCP_subjects.txt'
     with open(fp, 'r') as f:
         s = f.read()
@@ -290,7 +294,7 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
     rs_efs_all = np.nanmean([rs_efs_all, rs_efs_all_rl], axis=0)
 
     task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                combine_regions=combine_regions,)
+                                combine_regions=combine_regions, )
     task_efs_all = np.abs(task_efs_all)
     r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
     print(f'Overall: {r=:.4f}, {p=:.2f}')
@@ -330,10 +334,10 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
         rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='LR', combine_regions=combine_regions, bilateral=False,)
+                                lr='LR', combine_regions=combine_regions, bilateral=False, )
         rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                  p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                 lr='RL', combine_regions=combine_regions, bilateral=False,)
+                                 lr='RL', combine_regions=combine_regions, bilateral=False, )
         rs_efs = np.nanmean([rs_efs, rs_efs2], axis=0)
         print(f'Resting time: {time() - t_st:.5f} s')
         # combined regions within-subject effects depend on reg_global?
@@ -365,7 +369,6 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
 
 def ttest_on_correlations(task_efs_l, rs_efs_l):
-
     t_l = []
     for i, (task_efs, rs_efs) in enumerate(zip(np.array(task_efs_l).T,
                                                np.array(rs_efs_l).T)):
@@ -392,6 +395,7 @@ def ttest_on_correlations(task_efs_l, rs_efs_l):
     print(f'Across-subject: Mean r = {M_r:.3f}, '
           f't[{N - 1}] = {t:.2f}, {p=:.3f}')
 
+
 @cache
 def get_quads(skip_other=False, combine_regions=False, p_no_override=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
@@ -400,7 +404,7 @@ def get_quads(skip_other=False, combine_regions=False, p_no_override=False):
 
     n_roi = 54 if combine_regions else 246
     p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +
-                                                p_v_ant + p_v_pos]
+            p_v_ant + p_v_pos]
 
     if skip_other:
         p_d_ant = p_d_ant[::2]
@@ -416,6 +420,7 @@ def get_quads(skip_other=False, combine_regions=False, p_no_override=False):
                 p_v_ant_ + p_v_pos_]
 
     return p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no
+
 
 if __name__ == '__main__':
     run_analysis_Study2B()

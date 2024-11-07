@@ -1,8 +1,8 @@
 import os
 import pathlib
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
-
 
 import os
 
@@ -15,7 +15,6 @@ from collections import defaultdict
 import numpy as np
 
 from Utils.atlas_funcs import get_atlas
-from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
 
 
@@ -28,7 +27,8 @@ def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
     sn_conn = sn_inc_conn.reshape(-1, n_roi, n_roi)
     trils = np.tril_indices(n_roi, k=-1)
     sn_flat = sn_conn[:, trils[0], trils[1]]
-    sn_flat = stdize(sn_flat, axis=0, nans=nans)
+    sn_flat = stats.zscore(sn_flat, axis=0, nan_policy='omit')
+
     regressors = np.array([[-1, 0, 1] * n_sn]).T
 
     XTX_inv = np.linalg.inv(np.dot(regressors.T, regressors))
@@ -60,10 +60,11 @@ def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
     z_both[trils] = z
     z_both[trils[1], trils[0]] = z
     z_both = z_both if flip else -z_both
-    var_beta_ =  np.full((n_roi, n_roi), np.nan)
+    var_beta_ = np.full((n_roi, n_roi), np.nan)
     var_beta_[trils] = np.nansum(residual ** 2, axis=0)
 
     return z_both
+
 
 def get_1sample_ttest_matrix(graph0, graph1):
     dif_graph = graph0 - graph1
@@ -78,21 +79,21 @@ def get_1sample_ttest_matrix(graph0, graph1):
     p_graph = np.min([p_graph, 1 - p_graph], axis=0)
     return M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph
 
-def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str='healthy',
+
+def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str = 'healthy',
                           thr=.95, do_PA=True, plot=False,
                           combine_regions=False, regress=True):
-
     if regress:
         z_both = get_regression_matrix(sn_inc_conn, flip=do_PA)
     else:
         M_both, _, _, _, _, p_both, z_both = \
             get_1sample_ttest_matrix(sn_inc_conn[age2idxs[age], 0, :, :],
-                             sn_inc_conn[age2idxs[age], -1, :, :])
+                                     sn_inc_conn[age2idxs[age], -1, :, :])
         z_both = -z_both if do_PA else z_both
 
     atlas = get_atlas(combine_regions=combine_regions)
     labels = atlas['labels']
-    bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp',}
+    bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp', }
     for i, label in enumerate(labels):
         for bad_label in bad_labels:
             if bad_label in label:
@@ -105,7 +106,7 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str='healthy',
     dir_out = f'{cur_dir}/result_pics/Fig2/{PA_VD_str}_modules'
     partitions, matrix_mask = \
         get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
-                            threshold=thr, dir_out_full=dir_out,)
+                            threshold=thr, dir_out_full=dir_out, )
 
     for i, p in enumerate(partitions):
         labels = [atlas['labels'][i] for i in p]
@@ -114,8 +115,9 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str='healthy',
 
     return partitions, matrix_mask
 
+
 def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
-                         age: int | str='healthy',
+                         age: int | str = 'healthy',
                          thr=.95, do_PA=True, anat=False,
                          plot=False, combine_regions=False,
                          anat_ver=3, regress=False):
@@ -158,6 +160,7 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
+
 def save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub, anat):
     # Can output a .csv with the ROIs in each quadrant
     #   Not used for report
@@ -187,12 +190,14 @@ def save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub, anat):
     fp_out_csv = fr'result_pics/vendor_partitions{scrubbed_str}{anat_str}.csv'
     df.to_csv(fp_out_csv, index=False)
 
+
 def anterior_posterior_split(p_dorsal, coords):
     p_dorsal_ys = [coords[i][1] for i in p_dorsal]
     p_dorsal_y_med = np.median(p_dorsal_ys)
     p_dorsal_ant = [i for i in p_dorsal if coords[i][1] > p_dorsal_y_med]
     p_dorsal_pos = [i for i in p_dorsal if coords[i][1] <= p_dorsal_y_med]
     return p_dorsal_ant, p_dorsal_pos
+
 
 def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
                    make_csv=False):
@@ -227,7 +232,7 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
         # ROI lists based on classifiers (PoG, STG, pSTS discarded)
         #   These are the lists best motivated by the task data
         p_d_ant_labels = ['MFG', 'IFG']
-        p_d_pos_labels = ['IPL', ] # 'SPL' (SPL not supported by the con_reg)
+        p_d_pos_labels = ['IPL', ]  # 'SPL' (SPL not supported by the con_reg)
         p_v_ant_labels = ['ATL', ]
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     elif anat_ver == 2:
@@ -235,11 +240,11 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
         p_d_ant_labels = ['IFG']
         p_d_pos_labels = ['IPL']
         p_v_ant_labels = ['ATL']
-        p_v_pos_labels = ['LOC', 'sOcG', 'OcG'] # This is just one ROI but different names
+        p_v_pos_labels = ['LOC', 'sOcG', 'OcG']  # This is just one ROI but different names
     elif anat_ver == 1:
         # Very expansive ROI lists, includes regions not implicated by classifier
-        p_d_ant_labels = ['MFG', 'IFG', 'OrG', 'SFG', 'ACC'] #
-        p_d_pos_labels = ['IPL', 'Pcun', 'SPL'] # 'SPL' (SPL not supported by the con_reg)
+        p_d_ant_labels = ['MFG', 'IFG', 'OrG', 'SFG', 'ACC']  #
+        p_d_pos_labels = ['IPL', 'Pcun', 'SPL']  # 'SPL' (SPL not supported by the con_reg)
         p_v_ant_labels = ['ATL', 'STG', 'MTG', 'ITG', 'FuG']
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     else:
@@ -262,9 +267,9 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
         save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
+
 def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                      combine_regions=False):
-
     atlas = get_atlas(combine_regions=combine_regions)
 
     idx_to_quadrant = {i: 'PD' for i in p_d_pos}

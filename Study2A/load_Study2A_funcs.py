@@ -2,12 +2,11 @@ from functools import partial
 
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from nilearn import image
 from tqdm import tqdm
 
 from Utils.atlas_funcs import get_atlas
-from org_sns import get_sns
-from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
 
 
@@ -52,8 +51,7 @@ def get_sn_rs(sn):
     return data
 
 
-def load_resting_data(YA_only=False, combine_regions=False,):
-
+def load_resting_data(YA_only=False, combine_regions=False, ):
     sns = ['102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112',
            '113', '114', '115', '116', '117', '118', '119', '120', '123', '124', '125',
            '126', '127', '128', '129', '130', '131', '132', '133', '134', '135', '136',
@@ -108,7 +106,7 @@ def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
 
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
-    sn_roi_act = stdize(sn_roi_act, axis=2, nans=True)
+    sn_roi_act = stats.zscore(sn_roi_act, axis=2, nan_policy='omit')
     assert len(sn_roi_act.shape) == 3, f'More than 3 dims: {sn_roi_act.shape=}'
     if norm_std: sn_roi_act = normalize_std_over_time(sn_roi_act)
     conn_trials = sn_roi_act[..., None, :] * \

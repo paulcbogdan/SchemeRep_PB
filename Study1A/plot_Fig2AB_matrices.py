@@ -40,15 +40,14 @@ def get_beta_graph(sn_inc_conn):
     z = betas / np.sqrt(var_beta)
     z = -z
 
-
     z_graph = np.full((n_roi, n_roi), np.nan)
     z_graph[trils] = z
     z_graph[trils[1], trils[0]] = z
     return z_graph
 
+
 def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
                      rotate=True):
-
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
@@ -72,7 +71,7 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
         bad_j = [j for j, roi in enumerate(atlas['ROI_regions'])
                  if roi in bad_rois]
         atlas['coords'] = [coord for j, coord in enumerate(atlas['coords'])
-                             if j not in bad_j]
+                           if j not in bad_j]
         nroi = len(atlas['ROI_regions'])
         n_bads = len(bad_j)
         print(f'{nroi=}, {n_bads=}, {nroi - n_bads=}')
@@ -104,7 +103,7 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
     else:
         _, _, _, _, _, _, z_graph = \
             get_1sample_ttest_matrix(sn_inc_conn[:, 0, :, :],
-                             sn_inc_conn[:, 2, :, :])
+                                     sn_inc_conn[:, 2, :, :])
 
     if rotate:
         z_graph = z_graph[::-1, ::-1]
@@ -136,9 +135,5 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
                       fp=fp)
 
 
-
-
 if __name__ == '__main__':
     plot_matrix_Fig3()
-
-

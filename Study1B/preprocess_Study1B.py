@@ -57,10 +57,10 @@ def get_df_events(sn, RL_LR, cont_PE=None):
     df_trials['trials_all'] = list(range(len(df_trials)))
     return df_trials
 
+
 def get_df_PE(sn, RL_LR, learning_rate=1,
               drop_first=False, reset_trial0=False,
               for_prepoc=False):
-
     if RL_LR == 'both':
         df_trials_LR = get_df_events(sn, 'LR', cont_PE=learning_rate)
         df_trials_LR['variant'] = 'LR'
@@ -176,7 +176,7 @@ def lss_transformer(df, row_number):
     trial_type_series = df["trial_type"]
     trial_type_series = trial_type_series.loc[
         trial_type_series == trial_condition
-    ]
+        ]
     trial_type_list = trial_type_series.index.tolist()
     trial_number = trial_type_list.index(row_number)
 
@@ -190,6 +190,7 @@ def lss_transformer(df, row_number):
     df.loc[row_number, "trial_type"] = trial_name
     return df, trial_name
 
+
 def load_motion(sn, lr, rs=False, drive='F'):
     if rs:
         fp_motion = fr'{drive}:\HCP_RS_unzipped\{sn}\MNINonLinear\Results\rfMRI_REST1_{lr}\Movement_Regressors.txt'
@@ -201,6 +202,7 @@ def load_motion(sn, lr, rs=False, drive='F'):
                      "dtx", "dty", "dtz", "drx", "dry", "drz"]
     df = pd.DataFrame(motion, columns=add_reg_names)
     return df
+
 
 def do_LSA(img, df_trials, sn, lr):
     df_trials.reset_index(drop=True, inplace=True)
@@ -271,7 +273,6 @@ def do_LSS(img, df_trials, sn, lr):
 
     for i in tqdm(range(len(df_trials)), desc=f'Cooking LSS: {sn} ({lr})',
                   position=0, leave=True):
-
         df_trial, i_name = lss_transformer(df_trials, i)
 
         frame_times = np.linspace(0, 192, 253, endpoint=False)
@@ -282,7 +283,7 @@ def do_LSS(img, df_trials, sn, lr):
             add_regs=df_confounds,
             hrf_model='spm',
         )
-        glm = FirstLevelModel(slice_time_ref=0.5, t_r=192/253,
+        glm = FirstLevelModel(slice_time_ref=0.5, t_r=192 / 253,
                               signal_scaling=(0, 1), high_pass=1 / 128,
                               minimize_memory=True,
                               mask_img=fp_mask,
@@ -306,7 +307,7 @@ def do_LSS(img, df_trials, sn, lr):
     print(f'Out: {fp_lss=}')
 
 
-def LSA_LSS_gambling(lsa=True, easy_override=False,):
+def LSA_LSS_gambling(lsa=True, easy_override=False, ):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
     sns = sorted(sns)
@@ -347,11 +348,6 @@ def LSA_LSS_gambling(lsa=True, easy_override=False,):
             time.sleep(1)
             bad_sns.append(sn)
 
+
 if __name__ == '__main__':
     LSA_LSS_gambling()
-
-
-
-
-
-

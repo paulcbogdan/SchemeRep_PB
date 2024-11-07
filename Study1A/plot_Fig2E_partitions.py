@@ -8,8 +8,9 @@ os.chdir(path)
 
 from Utils.atlas_funcs import get_atlas
 import numpy as np
-from nilearn import plotting, image
+from nilearn import plotting
 import matplotlib.pyplot as plt
+
 
 def plot_quadrant_conn():
     atlas = get_atlas(combine_regions=False)

@@ -2,25 +2,14 @@ import random
 from collections import defaultdict
 
 import numpy as np
+import scipy.stats as stats
 
 import utils
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
-from organize_bhv import get_trial_info
-from org_sns import get_sns
-from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
+from org_sns import get_sns
+from organize_bhv import get_trial_info
 
-
-def load_FC_for_Lifu(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
-            key_vals=(1, 2, 3), odd_even=False,
-            do_sort=False, voxelwise=False, regionwise=False,
-            combine_regions=False, get_df_sn=False,
-            combine_bilateral=False, strict_sns=False, ):
-    return load_FC(atlas_name=atlas_name, fp=fp, split=split, key=key,
-                   key_vals=key_vals, odd_even=odd_even,
-                   do_sort=do_sort, voxelwise=voxelwise, regionwise=regionwise,
-                   combine_regions=combine_regions, get_df_sn=get_df_sn,
-                   combine_bilateral=combine_bilateral, strict_sns=strict_sns)
 
 def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
             key_vals=(1, 2, 3), odd_even=False,
@@ -35,6 +24,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                           split=split, split_code='xyz',
                           )
 
+    # Some of this is related to using this code for other projects
     age2sn = get_sns('all' if strict_sns else fp, sh=False)
 
     for age, sns in age2sn.items():
@@ -66,7 +56,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
             print(f'Prepping FC: {sn=} (idx: {sn_idx})')
             df_sn = get_trial_info(sn, easy_override=False, ret=False)
             if do_sort:
-                sess = fp.split('_')[0].replace('2', '').replace('3', '').\
+                sess = fp.split('_')[0].replace('2', '').replace('3', ''). \
                     replace('4', '').replace('7', '')
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
             try:
@@ -91,7 +81,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                     else:
                         y.append(np.nan)
                 Y.extend(y)
-                grp_idxs.extend([sn_idx]*114)
+                grp_idxs.extend([sn_idx] * 114)
                 age2idxs[age].append(sn_idx)
                 sn_idx += 1
                 continue
@@ -138,7 +128,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                             matching_trials_even.append(False)
                             matching_trials_odd.append(False)
                     activity_inc.append([activity_ar[:, matching_trials_even],
-                                            activity_ar[:, matching_trials_odd]])
+                                         activity_ar[:, matching_trials_odd]])
 
                     conns.append([np.corrcoef(activity_ar[:, matching_trials_even]),
                                   np.corrcoef(activity_ar[:, matching_trials_odd])])
@@ -148,8 +138,10 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                         activity_ar[:, matching_trials]
                     activity_inc.append(activity_ar_matched)
 
-                    activity_ar_std = stdize(activity_ar_matched, axis=1,
-                                             nans=True)
+                    # activity_ar_std = stdize(activity_ar_matched, axis=1,
+                    #                          nans=True)
+                    activity_ar_std = stats.zscore(activity_ar_matched, axis=1,
+                                                   nan_policy='omit')
                     trial_z = (activity_ar_std[None, :, :] *
                                activity_ar_std[:, None, :])
                     conn_inc = np.nanmean(trial_z, axis=-1)
@@ -205,7 +197,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
                fr'{sh_str}{stim_order}.pkl'
     if verbose >= 0: print(f'Load ROI2vecs: {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
-                  org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
+                              org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)
     r2vecs = pickle_wrap(f, fp_cache, easy_override=easy_override,
                          verbose=verbose)
     return r2vecs
@@ -214,7 +206,6 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
-
     try:
         img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
     except TypeError as e:
@@ -226,7 +217,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         raise TypeError
 
     n_nans = np.isnan(img).sum()
-    print(f'Total number of NaNs: {n_nans/114:.1f}')
+    print(f'Total number of NaNs: {n_nans / 114:.1f}')
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']

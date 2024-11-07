@@ -14,6 +14,7 @@ from Study1B.preprocess_Study1B import load_motion
 import time
 from pathlib import Path
 
+
 def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False,
                 out_drive='C'):
     df_motion = load_motion(sn, lr, drive=drive, rs=True)
@@ -63,7 +64,7 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False,
     print(f'\tLoaded confounds: {time.time() - t_st:.2f} s')
 
     t_st = time.time()
-    img = image.clean_img(img, confounds=df_confounds, high_pass=1/128,
+    img = image.clean_img(img, confounds=df_confounds, high_pass=1 / 128,
                           standardize=True, t_r=.72, mask_img=fp_mask)
     print(f'\tCleaned rs: {time.time() - t_st:.2f} s')
     t_st = time.time()

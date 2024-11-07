@@ -7,9 +7,10 @@ os.chdir(path)
 import numpy as np
 import pickle
 
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    import scipy.stats as stats
 
     # files generated via analyze_Study2B.py
     fp_rs = r'cache/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'

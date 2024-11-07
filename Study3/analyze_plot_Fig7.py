@@ -22,6 +22,7 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+
 def get_hrf(tr=2.1):
     onset, amplitude, duration = 0.0, 1.0, 0.1
     exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
@@ -39,9 +40,8 @@ def get_hrf(tr=2.1):
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      log_freqs=False, just_frontal=True,
                      ctrl_SuppMat=False):
-
     fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum = pickle_wrap(
-        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,},
+        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess, },
         easy_override=True, verbose=-1, )
 
     if fMRI_fluc is None:
@@ -51,7 +51,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
     num_TRs = fMRI_fluc.shape[-1]
 
     if just_frontal:
-        picks = ['F1', 'Fz', 'F2', 'F3', 'F4',]
+        picks = ['F1', 'Fz', 'F2', 'F3', 'F4', ]
     else:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
                  'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
@@ -65,7 +65,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         custom_freqs = np.linspace(0.5, 50, 100)
 
     custom_freqs = tuple(custom_freqs)
-
 
     kw = {'sn': sn, 'sess': sess,
           # 'avg_before': False,
@@ -88,10 +87,10 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         alt2_abs_sum = alt2_abs_sum[6:]
         alt3_sum = alt3_sum[6:]
 
-    EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
-    EEG_fluc = EEG_fluc.T # (TR, freq)
+    EEG_fluc = np.nanmean(EEG_fluc, axis=0)  # (freq, TR)
+    EEG_fluc = EEG_fluc.T  # (TR, freq)
 
-    EEG_fluc = EEG_fluc[6:, :] # drop edge artifact
+    EEG_fluc = EEG_fluc[6:, :]  # drop edge artifact
     EEG_fluc = conv(EEG_fluc)
 
     if custom_freqs is not None:
@@ -107,7 +106,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                   }
         if double_speed:
             for key, tup in ranges.items():
-                ranges[key] = (int(tup[0]*2), int(tup[1]*2))
+                ranges[key] = (int(tup[0] * 2), int(tup[1] * 2))
 
         if double_speed:
             ranges_ = {f'r{hz}': (hz, hz + 1) for hz in range(1, 101)}
@@ -120,17 +119,15 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         ranges[f'r{freq:.1f}'] = (idx, idx + 1)
     ranges_bins = {'delta': (1, 4), 'theta': (4, 8),
                    'alpha': (8, 13), 'beta': (13, 30),
-                   'gamma': (30, 50.5),}
+                   'gamma': (30, 50.5), }
     custom_freqs = np.array(custom_freqs)
     for key, tup in ranges_bins.items():
         low = np.argmin(np.abs(custom_freqs - tup[0]))
         high = np.argmin(np.abs(custom_freqs - tup[1])) + 1
         ranges[key] = (low, high)
 
-
     name2fluc = {}
     name2r = {}
-
 
     for name, rng in ranges.items():
         df = pd.DataFrame({'fMRI_fluc': fMRI_fluc})
@@ -177,7 +174,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
     return name2r, df
 
 
-
 def conv(EEG_fluc):
     if len(EEG_fluc.shape) == 1:
         EEG_fluc = EEG_fluc[:, None]
@@ -199,15 +195,16 @@ def conv(EEG_fluc):
     else:
         return EEG_fluc
 
+
 def get_sess_names(only_rs=True):
     SESSES = ['01_task-rest', '02_task-rest']
     SESS_INK = ['01_task-inscapes', '02_task-inscapes']  # shape things
     if only_rs:
         return SESSES + SESS_INK
-    SESS_OTHER = ['01_task-checker', # Designed to induce visual effects
-                  '01_task-dme_run-01', '01_task-dme_run-02', # dispicable me
-                  '01_task-monkey1_run-01', '01_task-monkey1_run-02', # movie
-                  '01_task-tp_run-01', '01_task-tp_run-02' # "The present"
+    SESS_OTHER = ['01_task-checker',  # Designed to induce visual effects
+                  '01_task-dme_run-01', '01_task-dme_run-02',  # dispicable me
+                  '01_task-monkey1_run-01', '01_task-monkey1_run-02',  # movie
+                  '01_task-tp_run-01', '01_task-tp_run-02'  # "The present"
                   ]
     SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
     return SESSES + SESS_INK + SESS_OTHER
@@ -227,7 +224,7 @@ def do_EEG_fMRI_test(just_frontal=True):
                ('06', '02_task-inscapes'), ('07', '01_task_inscapes'),
                ('09', '01_task-inscapes'), ('12', '01_task-inscapes'),
                ('15', '02_task-inscapes'), ('18', '01_task_inscapes'),
-               } # Bad EEG alignment
+               }  # Bad EEG alignment
 
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     dfs_l = []
@@ -285,5 +282,3 @@ def do_EEG_fMRI_test(just_frontal=True):
 
 if __name__ == '__main__':
     do_EEG_fMRI_test()
-
-

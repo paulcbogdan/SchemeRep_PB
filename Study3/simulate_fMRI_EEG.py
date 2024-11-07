@@ -12,6 +12,7 @@ import mne
 
 from Study3.analyze_plot_Fig7 import get_hrf
 
+
 def sample_signal(n_samples, corr, mu=0, sigma=1):
     assert 0 < corr < 1, "Auto-correlation must be between 0 and 1"
 
@@ -29,23 +30,26 @@ def sample_signal(n_samples, corr, mu=0, sigma=1):
 
     return np.array(signal)
 
+
 def conv_quick(ts, tr=2):
     import scipy.ndimage as ndimage
     HRF = get_hrf(tr)
 
     ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
-                                  origin=-HRF.shape[0] // 2, axis=0)
+                             origin=-HRF.shape[0] // 2, axis=0)
     return ts_
+
 
 def setup_x(time):
     t_ticks = list(range(0, time + 1, 2))
     plt.xlim(0, time)
     plt.grid(axis='x', linestyle='--', alpha=0.9, which='minor')
-    plt.xticks(t_ticks, minor=True,)
+    plt.xticks(t_ticks, minor=True, )
     plt.gca().tick_params(axis='x', which='minor', length=0)
     TR_ticks = list(range(1, time + 1, 2))
     TR_strs = ['TR$_{' f'{tick // 2 + 1:.0f}' '}$' for tick in TR_ticks]
     plt.xticks(TR_ticks, TR_strs, minor=False, fontsize=9)
+
 
 def plot_EEG_x_fMRI():
     np.random.seed(0)
@@ -56,7 +60,6 @@ def plot_EEG_x_fMRI():
     true_hz = 3
 
     ts = np.linspace(0, time, time * true_resolution)
-
 
     fig, axs = plt.subplots(5, 2, figsize=(6.5, 8),
                             constrained_layout=True)
@@ -127,7 +130,6 @@ def plot_EEG_x_fMRI():
     plt.text(16, -0.117, 'VD', color='red', ha='center', fontsize=12,
              va='center')
 
-
     plt.ylim(-.18, .18)
     setup_x(time)
 
@@ -151,7 +153,7 @@ def plot_EEG_x_fMRI():
     tfr1 = tfr[0]
     plt.sca(axs[2, 1])
     plt.title(f'{freqs[0]} Hz power')
-    plt.plot(ts[true_resolution*2:], tfr1[true_resolution*2:],
+    plt.plot(ts[true_resolution * 2:], tfr1[true_resolution * 2:],
              linewidth=0.5, color='limegreen')
     tfr1_ = tfr1.reshape(-1, true_bins_TR).mean(axis=1)
     plt.scatter(ts_[1:], tfr1_[1:], color='darkgreen', alpha=.9, zorder=2)
@@ -199,9 +201,9 @@ def plot_EEG_x_fMRI():
             continue
         ax.text(
             0.0, 1.0, label, transform=(
-                ax.transAxes + ScaledTranslation(-20/72, +7/72,
-                                                 fig.dpi_scale_trans)),
-             va='bottom', fontweight="bold", fontsize=12)
+                    ax.transAxes + ScaledTranslation(-20 / 72, +7 / 72,
+                                                     fig.dpi_scale_trans)),
+            va='bottom', fontweight="bold", fontsize=12)
 
     fp_out = fr'result_pics/SuppMat_EEG_fMRI_sim.png'
     plt.savefig(fp_out, dpi=600)
@@ -260,7 +262,6 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
                                               zero_mean=True,
                                               output='power')[0, 0]
 
-
     r_amp_fMRI = stats.spearmanr(amplitude_fMRI, d)[0]
     print(F'{r_amp_fMRI=:.4f}')
     print(f'{tfr.shape=}')
@@ -285,6 +286,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
 
         print(f'{hz=}, {r=:.4f}, {r_af=:.4}, {r_f=:.4f}{extra}')
 
+
 def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     rs = []
     for _ in tqdm(range(nsims)):
@@ -296,6 +298,7 @@ def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     SD = np.std(rs)
     SE = SD / np.sqrt(len(rs))
     print(f'{noise_mag:.2f} | {M=:.4f}, {SE=:.4f}')
+
 
 if __name__ == '__main__':
     plot_EEG_x_fMRI()

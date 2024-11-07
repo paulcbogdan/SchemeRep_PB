@@ -1,8 +1,8 @@
 import os
+import pathlib
 
 from Study1A.modularity_funcs import get_partition_matrix, get_modules
 
-import pathlib
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -17,8 +17,9 @@ import warnings
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+
 def plot_Fig3B(anat_version=3):
-    df, _ = pickle_wrap(get_df_networks, kwargs={'anat_ver': anat_version,},
+    df, _ = pickle_wrap(get_df_networks, kwargs={'anat_ver': anat_version, },
                         easy_override=False)
 
     cols_order = ['Lda_Ldp', 'Rda_Rdp',
@@ -44,7 +45,7 @@ def plot_Fig3B(anat_version=3):
 
     corr = partial_corr_df(df.copy(), cols_order,
                            cov=['pd_no_L', 'ad_no_L', 'av_no_L', 'pv_no_L',
-                                'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R',])
+                                'pd_no_R', 'ad_no_R', 'av_no_R', 'pv_no_R', ])
 
     corr[corr > .99] = np.nan
 

@@ -6,14 +6,11 @@ from Study1A.modularity_funcs import get_FC_between_ROIs
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
-import os
-
 import numpy as np
 import pandas as pd
 from pandas.errors import SettingWithCopyWarning
 
 from Study1A.load_Study1A_funcs import load_FC
-from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -24,14 +21,15 @@ from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 pd.DataFrame.iteritems = pd.DataFrame.items  # fix: https://stackoverflow.com/questions/76404811/attributeerror-dataframe-object-has-no-attribute-iteritems
 
 import statsmodels.formula.api as smf
-# from connsearch import print_list_stats
 
 from warnings import filterwarnings
-filterwarnings('ignore', category=SettingWithCopyWarning,)
+
+filterwarnings('ignore', category=SettingWithCopyWarning, )
 
 np.float = float
 np.bool = bool
 np.int = int
+
 
 def prep_plot_Fig2F_bars():
     kwargs = {'fp': 'obj7_fMRI',
@@ -48,7 +46,8 @@ def prep_plot_Fig2F_bars():
         get_VD_PA_partitions(age='healthy', anat=True)
     matrix_mask[~matrix_mask] = np.nan
 
-    sn_inc_activity_std = stdize(sn_inc_activity, axis=3, nans=True)
+    sn_inc_activity_std = stats.zscore(sn_inc_activity, axis=3, nan_policy='omit')
+
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
     conn_trials = np.repeat(matrix_mask[None, None, ..., None],
@@ -81,7 +80,7 @@ def prep_plot_Fig2F_bars():
             dv_cross, vd_cross]
     for key, flat in zip(keys, data):
         incs += ['Inc'] * n_sn + ['Neu'] * n_sn + ['Con'] * n_sn
-        ages += (['YA']*len(age2idxs[1]) + ['OA']*len(age2idxs[2]))*3
+        ages += (['YA'] * len(age2idxs[1]) + ['OA'] * len(age2idxs[2])) * 3
         wbs += [key] * (3 * n_sn)
         subj_nums += list(range(n_sn)) * 3
         vals += list(flat.T.reshape(-1))
@@ -101,7 +100,7 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
         'kind': 'bar'
     }
 
-    cond_sets = [('Within', 'Between'),]
+    cond_sets = [('Within', 'Between'), ]
 
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
@@ -121,12 +120,10 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
                     match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
                     df_set.loc[match, 'vals'] -= df_set.loc[match, 'vals'].mean()
 
-
         pd.set_option('display.max_rows', None)
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['sn_str'] = df_set['sn'].astype(str)
-
 
         df_set['PE'] = df_set['inc'].map({'Inc': 'High PE', 'Neu': 'Med. PE',
                                           'Con': 'Low PE'})
@@ -144,7 +141,7 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['wb_num'] = df_set['within_between'].map(
-            {'Within': -0.5, 'Between': 0.5,})
+            {'Within': -0.5, 'Between': 0.5, })
 
         df_set['sn_str'] = df_set['sn'].astype(str)
 
@@ -154,7 +151,6 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
         p_reg = res.pvalues.iloc[-1]
 
         if cond_set == ('Within', 'Between'):
-
             df_pivot = df_set.pivot_table(index=['sn'],
                                           columns=['inc', 'within_between'],
                                           values='vals', aggfunc='mean')
@@ -187,5 +183,3 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
 
 if __name__ == '__main__':
     prep_plot_Fig2F_bars()
-
-

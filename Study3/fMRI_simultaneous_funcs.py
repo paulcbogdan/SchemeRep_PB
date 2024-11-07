@@ -8,10 +8,8 @@ from nilearn.image import high_variance_confounds
 
 from Study3.EEG_simultaneous_funcs import ROOT_EEG_FMRI
 from Utils.atlas_funcs import get_atlas
-from networks.get_HCP_act import img_data2ar
-from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
-
+import scipy.stats as stats
 
 def get_fMRI_ar(sn, sess, combine_regions=False):
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
@@ -51,8 +49,9 @@ def get_fMRI_ar(sn, sess, combine_regions=False):
                 l.append(i)
 
     ar_fMRI = img_data2ar(data_fMRI, atlas)
-    ar_fMRI = stdize(ar_fMRI, axis=-1)
+    ar_fMRI = stats.zscore(ar_fMRI, axis=-1)
     return ar_fMRI, key2idxs
+
 
 
 def get_fMRI_score_sn(sn, sess='01', combine_regions=False,):
@@ -90,13 +89,27 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,):
                                key2idxs['IPL'])].mean(axis=(0, 1))
     IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
                                key2idxs['LOC'])].mean(axis=(0, 1))
-    ATL_MFG = stdize(ATL_MFG, axis=-1, rankdata=False)
-    ATL_LOC = stdize(ATL_LOC, axis=-1, rankdata=False)
-    MFG_IPL = stdize(MFG_IPL, axis=-1, rankdata=False)
-    IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
+
+    ATL_MFG = stats.zscore(ATL_MFG, axis=-1)
+    ATL_LOC = stats.zscore(ATL_LOC, axis=-1)
+    MFG_IPL = stats.zscore(MFG_IPL, axis=-1)
+    IPL_LOC = stats.zscore(IPL_LOC, axis=-1)
+
     fluc = np.abs(MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC)
 
     alt1_signed = MFG_IPL + ATL_LOC - ATL_MFG - IPL_LOC
     alt2_abs_sum = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC)
     alt3_sum = MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC
     return fluc, alt1_signed, alt2_abs_sum, alt3_sum
+
+def img_data2ar(data, atlas):
+    ar = []
+    for j, (ROI, ROI_num, region) in enumerate(zip(atlas['ROIs'],
+                                                   atlas['ROI_nums'],
+                                                   atlas['ROI_regions']
+                                                   )):
+        atlas_roi = atlas['maps'].get_fdata() == ROI_num
+        region_vecs = data[atlas_roi]
+        ts = np.nanmean(region_vecs, axis=0)
+        ar.append(ts)
+    return np.array(ar)

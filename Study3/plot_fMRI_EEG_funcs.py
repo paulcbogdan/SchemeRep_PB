@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -68,18 +66,18 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         c = get_range(hz)
         c_h = get_range_hard(hz)
         if not t_vals and plot_se:
-            plt.plot([hz-0.05, hz-0.05], [low, high], color='gray',
+            plt.plot([hz - 0.05, hz - 0.05], [low, high], color='gray',
                      alpha=0.8,
                      linewidth=0.5)
-            plt.plot([hz+0.05, hz+0.05], [low, high], color=c_h,
+            plt.plot([hz + 0.05, hz + 0.05], [low, high], color=c_h,
                      alpha=0.8,
                      linewidth=0.75)
 
             plt.plot([hz, hz], [low, high], color=c, alpha=0.3,
                      linewidth=2.5)
-            plt.plot([hz-.2, hz+.2], [high, high], color='gray',
+            plt.plot([hz - .2, hz + .2], [high, high], color='gray',
                      alpha=1, linewidth=0.5)
-            plt.plot([hz-.2, hz+.2], [low, low], color='gray',
+            plt.plot([hz - .2, hz + .2], [low, low], color='gray',
                      alpha=1, linewidth=0.5)
         plt.plot(hz, M, 'o', color=c_h, markersize=2.3)
         hz_all.append(hz)
@@ -103,7 +101,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         height = 6
         height_theta = 7.1
         drag = 0.7
-        plt.yticks([0, 1, 2, 3, 4, 5, 6,])
+        plt.yticks([0, 1, 2, 3, 4, 5, 6, ])
         plt.ylim(0, 6.)
     elif effect_size:
         height = 1.53
@@ -155,9 +153,9 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plt.text(40, .002, 'Gamma', fontsize=14, c=get_range(45),
                  ha='center')
 
-    plt.gca().spines[['right', 'top',]].set_visible(False)
+    plt.gca().spines[['right', 'top', ]].set_visible(False)
     plt.gcf().subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
-    ts = int(datetime.now().timestamp())
+
     frontal_str = '_frontal' if just_frontal else ''
     if effect_size:
         fp_out = fr'result_pics/Fig7/hz_effect_size{frontal_str}.png'

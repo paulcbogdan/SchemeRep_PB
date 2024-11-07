@@ -1,8 +1,6 @@
 import os
 import pathlib
 
-from networks.preproc_gambling import get_df_events2
-
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -80,12 +78,11 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
     plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
     plt.tick_params(axis='x', which='both', bottom=False, top=False)
 
-
     plt.sca(axs[1])
     g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_VD,
                     errorbar=('ci', 68), edgecolor='k',
                     alpha=0.7, linewidth=.7, errwidth=1.2,
-                    capsize=0.05, palette=['red'], #height=5,
+                    capsize=0.05, palette=['red'],  # height=5,
                     ax=axs[1], legend=False,
                     )
     plt.ylabel('')
@@ -145,11 +142,11 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     ar = np.array(ar)
     return ar
 
+
 def get_conn_sn(sn, combine_regions=False, bilateral=False,
                 only=None, learning_rate=None,
                 drop_first=False, reset_trial0=False,
                 ):
-
     try:
         df_rl, df_lr = get_df_PE(sn, 'both',
                                  learning_rate=learning_rate,
@@ -176,7 +173,6 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False,
         df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
 
     df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
-
 
     ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
 
@@ -214,11 +210,11 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False,
 
     return conn_high, conn_low
 
+
 def make_conn(combine_regions=False, bilateral=False,
               only=None, learning_rate=None,
               num_sns=None, drop_first=False,
-              reset_trial0=False,):
-
+              reset_trial0=False, ):
     # final subjects established as ones with both task-fMRI LR/RL and resting-state LR/RL
     fp = r'Study1B/final_HCP_subjects.txt'
     with open(fp, 'r') as f:
@@ -229,7 +225,7 @@ def make_conn(combine_regions=False, bilateral=False,
     conn_highs = []
     conn_lows = []
     bad_sns = []
-    kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+    kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'only': only, 'learning_rate': learning_rate,
           'drop_first': drop_first, 'reset_trial0': reset_trial0,
           }
@@ -308,10 +304,9 @@ def get_combo(kw, easy_override=False):
 
 def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
                          sub_ROI_expected=False):
-
     kw = {'combine_regions': combine_regions, 'bilateral': False,
           'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
-          'drop_first': False, 'reset_trial0': True,}
+          'drop_first': False, 'reset_trial0': True, }
 
     if kw['only'] == 'combo':
         # can either be run while averaging a loss matrix & win matrix ('combo')
@@ -321,7 +316,6 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
     else:
         conn_highs, conn_lows, sns = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
-
 
     if combine_regions:
         conn_highs[:, :, 46:] = np.nan
@@ -407,6 +401,7 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
                           no_avg=True, cbar_label='t-value',
                           vmin=-6, vmax=6, fp=fp_out)
 
+
 def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
@@ -418,7 +413,7 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
         pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
-    z_both = get_regression_matrix(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
+    z_both = get_regression_matrix(sn_inc_conn, flip=False)  # False = (Incongruent > Congruent)
 
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False, HCP=True,
@@ -431,6 +426,7 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
                           no_avg=True, cbar_label='Correlation (r)')
 
     return z_both
+
 
 if __name__ == '__main__':
     run_Study1B_analysis()
