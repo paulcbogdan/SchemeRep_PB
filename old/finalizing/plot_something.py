@@ -1,5 +1,12 @@
+import os
+import pathlib
+
+from Study1A.partition_VD_PA import get_VD_PA_partitions
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
 from atlas_utils import get_atlas
-from vendor_partitioning import get_vendor_partitions
 import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
@@ -8,8 +15,8 @@ import matplotlib.pyplot as plt
 def plot_quadrant_conn():
     atlas = get_atlas(combine_regions=False)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', flip=True, anat=True, scrub=False,
-                              anat_ver=3, combine_regions=False)
+        get_VD_PA_partitions(age='healthy', anat=True,
+                             anat_ver=3, combine_regions=False)
 
     nroi = len(atlas['coords'])
     graph = np.full((nroi, nroi), np.nan)
@@ -40,19 +47,15 @@ def plot_quadrant_conn():
 
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
-    # data = do_slicing(data)
 
     img = image.new_img_like(atlas['maps'], data)
     plotting.plot_glass_brain(img, cmap=plt.get_cmap('turbo'), black_bg=False,
                               vmin=0.5,
                               resampling_interpolation='nearest',
                               alpha=0.7)
-    # quit()
-    # plotting.plot_roi(img, cmap=plt.get_cmap('turbo'), display_mode='y',)
-    # plt.savefig('result_pics/other/signif_clf_no74.png', dpi=600)
-    # plt.savefig('result_pics/other/Occipital_.png', dpi=600)
-    # plt.savefig('result_pics/other/Occ200.png', dpi=600)
-
+    cur_dir = os.getcwd()
+    # fp_out = f'{cur_dir}/result_pics/Fig2/Fig2E_PA_VD_anat_modules.png'
+    # plt.savefig(fp_out, dpi=300)
     plt.show()
 
 def prune2rois(data, rois):

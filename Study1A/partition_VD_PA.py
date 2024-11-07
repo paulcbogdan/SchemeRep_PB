@@ -8,32 +8,15 @@ import os
 
 from scipy import stats
 
-from networks.old.modularity import get_main_partitions
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.modularity_funcs import get_main_partitions
+from Study1A.load_data_Study1A import load_FC
 
-# os.chdir(r'/')
-
-from pathlib import Path
-from collections import defaultdict, Counter
-from copy import copy
-
+from collections import defaultdict
 import numpy as np
 
 from atlas_utils import get_atlas
 from utils import pickle_wrap, stdize
 
-
-
-from nilearn import datasets
-# print(datasets.utils.get_data_dirs())
-# quit()
-dataset = datasets.fetch_atlas_yeo_2011()
-
-# path = pathlib.Path(__file__).parent.parent.resolve()
-# os.chdir(path)
-
-# from nilearn import datasets
-# datasets.get_data_dirs('cache')
 
 def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
     sn_inc_conn = (sn_inc_conn -
@@ -140,7 +123,6 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str='healthy',
 def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                          age: int | str='healthy',
                          thr=.95, do_PA=True, anat=False,
-                         weighted=False, scrub=False,
                          plot=False, combine_regions=False,
                          anat_ver=3, regress=False):
     if anat:
@@ -152,14 +134,12 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
     if sn_inc_conn is None or age2idxs is None:
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
-                  'split': False,
                   'atlas_name': 'BNA',
-                  'key_vals': (1, 2, 3) if regress else (1, 3),
-                  'get_df_sn': True,
-                  'combine_regions': combine_regions
+                  'key_vals': (1, 2, 3),
+                  'get_df_sn': True
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, _ = \
-            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+            pickle_wrap(load_FC, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache')
 
     PA_VD_str = 'PA' if do_PA else 'VD'
@@ -174,9 +154,6 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                                           regress=regress), fp,
                     easy_override=True)
 
-    # Code below would be useful for getting the ROIs of the data-driven modules
-    #   The small number of ROIs outside the quadrants can be dropped with scrub=True
-    #   This would reproduce the PE x Direction bars, but were not used for the report
     atlas = get_atlas(combine_regions=combine_regions)
     coords = atlas['coords']
     p_dorsal, p_ventral = partitions[0], partitions[1]
@@ -184,9 +161,6 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
     p_v_ant, p_v_pos = anterior_posterior_split(p_ventral, coords)
     assert len(p_d_ant) + len(p_d_pos) == len(p_dorsal)
     assert len(p_v_ant) + len(p_v_pos) == len(p_ventral)
-    if scrub:
-        p_d_ant, p_d_pos, p_v_ant, p_v_pos = scrub_p(p_d_ant, p_d_pos,
-                                                     p_v_ant, p_v_pos,)
 
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
@@ -287,16 +261,15 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
     matrix_mask = np.ones((246, 246), dtype=bool)
 
     if plot:
-        bonus_str = '_anat'
         plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                         combine_regions=combine_regions, bonus_str=bonus_str)
+                         combine_regions=combine_regions)
 
     if make_csv:
         save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
 def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                     combine_regions=False, bonus_str=''):
+                     combine_regions=False):
 
     atlas = get_atlas(combine_regions=combine_regions)
 
@@ -321,7 +294,7 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     from nichord import plot_glassbrain
 
     cur_dir = os.getcwd()
-    fp_quad = fr'{cur_dir}result_pics\Fig2\Fig2D_anat_quads.png'
+    fp_quad = fr'{cur_dir}\result_pics\Fig2\Fig2D_anat_quads.png'
 
     coords = atlas['coords']
     edges = [(i, i) for i in range(len(coords))]
@@ -337,57 +310,12 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_quad,
                     coords, node_size=node_sizes, linewidths=15,
                     network_colors=network_colors, )
-def scrub_p(p_d_ant, p_d_pos, p_v_ant, p_v_pos, combine_regions=False):
-    atlas = get_atlas(combine_regions=combine_regions)
-
-    idx_to_quadrant = {i: 'PD' for i in p_d_pos}
-    idx_to_quadrant.update({i: 'PV' for i in p_v_pos})
-    idx_to_quadrant.update({i: 'AD' for i in p_d_ant})
-    idx_to_quadrant.update({i: 'AV' for i in p_v_ant})
-    node_sizes = []
-    quadrant2labels = defaultdict(list)
-    for i in range(len(atlas['labels'])):
-        if i not in idx_to_quadrant:
-            idx_to_quadrant[i] = 'N/A'
-            node_sizes.append(0)
-        else:
-            quadrant = idx_to_quadrant[i]
-            label = atlas['labels'][i]
-            print(f'Pre: {label=}')
-            label = label.split(' ')[1].split('_')[0]
-            quadrant2labels[quadrant].append(label)
-            node_sizes.append(10)
-    for k, v in quadrant2labels.items():
-        print(f'{k}: {Counter(v)}')
-
-    valid_labels = {'AD': {'IFG', 'SFG', 'MFG', 'OrG', 'ACC', 'PrG'},
-                    'AV': {'ATL', 'PhG', 'Hipp', 'STG', 'ITG', 'MTG', 'FuG'}, # INS? AMY?
-                    'PD': {'IPL', 'Pcun', 'PCC', 'SPL', 'sOcG'},
-                    'PV': {'EVC', 'LOC', 'ITG', 'FuG', 'MTG'}}
-    for i, quadrant in idx_to_quadrant.items():
-        if quadrant == 'N/A':
-            continue
-        if label not in valid_labels[quadrant]:
-            idx_to_quadrant[i] = f'mislabeled_{quadrant}'
-
-    f = lambda i: 'mislabeled' not in idx_to_quadrant[i]
-    p_d_ant_new = list(filter(f, p_d_ant))
-    p_d_pos_new = list(filter(f, p_d_pos))
-    p_v_ant_new = list(filter(f, p_v_ant))
-    p_v_pos_new = list(filter(f, p_v_pos))
-    return p_d_ant_new, p_d_pos_new, p_v_ant_new, p_v_pos_new
-
 
 
 if __name__ == '__main__':
-    get_VD_PA_partitions(age='healthy', do_PA=False, plot=True,
-                         scrub=False, anat_ver=3, anat=True,
-                         combine_regions=False, regress=True)
+    # Data-driven modules (Fig 2C)
+    get_VD_PA_partitions(do_PA=True, plot=True, thr=.95, regress=True)
+    get_VD_PA_partitions(do_PA=False, plot=True, thr=.95, regress=True)
 
-    for THRESHOLD in [.95]:
-        get_VD_PA_partitions(age='healthy', do_PA=True, plot=True,
-                             scrub=False, thr=THRESHOLD,
-                             combine_regions=False, regress=True)
-        get_VD_PA_partitions(age='healthy', do_PA=False, plot=True,
-                             scrub=False, thr=THRESHOLD,
-                             combine_regions=False, regress=True)
+    # Four anatomical quadrants (Fig 2D)
+    get_VD_PA_partitions(plot=True, anat_ver=3, anat=True)

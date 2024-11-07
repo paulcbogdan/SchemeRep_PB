@@ -1,15 +1,14 @@
 import os
 
 import pandas as pd
-from tqdm import tqdm
 import scipy.stats as stats
 import numpy as np
 
-from HCP_gambling.preproc_gambling import get_df_events
+from Study1B.preprocess_Study1B import get_df_PE
 
 def semi_do_bhv_df(sn, lr, cont_PE=.3):
     try:
-        df_trials = get_df_events(sn, lr, cont_pe_by_event=True, cont_PE=cont_PE,
+        df_trials = get_df_PE(sn, lr, cont_pe_by_event=True, learning_rate=cont_PE,
                               median_split=True)
     except FileNotFoundError:
         print(f'No win.txt or loss.txt: {sn}, {lr}')

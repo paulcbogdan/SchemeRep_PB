@@ -12,7 +12,8 @@ import numpy as np
 
 from atlas_utils import get_atlas, get_BNA_ROIs
 from old.network_clf import generic_prep
-from old.plot_gen import my_plot_surf, plot_connectivity
+from old.plot_gen import my_plot_surf
+from Study1A.plotting_funcs import plot_connectivity
 from utils import stdize, run_two_sample_on_2D, pickle_wrap
 
 

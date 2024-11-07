@@ -9,7 +9,8 @@ from connRSA.conn_utils import get_ROI_vecs_wrap, prep_for_ROI_analysis, get_mea
     get_conn_vecs, prep_for_pairwise
 from fMRI_proc import RDM_x_RDM, get_IRAFs
 
-from old.plot_gen import plot_connectivity, my_plot_surf
+from old.plot_gen import my_plot_surf
+from Study1A.plotting_funcs import plot_connectivity
 from organize_bhv import get_trial_info
 from stim import get_stim_RDM
 from utils import get_default_fp, pickle_wrap, make_title_str, stdize

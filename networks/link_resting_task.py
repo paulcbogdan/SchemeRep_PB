@@ -4,13 +4,13 @@ from HCP import load_HCP_act
 from atlas_utils import get_atlas
 from get_HCP_act import load_HCP
 from old.analyze_ROIs import setup_colors
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
+from Study1A.load_data_Study1A import load_FC
+from Study1A.plotting_funcs import plot_connectivity
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from utils import pickle_wrap, stdize
-from load_more import load_resting_data, load_act_conn
+from Study2A.load_resting import load_resting_data, load_act_conn
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -179,7 +179,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
             kwargs['key_vals'] = (False, 0.5, True)
 
         _, _, _, sn_roi_act, df_sns_l = \
-            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+            pickle_wrap(load_FC, None, kwargs=kwargs,
                         easy_override=False, verbose=0, cache_dir='cache',
                         RAM_cache=True)
 
@@ -217,7 +217,7 @@ def load_task_rs_data(combine_regions, fp='vis7_fMRI', only_cortical=False,
             for fp in ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']:
                 kwargs['fp'] = fp
                 _, _, _, sn_roi_rs, df_sns_l_ = \
-                    pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+                    pickle_wrap(load_FC, None, kwargs=kwargs,
                                 easy_override=False, verbose=0, cache_dir='cache',
                                 RAM_cache=True)
                 sn_roi_rs = np.nanmean(sn_roi_rs, axis=1)

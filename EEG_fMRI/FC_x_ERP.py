@@ -1,8 +1,6 @@
-from matplotlib import pyplot as plt
-
-from EEG_fMRI.EEG_fMRI_test import conv
-from EEG_fMRI.fMRI_simul_processing import get_fMRI_ar
-from EEG_fMRI.EEG_processing import load_EEG, get_EEG_score_sn
+from Study3.run_analysis_Study3 import conv
+from Study3.fMRI_simultaneous_funcs import get_fMRI_ar
+from Study3.EEG_funcs import load_EEG, get_EEG_score_sn
 from atlas_utils import get_atlas
 
 from utils import pickle_wrap, stdize
@@ -18,15 +16,12 @@ try:
 except ModuleNotFoundError:
     pass
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 ROOT_EEG_FMRI = fr'G:\EEG_fMRI'
 
 def get_fMRI_AP_VD(sn, sess='01', combine_regions=True, clean=False,
-                   many_ROI=True, abs_analysis=False, all_conn=True):
-    # print({'sn': sn, 'sess': sess,
-    #                               'combine_regions': combine_regions,
-    #                               'clean': clean})
+                   many_ROI=True):
+
     ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
                           kwargs={'sn': sn, 'sess': sess,
                                   'combine_regions': combine_regions,
@@ -44,9 +39,9 @@ def get_fMRI_AP_VD(sn, sess='01', combine_regions=True, clean=False,
         ROI2idx[region].append(i)
 
     if many_ROI:
-        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG'] #
-        key2idxs['IPL'] = ROI2idx['IPL'] #+ ROI2idx['SPL']
-        key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']# +
+        key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG']
+        key2idxs['IPL'] = ROI2idx['IPL']
+        key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']
         key2idxs['ATL'] = ROI2idx['ATL']
 
     conn_fMRI = ar_fMRI[None, :, :] * ar_fMRI[:, None, :]
@@ -65,8 +60,6 @@ def get_fMRI_AP_VD(sn, sess='01', combine_regions=True, clean=False,
     IPL_LOC = stdize(IPL_LOC, axis=-1, rankdata=False)
 
     return ATL_MFG, ATL_LOC, MFG_IPL, IPL_LOC
-    # print(ATL_MFG.shape)
-    # quit()
 
 def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                high_gamma=False, super_slow=False, avg_ref=True,
@@ -79,18 +72,14 @@ def get_ERP_sn(sn, num_TRs, sess='01', picks=None, avg_before=True,
                  'F2', 'C2', 'P2']
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
     dir_eeg = fr'{root_sn}\eeg'
-    # fp_EEG = fr'{dir_eeg}\sub-{sn}_ses-{sess}_task-rest_eeg.set'
 
     kw = {'sn': sn, 'sess': sess, 'num_TRs': num_TRs, 'dir_eeg': dir_eeg,
-          'excl_before': excl_before}
+          }
     raw, event2true, boundary_events = pickle_wrap(load_EEG, kwargs=kw,
                                                    easy_override=False)
 
     if raw is None:
         return [None] * 13
-
-    # print(raw.ch_names)
-    # quit()
 
     if mastoid_ref:
         raw = raw.set_eeg_reference(['T7', 'T8'])

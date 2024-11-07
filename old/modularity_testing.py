@@ -6,7 +6,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from utils import get_RSA_fn, tril_flat
 import scipy.stats as stats
 

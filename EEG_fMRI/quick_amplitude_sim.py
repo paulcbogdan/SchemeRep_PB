@@ -1,8 +1,7 @@
 import numpy as np
 import scipy.stats as stats
-from matplotlib import pyplot as plt
 
-from EEG_fMRI.EEG_fMRI_test import get_hrf
+from Study3.run_analysis_Study3 import get_hrf
 
 
 def conv_quick(ts):

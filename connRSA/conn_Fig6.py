@@ -14,10 +14,10 @@ from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import get_ERS_scores
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 from networks.old.networks import prep_networks
 
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from organize_bhv import get_trial_info, sort_df_sn
 from utils import pickle_wrap, stdize
 from functools import cache
@@ -783,7 +783,7 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
                   'get_df_sn': True
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+            pickle_wrap(load_FC, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache',
                         RAM_cache=True)
         sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]

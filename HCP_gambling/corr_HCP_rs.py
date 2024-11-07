@@ -12,8 +12,8 @@ import numpy as np
 import scipy.stats as stats
 from datetime import datetime
 
-from HCP_gambling.preproc_gambling import get_df_events
-from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_vd_ef
+from Study1B.preprocess_Study1B import get_df_PE
+from Study1B.run_analysis_plot_Fig3 import get_sn_roi_ar, make_conn, get_vd_ef
 from atlas_utils import get_atlas
 from Study1A.partition_VD_PA import get_VD_PA_partitions
 # from old.network_funcs import load_FC_for_Lifu
@@ -293,7 +293,7 @@ def get_task_ef(sns_in, combine_regions=False, anat_ver=3):
 
 
 def get_gambling_behavior(sn, lr, key='RT_next'):
-    df_trials = get_df_events(sn, lr, cont_pe_by_event=True)
+    df_trials = get_df_PE(sn, lr, cont_pe_by_event=True)
     run_num = 2 if lr == 'LR' else 1
     fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'
     if not os.path.exists(fp):
@@ -335,7 +335,7 @@ def get_gambling_behavior(sn, lr, key='RT_next'):
 def get_gambling_behavior_OLD(sn, lr):
     # QuestionMark.RESP
 
-    df_trials = get_df_events(sn, lr)
+    df_trials = get_df_PE(sn, lr)
 
     run_num = 2 if lr == 'LR' else 1
     fp = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\GAMBLING_run{run_num}_TAB.txt'

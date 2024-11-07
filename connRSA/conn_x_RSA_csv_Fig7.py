@@ -12,7 +12,7 @@ from connRSA.conn_regress import do_regr_RSA_sn
 from connRSA.conn_Fig6 import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
 from connRSA.old_Oct29.conn_x_RSA_lmer import get_idxs
 from connRSA.single_trial_conn import prep_fps
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 # from old.network_funcs import load_FC_for_Lifu
 from org_sns import get_sns
 from utils import pickle_wrap
@@ -448,7 +448,7 @@ def get_plain_corr():
                   'get_df_sn': True
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-            pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+            pickle_wrap(load_FC, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache',
                         RAM_cache=True)
         sns = [df_sn['sn'].iloc[0] for df_sn in df_sns]

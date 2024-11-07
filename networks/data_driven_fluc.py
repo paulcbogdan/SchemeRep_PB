@@ -1,10 +1,10 @@
 import pandas as pd
 
 from atlas_utils import get_atlas
-from load_more import load_a
-from old.modularity import get_main_partitions
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from old_Apr6.fluctuations import partial_corr_df
+from Study2A.load_resting import load_rs_BOLD
+from Study1A.modularity_funcs import get_main_partitions
+from Study1A.load_data_Study1A import load_FC
+from Study2A.rs_funcs import partial_corr_df
 from utils import pickle_wrap, stdize
 from Study1A.partition_VD_PA import get_regression_matrix, get_VD_PA_partitions
 import numpy as np
@@ -18,9 +18,9 @@ CACHE_NUMBA = True
 
 @cache
 def load_rs(combine_regions=False):
-    sn_roi_act, sns, conn_trials = load_a(fp='rs_medium',
-                                          norm_std=False,
-                                          combine_regions=combine_regions)
+    sn_roi_act, sns, conn_trials = load_rs_BOLD(fp='rs_medium',
+                                                norm_std=False,
+                                                combine_regions=combine_regions)
     return conn_trials, sns
 
 def load_task(combine_regions=True):
@@ -32,7 +32,7 @@ def load_task(combine_regions=True):
               'combine_regions': combine_regions,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     bad_rois = {'Amyg', 'Hipp', 'Str', 'Tha'}
@@ -164,7 +164,7 @@ def get_task_triangles(combine_regions=False, strongest_efs=0.1,
               'combine_regions': combine_regions,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_roi_act, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
     # print(sn_inc_activity.shape)
@@ -297,7 +297,7 @@ def get_triangles_from_z(z_both, n_roi=210, strongest_efs=0.1):
     return triangles, highest_is
 
 def calc_corr(combine_regions=False):
-    conn_trials, _ = load_rs()
+    conn_trials, _ = load_rs_BOLD()
     partitions_VD, partitions_PA, non_used_nodes, quads = (
         load_task(combine_regions=combine_regions))
 
@@ -388,7 +388,7 @@ def calc_corr(combine_regions=False):
 
 def calc_triangle_corr(shuffle=True, seed=0, strongest_efs=0.1,
                        ss_triangles=True):
-    conn_trials, sns = load_rs()
+    conn_trials, sns = load_rs_BOLD()
     # print(conn_trials.shape)
     #
 

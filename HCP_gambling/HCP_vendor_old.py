@@ -14,10 +14,10 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 from Study1A.partition_VD_PA import get_VD_PA_partitions, get_regression_matrix
 # from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from utils import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
@@ -848,7 +848,7 @@ def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
               'combine_regions': combine_regions,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     z_both = get_regression_matrix(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)

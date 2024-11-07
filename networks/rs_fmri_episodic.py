@@ -6,14 +6,14 @@ from tqdm import tqdm
 
 from atlas_utils import get_atlas
 from Study1A.load_data_Study1A import get_ROI_vecs
-from old_Apr6.fluctuations import get_df_networks
+from Study2A.rs_funcs import get_df_networks
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 from utils import pickle_wrap, stdize
 import scipy.stats as stats
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
-from load_more import load_a, get_sn_rs
+from Study2A.load_resting import load_rs_BOLD, get_sn_rs
 
 
 def get_sn_retrieval_template(sess='con', fp_fMRI_col='con7_fMRI',

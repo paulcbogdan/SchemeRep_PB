@@ -2,7 +2,7 @@ import numpy as np
 
 from old_Apr6.ttest_mat import get_stats_graphs
 from old.networks import load_FC_for_Lifu
-from modularity import get_main_partitions, get_partition_matrix
+from Study1A.modularity_funcs import get_main_partitions, get_partition_matrix
 from utils import pickle_wrap
 import scipy.stats as stats
 

@@ -8,7 +8,7 @@ from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
 from old.modularity import get_binary_matrix, get_modules, get_partition_matrix, plot_partitions
 from old.network_funcs import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from stim import get_stim_RDM
 from utils import pickle_wrap
 

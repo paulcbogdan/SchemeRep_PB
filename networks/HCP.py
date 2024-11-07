@@ -14,7 +14,7 @@ from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from old_Apr6.fluctuations import get_df_networks, partial_corr_df
+from Study2A.rs_funcs import get_df_networks, partial_corr_df
 
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,

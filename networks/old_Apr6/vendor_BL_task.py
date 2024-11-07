@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from fluctuations import get_df_networks
-from old.modularity import get_partition_cross, get_partition_matrix
+from Study2A.rs_funcs import get_df_networks
 from old.network_funcs import load_FC_for_Lifu
 from vendor_lmers import get_vendor_df
 from vendor_partitioning import get_vendor_partitions

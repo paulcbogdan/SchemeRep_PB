@@ -1,18 +1,17 @@
 import os
 
-from networks.old.modularity import get_partition_matrix
+from Study1A.modularity_funcs import get_partition_matrix
 from utils import pickle_wrap
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-from HCP_gambling.HCP_rs_x_task_corr import get_sn_roi_ar_std, find_overlapping_sns
-from networks.sn_anat_fluc import get_quads
+from Study2B.run_analysis_Study2B import get_sn_roi_ar_std, find_overlapping_sns, get_quads
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 import pingouin as pg
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
+
 
 def partial_corr_df_2(df, cols, cov, verbose=0):
     cols = [col for col in cols if col not in cov]

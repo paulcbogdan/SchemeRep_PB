@@ -1,8 +1,8 @@
 import numpy as np
 
-from Study1A.extract_FC import get_FC_between_ROIs
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from old_Apr6.fluctuations import partial_corr_df, get_df_networks
+from Study1A.modularity_funcs import get_FC_between_ROIs
+from Study1A.load_data_Study1A import load_FC
+from Study2A.rs_funcs import partial_corr_df, get_df_networks
 from utils import pickle_wrap, stdize
 import pandas as pd
 
@@ -54,7 +54,7 @@ def get_sn2ef(fp='obj7_fMRI', anat=True, weighted=False,
               'get_df_sn': True
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

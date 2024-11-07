@@ -1,7 +1,7 @@
 import os
 import pathlib
 
-from Study1A.extract_FC import get_FC_between_ROIs
+from Study1A.modularity_funcs import get_FC_between_ROIs
 
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from pandas.errors import SettingWithCopyWarning
 
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 from utils import pickle_wrap, stdize
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -34,15 +34,15 @@ np.float = float
 np.bool = bool
 np.int = int
 
-def prep_plot_Fig2F_bars(fp='obj7_fMRI'):
-    kwargs = {'fp': fp,
+def prep_plot_Fig2F_bars():
+    kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
               'get_df_sn': True
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
@@ -87,8 +87,6 @@ def prep_plot_Fig2F_bars(fp='obj7_fMRI'):
         subj_nums += list(range(n_sn)) * 3
         vals += list(flat.T.reshape(-1))
 
-    print(f'{len(vals)=}, {len(incs)=}, {len(ages)=}, {len(wbs)=}')
-
     d = {'vals': vals, 'inc': incs, 'within_between': wbs,
          'age': ages, 'sn': subj_nums}
 
@@ -96,7 +94,7 @@ def prep_plot_Fig2F_bars(fp='obj7_fMRI'):
     plot_Fig2F_bars(df_agg)
 
 
-def plot_Fig2F_bars(df_agg, skip_plot=False, mean_norm=True):
+def plot_Fig2F_bars(df_agg, mean_norm=True):
     plot_params = {
         'y': 'vals',
         'x': 'inc',
@@ -137,14 +135,10 @@ def plot_Fig2F_bars(df_agg, skip_plot=False, mean_norm=True):
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
                         kind='bar', ci=68,
-                        # errorbar=('se', 1),
-                        # errwidth=1.5,
                         edgecolor='k',
-                        # capsize=0.1, height=4,
-                        alpha=0.7, linewidth=.7,#.7,
+                        alpha=0.7, linewidth=.7,
                         errwidth=1.2,
                         capsize=0.05,
-                        # palette=sns.color_palette()
                         palette=['dodgerblue', 'red'],
                         height=5, aspect=0.8
                         )
@@ -153,13 +147,11 @@ def plot_Fig2F_bars(df_agg, skip_plot=False, mean_norm=True):
         df_set['wb_num'] = df_set['within_between'].map(
             {'Within': -0.5, 'Between': 0.5,})
 
-        # df_set = df_set[df_set['inc'] != 'Neu']
         df_set['sn_str'] = df_set['sn'].astype(str)
 
         formula = 'vals ~ inc_num*within_between + within_between*sn_str'
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()
-        key = cond_set[0]
         p_reg = res.pvalues.iloc[-1]
 
         if cond_set == ('Within', 'Between'):
@@ -177,28 +169,8 @@ def plot_Fig2F_bars(df_agg, skip_plot=False, mean_norm=True):
             supt = (f'Two-level [Inc/Con] x Direction: p = {p_itr:.3f}\n'
                     f'Three-level [Inc/Neu/Con] x Direction: p = {p_reg:.3f} ')
             plt.suptitle(supt)
-
-            # sns.move_legend(
-            #     g, "lower center",
-            #     bbox_to_anchor=(0.9, 0.63), ncol=1,
-            #     title=None, frameon=False,
-            # )
         g._legend.remove()
-        # g.legend.remove()
 
-
-        pairs = [[('Inc', c), ('Con', c)] for c in cond_set]
-        # pairs += [[('Neu', c), ('Con', c)] for c in cond_set]
-
-        # print(f'{pairs=}')
-        ax = plt.gca()
-                # subset the table otherwise the stats were calculated on the whole dataset
-        # annot = Annotator(ax, pairs, **plot_params,
-        #                   data=df_set)
-        # annot.configure(test='t-test_paired', text_format='simple',
-        #                 show_test_name=False, verbose=2)
-        # # annot.apply_test().annotate()
-        # annot.apply_and_annotate()
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
         plt.xlim(-.5, 2.5)
         plt.tick_params(axis='x', which='both', bottom=False, top=False)
@@ -209,7 +181,7 @@ def plot_Fig2F_bars(df_agg, skip_plot=False, mean_norm=True):
         plt.ylabel('Mean connectivity')
         plt.tight_layout()
         M_norm_str = '_no_M_norm' if not mean_norm else ''
-        fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_{M_norm_str}.png'
+        fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_bars{M_norm_str}.png'
         plt.savefig(fp, dpi=600)
         plt.show()
 

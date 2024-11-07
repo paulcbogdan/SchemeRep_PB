@@ -13,8 +13,9 @@ from Study1A.partition_VD_PA import get_1sample_ttest_matrix
 from scipy import stats
 
 from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from old.plot_gen import plot_connectivity, my_plot_surf
+from Study1A.load_data_Study1A import load_FC
+from old.plot_gen import my_plot_surf
+from Study1A.plotting_funcs import plot_connectivity
 from utils import pickle_wrap, stdize
 import numpy as np
 import statsmodels.formula.api as smf
@@ -101,7 +102,7 @@ def get_con_reg_zs(fp='obj7_fMRI', combine_regions=False, age='healthy',
     print(f'{only_cortical=}')
 
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
     # print(age2idxs[1])
     # print(age2idxs[2])
@@ -274,7 +275,7 @@ def get_paired_ttest_zs(fp='obj7_fMRI', combine_regions=False,
               'combine_regions': combine_regions
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
+        pickle_wrap(load_FC, None, kwargs=kwargs, easy_override=False, verbose=1, cache_dir='cache')
     age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
     idxs = age2idxs[age]
     M_graph, SD_graph, SE_graph, N_graph, t_graph, p_graph, z_graph = \

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from group_anat_fluc import get_group_avg_rs_r, get_group_level_d
-from sn_anat_fluc import get_quads
+from Study2B.run_analysis_Study2B import get_quads
 from scipy import stats
 import numpy as np
 import statistics as stat

@@ -1,14 +1,15 @@
 import itertools
 
 from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from sn_anat_fluc import get_rs_fluc, get_quads
+from Study1A.load_data_Study1A import load_FC
+from sn_anat_fluc import get_rs_fluc
+from Study2B.run_analysis_Study2B import get_quads
 from utils import pickle_wrap
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats, spatial
 from functools import cache
-from data_driven_fluc import load_rs, shuffle_remake
+from data_driven_fluc import load_rs_BOLD, shuffle_remake
 from random import random, shuffle
 
 # suppress RuntimeWarning
@@ -20,7 +21,7 @@ CTRL = True
 
 @cache
 def get_sn_inc_conn_cache(combine_regions=False, n='7', shuffle_seed=None):
-    conn_trials, sns = load_rs(combine_regions=combine_regions)
+    conn_trials, sns = load_rs_BOLD(combine_regions=combine_regions)
 
     assert all(sns[i] <= sns[i+1] for i in range(len(sns) - 1))
     kwargs = {'fp': f'obj{n}_fMRI',
@@ -31,7 +32,7 @@ def get_sn_inc_conn_cache(combine_regions=False, n='7', shuffle_seed=None):
               'combine_regions': False,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_roi_act, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
 

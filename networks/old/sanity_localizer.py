@@ -1,10 +1,10 @@
 from scipy import stats
 
 from atlas_utils import get_atlas
-from modularity import get_binary_matrix
+from Study1A.modularity_funcs import get_binary_matrix
 from old.networks import load_FC_for_Lifu
 from old_Apr6.ttest_mat import get_stats_graphs
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from utils import pickle_wrap
 import numpy as np
 

@@ -1,27 +1,20 @@
 import os.path
 
-from nilearn import image
 from nilearn.glm.first_level import compute_regressor
-from nilearn.image import high_variance_confounds
-from scipy.interpolate import interpolate
 
-from EEG_fMRI.fMRI_simul_processing import get_fMRI_ar
-from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
+from Study3.fMRI_simultaneous_funcs import get_fMRI_ar
 from atlas_utils import get_atlas
-from get_HCP_act import img_data2ar
 from mne.io import read_raw_eeglab
 
 from old_Apr6.fluctuations import partial_corr_df
-from utils import pickle_wrap, stdize
+from utils import pickle_wrap
 import mne
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.stats as stats
 import pandas as pd
 import warnings
 from collections import defaultdict
 from time import sleep
-import pickle
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat

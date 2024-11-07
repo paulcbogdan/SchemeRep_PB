@@ -1,8 +1,8 @@
 import pandas as pd
 
 
-from Study1A.load_data_Study1A import load_FC_for_Lifu
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study1A.load_data_Study1A import load_FC
+from Study2B.run_analysis_Study2B import get_quads
 from utils import pickle_wrap
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,41 +37,6 @@ def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
         r, p = stats.spearmanr(dd_vv, dv_dv)
         return r
 
-@cache
-def get_quads(skip_other=False, all_roi=False, anat_ver=3,
-              combine_regions=COMBINE_REGIONS, p_no_override=False):
-    # print(combine_regions)
-    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
-                             anat_ver=anat_ver, combine_regions=combine_regions)
-
-    # print(p_d_pos)
-    # print(combine_regions)
-    # n_roi = 54 if COMBINE_REGIONS else 246
-    n_roi = 54 if combine_regions else 246
-    p_no = [i for i in range(n_roi) if i not in p_d_ant + p_d_pos +
-                                                p_v_ant + p_v_pos]
-    # print(f'{len(p_no)=}')
-    # quit()
-    if all_roi:
-        p_d_ant = list(range(n_roi))
-        p_d_pos = list(range(n_roi))
-        p_v_ant = list(range(n_roi))
-        p_v_pos = list(range(n_roi))
-    if skip_other:
-        p_d_ant = p_d_ant[::2]
-        p_d_pos = p_d_pos[::2]
-        p_v_ant = p_v_ant[::2]
-        p_v_pos = p_v_pos[::2]
-
-    if p_no_override:
-        p_dorsal, p_ventral, p_d_ant_, p_d_pos_, p_v_ant_, p_v_pos_, matrix_mask = \
-            get_VD_PA_partitions(age='healthy', do_PA=True, anat=True, scrub=False,
-                                 anat_ver=3, combine_regions=combine_regions)
-        p_no = [i for i in range(n_roi) if i not in p_d_ant_ + p_d_pos_ +
-                p_v_ant_ + p_v_pos_]
-    # p_no = []
-    return p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no
 
 def get_rs_fluc_OLD(pda_i, pdp_i, pva_i, pvp_i, p_no, rs_conn):
     dd = rs_conn[pda_i, pdp_i, :]
@@ -235,7 +200,7 @@ def get_group_inc_conn(n='7'):
               'combine_regions': COMBINE_REGIONS,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_roi_act, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
     inc_conn = np.nanmean(sn_inc_conn, axis=0)
@@ -376,7 +341,7 @@ def do_all_sn(do_t=False, n='7', shuffle_seed=None):
               'combine_regions': False,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_roi_act, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=-1, cache_dir='cache',
                     RAM_cache=True)
 

@@ -35,17 +35,12 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
             return cm(0.95)
 
     cm = plt.get_cmap('Spectral_r')
-    # print(name2r)
-    # quit()
+
     plt.rcParams.update({'font.size': 14,
                          'font.sans-serif': 'Arial'})
 
-    # plt.figure(figsize=(6, 4))
     plt.figure(figsize=(6, 3.35))
-    # plt.figure(figsize=(6.5, 3.35))
 
-
-    upper = 101 if 'r100' in name2r else 51
     hz_all = []
     M_all = []
     if 'r100' in name2r or 'r100.0' in name2r:
@@ -56,11 +51,6 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         cnt = 100
     for hz in np.linspace(0.5, upper, cnt):
         name = f'r{hz:.1f}'
-        # if 'r100' in name2r:
-        #     if hz == 1:
-        #         print('Skip 0.5 Hz')
-        #         continue
-        #     hz /= 2
 
         SD = np.nanstd(name2r[name], ddof=1)
         SE = SD / np.sqrt(len(name2r[name]))
@@ -71,12 +61,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
             SE = 1
         elif effect_size:
             M /= SD
-            alt_SE = np.sqrt((1 / len(name2r[name])) +
-                             ((M ** 2) / (2*len(name2r[name]))))
-
             SE /= SD
-            # print(f'{alt_SE=:.5f}, {SE=:.5f}')
-            # print(f'{M=:.5f}, {SD=:.5f}')
 
         high = M + 1 * SE
         low = M - 1 * SE
@@ -103,7 +88,6 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plt.plot(hz_all, M_all, color='k', alpha=0.5, linewidth=0.5,
                  zorder=-1)
 
-
     plt.xlabel('Hz', labelpad=7)
     if effect_size:
         plt.ylabel(r'Effect size', labelpad=7)
@@ -125,7 +109,6 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         height = 1.53
         height_theta = 1.68
         drag = 0.087
-        # plt.yticks([0, 0.2, 0.4, 0.6, 0.8, 1., 1.2, 1.4,])
         plt.yticks([0, 0.3, 0.6, 0.9, 1.2, 1.5, ])
 
         plt.ylim(0, 1.65)
@@ -137,7 +120,7 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
         plt.yticks([0, 0.02, 0.04, 0.06])
     plt.xlim(0.0, 50.5)
     plt.xticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50])
-    # plt.gca().set_facecolor('whitesmoke')
+
     if high_words:
         plt.text(3.25, height - drag, 'Delta', fontsize=14, c=get_range(2.5),
                  ha='center')
@@ -173,17 +156,14 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
                  ha='center')
 
     plt.gca().spines[['right', 'top',]].set_visible(False)
-    # plt.tight_layout()
-    # plt.gca().set_xscale('log')
-    # plt.xlim(0.5, 50)
     plt.gcf().subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
     ts = int(datetime.now().timestamp())
     frontal_str = '_frontal' if just_frontal else ''
     if effect_size:
-        fp_out = fr'result_pics/other/hz_effect_size_{ts}{frontal_str}.png'
+        fp_out = fr'result_pics/Fig7/hz_effect_size{frontal_str}.png'
     else:
         last = 'VD' if flip_VD else 'PA'
-        fp_out = fr'result_pics/other/hz_corr_{ts}_{last}.png'
+        fp_out = fr'result_pics/Fig7/hz_corr_{last}.png'
     plt.savefig(fp_out, dpi=600)
     plt.show()
 

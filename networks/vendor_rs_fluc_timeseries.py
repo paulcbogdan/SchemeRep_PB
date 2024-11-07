@@ -1,13 +1,13 @@
-# see fluctuations.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd
+# see rs_funcs.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd
 
-from old_Apr6.fluctuations import get_df_networks
+from Study2A.rs_funcs import get_df_networks
 from utils import pickle_wrap
 
 from scipy import stats
 import pandas as pd
 import numpy as np
 import pingouin as pg
-from EEG_fMRI.EEG_fMRI_test import get_hrf
+from Study3.run_analysis_Study3 import get_hrf
 import matplotlib.pyplot as plt
 import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')

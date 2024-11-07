@@ -3,18 +3,11 @@ import pickle
 from pathlib import Path
 
 import numpy as np
-from nichord import AttrDict
 from nichord.combine import plot_and_combine
-from nichord.peak import _read_atlas_peak
-
-from atlas_utils import get_atlas
 from utils import pickle_wrap
 
-import matplotlib.pyplot as plt
 
 def get_binary_matrix(matrix, threshold=.9, rowwise=True, intersect=False):
-
-    # new_corr = []
     if rowwise:
         matrix_mask = np.zeros(matrix.shape)
         for i in range(matrix.shape[0]):
@@ -35,8 +28,6 @@ def get_binary_matrix(matrix, threshold=.9, rowwise=True, intersect=False):
         matrix_binary[matrix_binary >= threshold] = 1
         matrix[matrix < threshold] = 0
 
-    # corr = bool_ar
-
     return matrix_binary, matrix_mask
 
 def get_modules(matrix_thresh):
@@ -47,20 +38,6 @@ def get_modules(matrix_thresh):
                                     seed=0)
     return part
 
-def get_modules_overlapping(matrix_thresh, algo='angel'):
-    import networkx as nx
-    import matplotlib.pyplot as plt
-    from cdlib import algorithms
-    G = nx.from_numpy_array(matrix_thresh)
-    if algo == 'conga':
-        nodecluster_obj = algorithms.conga(G, number_communities=50)
-    elif algo == 'angel':
-        print('Angel...')  # Angel yields results!
-        nodecluster_obj = algorithms.angel(G, min_community_size=10,
-                                           threshold=0.9)
-    else:
-        raise NotImplementedError
-    return nodecluster_obj.communities
 
 def get_partition_matrix(mat, idx, w_zeros=False):
     if w_zeros:
@@ -140,10 +117,7 @@ def get_BNA_coords(code='BNA'):
     return coords
 
 def get_main_partitions(sn_inc_conn, coords=None, plot=False,
-                        threshold=.95, fn_str='', overlapping=False,
-                        dir_out=None, dir_out_full=None, title_extra='',
-                        ):
-
+                        threshold=.95, dir_out=None, dir_out_full=None,):
 
     M_conn = np.nanmean(sn_inc_conn,
                         axis=tuple(range(len(sn_inc_conn.shape[:-2]))))
@@ -154,17 +128,11 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
 
     matrix_binary[np.isnan(matrix_binary)] = 0
     M_conn_masked = M_conn * matrix_mask
-    if overlapping:
-        partitions = get_modules_overlapping(matrix_binary, algo=overlapping)
-    else:
-        partitions = get_modules(matrix_binary)
-    # print(partitions)
-    # quit()
+
+    partitions = get_modules(matrix_binary)
 
     if plot:
-        fn_str += f'thr{threshold}'
-        fn_str += f'_ovr{overlapping}' if overlapping else ''
-        plot_partitions(partitions, M_conn_masked, fn_str, coords=coords,
+        plot_partitions(partitions, M_conn_masked, coords=coords,
                         dir_out=dir_out, dir_out_full=dir_out_full,
                         title_extra='', )
 
@@ -193,45 +161,24 @@ def plot_partitions(partitions, M_conn_masked, coords=None,
         plot_nichord(coords, fn, title, corr=M_corr_part,
                      dir_out=dir_out_, )
 
-if __name__ == '__main__':
-    from nilearn import datasets
-    from nilearn import image
-    import numpy as np
 
-    yeo = datasets.fetch_atlas_yeo_2011()
-    atlas = yeo.thick_7
+def get_FC_between_ROIs(conn_trials, p_mod0, p_mod1, trialwise=True,
+                        transpose=True):
+    if transpose:
+        conn_trials = np.transpose(conn_trials, (0, 1, 4, 2, 3))
 
-    yeo_fetched = datasets.fetch_atlas_yeo_2011()
-    atlas_yeo = yeo_fetched.thick_7
-    img = image.load_img(atlas_yeo)
-    mni_coord = [-6, 52, -19]
-    # print(img.affine)
-    # print(np.linalg.inv(img.affine))
-    #
-    # quit()
-    coord = image.coord_transform(mni_coord[0], mni_coord[1], mni_coord[2],
-                                  np.linalg.inv(img.affine))
-    coord = np.array(coord).astype(int)
+    meshy = np.ix_(p_mod0, p_mod1)
+    slicer = tuple([slice(None)] * (conn_trials.ndim - 2) + [meshy[0], meshy[1]])
+    conn_trials_cross = conn_trials[slicer]
 
-    data = img.get_fdata()
-    print(data.shape)
-
-    val = data[coord[0], coord[1], coord[2]]
-    print(val)
-
-
-    quit()
-
-    yeo = AttrDict()
-
-    import pandas as pd
-    yeo.labels = pd.DataFrame({'name': ['uncertain', 'Visual', 'SM', 'DAN',
-                                        'VAN', 'Limbic', 'FPCN', 'DMN']})
-    yeo.atlas = 'yeo'
-    yeo.image = image.load_img(atlas_yeo)
-
-    region = _read_atlas_peak(yeo, mni_coord)
-    print(f'{region=}')
-
-
-
+    flat_cross = np.reshape(conn_trials_cross, (conn_trials_cross.shape[0],
+                                                conn_trials_cross.shape[1],
+                                                conn_trials_cross.shape[2], -1))
+    if trialwise:
+        agg_zs = np.nanmean(flat_cross, axis=-1)
+        agg_zs = np.nanmean(agg_zs, axis=1) # omit inc axis
+        return agg_zs
+    else:
+        rs = np.nanmean(flat_cross, axis=2)
+        agg_rs = np.nanmean(rs, axis=-1)
+        return agg_rs

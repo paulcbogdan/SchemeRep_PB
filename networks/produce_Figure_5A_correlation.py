@@ -1,6 +1,6 @@
-# see fluctuations.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd
+# see rs_funcs.py as of Monday June 24, should produce r = -.18 for dv_dv vs. dd_dd
 
-from old_Apr6.fluctuations import get_df_networks, partial_corr_df
+from Study2A.rs_funcs import get_df_networks, partial_corr_df
 from utils import pickle_wrap
 
 from scipy import stats

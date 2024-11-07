@@ -1,11 +1,14 @@
-import os.path
+import os
+import pathlib
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
 
 from nilearn.glm.first_level import compute_regressor
 
-from EEG_fMRI.EEG_processing import get_EEG_score_sn
-from EEG_fMRI.fMRI_simul_processing import get_fMRI_score_sn
-from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
-# from get_HCP_act import img_data2ar
+from Study3.EEG_funcs import get_EEG_score_sn
+from Study3.fMRI_simultaneous_funcs import get_fMRI_score_sn
+from Study3.plotting_Study3 import plot_hz_corrs
 
 from utils import pickle_wrap
 import numpy as np
@@ -17,9 +20,7 @@ import statsmodels.formula.api as smf
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
-os.chdir(r'C:\PycharmProjects\SchemeRep')
-
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)# warnings.filterwarnings('ignore', category=pd.PerformanceWarning)
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 def get_hrf(tr=2.1):
     onset, amplitude, duration = 0.0, 1.0, 0.1
@@ -31,32 +32,17 @@ def get_hrf(tr=2.1):
         frame_times,
         con_id="main",
         oversampling=50,
-        # min
     )
     return signal[:, 0]
 
 
-
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
-                     get_max=False, get_max_avg_before=True,
-                     log_freqs=False, just_frontal=True, alt_v=5):
+                     log_freqs=False, just_frontal=True,
+                     ctrl_SuppMat=False):
 
-    assert not (get_max and get_max_avg_before), 'Only have one true'
-
-    fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum, alt4_sum_abs = pickle_wrap(
-        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess, 'combine_regions': False,
-                                   'clean': True, 'mask': True, 'nofilter': False,
-                                   'n_compcor': 5, 'lateral': False},
-                            easy_override=False, verbose=-1, )
-    r1, _ = stats.spearmanr(fMRI_fluc, alt1_signed)
-    print(f'Sanity 1: {r1=:.3f}')
-    r2, _ = stats.spearmanr(fMRI_fluc, alt2_abs_sum)
-    print(f'Sanity 2: {r2=:.3f}')
-    r3, _ = stats.spearmanr(fMRI_fluc, alt3_sum)
-    print(f'Sanity 3: {r3=:.3f}')
-    r4, _ = stats.spearmanr(fMRI_fluc, alt4_sum_abs)
-    print(f'Sanity 4: {r4=:.3f}')
-    # return None, None
+    fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum = pickle_wrap(
+        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,},
+        easy_override=True, verbose=-1, )
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -66,10 +52,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
     if just_frontal:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',]
-        # picks = ['F1', 'Fz', 'F2']
-        # picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
-        #          'FC1', 'FCz', 'FC2', 'FC3', 'FC4',]
-        # picks = ['Fz', 'F2', 'F3',]
     else:
         picks = ['F1', 'Fz', 'F2', 'F3', 'F4',
                  'FC1', 'FCz', 'FC2', 'FC3', 'FC4',
@@ -81,18 +63,17 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         custom_freqs = np.logspace(-1, 1.7, 100, base=10)
     else:
         custom_freqs = np.linspace(0.5, 50, 100)
-    # custom_freqs = np.linspace(0.5, 100, 200)
 
     custom_freqs = tuple(custom_freqs)
 
 
-    kw = {'sn': sn, 'sess': sess, 'avg_before': False,
-          'num_TRs': num_TRs, 'picks': picks, 'avg_ref': True,
-          'mastoid_ref': False, 'delay': False,
-          'double_speed': double_speed, 'excl_before': True,
-          'get_max': get_max, 'get_max_avg_before': get_max_avg_before,
+    kw = {'sn': sn, 'sess': sess,
+          # 'avg_before': False,
+          'num_TRs': num_TRs, 'picks': picks,
+          # 'avg_ref': True,
+          # 'mastoid_ref': False, 'delay': False,
+          # 'double_speed': double_speed, 'excl_before': True,
           'custom_freqs': custom_freqs}
-
 
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs=kw,
                            easy_override=False, verbose=-1)
@@ -106,9 +87,6 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         alt1_signed = alt1_signed[6:]
         alt2_abs_sum = alt2_abs_sum[6:]
         alt3_sum = alt3_sum[6:]
-        alt4_sum_abs = alt4_sum_abs[6:]
-
-    # num_nans = np.isnan(EEG_fluc[0, 4]).sum()
 
     EEG_fluc = np.nanmean(EEG_fluc, axis=0) # (freq, TR)
     EEG_fluc = EEG_fluc.T # (TR, freq)
@@ -170,34 +148,23 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
 
         df['focus'] = stats.zscore(df['focus'])
         df['fMRI_fluc'] = stats.zscore(df['fMRI_fluc'])
-        if alt_v > 0:
-            if alt_v == 1:
-                df['ctrl'] = stats.zscore(alt1_signed)
-            elif alt_v == 2:
-                df['ctrl'] = stats.zscore(alt2_abs_sum)
-            elif alt_v == 3:
-                df['ctrl'] = stats.zscore(alt3_sum)
-            elif alt_v == 4:
-                df['ctrl'] = stats.zscore(alt4_sum_abs)
+        if ctrl_SuppMat:
             df['ctrl_one'] = stats.zscore(alt1_signed)
             df['ctrl_two'] = stats.zscore(alt2_abs_sum)
             df['ctrl_three'] = stats.zscore(alt3_sum)
-            df['ctrl_four'] = stats.zscore(alt4_sum_abs)
 
         df_ = df.dropna()
         if len(df_) < 1:
             name2r[name] = np.nan
             continue
 
-        if alt_v == 0:
-            r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
-        if alt_v == 5:
-            res = smf.ols(f'focus ~ fMRI_fluc + ctrl_one + ctrl_two + '
-                          f'ctrl_three', data=df_).fit()
+        if ctrl_SuppMat:
+            res = smf.ols(f'focus ~ fMRI_fluc + ctrl_one + ctrl_two + ctrl_three',
+                          data=df_).fit()
             r = res.params['fMRI_fluc']
         else:
-            res = smf.ols(f'focus ~ fMRI_fluc + ctrl', data=df_).fit()
-            r = res.params['fMRI_fluc']
+            r, p = stats.spearmanr(df_[name], df_['fMRI_fluc'])
+
         name2r[name] = r
 
         name2fluc[name] = range_fluc
@@ -219,7 +186,6 @@ def conv(EEG_fluc):
     else:
         undo = False
 
-    # print(EEG_fluc)
     import scipy.ndimage as ndimage
     HRF = get_hrf()
     for i in range(EEG_fluc.shape[1]):
@@ -265,32 +231,26 @@ def do_EEG_fMRI_test(just_frontal=True):
 
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     dfs_l = []
+    # SNS = SNS[-10:]
     for SN in SNS:
         for j, SESS in enumerate(SESSES):
             if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
             if (SN, SESS) in BAD_SNS: continue
             print(f'- ({SN}; {SESS}) -')
             name2r, df = test_EEG_fMRI_sn(SN, SESS, just_frontal=just_frontal)
-            # print(f'{PSD.shape=}')
             if name2r is None:
                 continue
             dfs_l.append(df)
 
             for key, r in name2r.items():
-                # NAME2L[key].append(r)
                 NAME2SN2L[SN][key].append(r)
-
-            # print(np.array(PSDs).shape)
 
             NAME2L = defaultdict(list)
             simple2l = defaultdict(list)
             for SN, d in NAME2SN2L.items():
-                # print(f'left: {SN}')
                 for key, l in d.items():
                     NAME2L[key].append(np.mean(l))
                     simple2l[key].extend(l)
-                    # print(f'{len(NAME2L[key])=}')
-                # NAME2L[]
 
             for key, l in NAME2L.items():
                 N = len(l)
@@ -308,7 +268,6 @@ def do_EEG_fMRI_test(just_frontal=True):
                         res = stats.wilcoxon(l)
                         p_wilcox = res.pvalue * 2
                         M_above = np.mean([m > 0 for m in l])
-                        # print(f'{key}: {l=}')
                     except ValueError:
                         p_wilcox = np.nan
                         M_above = np.nan
@@ -316,12 +275,10 @@ def do_EEG_fMRI_test(just_frontal=True):
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
                           f'({t=:.3f} | {d=:.3f}), {p=:.1e}, {p_wilcox=:.1e} | '
                           f'{M_above:.1%}')
-            # continue
+
             if 'r50.0' not in NAME2L:
                 continue
             if N == 21 and j == len(SESSES) - 1:
-                print('PLOTTTT')
-                plot_hz_corrs(NAME2L, just_frontal=just_frontal)
                 plot_hz_corrs(NAME2L, effect_size=True, plot_se=True,
                               just_frontal=just_frontal)
 

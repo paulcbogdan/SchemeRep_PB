@@ -3,9 +3,8 @@ import os.path
 from nilearn import image
 from nilearn.glm.first_level import compute_regressor
 from nilearn.image import high_variance_confounds
-from scipy.interpolate import interpolate
 
-from EEG_fMRI.plot_EEG_fMRI import plot_hz_corrs
+from Study3.plotting_Study3 import plot_hz_corrs
 from atlas_utils import get_atlas
 from networks.get_HCP_act import img_data2ar
 # from get_HCP_act import img_data2ar
@@ -20,10 +19,8 @@ import pandas as pd
 import warnings
 from collections import defaultdict
 from time import sleep
-from scipy import signal
 import pickle
 from nilearn import masking
-import statsmodels.formula.api as smf
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 from scipy.io import loadmat

@@ -1,8 +1,8 @@
 import os
 
-from networks.old.modularity import get_partition_matrix
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study2A.rs_funcs import get_module_trialwise_z
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 # import sys
@@ -29,18 +29,6 @@ os.environ['R_HOME'] = r'C:\Users\Paul\anaconda3\envs\py312\Lib\R'
 filterwarnings('ignore', category=UserWarning)
 filterwarnings('ignore', message='DataFrame is highly fragmented')
 
-
-def get_module_trialwise_z(sn_inc_conn_trials, p_module, add_dim=False):
-    # sn_inc_conn_trials = sn_inc_activity_std[..., None, :] * \
-    #                      sn_inc_activity_std[..., None, :, :]
-    sn_inc_conn_trials = np.transpose(sn_inc_conn_trials, (0, 1, 4, 2, 3))
-    sn_inc_conn_trials_dd = get_partition_matrix(sn_inc_conn_trials, p_module)
-    tridx_dd = np.tril_indices(sn_inc_conn_trials_dd.shape[-1], k=-1)
-    sn_inc_flat_trails_dd = sn_inc_conn_trials_dd[:, :, :,
-                            tridx_dd[0], tridx_dd[1]]
-    sn_inc_agg_trials_dd = np.nanmean(sn_inc_flat_trails_dd, axis=-1)
-    sn_agg_trials_dd = np.nanmean(sn_inc_agg_trials_dd, axis=1) # omit inc axis
-    return sn_agg_trials_dd
 
 def get_memory_p():
     atlas = get_atlas()
@@ -96,7 +84,7 @@ def get_vendor_df(fp='obj7_fMRI', scrub=False, anat=False,
               'get_df_sn': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns_l = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     # p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

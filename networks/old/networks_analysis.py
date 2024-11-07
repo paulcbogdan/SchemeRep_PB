@@ -1,7 +1,7 @@
 import numpy as np
 
-from modularity import get_partition_matrix, get_main_partitions
-from Study1A.load_data_Study1A import load_FC_for_Lifu, reconfiguration, \
+from Study1A.modularity_funcs import get_partition_matrix, get_main_partitions
+from Study1A.load_data_Study1A import load_FC, reconfiguration, \
     analyze_subject_specific
 from network_clf import generic_prep
 from subject_specific import graph_theory
@@ -22,7 +22,7 @@ def subject_specific(threshold=0.9):
               'key_vals': (1, 3),
               'odd_even': True}
 
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC, None, kwargs=kwargs,
                                                                   easy_override=False, verbose=1,
                                                                   cache_dir='../../cache')
     fp = 'cache/test.pkl'
@@ -54,7 +54,7 @@ def INC_reconfig(threshold=0.9):
               'key': 'inc',
               # 'key': 'rand',
               'key_vals': (1, 2, 3)}
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC, None, kwargs=kwargs,
                                                                   easy_override=False, verbose=1,
                                                                   cache_dir='../../cache')
     partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,
@@ -92,7 +92,7 @@ def rand_test(threshold=0.9, way3=False):
                   # 'key': 'inc',
                   'key': 'rand',
                   'key_vals': (1, 2, 3) if way3 else (False, True)}
-        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = pickle_wrap(load_FC, None, kwargs=kwargs,
                                                                       easy_override=True, verbose=1,
                                                                       cache_dir='../../cache')
         partitions, top_edges_mat = get_main_partitions(sn_conn, plot=False,

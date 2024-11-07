@@ -1,24 +1,24 @@
 import os
+import pathlib
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
+import os
 from collections import defaultdict
 from copy import deepcopy
 
 import pandas as pd
-from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
 from nilearn.glm.first_level import make_first_level_design_matrix, FirstLevelModel
 import numpy as np
 from nilearn import image
 
-# from old.network_funcs import load_FC_for_Lifu
-from utils import pickle_wrap
-# from vendor_partitioning import get_vendor_partitions, do_regression
 import time
-from numba import prange, njit
 
-os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-def get_events_PE(sn, RL_LR, cont_PE=None):
+def get_df_events(sn, RL_LR, cont_PE=None):
     dir_LR = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{RL_LR}\EVs'
     df_loss_event = pd.read_csv(fr'{dir_LR}\loss_event.txt', delimiter='\t',
                                 header=None, names=['onset', 'duration', 'amplitude'])
@@ -57,74 +57,58 @@ def get_events_PE(sn, RL_LR, cont_PE=None):
     df_trials['trials_all'] = list(range(len(df_trials)))
     return df_trials
 
-# def get_df_events_both(sn, cont_PE=None, cont_pe_by_event=False,
-#                        median_split=True, drop_first=False):
-#     df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
-#     df_trials_LR = get_events_PE(sn, 'LR', cont_PE=cont_PE)
-#     df_trials = pd.concat([df_trials, df_trials_LR], ignore_index=True)
-
-
-def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False,
-                  median_split=True, drop_first=False, reset_trial0=False):
+def get_df_PE(sn, RL_LR, learning_rate=1,
+              drop_first=False, reset_trial0=False,
+              for_prepoc=False):
 
     if RL_LR == 'both':
-        df_trials_LR = get_events_PE(sn, 'LR', cont_PE=cont_PE)
+        df_trials_LR = get_df_events(sn, 'LR', cont_PE=learning_rate)
         df_trials_LR['variant'] = 'LR'
-        df_trials = get_events_PE(sn, 'RL', cont_PE=cont_PE)
+        df_trials = get_df_events(sn, 'RL', cont_PE=learning_rate)
         df_trials['variant'] = 'RL'
         df_trials = pd.concat([df_trials, df_trials_LR], ignore_index=True)
     else:
-        df_trials = get_events_PE(sn, RL_LR, cont_PE=cont_PE)
+        df_trials = get_df_events(sn, RL_LR, cont_PE=learning_rate)
 
-        # df_trials = df_trials[df_trials['trial_within_block'] != 0]
+    if for_prepoc:
+        df_trials['trial_type'] = 'NA'
+        return df_trials
 
-    if cont_PE is not None:
-        PE_cont = []
-        E = 0
-        learning = cont_PE
-        for idx, row in df_trials.iterrows():
-            if row['trials_all'] == 0 and reset_trial0:
-                E = 0
-            if row['event'] == 'win':
-                PE = 1 - E
-                E = E * (1 - learning) + learning
-            elif row['event'] == 'loss':
-                PE = -1 - E
-                E = E * (1 - learning) - learning
-            else:
-                PE = 0 - E
-                E = E * (1 - learning)
-            PE_cont.append(PE)
-
-        df_trials['PE'] = PE_cont
-        df_trials['PE_abs'] = df_trials['PE'].abs()
-
-        if drop_first:
-            if RL_LR == 'both':
-                df_trials['trial_within_block'] = list(range(8)) * 8
-            else:
-                df_trials['trial_within_block'] = list(range(8)) * 4
-            df_trials.loc[df_trials['trial_within_block'] == 0, 'PE_abs'] = np.nan
-
-        if cont_pe_by_event:
-            for event in ['loss', 'win', 'neut']:
-                df_event = df_trials[df_trials['event'] == event]
-                if median_split:
-                    med_PE = df_event['PE_abs'].median()
-                else:
-                    med_PE = df_event['PE_abs'].mean()
-                df_trials.loc[df_trials['event'] == event, 'trial_type'] = df_trials.loc[
-                    df_trials['event'] == event, 'PE_abs'].apply(
-                    lambda x: 'low_PE' if x < med_PE else 'high_PE' if ~pd.isna(x) else 'dropped')
+    PE_l = []
+    E = 0
+    learning = learning_rate
+    for idx, row in df_trials.iterrows():
+        if row['trials_all'] == 0 and reset_trial0:
+            E = 0
+        if row['event'] == 'win':
+            PE = 1 - E
+            E = E * (1 - learning) + learning
+        elif row['event'] == 'loss':
+            PE = -1 - E
+            E = E * (1 - learning) - learning
         else:
-            if median_split:
-                med_PE = df_trials['PE_abs'].median()
-            else:
-                med_PE = df_trials['PE_abs'].mean()
-            df_trials['trial_type'] = df_trials['PE_abs'].apply(
-                lambda x: 'low_PE' if x < med_PE else 'high_PE')
+            PE = 0 - E
+            E = E * (1 - learning)
+        PE_l.append(PE)
 
-        pd.set_option('display.max_rows', 2000)
+    df_trials['PE'] = PE_l
+    df_trials['PE_abs'] = df_trials['PE'].abs()
+
+    if drop_first:
+        if RL_LR == 'both':
+            df_trials['trial_within_block'] = list(range(8)) * 8
+        else:
+            df_trials['trial_within_block'] = list(range(8)) * 4
+        df_trials.loc[df_trials['trial_within_block'] == 0, 'PE_abs'] = np.nan
+
+    for event in ['loss', 'win', 'neut']:
+        df_event = df_trials[df_trials['event'] == event]
+        med_PE = df_event['PE_abs'].median()
+        df_trials.loc[df_trials['event'] == event, 'trial_type'] = df_trials.loc[
+            df_trials['event'] == event, 'PE_abs'].apply(
+            lambda x: 'low_PE' if x < med_PE else 'high_PE' if ~pd.isna(x) else 'dropped')
+
+    pd.set_option('display.max_rows', 2000)
 
     df_trials.drop(columns=['same'], inplace=True)
 
@@ -135,32 +119,29 @@ def get_df_events(sn, RL_LR, cont_PE=None, cont_pe_by_event=False,
             df_trials['trial_within_block'] = list(range(8)) * 4
         df_trials.loc[df_trials['trial_within_block'] == 0, 'trial_type'] = 'dropped'
 
-    if median_split and cont_pe_by_event: # odd number
-        df_lw = df_trials[df_trials['event'] != 'neut']
+    # code just below accounts for odd numbers of loss and/or win trials.
+    #   drops last trials as needed
+    df_lw = df_trials[df_trials['event'] != 'neut']
 
-        df_loss = df_lw[df_lw['event'] == 'loss']
-        df_loss_low = df_loss[df_loss['trial_type'] == 'low_PE']
-        df_loss_high = df_loss[df_loss['trial_type'] == 'high_PE']
-        if len(df_loss_low) > len(df_loss_high):
-            df_trials.loc[df_loss_low.index[-1], 'trial_type'] = 'drop'
-            # print('over')
-        elif len(df_loss_low) < len(df_loss_high):
-            df_trials.loc[df_loss_high.index[-1], 'trial_type'] = 'drop'
-            # print('over')
-        df_win = df_lw[df_lw['event'] == 'win']
-        df_win_low = df_win[df_win['trial_type'] == 'low_PE']
-        df_win_high = df_win[df_win['trial_type'] == 'high_PE']
-        if len(df_win_low) > len(df_win_high):
-            df_trials.loc[df_win_low.index[-1], 'trial_type'] = 'drop'
-            # print('over')
-        elif len(df_win_low) < len(df_win_high):
-            df_trials.loc[df_win_high.index[-1], 'trial_type'] = 'drop'
-            # print('over')
+    df_loss = df_lw[df_lw['event'] == 'loss']
+    df_loss_low = df_loss[df_loss['trial_type'] == 'low_PE']
+    df_loss_high = df_loss[df_loss['trial_type'] == 'high_PE']
+    if len(df_loss_low) > len(df_loss_high):
+        df_trials.loc[df_loss_low.index[-1], 'trial_type'] = 'drop'
+    elif len(df_loss_low) < len(df_loss_high):
+        df_trials.loc[df_loss_high.index[-1], 'trial_type'] = 'drop'
+    df_win = df_lw[df_lw['event'] == 'win']
+    df_win_low = df_win[df_win['trial_type'] == 'low_PE']
+    df_win_high = df_win[df_win['trial_type'] == 'high_PE']
+    if len(df_win_low) > len(df_win_high):
+        df_trials.loc[df_win_low.index[-1], 'trial_type'] = 'drop'
+    elif len(df_win_low) < len(df_win_high):
+        df_trials.loc[df_win_high.index[-1], 'trial_type'] = 'drop'
 
-        df_lw = df_trials[df_trials['event'] != 'neut']
-        df_low = df_lw[df_lw['trial_type'] == 'low_PE']
-        df_high = df_lw[df_lw['trial_type'] == 'high_PE']
-        assert len(df_low) == len(df_high), f'{len(df_low)=}, {len(df_high)=}'
+    df_lw = df_trials[df_trials['event'] != 'neut']
+    df_low = df_lw[df_lw['trial_type'] == 'low_PE']
+    df_high = df_lw[df_lw['trial_type'] == 'high_PE']
+    assert len(df_low) == len(df_high), f'{len(df_low)=}, {len(df_high)=}'
 
     if RL_LR == 'both':
         df_trials_RL = df_trials[df_trials['variant'] == 'RL']
@@ -221,8 +202,7 @@ def load_motion(sn, lr, rs=False, drive='F'):
     df = pd.DataFrame(motion, columns=add_reg_names)
     return df
 
-def do_LSA(img, df_trials, sn, lr, reg_global=False, no_compcor=False):
-
+def do_LSA(img, df_trials, sn, lr):
     df_trials.reset_index(drop=True, inplace=True)
 
     condition_counter = defaultdict(lambda: 0)
@@ -233,28 +213,20 @@ def do_LSA(img, df_trials, sn, lr, reg_global=False, no_compcor=False):
         df_trials.loc[i_trial, "trial_type"] = trial_name
 
     frame_times = np.linspace(0, 192, 253, endpoint=False)
-    df_motion = load_motion(sn, lr, rs=False)
-    if not no_compcor:
-        df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-        df_confounds = pd.concat([df_compcor, df_motion], axis=1)
-    else:
-        df_confounds = df_motion
+    df_confounds = load_motion(sn, lr, rs=False)
 
-    if reg_global:
-        fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
-        img = image.load_img(img)
-        mask = image.load_img(fp_mask)
-        global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
-        df_confounds['global'] = global_signal
-
+    fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
+    img = image.load_img(img)
+    mask = image.load_img(fp_mask)
+    global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
+    df_confounds['global'] = global_signal
 
     X1 = make_first_level_design_matrix(
         frame_times,
         df_trials,
         add_regs=df_confounds,
-        hrf_model='spm',  #
+        hrf_model='spm',
     )
-
 
     glm = FirstLevelModel(slice_time_ref=0.5, t_r=192 / 253,
                           signal_scaling=(0, 1), high_pass=1 / 128,
@@ -281,21 +253,22 @@ def do_LSA(img, df_trials, sn, lr, reg_global=False, no_compcor=False):
 
     beta_img = image.new_img_like(img, betas)
 
-    glob_str = '_global' if reg_global else ''
-    cc_str = '_nocc' if no_compcor else ''
-    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
-    print(f'{fp_lsa=}')
+    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA_global_nocc.nii'
+    print(f'Out: {fp_lsa=}')
     beta_img.to_filename(fp_lsa)
-    # quit()
 
 
 def do_LSS(img, df_trials, sn, lr):
-    fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
     df_trials.reset_index(drop=True, inplace=True)
     betas = []
-    df_compcor = pd.DataFrame(high_variance_confounds(img, percentile=2))
-    df_motion = load_motion(sn, lr, rs=False)
-    df_confounds = pd.concat([df_compcor, df_motion], axis=1)
+    df_confounds = load_motion(sn, lr, rs=False)
+
+    fp_mask = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_{lr}\brainmask_fs.2.nii.gz'
+    img = image.load_img(img)
+    mask = image.load_img(fp_mask)
+    global_signal = img.get_fdata()[mask.get_fdata() > 0].mean(axis=0)
+    df_confounds['global'] = global_signal
+
     for i in tqdm(range(len(df_trials)), desc=f'Cooking LSS: {sn} ({lr})',
                   position=0, leave=True):
 
@@ -328,52 +301,44 @@ def do_LSS(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lss = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS.nii'
+    fp_lss = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS_global_nocc.nii'
     beta_img.to_filename(fp_lss)
+    print(f'Out: {fp_lss=}')
 
 
-def LSA_LSS_gambling(lsa=True, easy_override=False,
-                     reg_global=True, no_compcor=True):
+def LSA_LSS_gambling(lsa=True, easy_override=False,):
     sns = os.listdir(r'G:\HCP_gambling')
     sns = list(sns)
-    print(f'{len(sns)=}')
     sns = sorted(sns)
-
-    glob_str = '_global' if reg_global else ''
-
-    cc_str = '_nocc' if no_compcor else ''
 
     bad_sns = []
     for sn in sns:
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
             if lsa:
-                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA{glob_str}{cc_str}.nii'
+                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA_global_nocc.nii'
                 if not os.path.exists(fp_lsa_lr) or easy_override:
-                    df_events_LR = get_df_events(sn, 'LR')
-                    do_LSA(fp_img, df_events_LR, sn, 'LR', reg_global=reg_global, no_compcor=no_compcor)
+                    df_events_LR = get_df_PE(sn, 'LR', for_prepoc=True)
+                    do_LSA(fp_img, df_events_LR, sn, 'LR')
             else:
-                fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS.nii'
+                fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS_global_nocc.nii'
                 if not os.path.exists(fp_lss_lr) or easy_override:
-                    df_events_LR = get_df_events(sn, 'LR')
+                    df_events_LR = get_df_PE(sn, 'LR', for_prepoc=True)
                     do_LSS(fp_img, df_events_LR, sn, 'LR')
 
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
             if lsa:
-                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA{glob_str}{cc_str}.nii'
+                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA_global_nocc.nii'
                 if not os.path.exists(fp_lsa_rl) or easy_override:
-                    df_events_RL = get_df_events(sn, 'RL')
-                    do_LSA(fp_img, df_events_RL, sn, 'RL', reg_global=reg_global, no_compcor=no_compcor)
+                    df_events_RL = get_df_PE(sn, 'RL', for_prepoc=True)
+                    do_LSA(fp_img, df_events_RL, sn, 'RL')
             else:
-                fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS.nii'
+                fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS_global_nocc.nii'
                 if not os.path.exists(fp_lss_rl) or easy_override:
-                    df_events_RL = get_df_events(sn, 'RL')
+                    df_events_RL = get_df_PE(sn, 'RL', for_prepoc=True)
                     do_LSS(fp_img, df_events_RL, sn, 'RL')
             print(f'Done: {sn}')
-        # except FileNotFoundError:
-        #     print(f'File not found: {sn}')
-        #     time.sleep(1)
-        #     bad_sns.append(sn)
+
         except ValueError as e:
             print(f'ValueError: {sn}, {e=}')
             bad_sns.append(sn)
@@ -381,9 +346,6 @@ def LSA_LSS_gambling(lsa=True, easy_override=False,
             print(f'ERROR: {sn=}, {e=}')
             time.sleep(1)
             bad_sns.append(sn)
-    print(f'{bad_sns=}')
-
-
 
 if __name__ == '__main__':
     LSA_LSS_gambling()

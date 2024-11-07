@@ -1,6 +1,6 @@
 import numpy as np
 
-from EEG_fMRI.EEG_fMRI_test import get_hrf
+from Study3.run_analysis_Study3 import get_hrf
 from vendor_rs_fluc_timeseries import wiener_deconvolution
 
 def roberto_test():

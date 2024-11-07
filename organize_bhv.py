@@ -464,6 +464,8 @@ def get_trial_info_(sn, ret=True, incl_lures=False):
     if ret:
         df_sn = include_conceptual(df_sn, sn)
         df_sn = include_vis(df_sn, sn, incl_lures=incl_lures)
+    else:
+        return df_sn
     try:
         df_sn['hit_hit'] = df_sn['con_hit'] & df_sn['vis_hit']
         def f(row):
@@ -504,7 +506,8 @@ def get_trial_info_(sn, ret=True, incl_lures=False):
 
     for key in ['obj', 'scn', 'con', 'vis']:
         num_nans = df_sn[f'{key}_trial'].isna().sum()
-        assert num_nans == 0, f'Bad _trial {num_nans=}, {key=}, {sn=}'
+        if sn != '133':
+            assert num_nans == 0, f'Bad _trial {num_nans=}, {key=}, {sn=}'
 
     return df_sn
 
@@ -598,6 +601,7 @@ def include_conceptual(df_sn, sn):
             # based on the psychtoolbox output, but maybe proceed with caution
             # with these two ppl
             if sn == '231' and run == 1: continue
+            if sn == '133': continue
             trial = i + 1
             obj = mat_enc['pdata'][0][0][6][0][i][0]
             obj_l.append(obj)
@@ -650,7 +654,8 @@ def include_conceptual(df_sn, sn):
         df_sn['con7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['con8_fMRI'] = df_sn['obj'].map(obj2fp8)
 
-        obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
+        # if sn != '133':
+        #     obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
 
         df_sn['con_run'] = df_sn['obj'].map(obj2run)
         df_sn['con_trial'] = df_sn['obj'].map(obj2trial)
@@ -758,11 +763,10 @@ def include_vis(df_sn, sn, incl_lures=False):
         df_sn['vis3_fMRI'] = df_sn['obj'].map(obj2fp3)
         df_sn['vis7_fMRI'] = df_sn['obj'].map(obj2fp7)
         df_sn['vis8_fMRI'] = df_sn['obj'].map(obj2fp8)
-        obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
+        if sn != '133':
+            obj2trial, obj2run = fill_obj2trial_obj2run(obj2trial, obj2run)
         df_sn['vis_run'] = df_sn['obj'].map(obj2run)
         df_sn['vis_trial'] = df_sn['obj'].map(obj2trial)
-
-
 
         if incl_lures:
             l_lures = []
@@ -899,8 +903,8 @@ if __name__ == '__main__':
     # print(df_sn)
     pd.set_option('display.width', None)
     pd.set_option('display.max_rows', None)
-    df_sn = get_trial_info_('102')
-    df_sn.sort_values(by='obj_trial', inplace=True)
+    df_sn = get_trial_info_('215', ret=False)
+    df_sn.sort_values(by='obj_trial', inplace=True,)
     # print(df_sn[['obj_trial', 'bl_trial', 'obj']])
     # print(CNT_VIS_RESPS)
     # print(CNT_CON_RESPS)

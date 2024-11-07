@@ -1,4 +1,8 @@
 import os
+import pathlib
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
 
 import pandas as pd
 from nilearn.image import high_variance_confounds
@@ -6,9 +10,7 @@ from tqdm import tqdm
 
 from nilearn import image
 
-from HCP_gambling.preproc_gambling import load_motion
-# from old.network_funcs import load_FC_for_Lifu
-# from vendor_partitioning import get_vendor_partitions, do_regression
+from Study1B.preprocess_Study1B import load_motion
 import time
 from pathlib import Path
 
@@ -72,19 +74,6 @@ def clean_sn_rs(sn, lr, drive='G', reg_global=False, no_compcor=False,
 def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
                     drive='G', out_drive='C'):
     sns = os.listdir(fr'{drive}:\HCP_RS_unzipped')
-    sns = list(sns)
-    # print(f'{len(sns)=}')
-    # quit()
-    sns = sorted(sns)
-    # sns = {'203418'}
-
-    sns = {'263436',
-               '119833', '186949', '196952', '202820', '284646'}
-
-
-    # sns = {'150423', '171734', '119833', '127933', '128127',
-    #            '127327', '105216', '105014', '203418', '203923',
-    #            '204016', '201515', '201717', '201818', '202113'}
 
     sns = sorted(list(sns))
 
@@ -98,7 +87,6 @@ def clean_sn_rs_all(easy_override=False, reg_global=False, no_compcor=False,
             print(f'Error: {sn=}, {e=}')
             bad_sns.append(sn)
 
-    # for sn in tqdm(sns, desc='Cleaning RS', position=0, leave=True):
         try:
             clean_sn_rs(sn, 'RL', drive=drive, reg_global=reg_global,
                         no_compcor=no_compcor, out_drive=out_drive)

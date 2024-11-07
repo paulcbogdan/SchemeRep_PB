@@ -1,4 +1,7 @@
 import os
+
+from Study2A.rs_funcs import prep_conn_ps
+
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from collections import defaultdict
@@ -10,12 +13,11 @@ from scipy import linalg, stats as stats
 from tqdm import tqdm
 
 from atlas_utils import get_atlas
-from old.modularity import get_modules, get_partition_matrix
-from old.plot_gen import plot_connectivity
+from Study1A.modularity_funcs import get_modules, get_partition_matrix, get_FC_between_ROIs
+from Study1A.plotting_funcs import plot_connectivity
 from utils import pickle_wrap
-from old_Apr6.vendor_lmers import get_module_trialwise_z
-from load_more import load_act_conn
-from Study1A.extract_FC import get_FC_between_ROIs
+# from old_Apr6.vendor_lmers import get_module_trialwise_z
+# from load_more import load_act_conn
 from Study1A.partition_VD_PA import get_VD_PA_partitions
 
 
@@ -119,80 +121,6 @@ def do_modularity_hemi(df):
                                         w_zeros=True)
         plot_connectivity(corr_vp, ticks, tick_labels, tick_lows, title='', no_avg=True, vmin=0, vmax=1)
 
-
-def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
-    ad_else = list(set(range(246)) - set(p_d_ant))
-    pd_else = list(set(range(246)) - set(p_d_pos))
-    av_else = list(set(range(246)) - set(p_v_ant))
-    pv_else = list(set(range(246)) - set(p_v_pos))
-
-    no_match = list(set(range(246)) -
-                    set(p_d_ant + p_d_pos + p_v_ant + p_v_pos))
-
-    dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
-    dv_ant_else = list(set(range(246)) - set(p_d_ant + p_v_ant))
-    vv_else = list(set(range(246)) - set(p_v_ant + p_v_pos))
-    dv_pos_else = list(set(range(246)) - set(p_d_pos + p_v_pos))
-
-    p_ant = list(set(p_d_ant + p_v_ant))
-    p_pos = list(set(p_d_pos + p_v_pos))
-
-    # allow diagonal
-    pd_no = list(set(range(246)) - set(p_d_pos + p_d_ant + p_v_pos))
-    ad_no = list(set(range(246)) - set(p_d_ant + p_d_pos + p_v_ant))
-    pv_no = list(set(range(246)) - set(p_v_pos + p_v_ant + p_d_pos))
-    av_no = list(set(range(246)) - set(p_v_ant + p_v_pos + p_d_ant))
-
-    conn_keys = ['dd', 'vv',
-                 'dv_ant', 'dv_pos',
-                 'dpva', 'vpda',
-                 'pd_else', 'ad_else',
-                 'pv_else', 'av_else',
-                 'dd_else', 'vv_else',
-                 'dv_ant_else', 'dv_pos_else',
-                 'pd_no', 'ad_no',
-                 'pv_no', 'av_no',
-                 'dd_no', 'vv_no',
-                 'dv_ant_no', 'dv_pos_no',
-                 'pd_no2', 'ad_no2',
-                 'pv_no2', 'av_no2',
-                 'no_no',
-
-                 'pd_no_L', 'pd_no_R',
-                 'ad_no_L', 'ad_no_R',
-                 'pv_no_L', 'pv_no_R',
-                 'av_no_L', 'av_no_R',
-                 ]
-
-
-    p_d_pos_L = [i for i in p_d_pos if i % 2 == 0]
-    p_d_pos_R = [i for i in p_d_pos if i % 2 == 1]
-    p_d_ant_L = [i for i in p_d_ant if i % 2 == 0]
-    p_d_ant_R = [i for i in p_d_ant if i % 2 == 1]
-    p_v_pos_L = [i for i in p_v_pos if i % 2 == 0]
-    p_v_pos_R = [i for i in p_v_pos if i % 2 == 1]
-    p_v_ant_L = [i for i in p_v_ant if i % 2 == 0]
-    p_v_ant_R = [i for i in p_v_ant if i % 2 == 1]
-    conn_ps = [(p_d_pos, p_d_ant), (p_v_pos, p_v_ant),
-               (p_d_ant, p_v_ant), (p_d_pos, p_v_pos),
-               (p_d_pos, p_v_ant), (p_v_pos, p_d_ant),
-               (p_d_pos, pd_else), (p_d_ant, ad_else),
-               (p_v_pos, pv_else), (p_v_ant, av_else),
-               (p_dorsal, dd_else), (p_ventral, vv_else),
-               (p_ant, dv_ant_else), (p_pos, dv_pos_else),
-               (p_d_pos, no_match), (p_d_ant, no_match),
-               (p_v_pos, no_match), (p_v_ant, no_match),
-               (p_dorsal, no_match), (p_ventral, no_match),
-               (p_ant, no_match), (p_pos, no_match),
-               (p_d_pos, pd_no), (p_v_pos, pv_no),
-               (p_d_ant, ad_no), (p_v_ant, av_no),
-               (no_match, no_match),
-               (p_d_pos_L, no_match), (p_d_pos_R, no_match),
-               (p_d_ant_L, no_match), (p_d_ant_R, no_match),
-               (p_v_pos_L, no_match), (p_v_pos_R, no_match),
-               (p_v_ant_L, no_match), (p_v_ant_R, no_match),
-               ]
-    return conn_keys, conn_ps
 
 def get_rs_vendor_df(roiwise=False, do_hemi=False, high_var_confounds=False,
                      zscore=True, norm_std=True, f=None, YA_only=False):

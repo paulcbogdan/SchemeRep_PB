@@ -1,12 +1,16 @@
+import os
+import pathlib
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
 import numpy as np
-import pandas as pd
 import scipy.stats as stats
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 import mne
-import statsmodels.formula.api as smf
 
-from EEG_fMRI.EEG_fMRI_test import get_hrf
+from Study3.run_analysis_Study3 import get_hrf
 
 def sample_signal(n_samples, corr, mu=0, sigma=1):
     assert 0 < corr < 1, "Auto-correlation must be between 0 and 1"
@@ -28,12 +32,9 @@ def sample_signal(n_samples, corr, mu=0, sigma=1):
 def conv_quick(ts, tr=2):
     import scipy.ndimage as ndimage
     HRF = get_hrf(tr)
-    # return ts
 
     ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
                                   origin=-HRF.shape[0] // 2, axis=0)
-    # ts_ = ndimage.convolve1d(ts, HRF, mode='nearest',
-    #                          origin=HRF.shape[0] // 2 - 1, axis=0)
     return ts_
 
 def setup_x(time):
@@ -65,7 +66,6 @@ def plot_EEG_x_fMRI():
     plt.title(f'{true_hz} Hz oscillation')
     plt.plot(ts, osc, linewidth=0.5)
     plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
-    # plt.yticks([-1, 0, 1], ['100%\nVD', '50/50', '100\nPA'])
     plt.xlim(0, 20)
 
     amplitude = sample_signal(len(ts), amplitude_autocorr)
@@ -82,7 +82,7 @@ def plot_EEG_x_fMRI():
         ax.remove()
     axbig = fig.add_subplot(gs[1, :])
     osc_a = osc * amplitude
-    # TODO: add noise
+
     plt.sca(axbig)
     plt.title('Oscillation x amplitude')
     plt.plot(ts, osc_a, linewidth=0.5, color='teal')
@@ -107,7 +107,6 @@ def plot_EEG_x_fMRI():
     l.legend_handles[1].set_linewidth(1.05)
     setup_x(time)
 
-
     true_bins_TR = fMRI_TR * true_resolution
     true_bins_TR = int(true_bins_TR)
 
@@ -123,9 +122,7 @@ def plot_EEG_x_fMRI():
                  zorder=-1, linestyle='--')
     plt.scatter(ts_, VD_, linewidth=0.5, color='red', label='VD')
     plt.scatter(ts_, PA_, linewidth=0.5, color='blue', label='PA')
-    # plt.text(16, 0.1, 'VD', color='red', ha='center', fontsize=12, va='center')
-    # plt.text(16, -0.117, 'PA', color='blue', ha='center', fontsize=12,
-    #          va='center')
+
     plt.text(16, 0.1, 'PA', color='blue', ha='center', fontsize=12, va='center')
     plt.text(16, -0.117, 'VD', color='red', ha='center', fontsize=12,
              va='center')
@@ -141,9 +138,6 @@ def plot_EEG_x_fMRI():
     plt.ylim(0, 0.33)
     plt.yticks([0, 0.1, 0.2, 0.3])
     setup_x(time)
-
-
-
 
     tfr_in = osc_a[None, None, :]
     freqs = [0.5, 3, 10]
@@ -187,26 +181,14 @@ def plot_EEG_x_fMRI():
     setup_x(time)
     r, p = stats.pearsonr(tfr3_, ds)
     print(f'{r=:.4f}')
-    labels = ['A'] * 10
 
     fig.canvas.draw()
-    # axs = axs.flatten()
-    # print(axs)
-    # quit()
 
-
-    ax = axs[0, 0]
-
-    axs = [axs[0, 0], axs[0, 1], #axs[1, 0],
+    axs = [axs[0, 0], axs[0, 1],
            axbig,
            axs[2, 0], axs[3, 0],
            axs[4, 0], axs[2, 1], axs[3, 1], axs[4, 1]]
 
-    # label = 'A'
-    # labels = ['A'] * 10
-    # bbox = ax.get_tightbbox(fig.canvas.get_renderer())
-    # fig.text(bbox.x0, bbox.y1, label, fontsize=14, va="top",
-    #          ha="left", transform=None)
     labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
     from matplotlib.transforms import ScaledTranslation
 
@@ -215,16 +197,13 @@ def plot_EEG_x_fMRI():
             bbox = ax.get_tightbbox(fig.canvas.get_renderer())
         except AttributeError:
             continue
-        # fig.text(bbox.x0, bbox.y1, label, fontsize=14,
-        #          va="top", ha="left", transform=None)
         ax.text(
             0.0, 1.0, label, transform=(
                 ax.transAxes + ScaledTranslation(-20/72, +7/72,
                                                  fig.dpi_scale_trans)),
              va='bottom', fontweight="bold", fontsize=12)
 
-    # plt.tight_layout()
-    fp_out = fr'result_pics/other/EEG_fMRI_sim.png'
+    fp_out = fr'result_pics/SuppMat_EEG_fMRI_sim.png'
     plt.savefig(fp_out, dpi=600)
     plt.show()
 
@@ -269,11 +248,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
     amplitude_TR = amplitude.reshape(-1, true_bins_TR).mean(axis=1)
     amplitude_fMRI = conv_quick(amplitude_TR)
 
-    # d = np.abs(np.fft.fft(noisy_oscillator_fMRI))
     d = np.abs(noisy_oscillator_fMRI - noisy_osc_inv_fMRI)
-
-
-    # r, p = stats.spearmanr(d, amplitude_fMRI)
 
     if verbose: print('Onto TFR')
     noisy_oscillator_e = osc_a + noise_eeg
@@ -284,10 +259,6 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
                                               n_cycles=n_cycles,
                                               zero_mean=True,
                                               output='power')[0, 0]
-    # tfr = mne.time_frequency.tfr_array_multitaper(tfr_in,
-    #                                           sfreq=true_resolution,
-    #                                           freqs=np.arange(1, 51),
-    #                                           output='power',)[0, 0]
 
 
     r_amp_fMRI = stats.spearmanr(amplitude_fMRI, d)[0]
@@ -305,13 +276,7 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
 
         r_af, p = stats.spearmanr(tfr_fMRI, amplitude_fMRI)
 
-        # r_f, p = stats.spearmanr(tfr_TR, d)
         r_f, p = stats.spearmanr(tfr_fMRI, d)
-
-        # df = pd.DataFrame({'tfr': tfr_fMRI, 'd': d,
-        #                    'amplitude': amplitude_fMRI})
-        # model = smf.ols('tfr ~ d + amplitude', data=df).fit()
-        # print(model.summary())
 
         if hz == true_hz:
             extra = ' ***'
@@ -320,11 +285,9 @@ def do_EEG_fMRI_sim(noise_mag=0.1, verbose=1, n_cycles=7, time=60_000):
 
         print(f'{hz=}, {r=:.4f}, {r_af=:.4}, {r_f=:.4f}{extra}')
 
-
-
 def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     rs = []
-    for nsim in tqdm(range(nsims)):
+    for _ in tqdm(range(nsims)):
         noise_mag = 0.5
         r = do_EEG_fMRI_sim(noise_mag=noise_mag, time=time)
         rs.append(r)
@@ -335,15 +298,5 @@ def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
     print(f'{noise_mag:.2f} | {M=:.4f}, {SE=:.4f}')
 
 if __name__ == '__main__':
-    # do_EEG_fMRI_sim(noise_mag=0.5, time=300_000)
     plot_EEG_x_fMRI()
-    # quit()
-
-    # noise_mag = 0.1
-    # r = do_EEG_fMRI_sim(noise_mag=noise_mag, n_cycles=3)
-    # r = do_EEG_fMRI_sim(noise_mag=noise_mag)
-    # r = do_EEG_fMRI_sim(noise_mag=noise_mag, n_cycles=15)
-
-    # for nm in np.logspace(-2, 2, 10, base=10):
-    #     do_EEG_fMRI_sim(nm)
-        # do_multiple_EEG_fMRI_sim(nm)
+    do_EEG_fMRI_sim()

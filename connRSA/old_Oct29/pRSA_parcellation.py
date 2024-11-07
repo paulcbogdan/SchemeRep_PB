@@ -3,8 +3,8 @@ from collections import defaultdict
 import utils
 from atlas_utils import get_atlas
 from connRSA.single_trial_conn import prep_fps, prep_vecs
-from networks.old.modularity import get_partition_matrix
-from old.plot_gen import plot_connectivity
+from Study1A.modularity_funcs import get_partition_matrix
+from Study1A.plotting_funcs import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 from stim import get_stim_RDM

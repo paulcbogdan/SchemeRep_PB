@@ -1,7 +1,7 @@
 import os
 
-from HCP_gambling.HCP_vendor import get_sn_roi_ar, make_conn, get_combo
-from networks.sn_anat_fluc import get_quads
+from Study1B.run_analysis_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
+from Study2B.run_analysis_Study2B import get_quads
 
 from utils import pickle_wrap
 import numpy as np

@@ -1,6 +1,6 @@
 import os
 
-from fluctuations import get_df_networks
+from Study2A.rs_funcs import get_df_networks
 
 
 from analyze_rs import get_rs_vendor_df

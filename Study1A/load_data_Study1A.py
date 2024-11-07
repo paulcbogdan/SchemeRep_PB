@@ -1,29 +1,31 @@
 import random
 from collections import defaultdict
-from itertools import combinations
 
-import matplotlib
 import numpy as np
-from matplotlib import pyplot as plt
-from scipy import stats as stats
 
 import utils
 from atlas_utils import get_atlas, get_BNA_ROIs
-from networks.old.modularity import get_partition_matrix
-# from old.modularity import get_partition_matrix, get_main_partitions
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 from utils import pickle_wrap, stdize
-# import os
-# os.chdir(r'/')
 
 
-def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
-                     key_vals=(1, 2, 3), odd_even=False, pad_nan=False,
-                     do_sort=False, fp_all=False, voxelwise=False,
-                     regionwise=False, combine_regions=False, get_df_sn=False,
-                     loose_sns=False, combine_bilateral=False,
-                     strict_sns=False,):
+def load_FC_for_Lifu(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
+            key_vals=(1, 2, 3), odd_even=False,
+            do_sort=False, voxelwise=False, regionwise=False,
+            combine_regions=False, get_df_sn=False,
+            combine_bilateral=False, strict_sns=False, ):
+    return load_FC(atlas_name=atlas_name, fp=fp, split=split, key=key,
+                   key_vals=key_vals, odd_even=odd_even,
+                   do_sort=do_sort, voxelwise=voxelwise, regionwise=regionwise,
+                   combine_regions=combine_regions, get_df_sn=get_df_sn,
+                   combine_bilateral=combine_bilateral, strict_sns=strict_sns)
+
+def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
+            key_vals=(1, 2, 3), odd_even=False,
+            do_sort=False, voxelwise=False, regionwise=False,
+            combine_regions=False, get_df_sn=False,
+            combine_bilateral=False, strict_sns=False, ):
     if atlas_name == 'schaefer':
         atlas = get_atlas(schaefer=True)
     else:
@@ -32,12 +34,8 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                           split=split, split_code='xyz',
                           )
 
-    # age2sn = get_sns('all' if fp_all else fp,
-    #                  sh=False)
-
     age2sn = get_sns('all' if strict_sns else fp, sh=False)
-    # print(f'{age2sn=}')
-    # quit()
+
     for age, sns in age2sn.items():
         print(f'{age=}, {len(sns)=}')
 
@@ -52,10 +50,6 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
     df_sns = []
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
-        print(f'{len(sns)=}')
-        # if atlas == 'schaefer':
-        #     ROIs_l = get_BNA_ROIs(code='schaefer')
-        # else:
         if combine_regions:
             if combine_bilateral:
                 ROIs_l = atlas['ROI_regions']
@@ -69,14 +63,11 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
 
         for sn in sns:
             print(f'Prepping FC: {sn=} (idx: {sn_idx})')
-            df_sn = get_trial_info(sn, easy_override=False)
+            df_sn = get_trial_info(sn, easy_override=False, ret=False)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', '').\
                     replace('4', '').replace('7', '')
-                # if sort_obj:
                 df_sn.sort_values(by=f'{sess}_trial', inplace=True)
-                # else:
-                #     df_sn.sort_values(by='obj', inplace=True)
             try:
                 ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn,
                                          nan_thresh=1.01,
@@ -87,7 +78,6 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             except TypeError as e:
                 print(f'Error missing files ({sn}):', e)
                 continue
-                # ROI2vecs0
             if voxelwise or regionwise:
                 for ROI in ROI2vecs0:
                     ROI2act[ROI].append(ROI2vecs0[ROI])
@@ -120,11 +110,8 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
             # print(activity_ar.shape)
             nan_trials = np.any(np.isnan(activity_ar), axis=0)
             good_trials = ~nan_trials
-            # print(nan_trials)
-            # quit()
             if sum(nan_trials) > 0:
                 print('Participant has NaNs!')
-
 
             for i, inc in enumerate(key_vals):
                 if key == 'rand':
@@ -169,16 +156,6 @@ def load_FC_for_Lifu(atlas_name='BNA', fp='obj3_fMRI', split=False, key='inc',
                                activity_ar_std[:, None, :])
                     conn_inc = np.nanmean(trial_z, axis=-1)
                     conns.append(conn_inc)
-
-                    # plt.imshow(conn_inc)
-                    # plt.show()
-                    # quit()
-                    # print(activity_ar.shape)
-                    # quit()
-
-                    # conn_inc = np.corrcoef(activity_ar[:,
-                    #                        matching_trials & good_trials])
-                    # conns.append(conn_inc)
 
             conns = np.array(conns)
             sn_inc_conn.append(conns)
@@ -239,8 +216,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
-    # print(df_sn[fp_fMRI_col])
-    # quit()
+
     try:
         img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
     except TypeError as e:
@@ -263,7 +239,6 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
         region_vecs = img[atlas_roi]
 
         voxels_w_nan = np.isnan(region_vecs[:, good_idxs]).any(axis=1)
-        voxels_all_nan = (~np.isnan(region_vecs)).any(axis=1)
 
         n_nans_ROI = np.sum(voxels_w_nan)
         p_nan_any = n_nans_ROI / len(voxels_w_nan)

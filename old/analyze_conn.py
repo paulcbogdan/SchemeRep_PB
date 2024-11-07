@@ -1,6 +1,6 @@
 import numpy as np
 
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from utils import make_title_str, get_RSA_fn, stdize
 from atlas_utils import get_atlas
 import pickle

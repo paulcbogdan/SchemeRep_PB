@@ -1,4 +1,12 @@
 import os
+import pathlib
+
+from Study1B.preproc_gambling import get_df_events2
+
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
+import os
 import time
 import zlib
 
@@ -9,11 +17,11 @@ from matplotlib import pyplot as plt
 from nilearn import image
 from scipy import stats as stats
 
-from HCP_gambling.preproc_gambling import get_df_events
+from Study1B.preprocess_Study1B import get_df_PE
 from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC_for_Lifu
+from Study1A.load_data_Study1A import load_FC
 from Study1A.partition_VD_PA import get_VD_PA_partitions, get_regression_matrix
-from old.plot_gen import plot_connectivity
+from Study1A.plotting_funcs import plot_connectivity
 from utils import pickle_wrap
 
 
@@ -26,14 +34,12 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
 
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_vd_ef(conn_lows, combine_regions=combine_regions,
                                                        combine_bilateral=bilateral)
-    # df = df_high.copy()
     df['low_PA'] = dd + vv
     df['low_VD'] = dv_ant + dv_pos
     df['low_dd'] = dd
     df['low_vv'] = vv
     df['low_dv_ant'] = dv_ant
     df['low_dv_pos'] = dv_pos
-    # df_low = df[['low_PA', 'low_VD', 'low_dd', 'low_vv', 'low_dv_ant', 'low_dv_pos']]
 
     for ef in ['PA', 'VD', 'dd', 'vv', 'dv_ant', 'dv_pos']:
         df[f'{ef}_diff'] = df[f'high_{ef}'] - df[f'low_{ef}']
@@ -41,17 +47,6 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
         N = np.sum(~np.isnan(df[f'high_{ef}']))
         print(f'{ef}: t[{N - 1}] = {t:.2f}, {p=:.4f}')
 
-    # M_PA = (df['high_PA'] + df['low_PA']) / 2
-    # df['high_PA'] -= M_PA
-    # df['low_PA'] -= M_PA
-    # M_VD = (df['high_VD'] + df['low_VD']) / 2
-    # df['high_VD'] -= M_VD
-    # df['low_VD'] -= M_VD
-
-    # df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['high_VD'].to_list() +
-    #                          df['low_PA'].to_list() + df['low_VD'].to_list(),
-    #                    'PA_VD': ['PA'] * len(df) * 2 + ['VD'] * len(df) * 2,
-    #                    'high_low': (['high'] * len(df) + ['low'] * len(df)) * 2})
 
     df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['low_PA'].to_list() +
                              df['high_VD'].to_list() + df['low_VD'].to_list(),
@@ -61,30 +56,6 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
 
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
-    # g = sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df,
-    #                     kind='bar',
-    #                     # errci=68,
-    #                     errorbar=('ci', 68),
-    #                     # errwidth=1.5,
-    #                     edgecolor='k',
-    #                     # capsize=0.1, height=4,
-    #                     alpha=0.7, linewidth=.7,#.7,
-    #                     errwidth=1.2,
-    #                     capsize=0.05,
-    #                     # palette=sns.color_palette()
-    #                     palette=['dodgerblue', 'red'],
-    #                     height=5, aspect=0.8
-    #                     )
-    # plt.ylabel('Mean connectivity')
-    # g._legend.remove()
-    # g.set_xticklabels(['High PE', 'Low PE'])
-    # plt.tight_layout()
-    # plt.xlabel('')
-    # plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
-    # plt.xlim(-.5, 1.5)
-    # fp = fr'result_pics/other/Study_1B_vendor.png'
-    # plt.savefig(fp, dpi=600)
-    # plt.show()
 
     df_PA = df[df['PA_VD'] == 'PA']
     df_PA['FC'] -= df_PA.groupby('sn')['FC'].transform('mean')
@@ -94,10 +65,6 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
 
     fig, axs = plt.subplots(1, 2, figsize=(6, 5))
 
-    # tips = sns.load_dataset('tips')
-    # sns.boxplot(x='day', y='total_bill', data=tips, ax=axs[0])
-    # sns.catplot(x='high_low', y='FC', hue='PA_VD', data=df_VD,
-    #             ax=axs[0])
     plt.sca(axs[0])
     g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_PA,
                     errorbar=('ci', 68), edgecolor='k',
@@ -132,11 +99,9 @@ def bar_vendor(conn_highs, conn_lows, combine_regions, bilateral):
     plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
     plt.tick_params(axis='x', which='both', bottom=False, top=False)
     plt.tight_layout()
-    fp = fr'result_pics/other/Study_1B_vendor_v2.png'
+    fp = fr'result_pics/Fig3/Fig3A_matrix.png'
     plt.savefig(fp, dpi=600)
     plt.show()
-
-
 
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
@@ -167,13 +132,11 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
         print(f'{fp_lsa_lr=}')
         raise zlib.error
     data_lsa_lr = img_lsa_lr.get_fdata()
-    # df_events = get_df_events(sn, 'LR')
 
     ROIs = atlas['ROIs']
     ROI_nums = atlas['ROI_nums']
     ROI_regions = atlas['ROI_regions']
-    # ROI2vecs = {}
-    # region2vecs = defaultdict(list)
+
     ar = []
     for j, (ROI, ROI_num, region) in enumerate(zip(ROIs, ROI_nums, ROI_regions)):
         atlas_roi = atlas['maps'].get_fdata() == ROI_num
@@ -183,19 +146,23 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     ar = np.array(ar)
     return ar
 
-
-def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
+def get_conn_sn_OLD(sn, combine_regions=False, bilateral=False, drop_neut=False,
                 neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
-                cont_PE_by_event=False, lr_separate=False,
-                reg_global=False, no_compcor=False, median_split=True,
-                drop_first=False, both_bhv=False, reset_trial0=False):
+                cont_PE_by_event=True, lr_separate=True,
+                reg_global=True, no_compcor=True,
+                median_split=True,
+                drop_first=False, both_bhv=True, reset_trial0=True,
+                learning_rate=None):
+
+    if cont_PE is None:
+        cont_PE = learning_rate
 
     if both_bhv:
         try:
-            df_rl, df_lr = get_df_events(sn, 'both', cont_PE=cont_PE,
-                                  cont_pe_by_event=cont_PE_by_event,
-                                  median_split=median_split,
-                                  drop_first=drop_first, reset_trial0=reset_trial0)
+            df_rl, df_lr = get_df_events2(sn, 'both', cont_PE=cont_PE,
+                                          cont_pe_by_event=cont_PE_by_event,
+                                          median_split=median_split,
+                                          drop_first=drop_first, reset_trial0=reset_trial0)
         except Exception as e:
             print(f'ERROR in getting df: {sn}, {e=}')
             # bad_sns.append(sn)
@@ -203,16 +170,16 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
             return None, sn
     else:
         try:
-            df_lr = get_df_events(sn, 'LR', cont_PE=cont_PE,
-                                  cont_pe_by_event=cont_PE_by_event,
-                                  median_split=median_split,
-                                  drop_first=drop_first,
-                                  reset_trial0=reset_trial0)
-            df_rl = get_df_events(sn, 'RL', cont_PE=cont_PE,
-                                  cont_pe_by_event=cont_PE_by_event,
-                                  median_split=median_split,
-                                  drop_first=drop_first,
-                                  reset_trial0=reset_trial0)
+            df_lr = get_df_events2(sn, 'LR', cont_PE=cont_PE,
+                                   cont_pe_by_event=cont_PE_by_event,
+                                   median_split=median_split,
+                                   drop_first=drop_first,
+                                   reset_trial0=reset_trial0)
+            df_rl = get_df_events2(sn, 'RL', cont_PE=cont_PE,
+                                   cont_pe_by_event=cont_PE_by_event,
+                                   median_split=median_split,
+                                   drop_first=drop_first,
+                                   reset_trial0=reset_trial0)
         except Exception as e:
             print(f'ERROR: {sn}, {e=}')
             # bad_sns.append(sn)
@@ -238,8 +205,8 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
     if drop_neut or neut_as_PE:
         df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
 
-    if regr_M:
-        ar -= ar.mean(axis=1, keepdims=True)
+    # if regr_M:
+    #     ar -= ar.mean(axis=1, keepdims=True)
     if neut_as_PE:
         ar_high = ar[:, df_lr['trial_type'] == 'neut']
     else:
@@ -252,8 +219,8 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
 
     try:
         ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
-                           bilateral=bilateral, reg_global=reg_global,
-                           no_compcor=no_compcor)
+                           bilateral=bilateral, reg_global=True,
+                           no_compcor=True)
     except ValueError:
         print(f'Not analyzed connectivity: {sn}')
         return None, sn
@@ -267,8 +234,8 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
     if drop_neut or neut_as_PE:
         df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
 
-    if regr_M:
-        ar -= ar.mean(axis=1, keepdims=True)
+    # if regr_M:
+    #     ar -= ar.mean(axis=1, keepdims=True)
     if neut_as_PE:
         ar_high2 = ar[:, df_rl['trial_type'] == 'neut']
     else:
@@ -302,7 +269,132 @@ def get_conn_sn(sn, combine_regions=False, bilateral=False, drop_neut=False,
     return conn_high, conn_low
 
 
-def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
+def get_conn_sn(sn, combine_regions=False, bilateral=False,
+                only=None, learning_rate=None,
+                drop_first=False, reset_trial0=False,
+                ):
+
+    try:
+        df_rl, df_lr = get_df_PE(sn, 'both',
+                                 learning_rate=learning_rate,
+                                 drop_first=drop_first,
+                                 reset_trial0=reset_trial0)
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        time.sleep(1)
+        return None, sn
+
+    try:
+        ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+                           bilateral=bilateral, reg_global=True,
+                           no_compcor=True)
+    except ValueError:
+        print(f'Not analyzed connectivity: {sn}')
+        return None, sn
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        time.sleep(1)
+        return None, sn
+
+    if only:
+        df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
+
+    df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
+
+
+    ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
+
+    ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
+
+    try:
+        ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
+                           bilateral=bilateral, reg_global=True,
+                           no_compcor=True)
+    except ValueError:
+        print(f'Not analyzed connectivity: {sn}')
+        return None, sn
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        time.sleep(1)
+        return None, sn
+    if only:
+        df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
+
+    df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
+
+    ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
+    ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
+
+    conn_high0 = np.corrcoef(ar_high)
+    conn_high0[np.diag_indices_from(conn_high0)] = np.nan
+    conn_low0 = np.corrcoef(ar_low)
+    conn_low0[np.diag_indices_from(conn_low0)] = np.nan
+    conn_high1 = np.corrcoef(ar_high2)
+    conn_high1[np.diag_indices_from(conn_high1)] = np.nan
+    conn_low1 = np.corrcoef(ar_low2)
+    conn_low1[np.diag_indices_from(conn_low1)] = np.nan
+    conn_high = (conn_high0 + conn_high1) / 2
+    conn_low = (conn_low0 + conn_low1) / 2
+
+    return conn_high, conn_low
+
+def make_conn(combine_regions=False, bilateral=False,
+              only=None, learning_rate=None,
+              num_sns=None, drop_first=False,
+              reset_trial0=False,
+              ):
+
+    # final subjects established as ones with both task-fMRI LR/RL and resting-state LR/RL
+    fp = r'Study1B/final_HCP_subjects.txt'
+    with open(fp, 'r') as f:
+        s = f.read()
+    s = s.replace('\n', '').replace(' ', '')
+    sns = s.split(',')
+
+    conn_highs = []
+    conn_lows = []
+    bad_sns = []
+    kw = {'combine_regions': combine_regions,  'bilateral': bilateral,
+          'only': only, 'learning_rate': learning_rate,
+          'drop_first': drop_first, 'reset_trial0': reset_trial0,
+          }
+
+    from datetime import datetime
+    dt_max = datetime(2024, 9, 21, 18, 45, 0)
+
+    # sns = sns[::-1]
+
+    good_sns = []
+    while len(good_sns) < num_sns and (len(sns) > 0):#, total=num_sns):
+        sn = sns.pop()
+        kw['sn'] = sn
+        conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
+                                             easy_override=False,
+                                             dt_max=dt_max)
+
+        if conn_high is None:
+            print(f'Bad conn: {sn}, attempting to redo')
+            conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
+                                                 easy_override=True,
+                                                 dt_max=dt_max)
+        if conn_high is None:
+            print('BAD CONN??')
+            bad_sns.append(sn)
+            continue
+
+        conn_highs.append(conn_high)
+        conn_lows.append(conn_low_sn)
+        good_sns.append(sn)
+
+    print(f'{bad_sns=}')
+    conn_highs = np.array(conn_highs)
+    conn_lows = np.array(conn_lows)
+
+    print(f'Final sns: {len(good_sns)=}')
+    return conn_highs, conn_lows, good_sns
+
+
+def make_conn_old(combine_regions=False, bilateral=False, drop_neut=False,
               neut_as_PE=False, regr_M=True, only=None, cont_PE=None,
               cont_PE_by_event=False, lr_separate=True, num_sns=None,
               n_jobs=1, reg_global=False, no_compcor=False,
@@ -464,9 +556,13 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
     while len(good_sns) < num_sns and (len(sns) > 0):#, total=num_sns):
         sn = sns.pop()
         kw['sn'] = sn
+        print('test')
         conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
                                              easy_override=False,
                                              dt_max=dt_max)
+        print(conn_high)
+        print(sn)
+        quit()
         if conn_high is None:
             print(f'Bad conn: {sn}, attempting to redo')
             conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
@@ -492,10 +588,9 @@ def make_conn(combine_regions=False, bilateral=False, drop_neut=False,
 def get_vd_ef(conn, combine_regions=False, combine_bilateral=False,
               anat_ver=3):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_VD_PA_partitions(age='healthy', anat=True, weighted=False,
-                             do_PA=True, thr=.9, scrub=False, anat_ver=anat_ver,
+        get_VD_PA_partitions(age='healthy', anat=True,
+                             do_PA=True, thr=.9, anat_ver=anat_ver,
                              combine_regions=combine_regions)
-    # print(f'{p_d_ant=},\n{p_d_pos=},\n{p_v_ant=},\n{p_v_pos=}')
 
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
@@ -513,7 +608,6 @@ def get_vd_ef(conn, combine_regions=False, combine_bilateral=False,
     dv_pos = np.nanmean(dv_pos, axis=(1, 2))
     M_overall = np.nanmean(conn, axis=(1, 2))
 
-
     return dd + vv - dv_ant - dv_pos, dd, vv, dv_ant, dv_pos, M_overall
 
 
@@ -530,38 +624,17 @@ def get_combo(kw, easy_override=False):
     return conn_highs, conn_lows, sns
 
 
-def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
-                sub_ROI_expected=False):
+def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
+                         sub_ROI_expected=False):
 
-    kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
-          'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
-          'cont_PE_by_event': True,
-          'regr_M': True, 'lr_separate': True,
-          'reg_global': True, 'no_compcor': True, 'median_split': True,
-          'drop_first': False, 'both_bhv': True, 'reset_trial0': True,
-
-          'sns_final': True}
-
-    # kw = {'combine_regions': combine_regions, 'bilateral': False, 'neut_as_PE': None,
-    #       'drop_neut': True, 'only': 'combo', 'num_sns': 1000, 'cont_PE': 0.3,
-    #       'cont_PE_by_event': True,
-    #       'regr_M': True, 'lr_separate': True,
-    #       'reg_global': True, 'no_compcor': True, 'median_split': True,
-    #       'drop_first': False, 'both_bhv': True, 'reset_trial0': True,
-    #
-    #       'sns_final': True}
-
-    # TODO: align 1000 subjects to be same across rs-fMRI and task-fMRI
-
-    print(f'{kw=}')
-
-    if kw['neut_as_PE']:
-        kw['drop_neut'] = False
-        kw['only'] = None
-        kw['cont_PE'] = None
-        kw['cont_PE_by_event'] = False
+    kw = {'combine_regions': combine_regions, 'bilateral': False,
+          'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
+          'drop_first': False, 'reset_trial0': True,}
 
     if kw['only'] == 'combo':
+        # can either be run while averaging a loss matrix & win matrix ('combo')
+        #   or just making a single one covering both PE ('both')
+        # the manuscript uses 'combo'
         conn_highs, conn_lows, sns = get_combo(kw, easy_override=True)
     else:
         conn_highs, conn_lows, sns = (
@@ -583,13 +656,9 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         ROI_expected = np.nanmean(conn_highs, axis=(0, 2))
         ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
         conn_highs -= ROI_expected[None]
-        # ROI_expected = np.sqrt(ROI_expected[:, None] * ROI_expected[None, :])
-        # conn_highs /= ROI_expected[None]
         ROI_expected = np.nanmean(conn_lows, axis=(0, 2))
         ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
         conn_lows -= ROI_expected[None]
-        # ROI_expected = np.sqrt(ROI_expected[:, None] * ROI_expected[None, :])
-        # conn_lows /= ROI_expected[None]
 
     bar_vendor(conn_highs, conn_lows, combine_regions, bilateral)
 
@@ -598,34 +667,20 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
 
     plt.rcParams.update({'font.size': 16,
                          'font.sans-serif': 'Arial'})
-    # M = np.nanmean(overall, axis=0)
-    # M_flat = M.flatten()
-    # plt.hist(M_flat, bins=100)
-    # plt.title('HCP FC histogram')
-    # plt.show()
-    # quit()
 
     dif = conn_highs - conn_lows
     M = np.nanmean(dif, axis=0)
     SE = stats.sem(dif, axis=0, nan_policy='omit')
     t = M / SE
 
-    print(t.shape)
-
-
     if corr_z:
         t_flat = t[np.tril_indices_from(t, k=-1)]
-        z_both = get_SchemeRep_regr(combine_regions=combine_regions, plot=False)
-        # print(z_both.shape)
-        # quit()
+        z_both = get_Study1A_matrix_for_corr(combine_regions=combine_regions, plot=False)
         z_flat = z_both[np.tril_indices_from(z_both, k=-1)]
         r, p = stats.spearmanr(t_flat, z_flat, nan_policy='omit')
         print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
     else:
         r = None
-
-
-        # quit()
 
     ef_high = get_vd_ef(conn_highs, combine_regions=combine_regions,
                         combine_bilateral=bilateral)[0]
@@ -633,22 +688,17 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                        combine_bilateral=bilateral)[0]
     itr = ef_low - ef_high
     t_final, p = stats.ttest_1samp(itr, 0)
-    # plt.hist(itr)
-    # plt.show()
-    # quit()
+
     N = itr.shape[0]
     nans = np.sum(np.isnan(itr))
     F = t_final ** 2
     print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.4f}, F = {F:.2f}')
     print(kw)
 
-
-
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral, HCP=True,
                           lifu_labels=combine_regions)
-
 
         title = str(kw)
         title_ = ''
@@ -660,25 +710,13 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
         title += f'\nt[{N - nans - 1}/{N - 1}] = {t_final:.2f}'
         if r is not None:
             title += f', {r=:.2f}'
-        # quit()
 
-        # p_v_pos = [188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209]
-        # p_d_pos = [134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145]
-        # plt.imshow(t[np.ix_(p_v_pos, p_d_pos)])
-        # plt.colorbar()
-        # plt.show()
-        # t[np.abs(t) < 3] = np.nan
-        M_high = np.nanmean(conn_highs, axis=0)
-        M_low = np.nanmean(conn_lows, axis=0)
-        # print(len(atlas['tick_labels']))
-        # print(len(atlas['ticks']))
-        # quit()
         if combine_regions:
             atlas['ticks'] = atlas['ticks'][:23]
             atlas['tick_labels'] = atlas['tick_labels'][:23]
             atlas['tick_lows'] = atlas['tick_lows'][:23]
             t = t[:46, :46]
-            fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\other\Study_1B_PE_matrix.png'
+            fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\Fig3\Fig3B_PE_x_Conn_bars.png'
         else:
             fp_out = None
 
@@ -687,55 +725,15 @@ def test_vendor(combine_regions=False, bilateral=False, corr_z=True,
                           no_avg=True, cbar_label='t-value',
                           vmin=-6, vmax=6, fp=fp_out)
 
-        # plot_connectivity(M_high, atlas['ticks'], atlas['tick_labels'],
-        #                   atlas['tick_lows'], title=title, tile=.01,
-        #                   no_avg=True, cbar_label='Correlation (r)',
-        #                   )
-        # plot_connectivity(M_low, atlas['ticks'], atlas['tick_labels'],
-        #                   atlas['tick_lows'], title=title, tile=.01,
-        #                   no_avg=True, cbar_label='Correlation (r)',
-        #                   )
-        # plot_connectivity(M_high - M_low, atlas['ticks'], atlas['tick_labels'],
-        #                   atlas['tick_lows'], title=title, tile=.01,
-        #                   no_avg=True, cbar_label='Correlation (r)',
-        #                   )
-        # quit()
-
-        # z_threshed = z_both
-        # z_threshed[np.abs(z_threshed) < 2] = np.nan
-        #
-        # z_threshed[np.abs(t) < 3] = np.nan
-        # plot_connectivity(z_threshed, atlas['ticks'], atlas['tick_labels'],
-        #                   atlas['tick_lows'], title=title, tile=.01,
-        #                   no_avg=True, cbar_label='Correlation (r)',
-        #                   vmin=-4, vmax=4)
-        # conjunct = np.logical_and(np.abs(t) > 3, np.abs(z_both) > 2)
-
-    # quit()
-    # n, bins, patches = plt.hist(itr, range=(-0.4, 0.4), bins=40)
-    # plt.plot([0, 0], [0, np.max(n)], 'r--')
-    # plt.show()
-    #
-    # plt.hist(itr, range=(-0.4, 0.4), bins=40,
-    #          cumulative=True, density=True)
-    # plt.plot([0, 0], [0, 1], 'r--')
-    # plt.plot([-.4, .4], [0.5, 0.5], 'r--')
-    # plt.xlim(-0.4, 0.4)
-    # plt.ylim(0, 1)
-    # plt.show()
-    # quit()
-
-
-def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
+def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
-              'get_df_sn': True,
-              'combine_regions': combine_regions,
+              'get_df_sn': True
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+        pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
     z_both = get_regression_matrix(sn_inc_conn, flip=False) # False = (Incongruent > Congruent)
@@ -753,10 +751,4 @@ def get_SchemeRep_regr(regress=False, combine_regions=False, plot=False):
     return z_both
 
 if __name__ == '__main__':
-    # get_SchemeRep_regr(combine_regions=False, plot=True)
-    # test_corr()
-    # fp = r'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\100206_LR_LSS.nii'
-    # img = image.load_img(fp)
-    # print(img.shape)
-    # LSS_gambling()
-    test_vendor()
+    run_Study1B_analysis()
