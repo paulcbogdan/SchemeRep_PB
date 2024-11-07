@@ -7,7 +7,7 @@ import numpy as np
 from mne.io import read_raw_eeglab
 from scipy.io import loadmat
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import os
 
 ROOT_EEG_FMRI = fr'F:\EEG_fMRI'

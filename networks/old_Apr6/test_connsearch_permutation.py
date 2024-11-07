@@ -6,15 +6,15 @@ from connsearch import ConnSearcher
 from connsearch.report import prepare_components_table
 from sklearn.svm import SVC
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old.network_funcs import load_FC_for_Lifu
 
 from connsearch.permute import Permutation_Manager
 from connsearch.components import get_none_components, get_components
 
-from utils import PICKLE_CACHE, pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 def do_actual():
     dir_results = r'cache/cs_results'

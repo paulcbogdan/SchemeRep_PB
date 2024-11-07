@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import stats
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.old.RSA_feat_var import analyze_var_ROI
 from connRSA.single_trial_conn import prep_fps
 

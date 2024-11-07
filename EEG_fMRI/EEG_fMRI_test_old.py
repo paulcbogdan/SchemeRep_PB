@@ -4,13 +4,14 @@ from nilearn import image
 from nilearn.glm.first_level import compute_regressor
 from nilearn.image import high_variance_confounds
 
-from Study3.plotting_Study3 import plot_hz_corrs
-from atlas_utils import get_atlas
+from Study3.plot_fMRI_EEG_funcs import plot_hz_corrs
+from Utils.atlas_funcs import get_atlas
 from networks.get_HCP_act import img_data2ar
 # from get_HCP_act import img_data2ar
 from mne.io import read_raw_eeglab
 
-from utils import pickle_wrap, stdize
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import mne
 import numpy as np
 import matplotlib.pyplot as plt

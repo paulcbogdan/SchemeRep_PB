@@ -1,11 +1,11 @@
 from scipy import stats
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from Study1A.modularity_funcs import get_binary_matrix
 from old.networks import load_FC_for_Lifu
 from old_Apr6.ttest_mat import get_stats_graphs
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 
 

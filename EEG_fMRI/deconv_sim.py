@@ -1,6 +1,6 @@
 import numpy as np
 
-from Study3.run_analysis_Study3 import get_hrf
+from Study3.analyze_plot_Fig7 import get_hrf
 from vendor_rs_fluc_timeseries import wiener_deconvolution
 
 def roberto_test():

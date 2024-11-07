@@ -2,14 +2,14 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
-from utils import pickle_wrap, stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import warnings
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')

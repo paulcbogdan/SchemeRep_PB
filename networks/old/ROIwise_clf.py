@@ -1,12 +1,10 @@
-import os
-
 from pathlib import Path
 
 import numpy as np
 from sklearn.model_selection import StratifiedGroupKFold, cross_val_score
 from sklearn.svm import SVC
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from old.network_clf import generic_prep
 from old.plot_gen import my_plot_surf
 from utils import stdize

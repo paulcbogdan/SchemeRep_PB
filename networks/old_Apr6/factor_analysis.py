@@ -1,7 +1,7 @@
 from analyze_rs import get_rs_vendor_df
 from autocorr import add_prev, add_next
 from old_Apr6.dFC_control_FC import get_all_task_vendor
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from vendor_lmers import get_vendor_df
 from sklearn import decomposition
 import numpy as np

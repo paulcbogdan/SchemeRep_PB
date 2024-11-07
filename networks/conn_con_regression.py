@@ -8,15 +8,16 @@ import pandas as pd
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from Study1A.partition_VD_PA import get_1sample_ttest_matrix
+from Study1A.plot_Fig2CD_partitions import get_1sample_ttest_matrix
 
 from scipy import stats
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import load_FC
 from old.plot_gen import my_plot_surf
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap, stdize
+from Utils.plotting_funcs import plot_connectivity
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 import statsmodels.formula.api as smf
 

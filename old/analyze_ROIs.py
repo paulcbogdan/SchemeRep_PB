@@ -3,16 +3,13 @@ os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 import pickle
-from collections import defaultdict
 
-import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from statsmodels.stats.multitest import multipletests
 
-from atlas_utils import get_atlas
-from old.plot_gen import my_plot_surf
+from Utils.atlas_funcs import get_atlas
 from utils import get_RSA_fn, make_title_str
 
 # from connsearch.report.plots import plot_ROI_scores

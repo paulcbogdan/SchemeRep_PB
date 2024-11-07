@@ -9,9 +9,9 @@ os.chdir(path)
 import numpy as np
 import pandas as pd
 
-from Study2A.rs_funcs import get_df_networks, partial_corr_df
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Study2A.rs_connectivity_funcs import get_df_networks, partial_corr_df
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 import warnings
 

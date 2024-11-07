@@ -3,7 +3,8 @@ from nichord import convert_matrix
 
 from network_clf import generic_prep
 from subject_specific import conn_ERS_p
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
+
 
 def get_edges_mat(edges_l, n):
     edges_mat = np.full((n, n), False)

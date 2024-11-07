@@ -13,12 +13,12 @@ import scipy.stats as stats
 
 import matplotlib.pyplot as plt
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC
-from Study1A.partition_VD_PA import get_VD_PA_partitions, get_regression_matrix
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import load_FC
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions, get_regression_matrix
 # from old.network_funcs import load_FC_for_Lifu
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 # from vendor_partitioning import get_vendor_partitions, do_regression
 import time
 from numba import prange, njit

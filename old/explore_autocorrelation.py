@@ -7,7 +7,7 @@ from tqdm import tqdm
 from connRSA.single_trial_conn import prep_fps
 from connRSA.conn_utils import get_ROI_vecs_wrap
 from connRSA.old_Sep29.conn_RSA import get_trial_x_trial_RSM
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 

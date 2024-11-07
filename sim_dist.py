@@ -2,7 +2,7 @@ import numpy as np
 import scipy.stats as stats
 
 from old_Apr6.fluctuations import get_df_networks, partial_corr_df
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import os
 import pandas as pd
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')

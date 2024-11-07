@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 import mne
 
-from Study3.run_analysis_Study3 import get_hrf
+from Study3.analyze_plot_Fig7 import get_hrf
 
 def sample_signal(n_samples, corr, mu=0, sigma=1):
     assert 0 < corr < 1, "Auto-correlation must be between 0 and 1"

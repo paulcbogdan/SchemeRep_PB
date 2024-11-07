@@ -82,6 +82,10 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
         plt.gca().set_xticks([])
         plt.gca().set_yticks([])
         plt.tight_layout()
+        if fp is not None:
+            Path(fp).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(fp, dpi=300)
+            print(f'Saving: {fp=}')
         plt.show()
         return
     plt.title(title, fontsize=fontsize * 1.75, pad=12)
@@ -110,6 +114,7 @@ def plot_connectivity(conn, ticks=None, tick_labels=None, tick_lows=None,
     plt.gca().invert_yaxis()
     if fp is not None:
         Path(fp).parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(fp)
+        plt.savefig(fp, dpi=300)
+        print(f'Saving: {fp=}')
     if ax is None:
         plt.show()

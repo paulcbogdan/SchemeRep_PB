@@ -6,19 +6,16 @@ from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score, Gr
 from sklearn.svm import SVC
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import get_ROI_vecs
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import get_ROI_vecs
 from old.plot_gen import my_plot_surf
 from org_sns import get_sns, get_sns_l
 from organize_bhv import get_trial_info
-from utils import pickle_wrap, stdize
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 
-from functools import wraps
-from time import time
-import matplotlib.pyplot as plt
 import scipy.stats as stats
-import warnings
 from utils import timing
 
 # pandas suppress SettingWithCopyWarning

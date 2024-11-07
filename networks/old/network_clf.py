@@ -5,11 +5,11 @@ import pandas as pd
 # from connsearch.report import plot_ROI_scores
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old.modularity import get_main_partitions, get_BNA_coords, get_binary_matrix
 from old.classifiers import partition_classifier, partition_group_clf
 from old.network_funcs import load_FC_for_Lifu
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 warnings.filterwarnings('ignore',
                         message='invalid value encountered in divide')

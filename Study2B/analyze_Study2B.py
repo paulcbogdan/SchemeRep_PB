@@ -1,6 +1,6 @@
 import os
 import pathlib
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
@@ -10,9 +10,9 @@ from pathlib import Path
 import pickle
 import os
 
-from Study1B.run_analysis_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
+from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 from scipy import stats
 from functools import cache

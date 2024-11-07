@@ -3,6 +3,7 @@ from time import time
 import numpy as np
 from matplotlib import pyplot as plt
 
+import Utils.pickle_wrap_funcs
 import utils
 
 from connRSA.jit_funcs import evaluate_regresslight, get_closest_dists, evaluate_regresslight_std
@@ -22,8 +23,8 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
     print()
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
-    RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
-                                      verbose=0, easy_override=False)
+    RSM_stim_flat = Study1A.utils_pickle.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
+                                                     verbose=0, easy_override=False)
     assert np.sum(np.isnan(RSM_stim_flat)) == 0, \
         f'{np.sum(np.isnan(RSM_stim_flat))=}'
 
@@ -32,8 +33,8 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
            'resample': resample1, 'mask_ROIs': mask_ROIs,
            'threshold': threshold}
     fMRI_RDMs1, mask, centers1, mask_downsample_pre = (
-        utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
-                          easy_override=False))
+        Study1A.utils_pickle.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
+                                         easy_override=False))
     if fMRI_RDMs1 is None:
         return None, None, None
 
@@ -42,9 +43,9 @@ def wrapped_jit_regresslight(sn, fp_fMRI_col, semantic,
            'resample': resample2, 'mask_ROIs': mask_ROIs,
            'threshold': threshold}
 
-    fMRI_RDMs2, _, centers2, _ = utils.pickle_wrap(full_get_RDMs,
-                                                   kwargs=kw2, verbose=0,
-                                                   easy_override=False)
+    fMRI_RDMs2, _, centers2, _ = Study1A.utils_pickle.pickle_wrap(full_get_RDMs,
+                                                                  kwargs=kw2, verbose=0,
+                                                                  easy_override=False)
 
     if fMRI_RDMs2 is None:
         return None, None, None
@@ -140,7 +141,7 @@ def test_regresslight(semantic=True, second_level='corr', flip=False,
                   'second_level': second_level, 'flip': flip, 'std': std,
                   'mask_ROIs': mask_ROIs, 'center_filter': center_filter,
                   'threshold': threshold}
-            searched1, searched2, mask = utils.pickle_wrap(
+            searched1, searched2, mask = Study1A.utils_pickle.pickle_wrap(
                 wrapped_jit_regresslight, kwargs=kw, verbose=-1,
                 easy_override=False)
             if searched1 is None:

@@ -1,22 +1,15 @@
 from tqdm import tqdm
 
 from HCP import load_HCP_act
-from analyze_rs import prep_conn_ps
-from atlas_utils import get_atlas
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from collections import defaultdict
 
-from Study2A.rs_funcs import get_module_trialwise_z
-from load_more import get_module_cross_trialwise_z, get_dfs_conn_trials, load_resting_data, load_act_conn
+from load_more import get_dfs_conn_trials, load_act_conn
 from scipy import stats
 import pandas as pd
 import numpy as np
-import pingouin as pg
 
 import matplotlib.pyplot as plt
-from vendor_partitioning import get_vendor_partitions
-from functools import partial
-import os
 import statsmodels.formula.api as smf
 
 

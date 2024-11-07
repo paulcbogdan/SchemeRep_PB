@@ -1,16 +1,16 @@
 import os
 
 from Study1A.modularity_funcs import get_partition_matrix
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
-from Study2B.run_analysis_Study2B import get_sn_roi_ar_std, find_overlapping_sns, get_quads
+from Study2B.analyze_Study2B import get_sn_roi_ar_std, find_overlapping_sns, get_quads
 import numpy as np
 import pandas as pd
 
 import pingouin as pg
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 
 
 def partial_corr_df_2(df, cols, cov, verbose=0):

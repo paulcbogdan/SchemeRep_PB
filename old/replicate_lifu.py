@@ -2,7 +2,7 @@ import numpy as np
 
 from old.modularity import get_main_partitions, get_partition_matrix, get_BNA_coords
 from vendor.old.network_funcs import load_FC_for_Lifu, get_ylim_settings, calculate_within_between, reconfiguration
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def Fig15_Table2_analyses(fp='obj_fMRI', threshold=0.9):

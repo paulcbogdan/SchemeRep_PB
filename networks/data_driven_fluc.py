@@ -1,12 +1,13 @@
 import pandas as pd
 
-from atlas_utils import get_atlas
-from Study2A.load_resting import load_rs_BOLD
+from Utils.atlas_funcs import get_atlas
+from Study2A.load_Study2A_funcs import load_rs_BOLD
 from Study1A.modularity_funcs import get_main_partitions
-from Study1A.load_data_Study1A import load_FC
-from Study2A.rs_funcs import partial_corr_df
-from utils import pickle_wrap, stdize
-from Study1A.partition_VD_PA import get_regression_matrix, get_VD_PA_partitions
+from Study1A.load_Study1A_funcs import load_FC
+from Study2A.rs_connectivity_funcs import partial_corr_df
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
+from Study1A.plot_Fig2CD_partitions import get_regression_matrix, get_VD_PA_partitions
 import numpy as np
 from scipy import stats, spatial
 from functools import cache

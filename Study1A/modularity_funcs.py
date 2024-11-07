@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from nichord.combine import plot_and_combine
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def get_binary_matrix(matrix, threshold=.9, rowwise=True, intersect=False):
@@ -133,8 +133,7 @@ def get_main_partitions(sn_inc_conn, coords=None, plot=False,
 
     if plot:
         plot_partitions(partitions, M_conn_masked, coords=coords,
-                        dir_out=dir_out, dir_out_full=dir_out_full,
-                        title_extra='', )
+                        dir_out=dir_out, dir_out_full=dir_out_full,)
 
     partitions = [p for p in partitions]
     return partitions, matrix_mask

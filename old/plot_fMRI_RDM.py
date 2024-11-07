@@ -1,20 +1,12 @@
-from utils import pickle_wrap
-from collections import defaultdict
-
 import numpy as np
 
 from organize_bhv import get_trial_info
-from org_sns import get_sns
-from nilearn import image
 
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
-from utils import stdize, nan_ar, defaultdict_to_dict, pb_outer_double_multi
 import utils
-import scipy.stats as stats
 
-from tqdm import tqdm
 import matplotlib.pyplot as plt
-from pathlib import Path
+
 
 def plot_RDMs(semantic=False, early=True, cin=None):
     df_sn = get_trial_info('102')

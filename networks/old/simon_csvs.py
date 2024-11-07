@@ -2,10 +2,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old_Apr6.ttest_mat import get_stats_graphs
 from old.networks import load_FC_for_Lifu
-from utils import pickle_wrap, run_two_sample_on_2D
+from utils import run_two_sample_on_2D
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 
 def out_csv(mat, atlas, fp, regionwise=False):

@@ -2,12 +2,12 @@ from functools import cache
 from pathlib import Path
 from time import time
 
-from numba import jit, njit, prange, set_num_threads, config
+from numba import prange, set_num_threads, config
 import numba as nb
 from scipy.interpolate import RegularGridInterpolator
 
 import utils
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
 from org_sns import get_sns
@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 
 from stim import get_stim_RDM
 from nilearn import plotting, image
-import scipy.stats as stats
 
 config.CACHE_DIR = r'H:\PycharmProjects_H\SchemeRep\cache\numba'
 
@@ -249,7 +248,7 @@ def test_searchlight(semantic=True, radius=3, skip_step=1, downsample=1):
             kw = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
                   'radius': radius, 'skip_step': skip_step,
                   'downsample': downsample}
-            searched, nan_mask = utils.pickle_wrap(
+            searched, nan_mask = Study1A.utils_pickle.pickle_wrap(
                 lambda: wrapped_jit_searchlight(**kw), fp_save,
                 verbose=-1, easy_override=False)
 

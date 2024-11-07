@@ -2,10 +2,11 @@ from collections import defaultdict
 
 import numpy as np
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import get_ROI_vecs
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import get_ROI_vecs
 from stim import scipy_dist
-from utils import tril_flat, stdize, pb_outer_euc, pb_outer, pickle_wrap
+from utils import tril_flat, stdize, pb_outer_euc, pb_outer
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 
 import warnings

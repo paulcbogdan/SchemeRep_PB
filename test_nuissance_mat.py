@@ -1,18 +1,7 @@
-from collections import defaultdict
-from datetime import datetime
-from time import time
-
-from nilearn import image
-
 from org_sns import get_sns
-from utils import pickle_wrap
 from scipy import io
-from glob import glob
 import pandas as pd
-import numpy as np
 import os
-from pathlib import Path
-
 
 if __name__ == '__main__':
     dir_in = r'H:\PycharmProjects_H\SchemeRep\nuisance_regressors'

@@ -1,7 +1,4 @@
-import pandas as pd
-import scipy.stats as stats
-
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from vendor_lmers import get_vendor_df
 
 def add_prev(df, key, sess):

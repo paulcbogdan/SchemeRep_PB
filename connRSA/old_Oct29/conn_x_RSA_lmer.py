@@ -1,11 +1,10 @@
 import scipy.stats as stats
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 from pandas.errors import PerformanceWarning
 from tqdm import tqdm
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import prep_ROI_avg, do_regr_RSA_sn
 from connRSA.single_trial_conn import prep_fps
@@ -13,9 +12,9 @@ from networks.old.networks import prep_networks
 
 from org_sns import get_sns
 from organize_bhv import get_trial_info, sort_df_sn
-from utils import pickle_wrap, get_formula_cols, stdize
+from utils import get_formula_cols, stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
-import os
 # os.chdir(r'/')
 
 # disable settingswithcopyerror

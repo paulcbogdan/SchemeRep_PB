@@ -9,13 +9,14 @@ import os
 from scipy import stats
 
 from Study1A.modularity_funcs import get_main_partitions
-from Study1A.load_data_Study1A import load_FC
+from Study1A.load_Study1A_funcs import load_FC
 
 from collections import defaultdict
 import numpy as np
 
-from atlas_utils import get_atlas
-from utils import pickle_wrap, stdize
+from Utils.atlas_funcs import get_atlas
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
@@ -102,21 +103,14 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str='healthy',
     PA_VD_str = 'PA' if do_PA else 'VD'
     cur_dir = os.getcwd()
     dir_out = f'{cur_dir}/result_pics/Fig2/{PA_VD_str}_modules'
-    regression_str = ' [regression]' if regress else ''
-    if do_PA:
-        title_extra = f' (Congruent > incongruent){regression_str}'
-    else:
-        title_extra = f' (Incongruent > Congruent){regression_str}'
     partitions, matrix_mask = \
         get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
-                            threshold=thr,
-                            fn_str='', overlapping=False,
-                            dir_out_full=dir_out,
-                            title_extra=title_extra,)
+                            threshold=thr, dir_out_full=dir_out,)
 
     for i, p in enumerate(partitions):
         labels = [atlas['labels'][i] for i in p]
-        print(f'Partition {i}: {labels}')
+        if len(labels) > 1:
+            print(f'Partition {i}: {labels}')
 
     return partitions, matrix_mask
 
@@ -286,7 +280,6 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
         else:
             quadrant = idx_to_quadrant[i]
             label = atlas['labels'][i]
-            print(f'Pre: {label=}')
             label = label.split(' ')[1].split('_')[0]
             quadrant2labels[quadrant].append(label)
             node_sizes.append(10)

@@ -1,16 +1,15 @@
 import numpy as np
 import scipy.stats as stats
-from matplotlib import pyplot as plt
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.single_trial_conn import prep_vecs, prep_fps
 from fMRI_proc import within_run_to_nan
 from old.modularity import get_binary_matrix, get_modules, get_partition_matrix, plot_partitions
 from old.network_funcs import load_FC_for_Lifu
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from stim import get_stim_RDM
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 import os
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')

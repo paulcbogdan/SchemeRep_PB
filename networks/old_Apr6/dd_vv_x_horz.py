@@ -1,19 +1,8 @@
-from dFC_control_FC import get_all_task_vendor
 from factor_analysis import identify_extremely_low_variance_sn
 
-import pandas as pd
-from tqdm import tqdm
-
-from analyze_rs import get_rs_vendor_df
-from autocorr import add_prev, add_next
 from dFC_control_FC import get_all_task_vendor
-from utils import pickle_wrap
-from vendor_lmers import get_vendor_df
-from sklearn import decomposition
 import numpy as np
-import statsmodels.formula.api as smf
-import scipy.stats as stats
-import matplotlib.pyplot as plt
+
 
 def do_dd_vv_x_horz(fp='rs'):
     # df = load_FA(fp)

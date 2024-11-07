@@ -1,9 +1,9 @@
 from Study1A.modularity_funcs import get_partition_matrix, get_FC_between_ROIs
-from atlas_utils import get_atlas
-from Study2A.load_resting import load_rs_BOLD
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Utils.atlas_funcs import get_atlas
+from Study2A.load_Study2A_funcs import load_rs_BOLD
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from collections import defaultdict
 
 from scipy import stats

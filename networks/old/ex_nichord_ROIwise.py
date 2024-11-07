@@ -1,6 +1,4 @@
-import os
-
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 import numpy as np
 
 from old.modularity import plot_nichord

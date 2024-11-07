@@ -1,8 +1,8 @@
 import pandas as pd
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from data_driven_fluc import load_rs_BOLD
-from Study2A.rs_funcs import partial_corr_df
+from Study2A.rs_connectivity_funcs import partial_corr_df
 import numpy as np
 from scipy import stats
 

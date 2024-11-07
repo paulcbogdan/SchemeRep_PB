@@ -1,6 +1,6 @@
 import os
 
-from Study2A.rs_funcs import prep_conn_ps
+from Study2A.rs_connectivity_funcs import prep_conn_ps
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
@@ -12,13 +12,13 @@ from matplotlib import pyplot as plt
 from scipy import linalg, stats as stats
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from Study1A.modularity_funcs import get_modules, get_partition_matrix, get_FC_between_ROIs
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 # from old_Apr6.vendor_lmers import get_module_trialwise_z
 # from load_more import load_act_conn
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 
 def high_variance_conn_confounds(conn_trials, tile=.02, n_confounds=5):

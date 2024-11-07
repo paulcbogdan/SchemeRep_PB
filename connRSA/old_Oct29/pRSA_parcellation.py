@@ -1,14 +1,14 @@
 from collections import defaultdict
 
 import utils
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.single_trial_conn import prep_fps, prep_vecs
 from Study1A.modularity_funcs import get_partition_matrix
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 from stim import get_stim_RDM
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 from scipy.spatial import distance
 import matplotlib.pyplot as plt

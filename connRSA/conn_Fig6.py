@@ -9,17 +9,18 @@ from numba import jit, prange
 from scipy import stats
 from tqdm import tqdm
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import get_ERS_scores
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
-from Study1A.load_data_Study1A import load_FC
+from Study1A.load_Study1A_funcs import load_FC
 from networks.old.networks import prep_networks
 
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from organize_bhv import get_trial_info, sort_df_sn
-from utils import pickle_wrap, stdize
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 from functools import cache
 import seaborn as sns
 

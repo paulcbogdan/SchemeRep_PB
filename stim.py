@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from PIL import Image
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from sklearn import decomposition
 try:
     from torchvision import models as models, transforms as transforms

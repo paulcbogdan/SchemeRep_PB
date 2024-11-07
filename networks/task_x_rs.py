@@ -1,12 +1,13 @@
 import numpy as np
 
 from Study1A.modularity_funcs import get_FC_between_ROIs
-from Study1A.load_data_Study1A import load_FC
-from Study2A.rs_funcs import partial_corr_df, get_df_networks
-from utils import pickle_wrap, stdize
+from Study1A.load_Study1A_funcs import load_FC
+from Study2A.rs_connectivity_funcs import partial_corr_df, get_df_networks
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import pandas as pd
 
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 from scipy import stats
 import matplotlib.pyplot as plt
 

@@ -1,10 +1,10 @@
 import os
 from collections import defaultdict
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old.network_funcs import load_FC_for_Lifu
 from old.plot_conn_nice import seed_conn_t
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from vendor_partitioning import get_vendor_partitions
 
 os.chdir('/')

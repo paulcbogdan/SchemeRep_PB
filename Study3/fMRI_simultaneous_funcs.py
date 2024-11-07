@@ -6,10 +6,11 @@ import pandas as pd
 from nilearn import masking, image
 from nilearn.image import high_variance_confounds
 
-from Study3.EEG_funcs import ROOT_EEG_FMRI
-from atlas_utils import get_atlas
+from Study3.EEG_simultaneous_funcs import ROOT_EEG_FMRI
+from Utils.atlas_funcs import get_atlas
 from networks.get_HCP_act import img_data2ar
-from utils import stdize, pickle_wrap
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def get_fMRI_ar(sn, sess, combine_regions=False):

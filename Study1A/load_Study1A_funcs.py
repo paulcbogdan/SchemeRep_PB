@@ -4,10 +4,11 @@ from collections import defaultdict
 import numpy as np
 
 import utils
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from organize_bhv import get_trial_info
 from org_sns import get_sns
-from utils import pickle_wrap, stdize
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def load_FC_for_Lifu(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
@@ -107,9 +108,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
             activity_inc = []
             conns = []
 
-            # print(activity_ar.shape)
             nan_trials = np.any(np.isnan(activity_ar), axis=0)
-            good_trials = ~nan_trials
             if sum(nan_trials) > 0:
                 print('Participant has NaNs!')
 
@@ -149,7 +148,6 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                         activity_ar[:, matching_trials]
                     activity_inc.append(activity_ar_matched)
 
-                    # if not combine_regions:
                     activity_ar_std = stdize(activity_ar_matched, axis=1,
                                              nans=True)
                     trial_z = (activity_ar_std[None, :, :] *

@@ -1,24 +1,19 @@
 from collections import defaultdict
-from datetime import datetime
-from random import random
 
 import numpy as np
 import scipy.stats as stats
-import matplotlib.pyplot as plt
 
-from atlas_utils import get_atlas
-from conn_utils import get_ROI_vecs_wrap, get_conn_vecs, get_trial_x_trial
+from Utils.atlas_funcs import get_atlas
+from conn_utils import get_ROI_vecs_wrap, get_conn_vecs
 from organize_bhv import get_trial_info
 from org_sns import get_sns
-from tqdm import tqdm
 
-from single_trial_conn import prep_fps, run_settings_healthy
+from single_trial_conn import prep_fps
 from conn_report import report_results
 from old.networks import prep_networks
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import warnings
 from colorama import Fore
-import os
 from utils import stdize
 from pathlib import Path
 

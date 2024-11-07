@@ -1,20 +1,11 @@
-from atlas_utils import get_atlas
-
-from functools import cache
-from collections import defaultdict
-
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
-from Study2A.rs_funcs import get_df_networks
-from old.network_funcs import load_FC_for_Lifu
+from Study2A.rs_connectivity_funcs import get_df_networks
 from vendor_lmers import get_vendor_df
-from vendor_partitioning import get_vendor_partitions
-from utils import timing, pickle_wrap, stdize, get_formula_cols
+from utils import get_formula_cols
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
-from warnings import filterwarnings
-import os
 
 
 def get_all_task_vendor(zscore=True, scrub=True):

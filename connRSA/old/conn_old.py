@@ -3,17 +3,18 @@ import pandas as pd
 from scipy import stats as stats
 from tqdm import tqdm
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.old_Oct29.conn_report import report_results
 from connRSA.conn_utils import get_ROI_vecs_wrap, prep_for_ROI_analysis, get_mean_conn_trialwise, \
     get_conn_vecs, prep_for_pairwise
 from fMRI_proc import RDM_x_RDM, get_IRAFs
 
 from old.plot_gen import my_plot_surf
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from organize_bhv import get_trial_info
 from stim import get_stim_RDM
-from utils import get_default_fp, pickle_wrap, make_title_str, stdize
+from utils import make_title_str, stdize
+from Utils.pickle_wrap_funcs import get_default_fp, pickle_wrap
 
 
 def get_lmer_matrix(results):

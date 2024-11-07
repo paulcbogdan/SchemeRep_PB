@@ -3,7 +3,7 @@ import numpy as np
 from old_Apr6.ttest_mat import get_stats_graphs
 from old.networks import load_FC_for_Lifu
 from Study1A.modularity_funcs import get_main_partitions, get_partition_matrix
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 
 def get_acc(df_sn):

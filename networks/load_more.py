@@ -5,10 +5,11 @@ import pandas as pd
 from scipy import stats as stats
 
 from Study1A.modularity_funcs import get_FC_between_ROIs
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC
-from utils import pickle_wrap, timing, stdize
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import load_FC
+from utils import timing, stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 
 @timing

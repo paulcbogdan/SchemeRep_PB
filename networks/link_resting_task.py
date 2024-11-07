@@ -1,16 +1,17 @@
 import os
 
 from HCP import load_HCP_act
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from get_HCP_act import load_HCP
 from old.analyze_ROIs import setup_colors
-from Study1A.load_data_Study1A import load_FC
-from Study1A.plotting_funcs import plot_connectivity
+from Study1A.load_Study1A_funcs import load_FC
+from Utils.plotting_funcs import plot_connectivity
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
-from utils import pickle_wrap, stdize
-from Study2A.load_resting import load_resting_data, load_act_conn
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
+from Study2A.load_Study2A_funcs import load_resting_data, load_act_conn
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats

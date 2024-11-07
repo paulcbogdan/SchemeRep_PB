@@ -5,10 +5,10 @@ from connsearch.report import plot_ROI_scores
 from sklearn.model_selection import GroupKFold, cross_val_score, StratifiedGroupKFold
 from sklearn.svm import SVC
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old.networks import load_FC_for_Lifu
 from old.classifiers import stratify
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from tqdm import tqdm
 from collections import defaultdict
 from connsearch import print_list_stats

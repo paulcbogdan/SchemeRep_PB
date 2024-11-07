@@ -11,7 +11,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import scipy.stats as stats
 
-    # files generated via run_analysis_Study2B.py
+    # files generated via analyze_Study2B.py
     fp_rs = r'cache/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
     np_rs = pickle.load(open(fp_rs, 'rb'))
     np_rs = np.array(np_rs)

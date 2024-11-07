@@ -1,11 +1,11 @@
 import numpy as np
 
 from Study1A.modularity_funcs import get_partition_matrix, get_main_partitions
-from Study1A.load_data_Study1A import load_FC, reconfiguration, \
+from Study1A.load_Study1A_funcs import load_FC, reconfiguration, \
     analyze_subject_specific
 from network_clf import generic_prep
 from subject_specific import graph_theory
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def subject_specific(threshold=0.9):

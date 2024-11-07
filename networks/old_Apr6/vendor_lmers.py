@@ -1,13 +1,13 @@
 import os
 
-from Study1A.load_data_Study1A import load_FC
-from Study1A.partition_VD_PA import get_VD_PA_partitions
-from Study2A.rs_funcs import get_module_trialwise_z
+from Study1A.load_Study1A_funcs import load_FC
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
+from Study2A.rs_connectivity_funcs import get_module_trialwise_z
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 # import sys
 # from analyze_rs import load_resting_data, load_act_conn
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 # from corr_RSA_x_vendor import get_module_trialwise_z
 
 from functools import cache
@@ -19,7 +19,8 @@ import pandas as pd
 # from old.modularity import get_partition_matrix
 # from old.network_funcs import load_FC_for_Lifu
 # from vendor_partitioning import get_vendor_partitions
-from utils import timing, pickle_wrap, stdize, get_formula_cols
+from utils import timing, stdize, get_formula_cols
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 from warnings import filterwarnings
 import os

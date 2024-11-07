@@ -1,16 +1,16 @@
-from Study3.run_analysis_Study3 import conv
+from Study3.analyze_plot_Fig7 import conv
 from Study3.fMRI_simultaneous_funcs import get_fMRI_ar
-from Study3.EEG_funcs import load_EEG, get_EEG_score_sn
-from atlas_utils import get_atlas
+from Study3.EEG_simultaneous_funcs import load_EEG, get_EEG_score_sn
+from Utils.atlas_funcs import get_atlas
 
-from utils import pickle_wrap, stdize
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import mne
 import numpy as np
 import scipy.stats as stats
 import pandas as pd
 from collections import defaultdict
 
-import os
 try:
     import statsmodels.formula.api as smf
 except ModuleNotFoundError:

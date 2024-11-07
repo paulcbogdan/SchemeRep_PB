@@ -1,10 +1,10 @@
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.old_Oct29.conn_report import report_results
 from old.plot_gen import my_plot_surf
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from single_trial_conn import run_settings
 
-import os
+
 # os.chdir(r'/')
 
 def plot_single_ROI():

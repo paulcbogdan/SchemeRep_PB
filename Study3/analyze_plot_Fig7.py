@@ -6,11 +6,11 @@ os.chdir(path)
 
 from nilearn.glm.first_level import compute_regressor
 
-from Study3.EEG_funcs import get_EEG_score_sn
+from Study3.EEG_simultaneous_funcs import get_EEG_score_sn
 from Study3.fMRI_simultaneous_funcs import get_fMRI_score_sn
-from Study3.plotting_Study3 import plot_hz_corrs
+from Study3.plot_fMRI_EEG_funcs import plot_hz_corrs
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 import scipy.stats as stats
 import pandas as pd

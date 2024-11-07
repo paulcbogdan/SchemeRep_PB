@@ -1,9 +1,9 @@
 import pandas as pd
 
 
-from Study1A.load_data_Study1A import load_FC
-from Study2B.run_analysis_Study2B import get_quads
-from utils import pickle_wrap
+from Study1A.load_Study1A_funcs import load_FC
+from Study2B.analyze_Study2B import get_quads
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats

@@ -10,14 +10,14 @@ from pathlib import Path
 from matplotlib import pyplot as plt
 from statsmodels.stats.multitest import multipletests
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import get_ROI_vecs
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import get_ROI_vecs
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
 from org_sns import get_sns, get_shenyang_subjects
 import numpy as np
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from collections.abc import Iterable as iterable
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
@@ -190,7 +190,6 @@ def do_obj_vs_scn():
     df['age'] = df['age'].apply(lambda x: 'YA' if x == 1 else 'OA')
     df['obj'] = df['obj'].astype(str)
     df.reset_index(inplace=True)
-    from pymer4.models import Lmer
 
     df_all = df
     for age in ['YA', 'OA', ]:

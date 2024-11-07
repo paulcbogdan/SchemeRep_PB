@@ -6,7 +6,7 @@ from matplotlib.colors import ListedColormap
 from nilearn import image
 from nilearn import plotting
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 
 
 # def plot_surf(combine_regions=True, bilateral=False):

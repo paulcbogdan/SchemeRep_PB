@@ -11,9 +11,10 @@ os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 import numpy as np
 import pandas as pd
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 
-from utils import pickle_wrap, get_RSA_fn, timing, get_formula_cols
+from utils import get_RSA_fn, timing, get_formula_cols
+from Utils.pickle_wrap_funcs import pickle_wrap
 import pickle
 from collections import defaultdict
 import scipy.stats as stats

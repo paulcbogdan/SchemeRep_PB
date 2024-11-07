@@ -1,10 +1,8 @@
-import os
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from atlas_utils import get_BNA_ROIs
+from Utils.atlas_funcs import get_BNA_ROIs
 from emotemporal_bar import run_ANOVA_ttest, setup_plots, add_interaction_lines
 from old.network_clf import generic_prep
 from utils import stdize

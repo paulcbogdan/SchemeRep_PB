@@ -1,20 +1,10 @@
-import os
-
-from Study2A.rs_funcs import get_df_networks
-
-
 from analyze_rs import get_rs_vendor_df
-from atlas_utils import get_atlas
-from old.plot_gen import my_plot_surf
-from utils import pickle_wrap
-from vendor_lmers import get_vendor_df
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
-from vendor_partitioning import get_vendor_partitions
 import statsmodels.formula.api as smf
 from utils import get_formula_cols
-import numpy as np
 from autocorr import add_prev
 
 def regress_out_FC_all(df, key='dd_vv'):

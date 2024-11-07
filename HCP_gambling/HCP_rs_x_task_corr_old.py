@@ -1,9 +1,9 @@
 import os
 
-from Study1B.run_analysis_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
-from Study2B.run_analysis_Study2B import get_quads
+from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
+from Study2B.analyze_Study2B import get_quads
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 from scipy import stats
 from functools import cache

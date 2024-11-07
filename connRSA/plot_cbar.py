@@ -1,17 +1,13 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from atlas_utils import get_atlas, get_BNA_ROIs
-from connRSA.conn_regress import run_all_sn, get_title
-from old.plot_gen import my_plot_surf, get_split_cmap
-from utils import pickle_wrap
-
+from old.plot_gen import get_split_cmap
 
 
 def plot_just_cbar():
     cmap = get_split_cmap(5, 2, 'rainbow_r', blue_half=True)
 
-    from matplotlib import rcParams, cm
+    from matplotlib import rcParams
 
     rcParams['axes.linewidth'] = 2  # set the value globally
     a = np.array([[0, 1]])
@@ -47,7 +43,7 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
     cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
 
-    from matplotlib import rcParams, cm
+    from matplotlib import rcParams
 
     # set default font to ARial
     rcParams['font.sans-serif'] = 'Arial'

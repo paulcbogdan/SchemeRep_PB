@@ -1,8 +1,6 @@
-from atlas_utils import get_atlas, get_BNA_ROIs
-from connRSA.DistRep_ROI_RSA import ROI2NETWORK
-from connRSA.conn_regress import plot_stacked_bars, prep_ROI_avg, run_all_sn
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
+from connRSA.conn_regress import run_all_sn
 from old.plot_gen import my_plot_surf
-from utils import pickle_wrap
 
 
 def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):

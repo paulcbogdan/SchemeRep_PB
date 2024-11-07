@@ -3,7 +3,7 @@ from time import time
 
 from matplotlib import pyplot as plt, image as mpimg
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_utils import mask_img
 from connRSA.jit_funcs import evaluate_models_searchlight_spear, evaluate_models_searchlight, jit_searchlight_RDMs, \
@@ -215,8 +215,8 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
 
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
-    RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
-                                      verbose=0)
+    RSM_stim_flat = Study1A.utils_pickle.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
+                                                     verbose=0)
 
     t_st = time()
     if second_level == 'spear':
@@ -303,9 +303,9 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
                   'flip': flip, 'mask_ROIs': mask_ROIs,
                   'threshold': threshold}
 
-            searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
-                                                   kwargs=kw, verbose=-1,
-                                                   easy_override=False)
+            searched, nan_mask = Study1A.utils_pickle.pickle_wrap(wrapped_jit_searchlight,
+                                                                  kwargs=kw, verbose=-1,
+                                                                  easy_override=False)
 
             if searched is None:
                 assert base_shape is not None

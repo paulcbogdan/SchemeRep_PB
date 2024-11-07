@@ -1,20 +1,27 @@
+import os
+import pathlib
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
 import numpy as np
 from matplotlib.colors import ListedColormap
 
-from atlas_utils import get_atlas
+from Study1A.load_Study1A_funcs import load_FC
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
+from Utils.atlas_funcs import get_atlas
 from nilearn import plotting
 
 from Study1A.plot_Fig2AB_matrices import get_beta_graph
-from old.network_funcs import load_FC_for_Lifu
-from old_Apr6.ttest_mat import get_stats_graphs
+# from old.network_funcs import load_FC_for_Lifu
+# from old_Apr6.ttest_mat import get_stats_graphs
 
 import os
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import matplotlib.pyplot as plt
 
-from vendor_partitioning import get_vendor_partitions
+# from vendor_partitioning import get_vendor_partitions
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+# os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 
 def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
@@ -196,8 +203,7 @@ def plot_hub_spoke(fp='obj7_fMRI', combine_regions=False, regr=False,
 def plot_vendor_hub_spoke(fp='obj7_fMRI', combine_regions=False,
                           only_cortical=True, regr=True):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_vendor_partitions(age='healthy', anat=True, weighted=False,
-                              flip=True, thr=.9, scrub=False, anat_ver=3)
+        get_VD_PA_partitions(age='healthy', anat=True, thr=.9, anat_ver=3)
 
     kwargs = {'fp': fp,
               'split': False,
@@ -206,10 +212,20 @@ def plot_vendor_hub_spoke(fp='obj7_fMRI', combine_regions=False,
               }
     if combine_regions:
         kwargs['combine_regions'] = True
-    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
-        pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
-                    easy_override=False, verbose=1,
-                    cache_dir='cache')
+    # sn_inc_conn, sn_conn, age2idxs, sn_inc_activity = \
+    #     pickle_wrap(load_FC_for_Lifu, None, kwargs=kwargs,
+    #                 easy_override=False, verbose=1,
+    #                 cache_dir='cache')
+
+    kwargs = {'fp': 'obj7_fMRI',
+              'key': 'inc',
+              'atlas_name': 'BNA',
+              'key_vals': (1, 2, 3),
+              'get_df_sn': True
+              }
+    sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, _ = \
+        pickle_wrap(load_FC, None, kwargs=kwargs,
+                    easy_override=False, verbose=1, cache_dir='cache')
 
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=False)
@@ -222,12 +238,15 @@ def plot_vendor_hub_spoke(fp='obj7_fMRI', combine_regions=False,
         sn_inc_conn[..., bad_j, :] = np.nan
         sn_inc_conn[..., :, bad_j] = np.nan
 
-    if regr:
-        t_graph = get_beta_graph(sn_inc_conn)
-    else:
-        _, _, _, _, t_graph, _, z_graph = \
-            get_stats_graphs(sn_inc_conn[:, 0, :, :],
-                             sn_inc_conn[:, 2, :, :])
+    # if regr:
+    #     t_graph = get_beta_graph(sn_inc_conn)
+    # else:
+    #     _, _, _, _, t_graph, _, z_graph = \
+    #         get_stats_graphs(sn_inc_conn[:, 0, :, :],
+    #                          sn_inc_conn[:, 2, :, :])
+
+    t_graph = get_beta_graph(sn_inc_conn)
+
 
     idxs = p_v_ant
     t_graph_ = t_graph.copy()
@@ -264,8 +283,8 @@ def plot_vendor_hub_spoke(fp='obj7_fMRI', combine_regions=False,
 
 
 if __name__ == '__main__':
-    # plot_vendor_hub_spoke()
-    plot_hub_spoke()
+    plot_vendor_hub_spoke()
+    # plot_hub_spoke()
 
 
 

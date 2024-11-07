@@ -7,7 +7,7 @@ os.chdir(r'C:\PycharmProjects\SchemeRep')
 from tqdm import tqdm
 from pprint import pprint
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.old_Sep29.conn_RSA import RSA_sn
 from connRSA.old_Sep29.conn_ERS import ERS_sn
 from connRSA.old_Oct29.conn_report import report_results
@@ -17,7 +17,7 @@ from org_sns import get_sns
 import numpy as np
 
 from stim import get_semantic_vectors, get_DNN_vecs
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from datetime import datetime
 from colorama import Fore
 from functools import partial, cache

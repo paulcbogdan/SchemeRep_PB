@@ -8,8 +8,9 @@ import numpy as np
 from nilearn import image
 from nilearn.image import high_variance_confounds
 
-from atlas_utils import get_atlas
-from utils import pickle_wrap, stdize
+from Utils.atlas_funcs import get_atlas
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def get_HCP_task_sns():

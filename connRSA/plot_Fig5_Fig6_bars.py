@@ -6,13 +6,13 @@ from matplotlib import pyplot as plt
 from scipy import stats
 
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
-from connRSA.conn_regress import send_to_specific, do_regr_RSA_sn, prep_ROI_avg, get_title
-from atlas_utils import get_BNA_ROIs
+from connRSA.conn_regress import do_regr_RSA_sn, prep_ROI_avg, get_title
+from Utils.atlas_funcs import get_BNA_ROIs
 from connRSA.single_trial_conn import prep_fps
 from networks.old.networks import prep_networks
 # from old.networks import prep_networks
 from org_sns import get_sns
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 

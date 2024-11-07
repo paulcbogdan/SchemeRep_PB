@@ -1,5 +1,3 @@
-import os
-
 from tqdm import tqdm
 
 from old.modularity import get_partition_matrix, get_partition_cross
@@ -10,13 +8,10 @@ from vendor_partitioning import get_vendor_partitions
 import numpy as np
 import pandas as pd
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import get_ROI_vecs
-from organize_bhv import get_trial_info
-from utils import timing, stdize, pickle_wrap
+from utils import timing
+from Utils.pickle_wrap_funcs import pickle_wrap
 from load_more import get_dfs_conn_trials
 # import networkx as nx
-import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 def get_graph(adj, tile=.95):

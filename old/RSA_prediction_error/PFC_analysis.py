@@ -1,13 +1,12 @@
-import os
 # os.chdir(r'/')
 
 from collections import defaultdict
 
 import numpy as np
 
-from atlas_utils import get_BN_and_resample
+from Utils.atlas_funcs import get_BN_and_resample
 from fMRI_proc import get_IRAFs, within_run_to_nan
-from Study1A.load_data_Study1A import get_ROI_vecs
+from Study1A.load_Study1A_funcs import get_ROI_vecs
 from organize_bhv import get_trial_info
 from org_sns import get_sns
 

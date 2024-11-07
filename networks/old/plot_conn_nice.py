@@ -1,5 +1,3 @@
-import os
-
 from tqdm import tqdm
 
 from old.network_funcs import load_FC_for_Lifu
@@ -10,11 +8,12 @@ from pathlib import Path
 
 import numpy as np
 
-from atlas_utils import get_atlas, get_BNA_ROIs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from old.network_clf import generic_prep
 from old.plot_gen import my_plot_surf
-from Study1A.plotting_funcs import plot_connectivity
-from utils import stdize, run_two_sample_on_2D, pickle_wrap
+from Utils.plotting_funcs import plot_connectivity
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def seed_conn_t(age2idxs, sn_inc_activity_seed, sn_inc_activity_sch, kwargs,

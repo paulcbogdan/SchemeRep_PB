@@ -1,8 +1,8 @@
 import numpy as np
 
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from utils import make_title_str, get_RSA_fn, stdize
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 import pickle
 import pandas as pd
 

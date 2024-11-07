@@ -253,7 +253,7 @@ def do_LSA(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lsa = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA_global_nocc.nii'
+    fp_lsa = fr'HCP_gambling\LSA\{sn}_{lr}_LSA_global_nocc.nii'
     print(f'Out: {fp_lsa=}')
     beta_img.to_filename(fp_lsa)
 
@@ -301,7 +301,7 @@ def do_LSS(img, df_trials, sn, lr):
 
     beta_img = image.new_img_like(img, betas)
 
-    fp_lss = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_{lr}_LSS_global_nocc.nii'
+    fp_lss = fr'HCP_gambling\LSS\{sn}_{lr}_LSS_global_nocc.nii'
     beta_img.to_filename(fp_lss)
     print(f'Out: {fp_lss=}')
 
@@ -316,24 +316,24 @@ def LSA_LSS_gambling(lsa=True, easy_override=False,):
         try:
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_LR\tfMRI_GAMBLING_LR.nii.gz'
             if lsa:
-                fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_lr_LSA_global_nocc.nii'
+                fp_lsa_lr = fr'HCP_gambling\LSA\{sn}_lr_LSA_global_nocc.nii'
                 if not os.path.exists(fp_lsa_lr) or easy_override:
                     df_events_LR = get_df_PE(sn, 'LR', for_prepoc=True)
                     do_LSA(fp_img, df_events_LR, sn, 'LR')
             else:
-                fp_lss_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_lr_LSS_global_nocc.nii'
+                fp_lss_lr = fr'HCP_gambling\LSS\{sn}_lr_LSS_global_nocc.nii'
                 if not os.path.exists(fp_lss_lr) or easy_override:
                     df_events_LR = get_df_PE(sn, 'LR', for_prepoc=True)
                     do_LSS(fp_img, df_events_LR, sn, 'LR')
 
             fp_img = fr'G:\HCP_gambling\{sn}\MNINonLinear\Results\tfMRI_GAMBLING_RL\tfMRI_GAMBLING_RL.nii.gz'
             if lsa:
-                fp_lsa_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_rl_LSA_global_nocc.nii'
+                fp_lsa_rl = fr'HCP_gambling\LSA\{sn}_rl_LSA_global_nocc.nii'
                 if not os.path.exists(fp_lsa_rl) or easy_override:
                     df_events_RL = get_df_PE(sn, 'RL', for_prepoc=True)
                     do_LSA(fp_img, df_events_RL, sn, 'RL')
             else:
-                fp_lss_rl = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSS\{sn}_rl_LSS_global_nocc.nii'
+                fp_lss_rl = fr'HCP_gambling\LSS\{sn}_rl_LSS_global_nocc.nii'
                 if not os.path.exists(fp_lss_rl) or easy_override:
                     df_events_RL = get_df_PE(sn, 'RL', for_prepoc=True)
                     do_LSS(fp_img, df_events_RL, sn, 'RL')

@@ -29,7 +29,7 @@ def get_bad_sns_fp(fp):
         bad_sns = {'116', '125',  '133', '215', '231'}
     elif 'cmb' in fp:
         bad_sns = set()
-    elif fp == 'loose':
+    elif fp in 'loose':
         bad_sns = set()
     else:
         raise ValueError(f'Unknown fp: {fp}')
@@ -54,13 +54,9 @@ def get_sns_l(fps_fMRI):
 def get_sns(fp_fMRI='loose', sh=False):
     age2sn = defaultdict(list)
     bad_sns = get_bad_sns_fp(fp_fMRI)
-    # print(bad_sns)
-    # quit()
+
     sh_sns = get_shenyang_subjects()
 
-    # bad_sns = get_bad_sns(ret=ret)
-    # print(os.getcwd())
-    # quit()
     for age in range(1, 4):
         bhv_root = fr'behavFiles/ENC/S{age}*_run1.mat'
         fps = glob(bhv_root)

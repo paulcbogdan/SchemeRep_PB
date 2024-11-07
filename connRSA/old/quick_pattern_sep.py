@@ -5,13 +5,9 @@ from matplotlib import pyplot as plt
 
 from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 
-import os
 import matplotlib.ticker as mtick
 import scipy.stats as stats
 
-from org_sns import get_sns
-from organize_bhv import get_trial_info
-from utils import pickle_wrap
 
 # os.chdir(r'/')
 

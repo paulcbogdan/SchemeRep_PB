@@ -2,7 +2,8 @@ import os
 import time
 
 from old_Apr6.LSS import get_LSS_img, load_motion
-from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, pickle_wrap, stdize
+from utils import HCP_ROOT, HCP_CACHE, HCP_RS_ROOT, stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 from functools import partial
@@ -13,8 +14,8 @@ from nilearn import image
 from nilearn.image import high_variance_confounds
 from tqdm import tqdm
 
-from atlas_utils import get_atlas
-from Study2A.rs_funcs import get_df_networks, partial_corr_df
+from Utils.atlas_funcs import get_atlas
+from Study2A.rs_connectivity_funcs import get_df_networks, partial_corr_df
 
 
 def get_sn_HCP(sn, lr, easy_override=False, LSS=False, LSA=False,

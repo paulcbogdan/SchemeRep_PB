@@ -1,6 +1,6 @@
 from Study1A.modularity_funcs import get_main_partitions, get_BNA_coords
-from Study1A.load_data_Study1A import load_FC
-from utils import pickle_wrap
+from Study1A.load_Study1A_funcs import load_FC
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 if __name__ == '__main__':
     fp = 'obj3_fMRI'

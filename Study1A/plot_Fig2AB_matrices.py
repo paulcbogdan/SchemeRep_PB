@@ -6,12 +6,13 @@ os.chdir(path)
 
 import numpy as np
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import load_FC
-from Study1A.partition_VD_PA import get_1sample_ttest_matrix
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import load_FC
+from Study1A.plot_Fig2CD_partitions import get_1sample_ttest_matrix
+from Utils.plotting_funcs import plot_connectivity
 
-from utils import stdize, pickle_wrap
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def get_beta_graph(sn_inc_conn):
@@ -104,7 +105,6 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
         _, _, _, _, _, _, z_graph = \
             get_1sample_ttest_matrix(sn_inc_conn[:, 0, :, :],
                              sn_inc_conn[:, 2, :, :])
-    upper_thresh = np.nanpercentile(z_graph, 85)
 
     if rotate:
         z_graph = z_graph[::-1, ::-1]
@@ -113,20 +113,27 @@ def plot_matrix_Fig3(combine_regions=True, only_cortical=True, regr=True,
         atlas['tick_labels'] = atlas['tick_labels'][::-1]
 
     z_graph_high = z_graph.copy()
+    upper_thresh = np.nanpercentile(z_graph, 85)
     z_graph_high[z_graph < upper_thresh] = np.nan
+    fp = 'result_pics/Fig2/Fig2B_upper_matrix.png'
+    plot_connectivity(z_graph_high, atlas=atlas, vmin=-3, vmax=3, minimal=True,
+                      fp=fp)
 
-    plot_connectivity(z_graph_high, atlas=atlas, vmin=-4, vmax=4, minimal=True)
     z_graph_low = z_graph.copy()
     lower_thresh = np.nanpercentile(z_graph, 15)
-
     z_graph_low[z_graph > lower_thresh] = np.nan
-    plot_connectivity(z_graph_low, atlas=atlas, vmin=-4, vmax=4, minimal=True)
+    fp = 'result_pics/Fig2/Fig2B_lower_matrix.png'
+    plot_connectivity(z_graph_low, atlas=atlas, vmin=-3, vmax=3, minimal=True,
+                      fp=fp)
 
     atlas['ticks'] = atlas['ticks'][1::2]
     atlas['tick_labels'] = atlas['tick_labels'][:23]
     atlas['tick_lows'] = atlas['tick_lows'][1::2]
+
+    fp = 'result_pics/Fig2/Fig2A_matrix.png'
     plot_connectivity(z_graph, atlas['ticks'], atlas['tick_labels'],
-                      atlas['tick_lows'], vmin=-3, vmax=3, minimal=False)
+                      atlas['tick_lows'], vmin=-3, vmax=3, minimal=False,
+                      fp=fp)
 
 
 

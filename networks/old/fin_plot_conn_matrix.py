@@ -1,11 +1,11 @@
 import numpy as np
 from scipy import stats as stats
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from old_Apr6.ttest_mat import get_stats_graphs, get_2sample_graph
 from old.network_funcs import load_FC_for_Lifu
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 
 def plot_conn_matrix(combine_regions=True):

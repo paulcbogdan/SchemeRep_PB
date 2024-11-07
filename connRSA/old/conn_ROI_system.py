@@ -1,12 +1,12 @@
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from connRSA.old.conn_ISPC import run_settings_ISPC
 from connRSA.conn_regress import get_title
 from connRSA.old_Oct29.conn_report import report_results
 from connRSA.single_trial_conn import run_settings
 from old.plot_gen import my_plot_surf
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 
-import os
+
 # os.chdir(r'/')
 
 # import warnings

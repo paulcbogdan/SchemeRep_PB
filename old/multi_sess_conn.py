@@ -1,10 +1,10 @@
 import numpy as np
 import scipy.stats as stats
 
-from atlas_utils import get_atlas
-from Study1A.load_data_Study1A import get_ROI_vecs
+from Utils.atlas_funcs import get_atlas
+from Study1A.load_Study1A_funcs import get_ROI_vecs
 from organize_bhv import get_trial_info
-from Study1A.plotting_funcs import plot_connectivity
+from Utils.plotting_funcs import plot_connectivity
 from connRSA.single_trial_conn import corr_matrix_last_two_dim
 from stim import get_stim_RDM, get_semantic_vectors, get_DNN_vecs
 from old.modularity_testing import get_partition_matrix

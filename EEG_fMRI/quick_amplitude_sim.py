@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.stats as stats
 
-from Study3.run_analysis_Study3 import get_hrf
+from Study3.analyze_plot_Fig7 import get_hrf
 
 
 def conv_quick(ts):

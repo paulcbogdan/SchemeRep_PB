@@ -1,10 +1,11 @@
 from connsearch import print_list_stats
 
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from network_clf import generic_prep
 from old_Apr6.ttest_mat import get_stats_graphs
-from Study1A.load_data_Study1A import load_FC
-from utils import stdize, pickle_wrap
+from Study1A.load_Study1A_funcs import load_FC
+from utils import stdize
+from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
 
 np.random.seed(0)

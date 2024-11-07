@@ -27,7 +27,7 @@ def add_ROI_info(atlas):
             region_LR = region
         ROI_regions.append(region)
         ROI_regions_laterality.append(region_LR)
-        region_nums[region].append(i)#int(ROI_num)-1)
+        region_nums[region].append(i)
 
     ticks = []
     tick_labels = []
@@ -135,7 +135,7 @@ def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
     for region, ROI_num, coord in zip(atlas['ROI_regions_laterality'],
                                       atlas['ROI_nums'],
                                       atlas['coords']):
-        # print(f'{region=}')
+
         if region not in region_to_new_number:
             region_to_new_number[region] = cnt
             cnt += 1
@@ -155,7 +155,7 @@ def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
 
 @cache
 def get_atlas(combine_regions=False, combine_bilateral=False,
-              new_space=True, schaefer=False, shenyang=True,
+              new_space=True, shenyang=True,
               HCP=False, natview=False, lifu_labels=True):
     if combine_regions:
         atlas = get_combined_BNA(combine_bilateral=combine_bilateral,
@@ -188,9 +188,3 @@ def get_BNA_ROIs(code=None):
         raise NotImplementedError(f'get_BNA_ROIs, {code=}')
     return ROIs
 
-
-
-if __name__ == '__main__':
-    atlas = get_atlas()
-    test = atlas['maps'].get_fdata() == 1
-    print(np.sum(test))

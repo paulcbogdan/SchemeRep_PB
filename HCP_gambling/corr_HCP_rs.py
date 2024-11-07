@@ -13,11 +13,13 @@ import scipy.stats as stats
 from datetime import datetime
 
 from Study1B.preprocess_Study1B import get_df_PE
-from Study1B.run_analysis_plot_Fig3 import get_sn_roi_ar, make_conn, get_vd_ef
-from atlas_utils import get_atlas
-from Study1A.partition_VD_PA import get_VD_PA_partitions
+from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_PE_x_Conn_effect
+from Utils.atlas_funcs import get_atlas
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 # from old.network_funcs import load_FC_for_Lifu
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
+
+
 # from vendor_partitioning import get_vendor_partitions, do_regression
 
 def partial_corr_fluc(dd_vv, dv_dv, pd_no, ad_no, av_no, pv_no,
@@ -278,11 +280,11 @@ def get_task_ef(sns_in, combine_regions=False, anat_ver=3):
     # assert set(sns_in) - set(sns) == set()
 
     ef_h, dd_h, vv_h, dv_ant_h, dv_pos_h, M_overall_h = (
-        get_vd_ef(conn_highs, combine_regions=combine_regions,
-                  combine_bilateral=False, anat_ver=anat_ver))
+        get_PE_x_Conn_effect(conn_highs, combine_regions=combine_regions,
+                             combine_bilateral=False, anat_ver=anat_ver))
     ef_l, dd_l, vv_l, dv_ant_l, dv_pos_l, M_overall_l = (
-        get_vd_ef(conn_lows, combine_regions=combine_regions,
-                  combine_bilateral=False, anat_ver=anat_ver))
+        get_PE_x_Conn_effect(conn_lows, combine_regions=combine_regions,
+                             combine_bilateral=False, anat_ver=anat_ver))
     task_ef = ef_l - ef_h
 
     dd_ef = dd_l - dd_h - M_overall_l + M_overall_h

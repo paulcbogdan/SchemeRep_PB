@@ -8,7 +8,7 @@ from old_Apr6.corr_RSA_x_vendor import get_plain_df_sn
 os.chdir(r'H:\PycharmProjects_H\SchemeRep')
 
 from conn_report import report_results
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import pandas as pd
 import numpy as np
 

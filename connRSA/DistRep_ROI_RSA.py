@@ -7,8 +7,7 @@ os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 # from single_trial_conn import run_settings
 from connRSA.old_Oct29.conn_report import report_results
-from utils import pickle_wrap
-
+from Utils.pickle_wrap_funcs import pickle_wrap
 
 ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
                'PFC': 16, 'PFC_ACC': 14, #'FP': 14,

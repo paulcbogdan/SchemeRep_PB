@@ -3,11 +3,11 @@ import os.path
 from nilearn.glm.first_level import compute_regressor
 
 from Study3.fMRI_simultaneous_funcs import get_fMRI_ar
-from atlas_utils import get_atlas
+from Utils.atlas_funcs import get_atlas
 from mne.io import read_raw_eeglab
 
 from old_Apr6.fluctuations import partial_corr_df
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 import mne
 import numpy as np
 import scipy.stats as stats

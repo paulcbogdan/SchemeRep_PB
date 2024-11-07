@@ -4,13 +4,13 @@ import warnings
 import numpy as np
 from tqdm import tqdm
 
-from Study3.run_analysis_Study3 import conv
+from Study3.analyze_plot_Fig7 import conv
 from Study3.fMRI_simultaneous_funcs import get_fMRI_ar
-from Study3.EEG_funcs import get_EEG_score_sn
+from Study3.EEG_simultaneous_funcs import get_EEG_score_sn
 from EEG_fMRI.FC_x_ERP import get_sess_setup
-from atlas_utils import get_atlas
-from Study1A.plotting_funcs import plot_connectivity
-from utils import pickle_wrap
+from Utils.atlas_funcs import get_atlas
+from Utils.plotting_funcs import plot_connectivity
+from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 
 warnings.filterwarnings('ignore', category=RuntimeWarning)

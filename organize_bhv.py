@@ -4,7 +4,7 @@ from time import time
 
 # from nilearn import image
 
-from utils import pickle_wrap
+from Utils.pickle_wrap_funcs import pickle_wrap
 from scipy import io
 from glob import glob
 import pandas as pd
