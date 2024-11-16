@@ -226,9 +226,12 @@ def get_ERS_scores(ERS_mat, get_same=False):
 
     return ERS_dif, var_explained
 
+
+
 def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
-                   fp0, fp1, four_tasks, cv=False,
+                   cv=None,
+                   fp0=None, fp1=None, four_tasks=None,
                    regress_row=True, return_dif=False):
 
     dir_in = fr'C:/PycharmProjects/SchemeRep/cache/conn_RSA/ars/RSA'

@@ -86,9 +86,18 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
     del img
     assert np.sum(np.isnan(data_2d)) == 0, 'data_2d has nans'
 
+    voxels_in_max = np.sum(mask)
+    print(f'{voxels_in_max=}')
     centers, neighbors, voxel2idx_centers = (
         jit_volume_searchlight(mask, radius=radius, threshold=threshold,
                                resample=resample, cube=cube))
+    num_valid_spots = neighbors.shape[0]
+    # for threshold in [.05, .1, .15, .2, .25, .3]:
+    #     centers, neighbors, voxel2idx_centers = (
+    #         jit_volume_searchlight(mask, radius=radius, threshold=threshold,
+    #                                resample=resample, cube=cube))
+    #     num_valid_spots = neighbors.shape[0]
+    print(f'{threshold}: {num_valid_spots/voxels_in_max=:.1%}')
 
     if no_RDMs:
         if centers.shape[0] == 0:
@@ -105,14 +114,6 @@ def full_get_RDMs(sn, fp_fMRI_col, radius, downsample=1,
             return [None] * 5
         else:
             return [None] * 4
-        # return [None] * 5 if get_sphere_Ms else [None] * 4
-        # return None, None, None, None
-
-    # if resample > 1:
-    #     idxs = np.arange(0, len(centers))
-    #     idxs = np.random.choice(idxs, len(idxs) // resample, replace=False)
-    #     centers = centers[idxs, :]
-    #     neighbors = neighbors[idxs, :]
 
     print(f'\t\tNumber of centers: {len(centers)}, {neighbors.shape=}')
 
@@ -187,7 +188,7 @@ def results2img(eval_results, second_level, mask, centers, mask_downsample_pre,
 def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
                             downsample=1, resample=1, second_level='spear',
                             flip=False, mask_ROIs=None,
-                            threshold=0.25):
+                            threshold=0.25, cube=False):
 
     # fMRI_RDMs, RSM_stim_flat, mask, centers, mask_downsample_pre = (
     #     full_get_RDMs(sn, fp_fMRI_col, semantic, radius, downsample=downsample,
@@ -204,7 +205,7 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col,
            'flip': flip, 'radius': radius, 'downsample': downsample,
            'resample': resample, 'mask_ROIs': mask_ROIs,
-           'threshold': threshold}
+           'threshold': threshold, 'cube': cube}
     # fMRI_RDMs1, mask, centers1, mask_downsample_pre = (
     #     utils.pickle_wrap(full_get_RDMs, kwargs=kw1, verbose=0,
     #                       easy_override=False))
@@ -215,8 +216,8 @@ def wrapped_jit_searchlight(sn, fp_fMRI_col, semantic, radius,
 
     kw1 = {'sn': sn, 'fp_fMRI_col': fp_fMRI_col, 'semantic': semantic,
            'flip': flip,}
-    RSM_stim_flat = Study1A.utils_pickle.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
-                                                     verbose=0)
+    RSM_stim_flat = utils.pickle_wrap(get_RSM_stim_flat, kwargs=kw1,
+                                      verbose=0)
 
     t_st = time()
     if second_level == 'spear':
@@ -265,7 +266,8 @@ def make_tril_mask_within_nan(flip=False):
 
 def test_searchlight(semantic=False, radius=2, downsample=1,
                      second_level='corr', resample=10, flip=False,
-                     network=None, do_con=True, threshold=0.25):
+                     network=None, do_con=True, threshold=0.25,
+                     cube=False):
     age2sn = get_sns('all', sh=False)
     sns = age2sn[1] + age2sn[2]
     fps = prep_fps('7')
@@ -281,7 +283,8 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
     fn = (f'd{downsample}-r{radius}{flip_str_}_'
           f'{semantic_str}_{sample_size}{network_str}_thr{threshold}_'
           f'searchlight_r{resample}')
-    fp3 = rf'result_pics/searchlight/{fn}.png'
+    dic = 'big_cube' if cube else 'searchlight'
+    fp3 = rf'result_pics/{dic}/{fn}.png'
     if os.path.isfile(fp3) and False:
         plot_searchlight_fn(fn)
         return
@@ -292,7 +295,8 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
         mask_ROIs = None
 
     base_shape = None
-    # sns = sns[-30:]
+    # sns = sns[3::4]
+    # sns = sns[::-1]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -301,11 +305,11 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
                   'radius': radius, 'downsample': downsample,
                   'second_level': second_level, 'resample': resample,
                   'flip': flip, 'mask_ROIs': mask_ROIs,
-                  'threshold': threshold}
+                  'threshold': threshold, 'cube': cube}
 
-            searched, nan_mask = Study1A.utils_pickle.pickle_wrap(wrapped_jit_searchlight,
-                                                                  kwargs=kw, verbose=-1,
-                                                                  easy_override=False)
+            searched, nan_mask = utils.pickle_wrap(wrapped_jit_searchlight,
+                                                   kwargs=kw, verbose=-1,
+                                                   easy_override=False)
 
             if searched is None:
                 assert base_shape is not None
@@ -314,7 +318,6 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
             else:
                 assert base_shape is None or searched.shape == base_shape
                 base_shape = searched.shape
-
 
             print(f'Total searchlight time: {time() - t_st:.2f} s, {searched.shape} '
                   f'| {kw=}')
@@ -374,7 +377,6 @@ def plot_searchlight_fn(fn, dic='searchlight'):
     img = mpimg.imread(fp)
     plt.imshow(img)
     plt.axis('off')
-    # plt.tight_layout()
     plt.show()
 
 
@@ -384,12 +386,11 @@ if __name__ == '__main__':
     set_num_threads(1)
     t_end = time()
 
-    THRESHOLD = 0.25
-    # THRESHOLD = 0.26
-    for NETWORK in ['cortex',  ]:
+    THRESHOLD = 0.2
+    for NETWORK in ['cortex', ]:
         for SEMANTIC in [True, False]:
-
-            test_searchlight(radius=5, downsample=1, flip=False,
+            test_searchlight(radius=18, downsample=1, flip=False,
                              semantic=SEMANTIC, resample=10,
-                             network=NETWORK, threshold=THRESHOLD)
+                             network=NETWORK, threshold=THRESHOLD,
+                             cube=True)
 

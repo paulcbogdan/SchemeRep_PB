@@ -91,7 +91,6 @@ def prep_plot_Fig2F_bars():
     df_agg = pd.DataFrame(d)
     plot_Fig2F_bars(df_agg)
 
-
 def plot_Fig2F_bars(df_agg, mean_norm=True):
     plot_params = {
         'y': 'vals',
@@ -127,17 +126,24 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
 
         df_set['PE'] = df_set['inc'].map({'Inc': 'High PE', 'Neu': 'Med. PE',
                                           'Con': 'Low PE'})
+
         g = sns.catplot(x=plot_params["x"], y=plot_params["y"],
                         hue=plot_params['hue'],
                         data=df_set[['inc', 'vals', 'within_between']],
-                        kind='bar', ci=68,
-                        edgecolor='k',
-                        alpha=0.7, linewidth=.7,
-                        errwidth=1.2,
-                        capsize=0.05,
+                        kind='boxen',
+                        linecolor='k',
+                        saturation=0.9,
                         palette=['dodgerblue', 'red'],
-                        height=5, aspect=0.8
+                        height=3.75, aspect=1.2,
+                        flier_kws={'edgecolor': ['k'],
+                                   'linewidth': 0.8}
                         )
+
+        for ax in g.axes.flat:
+            for line in ax.lines:
+                if line.get_linestyle() == '-':
+                    line.set_color('white')
+                    line.set_linewidth(1.5)
 
         df_set['inc_num'] = df_set['inc'].map({'Inc': -1, 'Neu': 0, 'Con': 1})
         df_set['wb_num'] = df_set['within_between'].map(
@@ -145,25 +151,11 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
 
         df_set['sn_str'] = df_set['sn'].astype(str)
 
-        formula = 'vals ~ inc_num*within_between + within_between*sn_str'
+        formula = 'vals_std ~ inc_num*within_between + within_between*sn_str'
+        df_set['vals_std'] = stats.zscore(df_set['vals'])
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()
-        p_reg = res.pvalues.iloc[-1]
-
-        if cond_set == ('Within', 'Between'):
-            df_pivot = df_set.pivot_table(index=['sn'],
-                                          columns=['inc', 'within_between'],
-                                          values='vals', aggfunc='mean')
-            df_pivot['between_ef'] = df_pivot[('Con', 'Between')] - \
-                                     df_pivot[('Inc', 'Between')]
-            df_pivot['within_ef'] = df_pivot[('Con', 'Within')] - \
-                                    df_pivot[('Inc', 'Within')]
-
-            t_itr, p_itr = stats.ttest_rel(df_pivot['between_ef'],
-                                           df_pivot['within_ef'])
-            supt = (f'Two-level [Inc/Con] x Direction: p = {p_itr:.3f}\n'
-                    f'Three-level [Inc/Neu/Con] x Direction: p = {p_reg:.3f} ')
-            plt.suptitle(supt)
+        print(res.summary())
         g._legend.remove()
 
         plt.plot([-.5, 2.5], [0, 0], 'k', linewidth=.5)
@@ -174,9 +166,10 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
         plt.gca().spines['bottom'].set_visible(False)
         plt.xlabel('')
         plt.ylabel('Mean connectivity')
+        plt.ylim(-0.092, 0.092)
         plt.tight_layout()
         M_norm_str = '_no_M_norm' if not mean_norm else ''
-        fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_bars{M_norm_str}.png'
+        fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_boxen{M_norm_str}.png'
         plt.savefig(fp, dpi=600)
         plt.show()
 

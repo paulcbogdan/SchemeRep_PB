@@ -54,48 +54,73 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
     plt.rcParams.update({'font.size': 21,
                          'font.sans-serif': 'Arial'})
 
+    df['FC'] -= df.groupby(['sn', 'high_low'])['FC'].transform('mean')
     df_PA = df[df['PA_VD'] == 'PA']
     df_PA['FC'] -= df_PA.groupby('sn')['FC'].transform('mean')
-
     df_VD = df[df['PA_VD'] == 'VD']
     df_VD['FC'] -= df_VD.groupby('sn')['FC'].transform('mean')
 
-    fig, axs = plt.subplots(1, 2, figsize=(6, 5))
 
-    plt.sca(axs[0])
-    g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_PA,
-                    errorbar=('ci', 68), edgecolor='k',
-                    alpha=0.7, linewidth=.7, errwidth=1.2,
-                    capsize=0.05, palette=['dodgerblue'],
-                    ax=axs[0], legend=False,
+    g = sns.catplot(x='high_low', y='FC', data=df_PA,
+                    kind='boxen',
+                    linecolor='k',
+                    palette=['dodgerblue'],
+                    legend=False,
+                    saturation=0.9,
+                    height=5, aspect=0.75,
+                    flier_kws={'edgecolor': ['k'],
+                               'linewidth': 0.8,
+                               'marker': '.',
+                               },
                     )
+    for ax in g.axes.flat:
+        for line in ax.lines:
+            if line.get_linestyle() == '-':
+                line.set_color('white')
+                line.set_linewidth(1.5)
+
     plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
     plt.xlim(-.5, 1.5)
-    plt.ylim(-.026, .026)
+    plt.ylim(-.15, .15)
+    plt.yticks([-.1, 0, .1])
     g.set_xticklabels(['High\nPE', 'Low\nPE'])
     plt.ylabel('Mean connectivity')
     plt.xlabel('')
     plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
     plt.tick_params(axis='x', which='both', bottom=False, top=False)
+    fp = fr'result_pics/Fig3/Fig3B_left_boxen.png'
+    plt.savefig(fp, dpi=600)
+    plt.show()
 
-    plt.sca(axs[1])
-    g = sns.barplot(x='high_low', y='FC', hue='PA_VD', data=df_VD,
-                    errorbar=('ci', 68), edgecolor='k',
-                    alpha=0.7, linewidth=.7, errwidth=1.2,
-                    capsize=0.05, palette=['red'],  # height=5,
-                    ax=axs[1], legend=False,
+    g = sns.catplot(x='high_low', y='FC', data=df_VD,
+                    kind='boxen',
+                    linecolor='k',
+                    palette=['red'],
+                    legend=False,
+                    saturation=0.9,
+                    height=5, aspect=0.75,
+                    flier_kws={'edgecolor': ['k'],
+                               'linewidth': 0.5,
+                               'marker': '.',
+                               }
                     )
-    plt.ylabel('')
+    for ax in g.axes.flat:
+        for line in ax.lines:
+            if line.get_linestyle() == '-':
+                line.set_color('white')
+                line.set_linewidth(1.5)
+
+    plt.ylabel('Mean connectivity', color='w')
     g.set_xticklabels(['High\nPE', 'Low\nPE'])
     plt.xlabel('')
     plt.plot([-.5, 1.5], [0, 0], 'k', linewidth=.5)
-    plt.yticks([-.01, 0, .01])
     plt.xlim(-.5, 1.5)
-    plt.ylim(-.013, .013)
+    plt.ylim(-.15, .15)
+    plt.yticks([-.1, 0, .1])
     plt.gca().spines[['bottom', 'top', 'right']].set_visible(False)
     plt.tick_params(axis='x', which='both', bottom=False, top=False)
     plt.tight_layout()
-    fp = fr'result_pics/Fig3/Fig3A_matrix.png'
+    fp = fr'result_pics/Fig3/Fig3B_right_boxen.png'
     plt.savefig(fp, dpi=600)
     plt.show()
 
@@ -143,7 +168,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     return ar
 
 
-def get_conn_sn(sn, combine_regions=False, bilateral=False,
+def get_conn_sn(sn, combine_regions=True, bilateral=False,
                 only=None, learning_rate=None,
                 drop_first=False, reset_trial0=False,
                 ):
@@ -302,7 +327,7 @@ def get_combo(kw, easy_override=False):
     return conn_highs, conn_lows, sns
 
 
-def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
+def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
                          sub_ROI_expected=False):
     kw = {'combine_regions': combine_regions, 'bilateral': False,
           'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
@@ -318,6 +343,7 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
 
     if combine_regions:
+
         conn_highs[:, :, 46:] = np.nan
         conn_highs[:, 46:, :] = np.nan
         conn_lows[:, :, 46:] = np.nan
@@ -336,7 +362,8 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
         ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
         conn_lows -= ROI_expected[None]
 
-    plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral)
+    if not combine_regions:
+        plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral)
 
     overall = (conn_highs + conn_lows) / 2
     print(f'{overall.shape=}')
@@ -366,24 +393,15 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
     t_final, p = stats.ttest_1samp(itr, 0)
 
     N = itr.shape[0]
-    nans = np.sum(np.isnan(itr))
     F = t_final ** 2
-    print(f't[{N - nans - 1}/{N - 1}] = {t_final:.2f}, {p=:.4f}, F = {F:.2f}')
-    print(kw)
+    print(f't[{N - 1}] = {t_final:.2f}, {p=:.4f}, F = {F:.2f}')
 
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral, HCP=True,
                           lifu_labels=combine_regions)
 
-        title = str(kw)
-        title_ = ''
-        for i in range(len(title) // 50):
-            title_ += title[i * 50:(i + 1) * 50] + '\n'
-        title_ += title[(i + 1) * 50:]
-        title = title_
-
-        title += f'\nt[{N - nans - 1}/{N - 1}] = {t_final:.2f}'
+        title = f'\nt[{N - 1}] = {t_final:.2f}, f[{N - 1}] = {F:.2f}'
         if r is not None:
             title += f', {r=:.2f}'
 
@@ -392,7 +410,7 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
             atlas['tick_labels'] = atlas['tick_labels'][:23]
             atlas['tick_lows'] = atlas['tick_lows'][:23]
             t = t[:46, :46]
-            fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\Fig3\Fig3B_PE_x_Conn_bars.png'
+            fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\Fig3\Fig3A_matrix.png'
         else:
             fp_out = None
 
@@ -401,13 +419,13 @@ def run_Study1B_analysis(combine_regions=True, bilateral=False, corr_z=True,
                           no_avg=True, cbar_label='t-value',
                           vmin=-6, vmax=6, fp=fp_out)
 
-
 def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': 'BNA',
               'key_vals': (1, 2, 3),
-              'get_df_sn': True
+              'get_df_sn': True,
+              'combine_regions': combine_regions
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC, None, kwargs=kwargs,
@@ -430,3 +448,4 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
 
 if __name__ == '__main__':
     run_Study1B_analysis()
+    run_Study1B_analysis(combine_regions=True)

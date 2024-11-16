@@ -32,7 +32,7 @@ if __name__ == '__main__':
     N = len(z)
     print(f't[{N - 1}] = {t:.2f}, {p=:.4f}')
 
-    plt.figure(figsize=(6.5, 3))
+    plt.figure(figsize=(4.4, 2.5))
     plt.rcParams.update({'font.size': 14,
                          'font.sans-serif': 'Arial'})
     plt.gca().spines[['top', 'right']].set_visible(False)
@@ -44,4 +44,6 @@ if __name__ == '__main__':
     M = np.nanmean(z)
     p_above_0 = np.mean(z > 0)
     plt.tight_layout()
+    fp_out = r'result_pics/Fig5/Fig5B_histogram.png'
+    plt.savefig(fp_out, dpi=600)
     plt.show()

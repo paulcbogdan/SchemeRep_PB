@@ -146,13 +146,8 @@ def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
     else:
         off = off1 = int(radius1 * mult1)
         l = [-off1, 0, off1]
-        # off -= 1
 
-    # print(f'{l=}')
-    # print(f'{off=}')
-    # quit()
     t_st = time()
-
     if voxel2center is not None:
         ar, good_finds = get_closest_dists_vox2c(centers1,
                                                  np.array(l), voxel2center,
@@ -160,11 +155,6 @@ def get_indexing_ar(centers1, centers2, radius1, mult1, mult27=False,
         proportion_good = np.mean(good_finds == np.max(good_finds))
         good_finds = good_finds == np.max(good_finds)
         print(f'{proportion_good=:.3f}')
-        # bads = good_finds[good_finds < np.max(good_finds)]
-        # M_bad = np.mean(bads)
-        # print(f'\t{M_bad=:.3f}')
-        # quit()
-
     else:
         ar = get_closest_dists_all(centers1, centers2, np.array(l))
         good_finds = np.full(centers1.shape[0], True, dtype=np.bool_)

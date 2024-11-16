@@ -17,6 +17,8 @@ import numpy as np
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 
+np.random.seed(0) # to make the Louvain/Leiden (non-deterministic) output always the same
+
 
 def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
     sn_inc_conn = (sn_inc_conn -

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats as stats
 
-from conn_utils import get_BNA_ROIs
+# from conn_utils import get_BNA_ROIs
 
 
 

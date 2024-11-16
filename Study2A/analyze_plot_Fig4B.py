@@ -18,7 +18,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
-def plot_Fig3B(anat_version=3):
+def plot_Fig4B(anat_version=3):
     df, _ = pickle_wrap(get_df_networks, kwargs={'anat_ver': anat_version, },
                         easy_override=False)
 
@@ -49,9 +49,10 @@ def plot_Fig3B(anat_version=3):
 
     corr[corr > .99] = np.nan
 
+    fp = 'result_pics/Fig4/Fig4B_matrix.png'
     plot_connectivity(-corr, ticks, tick_labels, tick_lows,
                       title=None, no_avg=True, vmin=-0.15, vmax=0.15,
-                      minimal=True, cmap='RdYlBu')
+                      minimal=True, cmap='turbo_r', fp=fp)
 
     bool_ar = np.zeros(corr.shape)
     for i in range(corr.shape[0]):
@@ -61,11 +62,6 @@ def plot_Fig3B(anat_version=3):
         bool_ar[row > median - .0001, i] += 1
     bool_ar[bool_ar > 1.5] = 1
     corr = bool_ar
-
-    plot_connectivity(corr, ticks, tick_labels, tick_lows,
-                      title='', no_avg=True, vmin=-0.15, vmax=0.15)
-    plot_connectivity(corr, ticks, tick_labels, tick_lows,
-                      title='', no_avg=True, vmin=-0.3, vmax=0.3)
 
     partitions = get_modules(corr)
     corr_v0 = get_partition_matrix(np.ones(corr.shape), partitions[0],
@@ -84,4 +80,4 @@ if __name__ == '__main__':
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
 
-    plot_Fig3B()
+    plot_Fig4B()

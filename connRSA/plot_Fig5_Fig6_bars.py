@@ -278,7 +278,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False,
                  color='w', fontsize=stars_fs)
 
 
-    plt.ylabel('Mean correlation', fontsize=24, labelpad=10)
+    plt.ylabel('Mean beta', fontsize=24, labelpad=10)
     plt.gca().spines[['top', 'right']].set_visible(False)
     title, fn, _ = get_title(True, False, kwargs, 28)
     plt.title(title, fontsize=15, pad=30)
@@ -300,7 +300,7 @@ def plot_beta_dif_bars(kwargs, corr=False, big_voxel=False,
     plt.show()
 
 
-def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
+def do_regr_dif(semantic=False, RSA=True, big_voxelwise=True,
                 inter=True, strict_corr=True):
     trial_similarity = 'corr'
     second_order = 'spear'
@@ -312,11 +312,11 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
     # target_ROIs = ['FP', 'DMN', 'FPT']
     # target_ROIs = ['IT']
-    target_ROIs = ['ITL'] # DECIDE FINALIZE ITL or IT
+    # target_ROIs = ['ITL']
+    target_ROIs = ['Occipital']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
-
         regions = set(prep_networks(
             network_setting=ROI2NETWORK[target_ROI])[target_ROI])
 
@@ -338,7 +338,7 @@ def do_regr_dif(semantic=False, RSA=True, big_voxel=True,
 
         kwargs['ROI_focus'] = f'{target_ROI}_BOLD'
 
-        if big_voxel:
+        if big_voxelwise:
             kwargs['ROI_focus'] += '_cmb'
         # kwargs['ROI_focus'] = f'{target_ROI}_M'
 
@@ -398,7 +398,7 @@ def strict_correlations(kwargs):
         print(f'{cond=}, {t=:.3f}, {p=:.3f}')
     return
 
-def plot_FigureS1_bars_region(region='Occipital'):
+def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -447,9 +447,11 @@ def plot_FigureS1_bars_region(region='Occipital'):
             for cond in conds:
                 if cond[0] in ['Occipital', 'IT']:
                     kwargs['semantic'] = cond[1]
-                    kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
-                    # kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
-                    # print(kwargs['ROI_focus'])
+                    if big_voxelwise:
+                        kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
+                    else:
+                        kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
+
                     kwargs['ROIs_ctrl'] = []
                 else:
                     kwargs['semantic'] = cond[0]
@@ -457,8 +459,18 @@ def plot_FigureS1_bars_region(region='Occipital'):
                         kwargs['ROI_focus'] = f'{region}_M'
                         # kwargs['ROIs_ctrl'] = [f'{region}_BOLD_cmb']
                     else:
-                        kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
+                        if big_voxelwise:
+                            kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
+                        else:
+                            kwargs['ROI_focus'] = f'{region}_BOLD'
+                        # kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
                     kwargs['ROIs_ctrl'] = [] # f'{region}_M'
+
+                # print(kwargs)
+                # quit()
+                # kwargs['ROI_focus'] = 'ITL_BOLD'
+                # if sn == '102' and fp == 'obj7_fMRI':
+                #     print(kwargs)
 
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1, easy_override=False)
@@ -570,19 +582,22 @@ def plot_FigureS1_bars_region(region='Occipital'):
 
 def plot_Figure5_bars():
     do_regr_dif(semantic=False, inter=False, strict_corr=False,
-                big_voxel=False)
+                big_voxelwise=False)
     do_regr_dif(semantic=True, inter=False, strict_corr=False,
-                big_voxel=False)
+                big_voxelwise=False)
     # do_regr_dif(semantic=True, inter=False, strict_corr=False)
     quit()
 
 def plot_FigureS1_bars():
     # plot_FigureS1_bars_region('Occipital')
-    plot_FigureS1_bars_region('ITL')
+    plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
+    plot_FigureS1_bars_region('ITL', big_voxelwise=True)
+    # plot_FigureS1_bars_region('Occipital', big_voxelwise=False)
+
 
 import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    plot_FigureS1_bars()
-    # plot_Figure5_bars()
+    # plot_FigureS1_bars()
+    plot_Figure5_bars()

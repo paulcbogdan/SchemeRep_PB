@@ -55,8 +55,6 @@ def get_stim_RDM(df_sn, d_vecs, obj_only=False, scene_only=False,
     else:
         raise ValueError('How?? This error should\'ve been caught by assert.')
     all_vecs = np.abs(all_vecs) if take_abs else all_vecs
-    # print(f'{all_vecs.shape=}')
-    # quit()
     if dist == 'corr':
         RDM_stim = np.corrcoef(all_vecs)
     elif dist == 'spear':
@@ -281,7 +279,7 @@ def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False):
     fp_DNN_vecs = fr'cache/DNN_vecs_{dnn_str}{PCA_str}{PCA_obj_str}.pkl'
     return pickle_wrap(lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
                                              PCA_obj=PCA_obj), fp_DNN_vecs,
-                       easy_override=easy_override)
+                       easy_override=easy_override, verbose=-1)
 
 
 def get_img_fns(get_dict=False):
