@@ -6,6 +6,8 @@ from organize_bhv import get_trial_info
 import utils
 
 from stim import get_semantic_vectors, get_DNN_vecs
+from functools import cache
+import matplotlib.pyplot as plt
 
 def within_run_to_nan2(RDM):
     RDM_ = RDM.copy()
@@ -17,7 +19,8 @@ def within_run_to_nan2(RDM):
     # TODO: Fix, this won't work properly except for on encoding!!
     return RDM_
 
-def get_sn_fp_stim_RSM(sn, fp, semantic, dnn_layer, dist='corr',
+@cache
+def get_sn_fp_stim_RSM(sn, fp, semantic, dnn_layer=None, dist='corr',
                        within_to_nan=True):
     if semantic:
         d_vecs = get_semantic_vectors(normalize=True)
@@ -49,7 +52,7 @@ def make_all_stim_RSMs():
                                     kwargs={'sn': sn, 'fp': fp, 'semantic': True,
                                             'dnn_layer': None})
             print(f'done: {sn}, semantic ')
-            for dnn_layer in range(2, 32, 2):
+            for dnn_layer in range(2, 36, 2):
                 RSM = utils.pickle_wrap(get_sn_fp_stim_RSM, None,
                                         kwargs={'sn': sn, 'fp': fp, 'semantic': False,
                                                 'dnn_layer': dnn_layer})
@@ -63,4 +66,11 @@ def make_all_stim_RSMs():
             #             print(f'{sn} failed: {e}')
 
 if __name__ == '__main__':
+    # fp_test = r'C:\PycharmProjects\SchemeRep\cache\conn_RSA\ars\RSA\obj7_fMRI_corr_spear_within_nan_False\102_stim_False.npy'
+    # RSM = np.load(fp_test)
+    # RSM_new = get_sn_fp_stim_RSM(102, 'obj7_fMRI', False, 2)
+    # plt.imshow(RSM)
+    # plt.show()
+    # plt.imshow(RSM_new)
+    # plt.show()
     make_all_stim_RSMs()

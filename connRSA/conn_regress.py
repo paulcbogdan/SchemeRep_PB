@@ -4,6 +4,7 @@ from pathlib import Path
 
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
+from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from networks.old.networks import prep_networks
@@ -245,9 +246,17 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 
-    fp_stim = f'{dir_focus}/{sn}_stim_{semantic}.npy'
-    with open(fp_stim, 'rb') as f:
-        RSM_stim = np.load(f)
+    # fp_stim = f'{dir_focus}/{sn}_stim_{semantic}.npy'
+    # with open(fp_stim, 'rb') as f:
+    #     RSM_stim = np.load(f)
+    if isinstance(semantic, bool) and semantic:
+        RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
+    elif isinstance(semantic, bool) and not semantic:
+        RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 2)
+    elif isinstance(semantic, tuple):
+        assert not semantic[0]
+        RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
+
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 
     flat_itr = np.array([1] * len(flat_focus))
