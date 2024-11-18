@@ -6,6 +6,9 @@ import pandas as pd
 from PIL import Image
 from Utils.pickle_wrap_funcs import pickle_wrap
 from sklearn import decomposition
+
+# from connRSA.stim_v2 import VGGActivationExtractor
+
 try:
     from torchvision import models as models, transforms as transforms
     import torch
@@ -191,19 +194,33 @@ def get_semantic_vectors(normalize=True):
                          easy_override=False, verbose=-1)
     return d_vecs
 
+@cache
+def get_extractor():
+    extractor = VGGActivationExtractor()
+    return extractor
 
-def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
+def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False,
+                  v2=False):
     model = models.vgg16(pretrained=True)
     for p in model.parameters():
         p.requires_grad = False
     model.eval()
     print(model.features)
+    print(model.classifier)
 
     data_transforms = transforms.Compose([transforms.ToTensor(),
                     transforms.Resize((224, 224)),
-                    # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                    #                      std=[0.229, 0.224, 0.225])
                     ])
+
+    # data_transforms = transforms.Compose([
+    #     transforms.ToTensor(),
+    #     # transforms.Resize((224, 224)),
+    #     transforms.Resize(256),
+    #     transforms.CenterCrop(224),
+    #     # transforms.ToTensor(),
+    #     transforms.Normalize(mean=[0.485, 0.456, 0.406],
+    #                          std=[0.229, 0.224, 0.225])
+    # ])
 
     names, fps = get_img_fns()
     img_vecs = []
@@ -215,31 +232,48 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
             scene = 1
         else:
             scene = 0
+        # if v2:
+        #     extractor = get_extractor()
+        #     x = extractor.get_layer_activation(fp, DNN_layer)
+        #     x = x.detach().numpy().flatten()
+        #     print(DNN_layer)
+        #     print(x.shape)
+        #     print(f'{np.sum(x)=}')
+        #     # x2 = stats.zscore(x)
+        #     plt.plot(x)
+        #     img = Image.open(fp)
+        #     img = np.array(img, dtype=np.uint8)
+        #     x = data_transforms(img).unsqueeze(0)
+        #     if DNN_layer == -1:
+        #         x = model.forward(x)
+        #     else:
+        #         for j in range(DNN_layer):
+        #             x = model.features[j](x)
+        #     x = x.detach().numpy().flatten()
+        #     # x = stats.zscore(x)
+        #     print(f'{np.sum(x)=}')
+        #     plt.plot(x, label='v0')
+        #     plt.legend()
+        #     # r, p = stats.spearmanr(x, x2)
+        #     # plt.title(f'{r=:.3f}')
+        #     plt.show()
+        #     print(x.shape)
+        #     quit()
+        # else:
         img = Image.open(fp)
         img = np.array(img, dtype=np.uint8)
         x = data_transforms(img).unsqueeze(0)
         if DNN_layer == -1:
-            # from copy import deepcopy
-            # x_ = deepcopy(x)
-            # for j in range(len(model.features)):
-            #     x_ = model.features[j](x_)
-            #     print(f'{j} | {x.shape=}')
-            # x_ = model.avgpool(x_)
-            # x_ = torch.flatten(x_, 1)
-            # x_ = model.classifier(x_)
-            # print(f'{x_}')
-            # print(f'{x_.shape=}')
             x = model.forward(x)
         else:
             for j in range(DNN_layer):
-                x = model.features[j](x)
-        # if early:
-        #     x = model.features[0](x)
-        #     x = model.features[1](x)
-        # else:
-        #     x = model.forward(x)
+                if j < 31:
+                    x = model.features[j](x)
+                else:
+                    if j == 31:
+                        x = x.flatten(1)
+                    x = model.classifier[j-31](x)
         x = x.detach().numpy().flatten()
-        # x = np.concatenate([x, np.array([scene])]) # Why do I have this last feat?
         img_vecs.append(x)
         if not scene:
             obj_vecs.append(x)
@@ -268,17 +302,27 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False):
         d_vecs[name] = vec
     return d_vecs
 
+def get_DNN_vecs_v2_(PCA=False, DNN_layer=2, PCA_obj=False):
+    pass
 
-def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False):
+
+def get_DNN_vecs(PCA=True, PCA_obj=True, DNN_layer=2, easy_override=False,
+                 ):
     dnn_str = 'late' if DNN_layer == -1 else \
               'early' if DNN_layer == 2 else \
               f'dnn{DNN_layer}'
     PCA_str = '_PCA' if PCA else ''
     PCA_obj_str = '' if PCA_obj else '_PCAallImg'
     fp_DNN_vecs = fr'cache/DNN_vecs_{dnn_str}{PCA_str}{PCA_obj_str}.pkl'
+
+    # if v2:
+    # fp_DNN_vecs = fp_DNN_vecs.replace('.pkl', '_v2.pkl')
+    # else:
     return pickle_wrap(lambda: get_DNN_vecs_(PCA=PCA, DNN_layer=DNN_layer,
                                              PCA_obj=PCA_obj), fp_DNN_vecs,
                        easy_override=easy_override, verbose=-1)
+
+
 
 
 def get_img_fns(get_dict=False):

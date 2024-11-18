@@ -179,7 +179,8 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
 
     semantic = (False, 2)
 
-    for DNN_layer in [2, -1, 30]:# + list(range(2, 34, 6)):
+    for DNN_layer in list(range(15)) + [-1]:
+        # DNN_layer = 15
         semantic = (False, DNN_layer)
 
         plt.rcParams.update({'font.size': 20})
