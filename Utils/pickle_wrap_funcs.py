@@ -12,6 +12,8 @@ from time import time
 import numpy as np
 from colorama import Fore
 
+import utils
+
 PICKLE_CACHE = {}
 
 def getVariableName(variable, globalVariables):
@@ -38,14 +40,15 @@ def obj2str(val):
     elif isinstance(val, list):
         for val_ in val:
             kwargs_str += obj2str(val_)
-
+    elif callable(val):
+        kwargs_str += val.__name__
     else:
         kwargs_str += f'{val}_'
+
     if len(kwargs_str) > 20:
         # pre_kwargs_str = kwargs_str
         kwargs_str = str(zlib.adler32(kwargs_str.encode()))
-        # assert len(kwargs_str) < 21, f'{len(kwargs_str)=}: {kwargs_str}'
-        # print(f'Hash: {kwargs_str} | Pre: {pre_kwargs_str}')
+        # print(f'Hash ({val}): {kwargs_str} | Pre: {pre_kwargs_str}')
 
     return kwargs_str
 
@@ -83,14 +86,6 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     # Path(cache_dir).mkdir(parents=True, exist_ok=True)
     # filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
     if verbose > 0: print(f'Default pickle_wrap filepath: {filepath}')
-
-
-
-    # bad_chars = [';', ':', '!', "*", " ", '{', '}', ',', '\'']
-    # for char in bad_chars:
-    #     filepath = filepath.replace(char, '')
-    # print(f'Default pickle_wrap filepath: {filepath}')
-    # quit()
     return filepath
 
 
@@ -98,7 +93,8 @@ def pickle_wrap(callback: object, filepath: object = None,
                 args: object = None, kwargs: object = None,
                 easy_override: object = False,
                 verbose: object = 0, cache_dir: object = 'cache',
-                dt_max: object = None, RAM_cache: object = False):
+                dt_max: object = None, RAM_cache: object = False,
+                get_name=False):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
@@ -112,8 +108,21 @@ def pickle_wrap(callback: object, filepath: object = None,
     :return: Returns the output of the callback or the output saved in filepath
     '''
     kwargs = copy(kwargs) # don't want to modify outside
+    t_st = time()
     if filepath is None:
-        filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+        if get_name:
+            # print('Within')
+            filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+        else:
+            # print('Wrap')
+            filepath = utils.pickle_wrap(get_default_fp,
+                                         kwargs={'args': args, 'kwargs': kwargs,
+                                                 'callback': callback, 'cache_dir': cache_dir,
+                                                 'verbose': verbose},
+                                         get_name=True, verbose=-1)
+        # filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+        # print(f'Get name: {time() - t_st:.3f} s | {filepath=}')
+        # quit()
     if RAM_cache and filepath in PICKLE_CACHE:
         return PICKLE_CACHE[filepath]
 
@@ -121,6 +130,7 @@ def pickle_wrap(callback: object, filepath: object = None,
         print(f'pickle_wrap: {filepath=}')
         print('\tFunction:', getVariableName(callback,
                                              globalVariables=globals().copy()))
+
 
     if os.path.isfile(filepath):
         made = os.path.getmtime(filepath)
@@ -143,9 +153,10 @@ def pickle_wrap(callback: object, filepath: object = None,
                 pk = pickle.load(file)
                 if verbose > 0: print(f'\tLoad time: {time()-start:.3f} s')
                 if verbose == 0: print(f'Pickle loaded '
-                                       f'({time() - start:.3f} s): '
+                                       f'({time() - start:.3f} s; overall: {time() - t_st:.3f}): '
                                        f'{filepath=}')
                 if RAM_cache: PICKLE_CACHE[filepath] = pk
+
                 return pk
         except (UnpicklingError, MemoryError, EOFError) as e:
             print(f'{Fore.RED}{e=}')

@@ -44,7 +44,7 @@ def get_fz_neural_RSM(sn, region, fp, fz, uniform_size, eight_corners, do_mag,
     else:
         ffts, mask = utils.pickle_wrap(get_ffts, None,
                                        kwargs={'sn': sn, 'region': region,
-                                         'fp': fp,},
+                                               'fp': fp,},
                                        verbose=-1, easy_override=False)
         orig_size = ffts.shape
 
@@ -73,7 +73,7 @@ def get_fz_neural_RSM(sn, region, fp, fz, uniform_size, eight_corners, do_mag,
 
 def run_FFT_RSA(sn, region, fp, fz=(1, 5), semantic=True, layer=None,
                 do_mag=False, do_reconstruct=False, uniform_size=True,
-                eight_corners=False):
+                eight_corners=False, ):
     assert not (do_mag and do_reconstruct)
     # print('-')
 
@@ -112,7 +112,10 @@ def run_FFT_RSA(sn, region, fp, fz=(1, 5), semantic=True, layer=None,
     return r
 
 def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
-                do_reconstruct=False, eight_corners=False):
+                do_reconstruct=False, eight_corners=False,
+                wide_fz=False):
+    if wide_fz:
+        fz = (fz[0], fz[1], 'all')
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
@@ -120,7 +123,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
     # fps = ['bl7_fMRI', 'obj7_fMRI', 'vis7_fMRI']
     # fps = ['bl7_fMRI']
     rs_all = np.full((len(sns), len(fps)), np.nan)
-    # print(f'GO: {region}, {fz}')
+    print(f'GO: {region}, {fz}')
     sns = sns[::-1]
     for i, sn in tqdm(enumerate(sns)):
         for j, fp in enumerate(fps):
@@ -134,7 +137,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
                                           'uniform_size': True,
                                           'eight_corners': eight_corners},
                                   easy_override=False,
-                                  verbose=-1,)
+                                  verbose=0,)
             rs_all[i, j] = r
     assert np.sum(np.isnan(rs_all)) == 0
     subj_rs = np.mean(rs_all, axis=1)
@@ -145,7 +148,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
     return subj_rs
 
 def analyze_multi_fz(region='IT', eight_corners=False,
-                     do_reconstruct=False):
+                     do_reconstruct=False, wide_fz=False):
     print(f'Semantic')
 
     # fzs = [(i, i+3) for i in range(1, 24, 3)]
@@ -153,7 +156,8 @@ def analyze_multi_fz(region='IT', eight_corners=False,
     for fz in fzs:
         run_all_sns(region, fz, True, None,
                     do_reconstruct=do_reconstruct,
-                    eight_corners=eight_corners)
+                    eight_corners=eight_corners,
+                    wide_fz=wide_fz)
     #
     # print('Perceptual: DNN = 2')
     # # fzs = [(1, 4), (4, 8), (8, 12), ]
@@ -170,10 +174,11 @@ def analyze_multi_fz(region='IT', eight_corners=False,
         for fz in fzs:
             run_all_sns(region, fz, False, DNN_layer,
                         do_reconstruct=do_reconstruct,
-                        eight_corners=eight_corners)
+                        eight_corners=eight_corners,
+                        wide_fz=wide_fz)
 
 def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
-                        semantic=True):
+                        semantic=True, wide_fz=False):
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     if len(fps) > 1:
         title = 'All tasks: '
@@ -198,7 +203,7 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     for fz in fzs:
         subj_rs = run_all_sns(region, fz, semantic=True, layer=None,
                     do_reconstruct=do_reconstruct,
-                    eight_corners=eight_corners)
+                    eight_corners=eight_corners, wide_fz=wide_fz)
         subj_rs_l_semantic.append(subj_rs)
         M = np.mean(subj_rs)
         SE = stats.sem(subj_rs)
@@ -214,7 +219,7 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     for i, fz in enumerate(fzs):
         subj_rs = run_all_sns(region, fz, semantic=False, layer=0,
                     do_reconstruct=do_reconstruct,
-                    eight_corners=eight_corners)
+                    eight_corners=eight_corners, wide_fz=wide_fz)
         subj_rs_semantic = subj_rs_l_semantic[i]
 
         M = np.mean(subj_rs)
@@ -244,23 +249,28 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     # 6 Hz = 4 voxels for half wavelength
 
 
-def plot_fz_region_interaction(eight_corners=False, do_reconstruct=False):
+def plot_fz_region_interaction(eight_corners=False, do_reconstruct=True,
+                               wide_fz=False):
     plt.rcParams.update({'font.size': 16})
     fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     # fig.subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.3)
     plt.sca(axs[0, 0])
     plot_fz_interaction('ITL_L', eight_corners=eight_corners,
-                        do_reconstruct=do_reconstruct,)
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
     # print('TWOOOOOOOOOOO')
     plt.sca(axs[0, 1])
     plot_fz_interaction('ITL_R', eight_corners=eight_corners,
-                        do_reconstruct=do_reconstruct,)
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
     plt.sca(axs[1, 0])
     plot_fz_interaction('Occipital_L', eight_corners=eight_corners,
-                        do_reconstruct=do_reconstruct,)
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
     plt.sca(axs[1, 1])
     plot_fz_interaction('Occipital_R', eight_corners=eight_corners,
-                        do_reconstruct=do_reconstruct,)
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
     tuples_lohand_lolbl = [plt.gca().get_legend_handles_labels()]
     tolohs = zip(*tuples_lohand_lolbl)
     handles, labels = (sum(list_of_lists, []) for list_of_lists in tolohs)
@@ -281,23 +291,29 @@ def plot_fz_region_interaction(eight_corners=False, do_reconstruct=False):
 
 if __name__ == '__main__':
     EIGHT_CORNERS = False
-    DO_RECONSTRUCT = False
+    DO_RECONSTRUCT = True
+    WIDE_FZ = True
     # TODO: Try ITL
     plot_fz_region_interaction()
-    # analyze_multi_fz('IT', do_reconstruct=DO_RECONSTRUCT,
-    #                  eight_corners=EIGHT_CORNERS)
+
+    # analyze_multi_fz('ITL_L', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+    # analyze_multi_fz('ITL_R', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+    # analyze_multi_fz('Occipital_R', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+    analyze_multi_fz('Occipital_L', do_reconstruct=DO_RECONSTRUCT,
+                     eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+
     # analyze_multi_fz('Occipital', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)
-    analyze_multi_fz('OC_T_L', do_reconstruct=DO_RECONSTRUCT,
-                     eight_corners=EIGHT_CORNERS)
+    # analyze_multi_fz('OC_T_L', do_reconstruct=DO_RECONSTRUCT,
+                     # eight_corners=EIGHT_CORNERS)
     # analyze_multi_fz('OC_T_R', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)
     # analyze_multi_fz('OC_IT', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)
-    # analyze_multi_fz('Occipital_R', do_reconstruct=DO_RECONSTRUCT,
-    #                  eight_corners=EIGHT_CORNERS)
-    # analyze_multi_fz('Occipital_L', do_reconstruct=DO_RECONSTRUCT,
-    #                  eight_corners=EIGHT_CORNERS)
+
 
     # analyze_multi_fz('OC_IT_L', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS) # (35, 67, 49, 114)

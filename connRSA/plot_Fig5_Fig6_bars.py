@@ -312,8 +312,8 @@ def do_regr_dif(semantic=False, RSA=True, big_voxelwise=True,
     target_ROIs = ['Occipital', 'IT', 'Parietal', 'PFC']
     # target_ROIs = ['FP', 'DMN', 'FPT']
     # target_ROIs = ['IT']
-    # target_ROIs = ['ITL']
-    target_ROIs = ['Occipital']
+    target_ROIs = ['ITL']
+    # target_ROIs = ['Occipital']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for target_ROI in target_ROIs:
@@ -505,13 +505,14 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     colors = ['dodgerblue' if (isinstance(cond[1], bool) or 'Local' in cond[1])
-              else 'orange'
+              else ('orange' if big_voxelwise else 'red')
               for cond in conds]
     plt.bar([0, 1, 2, 3], Ms, yerr=SEs, color=colors,
             capsize=5, linewidth=1., edgecolor='k')
     plt.xticks([0, 1, 2, 3],
-               ['Local', 'Distributed\n(Voxelwise)',
-                'Local', 'Distributed\n(Voxelwise)'],
+               ['Small', 'Large\n(Voxelwise)' if big_voxelwise else 'Large\n(Averages)',
+                'Small', 'Large\n(Voxelwise)' if big_voxelwise else 'Large\n(Averages)'
+                ],
                fontsize=19)
 
     # plt.text(0.5, 0 - height * .19, 'Occipital',
@@ -590,8 +591,13 @@ def plot_Figure5_bars():
 
 def plot_FigureS1_bars():
     # plot_FigureS1_bars_region('Occipital')
+    # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
+    # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
+
     plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
     plot_FigureS1_bars_region('ITL', big_voxelwise=True)
+    plot_FigureS1_bars_region('Occipital', big_voxelwise=False)
+    plot_FigureS1_bars_region('ITL', big_voxelwise=False)
     # plot_FigureS1_bars_region('Occipital', big_voxelwise=False)
 
 
@@ -599,5 +605,5 @@ import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    # plot_FigureS1_bars()
-    plot_Figure5_bars()
+    plot_FigureS1_bars()
+    # plot_Figure5_bars()

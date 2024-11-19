@@ -74,6 +74,11 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     M_corr_beta_local = M_corrs_local - M_betas_local
     M_corr_beta_dist = M_corrs_dist - M_betas_dist
 
+    t_corr, p_corr = stats.ttest_rel(corrs_local, corrs_dist)
+    print(f'{t_corr=:.3f}, {p_corr=:.3f}')
+    t_beta, p_beta = stats.ttest_rel(betas_local, betas_dist)
+    print(f'{t_beta=:.3f}, {p_beta=:.3f}')
+
     max_height = max(M_corrs_local, M_corrs_dist, M_betas_local, M_betas_dist)
 
     if len(fps) > 1:
@@ -99,12 +104,12 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
     if big_voxelwise:
         bar_names = ['Small', 'Large\n(voxelwise)']
-        corr_colors = ['red', 'orange']
-        beta_colors = ['darkred', 'chocolate']
+        corr_colors = ['dodgerblue', 'orange']
+        beta_colors = ['midnightblue', 'chocolate']
     else:
         bar_names = ['Small', 'Large\n(averages)']
-        corr_colors = ['red', 'dodgerblue']
-        beta_colors = ['darkred', 'midnightblue']
+        corr_colors = ['dodgerblue', 'red']
+        beta_colors = ['midnightblue', 'darkred']
     if ax is not None:
         plt.sca(ax)
     else:
@@ -118,34 +123,50 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             error_kw={'ecolor': 'k', 'capsize': 6,  'linewidth': 2},
             label='2', color=corr_colors,
             linewidth=1., edgecolor='k')
+    # plt.errorbar([-0.05, 0.95],
+    #             [M_corrs_local, M_corrs_dist],
+    #             yerr=[SD_corrs_local, SD_corrs_dist],
+    #             linewidth=0, elinewidth=2, color='k',
+    #             capsize=6, marker='o')
     plt.bar(bar_names,
             [M_betas_local, M_betas_dist],
             bottom=[0, 0],
-            yerr=[SD_betas_local, SD_betas_dist],
-            error_kw={'ecolor': 'w', 'capsize': 6,  'linewidth': 2},
+            # yerr=[SD_betas_local, SD_betas_dist],
+            # error_kw={'ecolor': 'w', 'capsize': 6,  'linewidth': 2},
             label='2', color=beta_colors,
             linewidth=1., edgecolor='k')
+    # plt.errorbar([0.05, 1.05],
+    #             [M_betas_local, M_betas_dist],
+    #             yerr=[SD_betas_local, SD_betas_dist],
+    #             linewidth=0, elinewidth=2, color='k',
+    #             capsize=6, marker='o')
+    # plt.errorbar([0.1, 1.1],
+    #             [M_betas_local, M_betas_dist],
+    #             yerr=[SD_betas_local, SD_betas_dist],
+    #             linewidth=0, elinewidth=1, color='k',
+    #             capsize=6, marker='o')
     if M_corr_beta_dist < 0:
         plt.plot([0.6, 1.4], [M_corrs_dist, M_corrs_dist], color='k',
                  linestyle='-', linewidth=1)
         plt.plot([0.6, 1.4], [M_corrs_dist, M_corrs_dist],
-                 color='yellow' if big_voxelwise else 'dodgerblue',
+                 color='yellow' if big_voxelwise else 'red',
                  linestyle='--', linewidth=3)
     elif M_corr_beta_local < 0:
         plt.plot([-0.4, 0.4], [M_corrs_local, M_corrs_local], color='k',
                  linestyle='-', linewidth=1)
         plt.plot([-0.4, 0.4], [M_corrs_local, M_corrs_local],
-                 color='red',
+                 color='dodgerblue',
                  linestyle='--', linewidth=3)
 
 
-    # plt.ylim(0, max_height * 1.05)
-    if std:
-        pass
-    else:
-        plt.ylim(0, 0.055)
-        plt.yticks([0, .01, .02, .03, .04, .05])
+    plt.ylim(0, max_height * 1.1)
+    # if std:
+    #     pass
+    # else:
+    #     plt.ylim(0, 0.055)
+    #     plt.yticks([0, .01, .02, .03, .04, .05])
 
+    # plt.ylim(0, None)
     plt.title(title, fontsize=20)
     if plot_i == 0:
         plt.ylabel('Mean (beta | correlation)')
@@ -179,9 +200,13 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
 
     semantic = (False, 2)
 
-    for DNN_layer in list(range(15)) + [-1]:
+    DNN_layers = list(range(15)) + [-1]
+    DNN_layers = [5, 10, -1]
+
+    for DNN_layer in DNN_layers:
         # DNN_layer = 15
         semantic = (False, DNN_layer)
+        # semantic = True
 
         plt.rcParams.update({'font.size': 20})
         fig, axs = plt.subplots(1, len(target_ROIs), figsize=(5 * len(target_ROIs), 5))
@@ -205,13 +230,13 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
             plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
                             ax=axs[i], plot_i=i)
         plt.show()
-            # return
+    quit()
 
 
 
 if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
-    # plot_Fig5_v2_bars_all(semantic=True,)
-    plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=False)
+    # plot_Fig5_v2_bars_all(semantic=True,) 
+    plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True)
 

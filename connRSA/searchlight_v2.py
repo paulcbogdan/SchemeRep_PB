@@ -296,7 +296,8 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
 
     base_shape = None
     # sns = sns[3::4]
-    # sns = sns[::-1]
+    # sns = sns[:45]
+    sns = sns[::-1]
     for sn in sns:
         sn_l = []
         for fp_fMRI_col in fps:
@@ -341,7 +342,7 @@ def test_searchlight(semantic=False, radius=2, downsample=1,
     t[N < int(biggest_N * 0.8)] = np.nan
 
     vabs = 8
-    plot_t(t, title=title, fn=fn, vabs=vabs)
+    plot_t(t, title=title, fn=fn, vabs=vabs, thresh=0)
 
 
 
@@ -387,10 +388,21 @@ if __name__ == '__main__':
     t_end = time()
 
     THRESHOLD = 0.2
-    for NETWORK in ['cortex', ]:
+    # THRESHOLD = 0.1
+    for NETWORK in ['cortex', 'OC_IT', ]:
         for SEMANTIC in [True, False]:
-            test_searchlight(radius=18, downsample=1, flip=False,
-                             semantic=SEMANTIC, resample=10,
-                             network=NETWORK, threshold=THRESHOLD,
-                             cube=True)
+            # SEMANTIC = False
+            # test_searchlight(radius=18, downsample=1, flip=False,
+            #                  semantic=SEMANTIC, resample=10,
+            #                  network=NETWORK, threshold=THRESHOLD,
+            #                  cube=True)
+            # test_searchlight(radius=2, downsample=9, flip=False,
+            #                  semantic=SEMANTIC, resample=10,
+            #                  network=NETWORK, threshold=THRESHOLD,
+            #                  cube=True)
+            test_searchlight(radius=6, downsample=1, flip=False,
+                                 semantic=SEMANTIC, resample=10,
+                                 network=NETWORK, threshold=THRESHOLD,
+                                 cube=True)
+
 

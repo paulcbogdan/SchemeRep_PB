@@ -187,7 +187,14 @@ def ffts_reconstruct(ffts, mask, fz, resize=None, eight_corners=False):
     high_z1 = midpoint[2] + fz[1]
 
     mask_fz = np.zeros_like(ffts)
-    if eight_corners:
+    if len(fz) == 3 and fz[2] == 'all':
+        mask_fz[low_x0:low_x1, :, :, :] = 1
+        mask_fz[high_x0:high_x1, :, :, :] = 1
+        mask_fz[:, low_y0:low_y1, :, :] = 1
+        mask_fz[:, high_y0:high_y1, :, :] = 1
+        mask_fz[:, :, low_z0:low_z1, :] = 1
+        mask_fz[:, :, high_z0:high_z1, :] = 1
+    elif eight_corners:
         mask_fz[low_x0:low_x1, low_y0:low_y1, low_z0:low_z1, :] = 1
         mask_fz[low_x0:low_x1, low_y0:low_y1, high_z0:high_z1, :] = 1
         mask_fz[low_x0:low_x1, high_y0:high_y1, low_z0:low_z1, :] = 1
