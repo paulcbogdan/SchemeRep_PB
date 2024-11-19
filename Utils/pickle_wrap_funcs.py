@@ -15,6 +15,7 @@ from colorama import Fore
 import utils
 
 PICKLE_CACHE = {}
+DIR_EXIST_CACHE = set()
 
 def getVariableName(variable, globalVariables):
     # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string
@@ -48,6 +49,7 @@ def obj2str(val):
     if len(kwargs_str) > 20:
         # pre_kwargs_str = kwargs_str
         kwargs_str = str(zlib.adler32(kwargs_str.encode()))
+
         # print(f'Hash ({val}): {kwargs_str} | Pre: {pre_kwargs_str}')
 
     return kwargs_str
@@ -76,12 +78,20 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
     else:
         args_str = ''
     kwargs_str = f2str(callback, kwargs)
+
     if isinstance(callback, functools.partial):
         name = callback.func.__name__
     else:
         name = callback.__name__
     func_dir = f'{cache_dir}/{name}'
-    Path(func_dir).mkdir(parents=True, exist_ok=True)
+    # if not os.path.isdir(func_dir):
+    # print(next(os.scandir(func_dir)))
+    # quit()
+    if func_dir in DIR_EXIST_CACHE:
+        pass
+    else:
+        DIR_EXIST_CACHE.add(func_dir)
+        Path(func_dir).mkdir(parents=True, exist_ok=True)
     filepath = f'{func_dir}/{args_str}_{kwargs_str}.pkl'
     # Path(cache_dir).mkdir(parents=True, exist_ok=True)
     # filepath = f'{cache_dir}/{name}_{args_str}_{kwargs_str}.pkl'
@@ -110,16 +120,16 @@ def pickle_wrap(callback: object, filepath: object = None,
     kwargs = copy(kwargs) # don't want to modify outside
     t_st = time()
     if filepath is None:
-        if get_name:
+        # if get_name:
             # print('Within')
-            filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
-        else:
-            # print('Wrap')
-            filepath = utils.pickle_wrap(get_default_fp,
-                                         kwargs={'args': args, 'kwargs': kwargs,
-                                                 'callback': callback, 'cache_dir': cache_dir,
-                                                 'verbose': verbose},
-                                         get_name=True, verbose=-1)
+        filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+        # else:
+        #     # print('Wrap')
+        #     filepath = utils.pickle_wrap(get_default_fp,
+        #                                  kwargs={'args': args, 'kwargs': kwargs,
+        #                                          'callback': callback, 'cache_dir': cache_dir,
+        #                                          'verbose': verbose},
+        #                                  get_name=True, verbose=-1)
         # filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
         # print(f'Get name: {time() - t_st:.3f} s | {filepath=}')
         # quit()

@@ -137,7 +137,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
                                           'uniform_size': True,
                                           'eight_corners': eight_corners},
                                   easy_override=False,
-                                  verbose=0,)
+                                  verbose=-1,)
             rs_all[i, j] = r
     assert np.sum(np.isnan(rs_all)) == 0
     subj_rs = np.mean(rs_all, axis=1)
