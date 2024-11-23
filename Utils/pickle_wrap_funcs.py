@@ -12,7 +12,6 @@ from time import time
 import numpy as np
 from colorama import Fore
 
-import utils
 
 PICKLE_CACHE = {}
 DIR_EXIST_CACHE = set()

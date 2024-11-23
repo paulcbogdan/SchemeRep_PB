@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 from numba import njit, prange
 from time import time
@@ -13,28 +15,10 @@ import scipy.stats as stats
 import scipy.spatial as spatial
 import matplotlib.pyplot as plt
 from functools import cache
+from nilearn import image
+from pathlib import Path
 
 GLOBAL_NAN_VALUE = -999_999_999
-
-def run_map_xor_RSA(voxel_l, voxels_mat, stim_RSM, stim_M, stim_SD):
-    # TODO: subtract trial-wise mean
-
-    n_trials = voxel_l.shape[0]
-    n_voxels = voxels_mat.shape[1]
-    xor_mat = np.zeros_like(voxels_mat)
-    for t in range(n_trials):
-        for v in range(n_voxels):
-            xor_mat[t, v] = voxel_l[t] ^ voxels_mat[t, v]
-
-
-    for v in range(n_voxels):
-        E_xy = 0
-        E_x = 0
-        E_y = 0
-        for t0 in range(n_trials):
-            for t1 in range(t0):
-                pass
-
 
     # for the less than/greater than, we just check whether in trial 1, a > b
     #    is similar to, say, trial 2 a > b
@@ -43,27 +27,26 @@ def run_map_xor_RSA(voxel_l, voxels_mat, stim_RSM, stim_M, stim_SD):
     #   is similar to just finding a set of 1s where the average similar is high
 
 # @njit(fastmath=True, nopython=True, cache=True, parallel=True)
-def run_map_MI_RSA_mat(voxels_mat0, voxels_mat1, stim_RSM, median_cond2=False):
+def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=False):
     n_voxels0 = voxels_mat0.shape[1]
     same_Ms_mat = np.empty((n_voxels0, n_voxels0))
-
     stim_is_nan = np.isnan(stim_RSM)
+    voxels_mat1 = voxels_mat0 if median_cond2 else voxels_mat_bool
+
     for v in tqdm(range(n_voxels0)):
-        voxel_l = voxels_mat0[:, v]
+        voxel_l = voxels_mat_bool[:, v]
         same_Ms_v = run_map_MI_RSA(voxel_l, voxels_mat1, stim_RSM,
-                                   stim_is_nan,
-                                   median_cond2=median_cond2)
+                                   stim_is_nan, median_cond2=median_cond2)
         same_Ms_mat[v, :] = same_Ms_v
     return same_Ms_mat
 
-# @njit(fastmath=True, nopython=True, cache=True, parallel=True)
+@njit(fastmath=True, nopython=True, cache=True)
 def run_vox_MI_RSA(voxels_mat, stim_RSM, stim_is_nan):
     n_trials = voxels_mat.shape[0]
     n_voxels = voxels_mat.shape[1]
     same_Ms = np.empty(n_voxels)
     for v in range(n_voxels):
         voxel_l = voxels_mat[:, v]
-
         same_total = 0
         n_same = 0
         for t0 in range(n_trials):
@@ -73,10 +56,23 @@ def run_vox_MI_RSA(voxels_mat, stim_RSM, stim_is_nan):
                 if voxel_l[t0] == voxel_l[t1]:
                     n_same += 1
                     same_total += stim_RSM[t0, t1]
-
         same_M = same_total / n_same
         same_Ms[v] = same_M
     return same_Ms
+
+def generate_RSA_vox_map(sn, fp, region, semantic, layer,
+                         median_cond2=False):
+    voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
+        load_img_rsm(region, fp, sn, semantic, layer))
+    t_st = time()
+    stim_is_nan = np.isnan(stim_RSM)
+    same_Ms = run_vox_MI_RSA(voxels_mat, voxels_mat_bool, stim_RSM, stim_is_nan)
+    # same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat, stim_RSM)
+    print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
+    same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
+
+    return same_Ms, valid_voxel_idxs
+
 
 # if True:
 @njit(fastmath=True, nopython=True, cache=True, parallel=True)
@@ -88,11 +84,14 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
     assert n_trials == 114
     n_voxels = voxels_mat.shape[1]
     # voxel_zeroes = 2
-
+    # print(median_cond2)
     if median_cond2:
         # pass
         center_is_zero = np.argwhere(voxel_l)
         cnt_zero = center_is_zero.shape[0]
+        # print(voxel_l.shape)
+        # print(voxel_l)
+        # quit()
         center_is_one = np.argwhere(~voxel_l)
         cnt_one = center_is_one.shape[0]
         voxel_Ms = np.empty((2, n_voxels))
@@ -183,29 +182,51 @@ def get_img_region(region, fp, sn):
     img[mask < 0.5, :] = np.nan
     return img
 
-def generate_RSA_size_map(sn, fp, region, semantic, layer,
-                          median_cond2=False):
-    img = utils.pickle_wrap(get_img_region, None,
-                            kwargs={'region': region, 'fp': fp, 'sn': sn},
-                            verbose=-1, easy_override=False)
+def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False):
+    # fp_nii = fr'cache/get_img_region_nii/{region}_{fp}_{sn}.nii'
+    # Path(fp_nii).parent.mkdir(parents=True, exist_ok=True)
+    # if os.path.exists(fp_nii) and not easy_override:
+    #     img = image.load_img(fp_nii).get_fdata()
+    # else:
+    img = get_img_region(region, fp, sn)
+        # image.new_img_like(get_atlas()['maps'], img).to_filename(fp_nii)
+
+
+
+    # t_st = time()
+    # img = get_img_region(region, fp, sn)
+    # print('Time: ', time() - t_st)
+    # image.new_img_like(get_atlas()['maps'], img).to_filename(fp_nii)
+    # t_st = time()
+    # img = image.load_img(fp_nii).get_fdata()
+    # print('Time: ', time() - t_st)
+    # quit()
+
+    # img = utils.pickle_wrap(get_img_region, None,
+    #                         kwargs={'region': region, 'fp': fp, 'sn': sn},
+    #                         verbose=-1, easy_override=False)
 
     valid_voxel_idxs = np.argwhere(~np.isnan(img[:, :, :, 0]))
-
 
     voxels_mat = img[valid_voxel_idxs[:, 0], valid_voxel_idxs[:, 1],
                      valid_voxel_idxs[:, 2], :]
     voxels_mat = voxels_mat.T
-    # print(voxels_mat.shape)
-    # print(np.mean(voxels_mat, axis=0).shape)
-    # quit()
-    if not median_cond2:
-        voxels_mat = voxels_mat > np.mean(voxels_mat, axis=0)
+
+    # if not median_cond2:
+    voxels_mat_bool = voxels_mat > np.mean(voxels_mat, axis=0)
+
 
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
+    return voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM
 
+def generate_RSA_size_map(sn, fp, region, semantic, layer,
+                          median_cond2=False):
+    voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
+        load_img_rsm(region, fp, sn, semantic, layer))
     t_st = time()
-    same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat, stim_RSM)
+    same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
+                                 median_cond2=median_cond2)
     print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
     same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
 
@@ -213,77 +234,119 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
 
 
 
-def run_RSA_map_all_sn(region, semantic, layer):
+
+def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
+                subtract_other=True, median_cond2=False):
+    stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
+                                  layer=layer)
+    stim_M = np.nanmean(stim_RSM) * 10_000
+    print(f'Doing: {sn}, {fp}')
+    kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
+          'layer': layer}
+    if median_cond2:
+        kw['median_cond2'] = True
+    same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
+                                                  kwargs=kw, verbose=-1,
+                                                  easy_override=False)
+    # same_Ms *= 10_000
+    # same_Ms -= stim_M
+    # plt.hist(same_Ms.flatten(), bins=100, range=(-100, 100))
+    # plt.show()
+    # quit()
+
+    if subtract_vox:
+        # check for beng extra close to zero: Doing: 138, vis7_fMRI | 4.121147867408581e-13
+        kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
+              'layer': layer}
+        vox_Ms, valid_voxel_idxs2 = utils.pickle_wrap(generate_RSA_vox_map, None,
+                                                      kwargs=kw,
+                                                      verbose=-1, easy_override=False)
+        vox_Ms *= 10_000
+        for i in range(0, valid_voxel_idxs2.shape[0], 100):
+            assert tuple(valid_voxel_idxs2[i]) == tuple(valid_voxel_idxs[i]), 'Mismatch idxs'
+        vox_Ms -= np.nanmean(stim_M)
+        vox_Ms = vox_Ms[:, None] + vox_Ms[None, :]
+        same_Ms -= vox_Ms
+    elif subtract_other:
+        same_Ms_m = np.nanmean(same_Ms, axis=0)
+        same_Ms_m_subber = (same_Ms_m[None, :] + same_Ms_m[:, None]) / 2
+        same_Ms -= same_Ms_m_subber
+
+        # print(same_Ms.shape)
+        # quit()
+        # pass
+
+    has_nan = np.any(np.isnan(same_Ms))
+    if has_nan:
+        M_M = np.nanmean(same_Ms)
+        same_Ms[np.isnan(same_Ms)] = M_M
+        has_nan_str = ' (has nan)'
+    else:
+        M_M = np.mean(same_Ms)
+        has_nan_str = ''
+    dif = M_M - stim_M
+    print(f'\t{sn}, {fp}, {stim_M=:.5f} | {dif=:.5f}{has_nan_str}')
+    t_st = time()
+    euc_mtx = get_idx2euc_custom(valid_voxel_idxs)
+
+    print(f'Time needed for euc_mtx: {time() - t_st:.2f} s')
+    t_st = time()
+
+    vox_dist2MI, cnter = get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=max_vox)
+    # print(cnter.shape)
+    # plt.imshow(cnter, aspect='auto')
+    # plt.show()
+    # quit()
+    vox_dist2MI[vox_dist2MI == GLOBAL_NAN_VALUE] = np.nan
+    dist2MI = np.nanmean(vox_dist2MI, axis=0)
+    print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
+
+    # dist2MI, cnter = calc_dist2MI(same_Ms, euc_mtx, max_vox=max_vox)
+    # dist2MI[dist2MI == GLOBAL_NAN_VALUE] = np.nan
+    # # dist2MI -= np.nanmean(dist2MI)
+    #
+    # r, p = stats.spearmanr(dist2MI, dist2MI2, nan_policy='omit')
+    # print(F'{r=}, {p=}')
+    # quit()
+
+    print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
+    return vox_dist2MI, dist2MI, valid_voxel_idxs, cnter
+
+def run_RSA_map_all_sn(region, semantic, layer, max_vox=55, subtract_vox=True,
+                       median_cond2=False):
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    # sns = sns[3::5]
+    # sns = sns[4::5]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
         for j, fp in enumerate(fps):
-            stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
-                                          layer=layer)
-            stim_M = np.nanmean(stim_RSM) * 10_000
-            # print(f'{stim_M=:.5f}')
-            print(f'Doig: {sn}, {fp}')
-            t_st = time()
-            same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
-                                                          kwargs={'sn': sn, 'fp': fp,
-                                                                  'region': region,
-                                                                  'semantic': semantic,
-                                                                  'layer': layer},
-                                                          verbose=-1, easy_override=False)
-            # print(same_Ms.shape)
-            # print(len(valid_voxel_idxs))
-            # quit()
+            vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
+                                                     kwargs={'sn': sn, 'fp': fp,
+                                                             'semantic': semantic,
+                                                             'layer': layer,
+                                                             'region': region,
+                                                             'subtract_vox': subtract_vox,
+                                                             'max_vox': max_vox,
+                                                             'median_cond2': median_cond2},
+                                                     verbose=-1, easy_override=False)
 
-            print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
-            has_nan = np.any(np.isnan(same_Ms))
-            same_Ms *= 10_000
-            if has_nan:
-                M_M = np.nanmean(same_Ms)
-                same_Ms[np.isnan(same_Ms)] = M_M
-                has_nan_str = ' (has nan)'
-            else:
-                M_M = np.mean(same_Ms)
-                has_nan_str = ''
-            dif = M_M - stim_M
-            same_Ms -= stim_M
-            print(f'\t{sn}, {fp}, {stim_M=:.5f} | {dif=:.5f}{has_nan_str}')
-            # euc_mtx = get_idx2euc(region)
-            t_st = time()
-            euc_mtx = get_idx2euc_custom(valid_voxel_idxs)
-            # for dist in range(30):
-            #     print(f'{dist}: {np.sum(euc_mtx == dist)}')
-            # # quit()
-            print(f'Time needed for euc_mtx: {time() - t_st:.2f} s')
-            t_st = time()
-            # print(np.nanmean(same_Ms))
-            # print(np.nansum(same_Ms))
-            dist2MI, cnter = calc_dist2MI(same_Ms, euc_mtx)
-            # print(np.nansum(dist2MI))
-            dist2MI[dist2MI == GLOBAL_NAN_VALUE] = np.nan
+            # vox_dist2MI, dist2MI = get_dist2MI(sn, fp, semantic, layer, region,
+            #                                    subtract_vox, max_vox)
 
-            # dist2MI_weighted_avg = np.nansum(dist2MI * cnter) / np.nansum(cnter)
-            # print(cnter)
-            # print(dist2MI_weighted_avg)
-            # quit()
-
-            # dist2MI -= np.nanmean(dist2MI)
-            # print(np.nanmean(dist2MI))
-            print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
-            # print(dist2MI)
-            # quit()
             sn_dist2MI.append(dist2MI)
+        # continue
         sn_dist2MI = np.nanmean(np.array(sn_dist2MI), axis=0)
         dist2MI_all.append(sn_dist2MI)
 
         M = np.nanmean(dist2MI_all, axis=0)
+        super_M = np.nanmean(M)
+        print(f'{super_M=}')
         SE = np.nanstd(dist2MI_all, axis=0) / np.sqrt(len(dist2MI_all))
         t = M / SE
-        for dist in range(30):
+        for dist in range(max_vox):
             print(f'{dist}: {M[dist]=:.2f}, {SE[dist]=:.2f}, {t[dist]=:.2f}')
 
     # TODO: Use surface meshes to estimate distance
@@ -295,7 +358,7 @@ def calc_dist2MI(same_Ms, euc_mtx, max_vox=100):
     rows, cols = same_Ms.shape
 
     cnter = np.zeros(max_vox, dtype=np.int32)
-    idxs = np.zeros((max_vox, 3_000_000, 2), dtype=np.int32)
+    idxs = np.zeros((max_vox, rows * cols, 2), dtype=np.int32)
     for i in range(rows):
         for j in range(cols):
             dist = euc_mtx[i, j]
@@ -314,6 +377,40 @@ def calc_dist2MI(same_Ms, euc_mtx, max_vox=100):
             result[dist] /= cnt
         else:
             result[dist] = GLOBAL_NAN_VALUE
+
+    return result, cnter
+
+@njit(fastmath=True, nopython=True, cache=True)
+def get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=100):
+    # TODO: Increase max vox for OC_IT
+    n_rows, n_cols = same_Ms.shape
+    result = np.zeros((n_rows, max_vox))
+    cnter = np.zeros((n_rows, max_vox), dtype=np.int32)
+
+    for i in range(n_rows):
+        # cnter = np.zeros(max_vox, dtype=np.int32)
+        # idxs = np.zeros((max_vox, n_cols, 2), dtype=np.int32)
+        for j in range(n_cols):
+            dist = euc_mtx[i, j]
+            if dist >= max_vox: continue
+            result[i, dist] += same_Ms[i, j]
+            cnter[i, dist] += 1
+            # dist = euc_mtx[i, j]
+            # if dist >= max_vox: continue
+            # idxs[dist, cnter[dist], 0] = i
+            # idxs[dist, cnter[dist], 1] = j
+            #
+
+        for dist in range(max_vox):
+            cnt = cnter[i, dist]
+            # for i in range(cnt):
+            #     idx0 = idxs[dist, i, 0]
+            #     idx1 = idxs[dist, i, 1]
+            #     result[i, dist] += same_Ms[idx0, idx1]
+            if cnt > 0:
+                result[i, dist] /= cnt
+            else:
+                result[i, dist] = GLOBAL_NAN_VALUE
 
     return result, cnter
 
@@ -363,33 +460,9 @@ def plot_euc_hist(region='ITL_L'):
 
 
 if __name__ == '__main__':
-    # plot_euc_hist()
-    # quit()
-
     run_RSA_map_all_sn('ITL_L', True, None)
-    # generate_RSA_size_map(102, 'bl7_fMRI', 'Occipital', False, 0)
-
-
-    # voxel_l = np.random.normal(0, 1, 114)
-    # voxel_l = voxel_l > np.mean(voxel_l)
-    # voxels_mat = np.random.normal(0, 1, (114, 13000))
-    # # print(voxels_mat.shape)
-    # # quit()
-    # voxels_mat = voxels_mat > np.mean(voxels_mat, axis=0)
-    # voxels_mat = np.int8(voxels_mat)
-    #
-    # stim_RSM = np.random.normal(0, 1, (114, 114))
-    # stim_is_nan = np.random.rand(114, 114) < -2
-    #
-    # t = time()
-    # test = run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM, stim_is_nan)
-    # print(time() - t)
-    #
-    # t = time()
-    # test = run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM, stim_is_nan)
-    # print(time() - t)
-    # print(test)
-
-
-
+    # run_RSA_map_all_sn('Occipital_L', False, 0)
+    # run_RSA_map_all_sn('OC_IT_L', True, None)
+    # run_RSA_map_all_sn('OC_IT_R', True, None)
+    # run_RSA_map_all_sn('Occipital_L', True, None)
 
