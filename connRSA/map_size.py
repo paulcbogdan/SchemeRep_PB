@@ -27,28 +27,42 @@ GLOBAL_NAN_VALUE = -999_999_999
     #   is similar to just finding a set of 1s where the average similar is high
 
 # @njit(fastmath=True, nopython=True, cache=True, parallel=True)
-def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=False):
+def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=False,
+                       just_second_vox=False):
     n_voxels0 = voxels_mat0.shape[1]
     same_Ms_mat = np.empty((n_voxels0, n_voxels0))
     stim_is_nan = np.isnan(stim_RSM)
     voxels_mat1 = voxels_mat0 if median_cond2 else voxels_mat_bool
-    # print(np.mean(voxels_mat_bool))
+
+    MI_both_mat = np.empty((n_voxels0, n_voxels0))
+    MI_vox0_mat = np.empty((n_voxels0, n_voxels0))
+    MI_vox1_mat = np.empty((n_voxels0, n_voxels0))
+    ex_both_mat = np.empty((n_voxels0, n_voxels0))
+    ex_vox0_mat = np.empty((n_voxels0, n_voxels0))
+    ex_vox1_mat = np.empty((n_voxels0, n_voxels0))
 
     for v in tqdm(range(1, n_voxels0)):
         voxel_l = voxels_mat_bool[:, v]
-        same_Ms_v = run_map_MI_RSA(voxel_l, voxels_mat1, stim_RSM,
-                                   stim_is_nan, median_cond2=median_cond2)
-        same_Ms_mat[v, :] = same_Ms_v
-    # quit()
-    return same_Ms_mat
+        MI_both, MI_vox0, MI_vox1, ex_both, ex_vox0, ex_vox1 = (
+            run_map_MI_RSA(voxel_l, voxels_mat1, stim_RSM,
+                           stim_is_nan, median_cond2=median_cond2,
+                           just_second_vox=just_second_vox))
+        MI_both_mat[v, :] = MI_both
+        MI_vox0_mat[v, :] = MI_vox0
+        MI_vox1_mat[v, :] = MI_vox1
+        ex_both_mat[v, :] = ex_both
+        ex_vox0_mat[v, :] = ex_vox0
+        ex_vox1_mat[v, :] = ex_vox1
+
+    return MI_both_mat, MI_vox0_mat, MI_vox1_mat, ex_both_mat, ex_vox0_mat, ex_vox1_mat
 
 @njit(fastmath=True, nopython=True, cache=True)
-def run_vox_MI_RSA(voxels_mat, stim_RSM, stim_is_nan):
-    n_trials = voxels_mat.shape[0]
-    n_voxels = voxels_mat.shape[1]
+def run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan):
+    n_trials = voxels_mat_bool.shape[0]
+    n_voxels = voxels_mat_bool.shape[1]
     same_Ms = np.empty(n_voxels)
     for v in range(n_voxels):
-        voxel_l = voxels_mat[:, v]
+        voxel_l = voxels_mat_bool[:, v]
         same_total = 0
         n_same = 0
         for t0 in range(n_trials):
@@ -70,23 +84,33 @@ def generate_RSA_vox_map(sn, fp, region, semantic, layer,
 
     t_st = time()
     stim_is_nan = np.isnan(stim_RSM)
-    same_Ms = run_vox_MI_RSA(voxels_mat, voxels_mat_bool, stim_RSM, stim_is_nan)
+    same_Ms = run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan)
     # same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat, stim_RSM)
     print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
     same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
 
     return same_Ms, valid_voxel_idxs
 
+def generate_RSA_vox_vox_map(sn, fp, region, semantic, layer,
+                             stdize_by_run=True,):
+    same_Ms, valid_voxel_idxs = generate_RSA_vox_map(sn, fp, region, semantic, layer,
+                                                     stdize_by_run=stdize_by_run)
+
+    vox_vox_Ms = generate_RSA_size_map(sn, fp, region, semantic, layer,
+                                       median_cond2=True, stdize_by_run=stdize_by_run,
+                                       just_second_vox=True)
+    vox_vox_Ms = vox_vox_Ms + same_Ms[:, None]
+    return vox_vox_Ms
+
 
 @njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
-                   stim_is_nan, #stim_M, stim_SD,
-                   median_cond2=False):
+                   stim_is_nan, median_cond2=False,
+                   just_second_vox=False):
     # break into bins
     n_trials = voxel_l.shape[0]
     assert n_trials == 114
     n_voxels = voxels_mat.shape[1]
-
 
     if median_cond2:
         # pass
@@ -96,69 +120,94 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
         cnt_one = center_is_one.shape[0]
         voxel_Ms = np.empty((2, n_voxels))
         for v in range(n_voxels):
-            t_at_is_zero = np.full(n_trials, 0, dtype=np.float64)
+            t_at_is_zero = np.full(n_trials, 0, dtype=np.float32)
             for i in range(cnt_zero):
                 t = center_is_zero[i][0]
                 t_at_is_zero[i] = voxels_mat[t, v]
             voxel_Ms[0, v] = np.median(t_at_is_zero[:cnt_zero])
 
-            t_at_is_one = np.full(n_trials, 0, dtype=np.float64)
+            t_at_is_one = np.full(n_trials, 0, dtype=np.float32)
             for i in range(cnt_one):
                 t = center_is_one[i][0]
                 t_at_is_one[i] = voxels_mat[t, v]
             voxel_Ms[1, v] = np.median(t_at_is_one[:cnt_one])
 
-    t2cond0 = np.empty(n_trials, dtype=np.int8)
+    t2vox0 = np.empty(n_trials, dtype=np.int8)
     for t in range(n_trials):
-        t2cond0[t] = np.int8(voxel_l[t])
+        t2vox0[t] = np.int8(voxel_l[t])
 
-    same_Ms = np.empty(n_voxels)
-    # cnter = np.zeros((2, 2), dtype=np.int8)
+    MI_both = np.empty(n_voxels, dtype=np.float32)
+    MI_vox0 = np.empty(n_voxels, dtype=np.float32)
+    MI_vox1 = np.empty(n_voxels, dtype=np.float32)
 
-    trial2cond_cond = np.empty(n_trials, dtype=np.int8)
-    # t2cond1 = np.empty(n_trials, dtype=np.int8)
+    ex_both = np.empty(n_voxels, dtype=np.int16)
+    ex_vox0 = np.empty(n_voxels, dtype=np.int16)
+    ex_vox1 = np.empty(n_voxels, dtype=np.int16)
+
+    # trial2cond_cond = np.empty(n_trials, dtype=np.int8)
+    # t2vox1 = np.empty(n_trials, dtype=np.int8)
     for v in range(n_voxels):
         # continue
+        t2vox1 = np.empty(n_trials, dtype=np.int8)
         for t in range(n_trials):
             # continue
-            # cond0 = np.int8(voxel_l[t] == 1)
+            # vox0 = np.int8(voxel_l[t] == 1)
             if median_cond2:
-                cond0 = t2cond0[t]
-                cond1 = voxels_mat[t, v] > voxel_Ms[cond0, v]
-                cond1 = np.int8(cond1)
-                # print(f'{cond0}: {cond1} | {voxels_mat[t, v]:.3f} < {voxel_Ms[cond0, v]:.3f}')
-                trial2cond_cond[t] = cond0 * 2 + cond1
+                vox0 = t2vox0[t]
+                t2vox1[t] = voxels_mat[t, v] > voxel_Ms[vox0, v]
+                t2vox1[t] = np.int8(t2vox1[t])
+                # print(f'{vox0}: {vox1} | {voxels_mat[t, v]:.3f} < {voxel_Ms[vox0, v]:.3f}')
+                # if just_second_vox:
+                #     trial2cond_cond[t] = t2vox1[t]
+                # else:
+                #     trial2cond_cond[t] = vox0 * 2 + t2vox1[t]
             else:
                 # same_Ms[v] = voxels_mat[t, v] * 5
-                trial2cond_cond[t] = t2cond0[t] * 2 + np.int8(voxels_mat[t, v])
-        # continue
-        # quit()
-        same_total = 0
+                t2vox1[t] = np.int8(voxels_mat[t, v])
+                # trial2cond_cond[t] = t2vox0[t] * 2 + t2vox1[t]
+
+
+        MI_both_voxel = 0
+        MI_voxel0 = 0
+        MI_voxel1 = 0
         n_same = 0
-        # continue
-        all = 0
+        n_same0 = 0
+        n_same1 = 0
         for t0 in range(n_trials):
             for t1 in range(t0):
                 if stim_is_nan[t0, t1]:
                     break
-                if trial2cond_cond[t0] == trial2cond_cond[t1]:
-                    n_same += 1
-                    same_total += stim_RSM[t0, t1]
-                all += 1
-                    # print(stim_RSM[t0, t1])
+                if t2vox0[t0] == t2vox0[t1]:
+                    n_same0 += 1
+                    MI_voxel0 += stim_RSM[t0, t1]
+                    if t2vox1[t0] == t2vox1[t1]:
+                        n_same1 += 1
+                        n_same += 1
+                        MI_voxel1 += stim_RSM[t0, t1]
+                        MI_both_voxel += stim_RSM[t0, t1]
+                else:
+                    if t2vox1[t0] == t2vox1[t1]:
+                        n_same1 += 1
+                        MI_voxel1 += stim_RSM[t0, t1]
 
-        # print(np.int8(~(voxels_mat[:, v] < voxel_Ms[t2cond0, v])))
-        # print(t2cond0)
-        # print(trial2cond_cond)
-        # print()
-        # quit()
+        ex_both[v] = n_same
+        ex_vox0[v] = n_same0
+        ex_vox1[v] = n_same1
 
         if n_same == 0:
-            same_M = GLOBAL_NAN_VALUE
+            MI_both[v] = GLOBAL_NAN_VALUE
         else:
-            same_M = same_total / n_same
-        same_Ms[v] = same_M
-    return same_Ms
+            MI_both[v] = MI_both_voxel / n_same
+        if n_same0 == 0:
+            MI_vox0[v] = GLOBAL_NAN_VALUE
+        else:
+            MI_vox0[v] = MI_voxel0 / n_same0
+        if n_same1 == 0:
+            MI_vox1[v] = GLOBAL_NAN_VALUE
+        else:
+            MI_vox1[v] = MI_voxel1 / n_same1
+
+    return MI_both, MI_vox0, MI_vox1, ex_both, ex_vox0, ex_vox1
 
 def get_img_region(region, fp, sn):
     if '_L' in region:
@@ -193,35 +242,19 @@ def get_img_region(region, fp, sn):
 
 def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
                  stdize_by_run=True):
-    # fp_nii = fr'cache/get_img_region_nii/{region}_{fp}_{sn}.nii'
-    # Path(fp_nii).parent.mkdir(parents=True, exist_ok=True)
-    # if os.path.exists(fp_nii) and not easy_override:
-    #     img = image.load_img(fp_nii).get_fdata()
-    # else:
+
     img = get_img_region(region, fp, sn)
-
-
     valid_voxel_idxs = np.argwhere(~np.isnan(img[:, :, :, 0]))
 
     voxels_mat = img[valid_voxel_idxs[:, 0], valid_voxel_idxs[:, 1],
                      valid_voxel_idxs[:, 2], :]
     voxels_mat = voxels_mat.T
 
-    # print(np.nanmean(voxels_mat, axis=0).shape)
-    # plt.imshow(voxels_mat, aspect='auto')
-    # plt.show()
-    # quit()
 
     if stdize_by_run:
         voxels_mat = utils.stdize(voxels_mat, stdize_by_run=True, axis=0)
 
     voxels_mat_bool = voxels_mat > np.nanmedian(voxels_mat, axis=0)
-    # for v in range(1000):
-    #     print(np.me(voxels_mat_bool[:, v]))
-    #     print(voxels_mat_bool[:, v])
-    # quit()
-    # print(np.mean(voxels_mat_bool))
-    # quit()
 
 
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
@@ -229,25 +262,36 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
     return voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM
 
 def generate_RSA_size_map(sn, fp, region, semantic, layer,
-                          median_cond2=False, stdize_by_run=True):
+                          median_cond2=False, stdize_by_run=True,
+                          just_second_vox=False):
     voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
         load_img_rsm(region, fp, sn, semantic, layer, stdize_by_run=stdize_by_run))
 
     has_nans = []
-    for v in range(7566):
-        # print(np.mean(voxels_mat_bool[:, v]))
-        # quit()
+    for v in range(voxels_mat_bool.shape[1]):
         cnt_nan = np.sum(np.isnan(voxels_mat[:, v]))
         has_nans.append(cnt_nan > 0)
     has_nans = np.array(has_nans)
 
     t_st = time()
-    same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
-                                 median_cond2=median_cond2)
-    print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
-    same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
+    MI_both_mat, MI_vox0_mat, MI_vox1_mat, ex_both_mat, ex_vox0_mat, ex_vox1_mat = (
+        run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
+                           median_cond2=median_cond2, just_second_vox=just_second_vox))
+    # same_Ms = np.float32(same_Ms)
+    # MI_both_mat = np.float32(MI_both_mat)
+    # MI_vox0_mat = np.float32(MI_vox0_mat)
+    # MI_vox1_mat = np.float32(MI_vox1_mat)
+    # ex_both_mat = np.float32(ex_both_mat)
+    # ex_vox0_mat = np.float32(ex_vox0_mat)
+    # ex_vox1_mat = np.float32(ex_vox1_mat)
 
-    return same_Ms, valid_voxel_idxs, has_nans
+    print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
+    MI_both_mat[MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
+    MI_vox0_mat[MI_vox0_mat == GLOBAL_NAN_VALUE] = np.nan
+    MI_vox1_mat[MI_vox1_mat == GLOBAL_NAN_VALUE] = np.nan
+
+    return (MI_both_mat, MI_vox0_mat, MI_vox1_mat, ex_both_mat, ex_vox0_mat, ex_vox1_mat,
+            valid_voxel_idxs, has_nans)
 
 
 
@@ -259,17 +303,16 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     stim_M = np.nanmean(stim_RSM) * 10_000
     print(f'Doing: {sn}, {fp}')
     kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
-          'layer': layer, 'stdize_by_run': stdize_by_run}
-    if median_cond2:
-        kw['median_cond2'] = True
-    same_Ms, valid_voxel_idxs, has_nans = utils.pickle_wrap(generate_RSA_size_map, None,
-                                                  kwargs=kw, verbose=-1,
-                                                  easy_override=False)
-    # same_Ms *= 10_000
-    # same_Ms -= stim_M
-    # plt.hist(same_Ms.flatten(), bins=100, range=(-100, 100))
-    # plt.show()
-    # quit()
+          'layer': layer, 'stdize_by_run': stdize_by_run,
+          'median_cond2': median_cond2}
+
+    (MI_both_mat, MI_vox0_mat, MI_vox1_mat, ex_both_mat, ex_vox0_mat, ex_vox1_mat,
+     valid_voxel_idxs, has_nans) = utils.pickle_wrap(generate_RSA_size_map, None,
+                                                     kwargs=kw, verbose=-1,
+                                                     easy_override=False)
+
+    same_Ms = MI_both_mat
+
 
     if subtract_vox:
         # check for beng extra close to zero: Doing: 138, vis7_fMRI | 4.121147867408581e-13
@@ -309,7 +352,7 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     print(f'Time needed for euc_mtx: {time() - t_st:.2f} s')
     t_st = time()
 
-    vox_dist2MI, cnter = get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=max_vox)
+    vox_dist2MI, cnter = get_voxel_dist2MI(same_Ms - stim_M, euc_mtx, max_vox=max_vox)
 
     vox_dist2MI[vox_dist2MI == GLOBAL_NAN_VALUE] = np.nan
     dist2MI = np.nanmean(vox_dist2MI, axis=0)
@@ -320,11 +363,13 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
 
 def run_RSA_map_all_sn(region, semantic, layer, max_vox=55, subtract_vox=True,
                        median_cond2=True, stdize_by_run=True):
+    if 'OC_IT' in region:
+        max_vox = 100
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI']
-    # sns = sns[4::5]
+    sns = sns[0::4]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
@@ -470,6 +515,11 @@ if __name__ == '__main__':
     run_RSA_map_all_sn('ITL_L', True, None)
     # run_RSA_map_all_sn('Occipital_L', False, 0)
     # run_RSA_map_all_sn('OC_IT_L', True, None)
+    # run_RSA_map_all_sn('OC_IT_L', False, 0)
+
     # run_RSA_map_all_sn('OC_IT_R', True, None)
     # run_RSA_map_all_sn('Occipital_L', True, None)
 
+    # TODO: Still need to try median_cond2=False, because with it true then the comparison to the
+    #   voxel is worse... or I could compute the voxel one based on the median's implied by
+    #   the first voxel

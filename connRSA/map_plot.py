@@ -179,7 +179,7 @@ def plot_voxs(region='OC_IT_L', semantic=True, layer=None,
     view.open_in_browser()
 
 
-def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
+def plot_map_region(region='ITL_L', semantic=True, layer=None,
                     max_vox=20, subtract_vox=False, subtract_other=False,
                     min_vox=4):
 
@@ -190,10 +190,11 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'vis7_fMRI'] #  'con7_fMRI',
+    fps = ['bl7_fMRI', 'obj7_fMRI', ] #  'con7_fMRI', 'vis7_fMRI'
     # sns = sns[5::6]
     dist2MI_all = []
     img_data_l = []
+    sns = sns[:4]
 
     for i, sn in enumerate(sns):
         if sn in ['135', '136', '203', '204']: continue
@@ -202,7 +203,8 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
         sn_dist2MI = []
         for j, fp in enumerate(fps):
             fp_out = get_default_fp(None, {'sn': sn, 'fp': fp, 'semantic': semantic, 'layer': layer,
-                                           'region': region},
+                                           'region': region, 'stdize_by_run': True,
+                                           'median_cond2': True, 'just_second_vox': False},
                                     generate_RSA_size_map, 'cache', 0)
             if not os.path.exists(fp_out):
                 print(f'Missing: {fp_out}')
@@ -215,8 +217,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                                                              'layer': layer,
                                                              'region': region,
                                                              'subtract_vox': subtract_vox,
-                                                             'max_vox': 55,
-                                                             'subtract_other': subtract_other},
+                                                             'max_vox': max_vox,
+                                                             'median_cond2': True,
+                                                             'stdize_by_run': True},
                                                      verbose=-1, easy_override=False)
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
