@@ -1,115 +1,18 @@
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
-from connRSA.fft_funcs import get_ffts, extract_fz, ffts_reconstruct, get_uniform_size_ffts
-from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
+from connRSA.fft_rsm import run_FFT_RSA2
 from org_sns import get_sns
 import utils
 
 import scipy.stats as stats
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 # suppress RuntimeWarning: invalid value encountered in divide
 np.seterr(divide='ignore', invalid='ignore')
 
-def get_fz_neural_RSM(sn, region, fp, fz, uniform_size, eight_corners, do_mag,
-                      do_reconstruct):
-
-    if '_L' not in region and '_R' not in region:
-        neural_RSM_L = utils.pickle_wrap(get_fz_neural_RSM, None,
-                                         kwargs={'sn': sn, 'region': f'{region}_L',
-                                                 'fp': fp, 'fz': fz,
-                                                 'uniform_size': uniform_size,
-                                                 'eight_corners': eight_corners,
-                                                 'do_mag': do_mag,
-                                                 'do_reconstruct': do_reconstruct},
-                                         verbose=-1, easy_override=False)
-        neural_RSM_R = utils.pickle_wrap(get_fz_neural_RSM, None,
-                                         kwargs={'sn': sn, 'region': f'{region}_R',
-                                                 'fp': fp, 'fz': fz,
-                                                 'uniform_size': uniform_size,
-                                                 'eight_corners': eight_corners,
-                                                 'do_mag': do_mag,
-                                                 'do_reconstruct': do_reconstruct},
-                                         verbose=-1, easy_override=False)
-        neural_RSM = (neural_RSM_L + neural_RSM_R) / 2
-        return neural_RSM
-
-    if uniform_size:
-        ffts, mask, orig_size = utils.pickle_wrap(get_uniform_size_ffts, None,
-                                                  kwargs={'sn': sn, 'region': region,
-                                                          'fp': fp, },
-                                                  verbose=-1, easy_override=False,
-                                                  )
-    else:
-        ffts, mask = utils.pickle_wrap(get_ffts, None,
-                                       kwargs={'sn': sn, 'region': region,
-                                               'fp': fp,},
-                                       verbose=-1, easy_override=False)
-        orig_size = ffts.shape
-
-    if do_mag:
-        ffts = np.abs(ffts)
-
-
-    if do_reconstruct:
-        # fp_step2 = fr'cache/fft_reconstruct/{sn}_{region}_{fp}_{fz}_{uniform_size}.pkl'
-        # # eight_corners = False
-        # kw = {'ffts': ffts, 'mask': mask, 'fz': fz,
-        #       'eight_corners': eight_corners}
-        # if uniform_size:
-        #     kw['resize'] = orig_size
-        # vals = utils.pickle_wrap(ffts_reconstruct, fp_step2,
-        #                          kwargs=kw,
-        #                          verbose=-1, easy_override=False)
-        vals = ffts_reconstruct(ffts, mask, fz, resize=orig_size,
-                                eight_corners=eight_corners)
-        neural_RSM = np.corrcoef(vals)
-    else:
-        vals = extract_fz(ffts, fz, eight_corners=eight_corners)
-        neural_RSM = np.corrcoef(vals)
-        neural_RSM = np.real(neural_RSM)
-    return neural_RSM
-
-def run_FFT_RSA(sn, region, fp, fz=(1, 5), semantic=True, layer=None,
-                do_mag=False, do_reconstruct=False, uniform_size=True,
-                eight_corners=False, ):
-    assert not (do_mag and do_reconstruct)
-    # print('-')
-
-    neural_RSM = utils.pickle_wrap(get_fz_neural_RSM, None,
-                                   kwargs={'sn': sn, 'region': region,
-                                           'fp': fp, 'fz': fz,
-                                           'uniform_size': uniform_size,
-                                           'eight_corners': eight_corners,
-                                           'do_mag': do_mag,
-                                           'do_reconstruct': do_reconstruct},
-                                   verbose=-1, easy_override=False)
-    # t_st = time()
-
-
-        # t_end = time()
-        # print(f'{t_end - t_st=:.2f}')
-    # t_end = time()
-    # print(f'{t_end - t_st=:.2f}')
-    # t_st = time()
-
-    neural_RSM[np.diag_indices_from(neural_RSM)] = np.nan
-    trils = np.tril_indices_from(neural_RSM, k=-1)
-    neural_RSM = neural_RSM[trils]
-
-    stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
-                                  layer=layer)
-    stim_RSM = stim_RSM[trils]
-    # t_end = time()
-    # print(f'{t_end - t_st=:.2f}')
-    # quit()
-
-    # t_st = time()
-    r, _ = stats.spearmanr(neural_RSM, stim_RSM, nan_policy='omit')
-    # t_end = time()
-    # print(f'{t_end - t_st=:.2f}')
-    return r
 
 def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
                 do_reconstruct=False, eight_corners=False,
@@ -124,10 +27,10 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
     # fps = ['bl7_fMRI']
     rs_all = np.full((len(sns), len(fps)), np.nan)
     print(f'GO: {region}, {fz}')
-    sns = sns[::-1]
+    # sns = sns[::-1]
     for i, sn in tqdm(enumerate(sns)):
         for j, fp in enumerate(fps):
-            r = utils.pickle_wrap(run_FFT_RSA, None,
+            r = utils.pickle_wrap(run_FFT_RSA2, None,
                                   kwargs={'sn': sn, 'region': region,
                                           'fp': fp, 'fz': fz,
                                           'semantic': semantic,
@@ -137,7 +40,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
                                           'uniform_size': True,
                                           'eight_corners': eight_corners},
                                   easy_override=False,
-                                  verbose=-1,)
+                                  verbose=-1, dir_branches=100)
             rs_all[i, j] = r
     assert np.sum(np.isnan(rs_all)) == 0
     subj_rs = np.mean(rs_all, axis=1)
@@ -145,6 +48,7 @@ def run_all_sns(region='IT', fz=(1, 5), semantic=True, layer=None,
     M = np.mean(subj_rs) * 100
     SE = stats.sem(subj_rs) * 100
     print(f'{region} : {fz} | {M=:.2f}, {SE=:.2f}, {t=:.2f}, {p=:.3f}')
+    # subj_rs /= np.std(subj_rs)
     return subj_rs
 
 def analyze_multi_fz(region='IT', eight_corners=False,
@@ -152,24 +56,18 @@ def analyze_multi_fz(region='IT', eight_corners=False,
     print(f'Semantic')
 
     # fzs = [(i, i+3) for i in range(1, 24, 3)]
-    fzs = [(i, i+1) for i in range(1, 15, 1)]
+    fzs = [(i, i+1) for i in range(1, 12, 1)]
+    fzs = [(0, 49)]
+
+
     for fz in fzs:
         run_all_sns(region, fz, True, None,
                     do_reconstruct=do_reconstruct,
                     eight_corners=eight_corners,
                     wide_fz=wide_fz)
-    #
-    # print('Perceptual: DNN = 2')
-    # # fzs = [(1, 4), (4, 8), (8, 12), ]
-    # for fz in fzs:
-    #     run_all_sns(region, fz, False, 2)
 
-    # print('Perceptual: DNN = 6')
-    # fzs = [(1, 4), (4, 8), (8, 12), ]
-    # for fz in fzs:
-    #     run_all_sns(region, fz, False, 6)
 
-    for DNN_layer in range(0, 16):
+    for DNN_layer in range(0, 1):
         print(f'Perceptual: DNN = {DNN_layer} ({eight_corners=}, {do_reconstruct=})')
         for fz in fzs:
             run_all_sns(region, fz, False, DNN_layer,
@@ -177,8 +75,9 @@ def analyze_multi_fz(region='IT', eight_corners=False,
                         eight_corners=eight_corners,
                         wide_fz=wide_fz)
 
+
 def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
-                        semantic=True, wide_fz=False):
+                        semantic=True, wide_fz=False, std=False):
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     if len(fps) > 1:
         title = 'All tasks: '
@@ -196,7 +95,9 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     title += f'\n{region}'
 
 
-    fzs = [(i, i+1) for i in range(1, 15, 1)]
+    fzs = [(i, i+1) for i in range(1, 12, 1)]
+    # fzs = [(i, i+2) for i in range(1, 15, 2)]
+
     Ms_semantic = []
     SEs_semantic = []
     subj_rs_l_semantic = []
@@ -205,6 +106,9 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
                     do_reconstruct=do_reconstruct,
                     eight_corners=eight_corners, wide_fz=wide_fz)
         subj_rs_l_semantic.append(subj_rs)
+        if std:
+            subj_rs /= np.std(subj_rs)
+            subj_rs *= np.sqrt(len(subj_rs))
         M = np.mean(subj_rs)
         SE = stats.sem(subj_rs)
         Ms_semantic.append(M)
@@ -221,7 +125,9 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
                     do_reconstruct=do_reconstruct,
                     eight_corners=eight_corners, wide_fz=wide_fz)
         subj_rs_semantic = subj_rs_l_semantic[i]
-
+        if std:
+            subj_rs /= np.std(subj_rs)
+            subj_rs *= np.sqrt(len(subj_rs))
         M = np.mean(subj_rs)
         SE = stats.sem(subj_rs)
         Ms_per.append(M)
@@ -235,9 +141,14 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     plt.errorbar(fzs_first, Ms_per, yerr=SEs_per,
                  label='Perceptual', color='darkviolet',
                  marker='.')
-    plt.ylabel('Mean correlation', fontsize=16)
-    plt.yticks([0, 0.01, 0.02])
-    plt.ylim(0, 0.02)
+    if std:
+        plt.ylabel('t-value', fontsize=16)
+        plt.ylim(0, 10)
+        plt.yticks([0, 2, 4, 6, 8, 10])
+    else:
+        plt.ylabel('Mean correlation', fontsize=16)
+        # plt.yticks([0, 0.01, 0.02])
+        # plt.ylim(0, 0.02)
     plt.xlabel('Frequency neural signal (Hz)', fontsize=16)
     plt.xticks([0, 2, 4, 6, 8, 10, 12, 14])
     # plt.legend(frameon=False)
@@ -249,26 +160,46 @@ def plot_fz_interaction(region='IT_L', eight_corners=False, do_reconstruct=True,
     # 6 Hz = 4 voxels for half wavelength
 
 
-def plot_fz_region_interaction(eight_corners=False, do_reconstruct=True,
-                               wide_fz=False):
+def plot_fz_by_region(eight_corners=False, do_reconstruct=False,
+                      wide_fz=False):
     plt.rcParams.update({'font.size': 16})
-    fig, axs = plt.subplots(2, 2, figsize=(10, 7))
-    # fig.subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.3)
+    # fig, axs = plt.subplots(2, 2, figsize=(10, 7))
+    fig, axs = plt.subplots(2, 3, figsize=(15, 7))
+
+
+    # region1 = 'ITL'
+    # region2 = 'Occipital'
+
+    region1 = 'LPFC'
+    region2 = 'Parietal'
+
     plt.sca(axs[0, 0])
-    plot_fz_interaction('ITL_L', eight_corners=eight_corners,
+    plot_fz_interaction(f'{region1}', eight_corners=eight_corners,
                         do_reconstruct=do_reconstruct,
                         wide_fz=wide_fz)
     # print('TWOOOOOOOOOOO')
     plt.sca(axs[0, 1])
-    plot_fz_interaction('ITL_R', eight_corners=eight_corners,
+    plot_fz_interaction(f'{region1}_L', eight_corners=eight_corners,
                         do_reconstruct=do_reconstruct,
                         wide_fz=wide_fz)
+
+    # fig.subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.3)
+    plt.sca(axs[0, 2])
+    plot_fz_interaction(f'{region1}_R', eight_corners=eight_corners,
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
+    # print('TWOOOOOOOOOOO')
     plt.sca(axs[1, 0])
-    plot_fz_interaction('Occipital_L', eight_corners=eight_corners,
+    plot_fz_interaction(f'{region2}', eight_corners=eight_corners,
                         do_reconstruct=do_reconstruct,
                         wide_fz=wide_fz)
     plt.sca(axs[1, 1])
-    plot_fz_interaction('Occipital_R', eight_corners=eight_corners,
+    # 'OC_T_L'
+    plot_fz_interaction(f'{region2}_L', eight_corners=eight_corners,
+                        do_reconstruct=do_reconstruct,
+                        wide_fz=wide_fz)
+    plt.sca(axs[1, 2])
+    plot_fz_interaction(f'{region2}_R', eight_corners=eight_corners,
                         do_reconstruct=do_reconstruct,
                         wide_fz=wide_fz)
     tuples_lohand_lolbl = [plt.gca().get_legend_handles_labels()]
@@ -288,28 +219,124 @@ def plot_fz_region_interaction(eight_corners=False, do_reconstruct=True,
     plt.show()
     quit()
 
+def fz_interaction(fzA=4, fzB=6, do_reconstruct=True,
+                   eight_corners=False, wide_fz=False):
+    region1 = 'ITL'
+    region2 = 'Occipital'
+
+    kw = {'region': region1, 'fz': (fzA, fzA + 1),
+          'semantic': True, 'layer': None,
+          'do_reconstruct': do_reconstruct,
+          'eight_corners': eight_corners,
+          'wide_fz': wide_fz}
+    vals1A_semantic = run_all_sns(**kw)
+    subjs = list(range(len(vals1A_semantic)))
+    df_1As = pd.DataFrame({'val': vals1A_semantic, 'sn': subjs,
+                           'region': region1, 'fz': fzA,
+                           'semantic': True,})
+    vals1A_perception = run_all_sns(**(kw | {'semantic': False, 'layer': 0}))
+    df_1Ap = pd.DataFrame({'val': vals1A_perception, 'sn': subjs,
+                           'region': region1, 'fz': fzA,
+                           'semantic': False,})
+
+    kw = kw | {'fz': (fzB, fzB + 1)}
+    vals1B_semantic = run_all_sns(**kw)
+    df_1Bs = pd.DataFrame({'val': vals1B_semantic, 'sn': subjs,
+                           'region': region1, 'fz': fzB,
+                           'semantic': True,})
+    vals1B_perception = run_all_sns(**(kw | {'semantic': False, 'layer': 0}))
+    df_1Bp = pd.DataFrame({'val': vals1B_perception, 'sn': subjs,
+                           'region': region1, 'fz': fzB,
+                           'semantic': False,})
+
+    kw = kw | {'region': region2, 'fz': (fzA, fzA + 1)}
+    vals2A_semantic = run_all_sns(**kw)
+    df_2As = pd.DataFrame({'val': vals2A_semantic, 'sn': subjs,
+                           'region': region2, 'fz': fzA,
+                           'semantic': True,})
+    vals2A_perception = run_all_sns(**(kw | {'semantic': False, 'layer': 0}))
+    df_2Ap = pd.DataFrame({'val': vals2A_perception, 'sn': subjs,
+                           'region': region2, 'fz': fzA,
+                           'semantic': False,})
+
+    kw = kw | {'fz': (fzB, fzB + 1)}
+    vals2B_semantic = run_all_sns(**kw)
+    df_2Bs = pd.DataFrame({'val': vals2B_semantic, 'sn': subjs,
+                           'region': region2, 'fz': fzB,
+                           'semantic': True,})
+    vals2B_perception = run_all_sns(**(kw | {'semantic': False, 'layer': 0}))
+    df_2Bp = pd.DataFrame({'val': vals2B_perception, 'sn': subjs,
+                           'region': region2, 'fz': fzB,
+                           'semantic': False,})
+
+    df = pd.concat([df_1As, df_1Ap, df_1Bs, df_1Bp,
+                    df_2As, df_2Ap, df_2Bs, df_2Bp])
+
+
+    g = sns.catplot(x='semantic', y='val', col='region',
+                    hue='fz',
+                    data=df,
+                    kind='boxen',
+                    linecolor='k',
+                    saturation=0.9,
+                    palette=['red', 'dodgerblue', ],
+                    height=3.75, aspect=1.2,
+                    flier_kws={'edgecolor': ['k'],
+                               'linewidth': 0.8}
+                    )
+    plt.xlim(-0.5, 1.5)
+    plt.xticks([0, 1], ['Perceptual', 'Semantic'])
+
+    for ax in g.axes.flat:
+        for line in ax.lines:
+            if line.get_linestyle() == '-':
+                line.set_color('white')
+                line.set_linewidth(1.5)
+
+    axes_dict = list(g.axes_dict.items())
+    # print(axes_dict[0][1])
+    plt.sca(axes_dict[0][1])
+    plt.xlabel('')
+    plt.plot([-0.5, 1.5], [0, 0], color='k', linewidth=1)
+
+    plt.sca(axes_dict[1][1])
+    plt.xlabel('')
+    plt.plot([-0.5, 1.5], [0, 0], color='k', linewidth=1)
+
+    # print(g.axes_dict.items()['ITL'])
+    # quit()
+    plt.show()
+
+
 
 if __name__ == '__main__':
     EIGHT_CORNERS = False
     DO_RECONSTRUCT = True
-    WIDE_FZ = True
+    WIDE_FZ = False
     # TODO: Try ITL
-    plot_fz_region_interaction()
+    # fz_interaction()
 
-    # analyze_multi_fz('ITL_L', do_reconstruct=DO_RECONSTRUCT,
+    # TODO: ADD     img_box_g = stats.zscore(img_box_g, axis=-1) # NEEDED FOR PERFECT SIMILARITY?
+
+    plot_fz_by_region()
+
+    analyze_multi_fz('Parietal', do_reconstruct=DO_RECONSTRUCT,
+                     eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+    # analyze_multi_fz('PL_R', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
-    # analyze_multi_fz('ITL_R', do_reconstruct=DO_RECONSTRUCT,
-    #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+
     # analyze_multi_fz('Occipital_R', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
-    analyze_multi_fz('Occipital_L', do_reconstruct=DO_RECONSTRUCT,
-                     eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
+    # analyze_multi_fz('Occipital_L', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS, wide_fz=WIDE_FZ)
 
     # analyze_multi_fz('Occipital', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)
     # analyze_multi_fz('OC_T_L', do_reconstruct=DO_RECONSTRUCT,
-                     # eight_corners=EIGHT_CORNERS)
-    # analyze_multi_fz('OC_T_R', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS)
+    # analyze_multi_fz('OC_IT_L', do_reconstruct=DO_RECONSTRUCT,
+    #                  eight_corners=EIGHT_CORNERS)
+    # analyze_multi_fz('OC_IT_R', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)
     # analyze_multi_fz('OC_IT', do_reconstruct=DO_RECONSTRUCT,
     #                  eight_corners=EIGHT_CORNERS)

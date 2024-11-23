@@ -388,7 +388,7 @@ if __name__ == '__main__':
     t_end = time()
 
     THRESHOLD = 0.2
-    # THRESHOLD = 0.1
+    THRESHOLD = 0.1
     for NETWORK in ['cortex', 'OC_IT', ]:
         for SEMANTIC in [True, False]:
             # SEMANTIC = False
@@ -396,13 +396,13 @@ if __name__ == '__main__':
             #                  semantic=SEMANTIC, resample=10,
             #                  network=NETWORK, threshold=THRESHOLD,
             #                  cube=True)
-            # test_searchlight(radius=2, downsample=9, flip=False,
-            #                  semantic=SEMANTIC, resample=10,
-            #                  network=NETWORK, threshold=THRESHOLD,
-            #                  cube=True)
-            test_searchlight(radius=6, downsample=1, flip=False,
-                                 semantic=SEMANTIC, resample=10,
-                                 network=NETWORK, threshold=THRESHOLD,
-                                 cube=True)
+            test_searchlight(radius=2, downsample=9, flip=False,
+                             semantic=SEMANTIC, resample=1,
+                             network=NETWORK, threshold=0.1,
+                             cube=True)
+            # test_searchlight(radius=18, downsample=1, flip=False,
+            #                      semantic=SEMANTIC, resample=10,
+            #                      network=NETWORK, threshold=THRESHOLD,
+            #                      cube=True)
 
 

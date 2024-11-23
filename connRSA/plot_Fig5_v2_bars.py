@@ -1,3 +1,4 @@
+
 from Utils.atlas_funcs import get_BNA_ROIs
 import utils
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
@@ -192,6 +193,8 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL']
     # target_ROIs = ['Occipital']
     # target_ROIs = ['ITL']
+    # target_ROIs = ['ITL']
+    # target_ROIs = ['PFC', 'Parietal']
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     # fps = ['obj7_fMRI']
@@ -203,9 +206,12 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     DNN_layers = list(range(15)) + [-1]
     DNN_layers = [5, 10, -1]
 
-    for DNN_layer in DNN_layers:
+    semantic_l = [True, (False, 0)]
+
+    # for DNN_layer in DNN_layers:
+    for semantic in semantic_l:
         # DNN_layer = 15
-        semantic = (False, DNN_layer)
+        # semantic = (False, DNN_layer)
         # semantic = True
 
         plt.rcParams.update({'font.size': 20})
@@ -238,5 +244,5 @@ if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
     # plot_Fig5_v2_bars_all(semantic=True,) 
-    plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True)
+    plot_Fig5_v2_bars_all(semantic=True, big_voxelwise=True)
 

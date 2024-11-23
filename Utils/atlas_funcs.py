@@ -89,6 +89,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
                         HCP=False, natview=False, lifu_labels=True):
     assert not (HCP and natview), 'HCP= and natview= are mutually exclusive'
     if new_space:
+        # G:\
         fp_ref = (r'fMRI_in\102'
                   r'\ENC_GM20_LLS1_bpF_full\OBJ'
                   r'\ENC_sub102_run1_trial1_subset3_pairID29_object.nii')

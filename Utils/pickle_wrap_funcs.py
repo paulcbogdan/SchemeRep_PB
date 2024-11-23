@@ -17,6 +17,16 @@ import utils
 PICKLE_CACHE = {}
 DIR_EXIST_CACHE = set()
 
+# from tqdm import tqdm
+# from collections import defaultdict
+# cnt = defaultdict(int)
+# for _ in tqdm(range(100_000)):
+#     test = (zlib.adler32(str(np.random.randint(0, 100_00_000)).encode()) // 10) % 10
+#     cnt[test] += 1
+#     # print(zlib.adler32(str(np.random.randint(0, 100_00_000)).encode()))
+# print(cnt)
+# quit()
+
 def getVariableName(variable, globalVariables):
     # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string
     """ Get Variable Name as String by comparing its ID to globals() Variables' IDs
@@ -71,7 +81,7 @@ def f2str(callback, kwargs=None):
     return kwargs_str
 
 
-def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
+def get_default_fp(args, kwargs, callback, cache_dir, verbose=0, dir_branches=0):
     if verbose > 0: print(f'Making default filepath: {kwargs=}')
     if args is not None:
         args_str = '_'.join(args)
@@ -79,14 +89,17 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0):
         args_str = ''
     kwargs_str = f2str(callback, kwargs)
 
+
+
     if isinstance(callback, functools.partial):
         name = callback.func.__name__
     else:
         name = callback.__name__
-    func_dir = f'{cache_dir}/{name}'
-    # if not os.path.isdir(func_dir):
-    # print(next(os.scandir(func_dir)))
-    # quit()
+    if dir_branches > 0:
+        hash_num = zlib.adler32(kwargs_str.encode()) % dir_branches
+        func_dir = f'{cache_dir}/{name}/{hash_num}'
+    else:
+        func_dir = f'{cache_dir}/{name}'
     if func_dir in DIR_EXIST_CACHE:
         pass
     else:
@@ -104,7 +117,7 @@ def pickle_wrap(callback: object, filepath: object = None,
                 easy_override: object = False,
                 verbose: object = 0, cache_dir: object = 'cache',
                 dt_max: object = None, RAM_cache: object = False,
-                get_name=False):
+                get_name=False, dir_branches=0):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
@@ -122,7 +135,8 @@ def pickle_wrap(callback: object, filepath: object = None,
     if filepath is None:
         # if get_name:
             # print('Within')
-        filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
+        filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose,
+                                  dir_branches=dir_branches)
         # else:
         #     # print('Wrap')
         #     filepath = utils.pickle_wrap(get_default_fp,

@@ -237,6 +237,8 @@ def load_ni_w_nan_fps(fps):
     nan_idxs = pd.isna(fps)
     good_idxs = ~nan_idxs
 
+    # fps = fps.apply(lambda x: None if x is None else x.replace(r'fMRI_in', r'G:\fMRI_in'))
+
     assert os.getcwd() == r'C:\PycharmProjects\SchemeRep', f'{os.getcwd()=}'
     if nan_idxs.any():
         img = image.load_img(fps[good_idxs]).get_fdata()

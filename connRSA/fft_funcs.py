@@ -52,9 +52,6 @@ def handle_irregular_3d_fft(data, fill_value=0):
 
 
 def get_img_box(region, fp, sn):
-    # print(region)
-    # quit()
-
     if '_L' in region:
         L_R = 'L'
         region = region.replace('_L', '')
@@ -87,6 +84,10 @@ def get_img_box(region, fp, sn):
 
     img_box = img[min_x:max_x, min_y:max_y, min_z:max_z, :]
     return img_box
+
+def get_sanity_img_box(region, fp, sn):
+    img_box = get_img_box(region, fp, sn)
+
 
 
 def get_ffts(sn, region, fp, odd_only=True):
@@ -235,16 +236,17 @@ def ffts_reconstruct(ffts, mask, fz, resize=None, eight_corners=False):
 
 
 def get_uniform_size_ffts(sn, region, fp):
-    ffts, mask = utils.pickle_wrap(get_ffts, None,
-                                   kwargs={'sn': sn, 'region': region,
-                                           'fp': fp, },
-                                   verbose=-1, easy_override=False)
+    # ffts, mask = utils.pickle_wrap(get_ffts, None,
+    #                                kwargs={'sn': sn, 'region': region,
+    #                                        'fp': fp, },
+    #                                verbose=-1, easy_override=False)
+    ffts, mask = get_ffts(sn, region, fp)
     orig_size = ffts.shape
 
-    if region[:5] == 'OC_IT':
-        big_size = 67
-    else:
-        big_size = 49
+    # if region[:5] == 'OC_IT':
+    #     big_size = 67
+    # else:
+    big_size = 49
 
     ffts_ = np.empty((big_size, big_size, big_size, ffts.shape[-1]))
     for i in range(ffts.shape[-1]):

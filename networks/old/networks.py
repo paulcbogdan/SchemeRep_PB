@@ -165,6 +165,9 @@ def prep_networks(network_setting=1):
                     'DMN': ['ACC', 'PCC', 'STS', 'OrG', 'SFG']}
     elif network_setting == 30:
         networks = {'Temporal': ['STG', 'MTG', 'ITG', 'FuG', 'PhG', 'ATL']}
+    elif network_setting == 31:
+        networks = {'PL': ['IPL', 'SPL'],
+                    'LPFC': ['ITG', 'MTG', 'STG']}
     elif network_setting == -1:
         networks = {}
 
