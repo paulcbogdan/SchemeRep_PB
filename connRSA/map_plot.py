@@ -83,7 +83,7 @@ def plot_voxs(region='OC_IT_L', semantic=True, layer=None,
                                                           verbose=-1, easy_override=False)
             vox_Ms *= 10_000
 
-            same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
+            same_Ms, valid_voxel_idxs, has_nans = utils.pickle_wrap(generate_RSA_size_map, None,
                                                           kwargs={'sn': sn, 'fp': fp,
                                                                   'region': region,
                                                                   'semantic': semantic,
@@ -220,14 +220,19 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                                                      verbose=-1, easy_override=False)
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
-            sn_dist2MI.append(dist2MI)
-            # print(vox_dist2MI.shape)
-            # quit()
+            stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
+                                          layer=layer)
+            sn_dist2MI.append(dist2MI - np.nanmean(stim_RSM))
+
 
             img_data = idxs2img(vox_dist2MI, vox_idxs, max_vox=max_vox, min_vox=min_vox)
             num_non_nans = np.sum(~np.isnan(img_data) & (img_data > 0))
             # print(f'{num_non_nans=}')
             sn_img_datas.append(img_data)
+
+        if not len(sn_dist2MI):
+            continue
+
         sn_dist2MI = np.nanmean(np.array(sn_dist2MI), axis=0)
         dist2MI_all.append(sn_dist2MI)
 
@@ -246,35 +251,6 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     img_data_l[img_data_l == 0] = np.nan
     nan_voxels = np.all(np.isnan(img_data_l), axis=0)
     img_data_l_flat = img_data_l[:, ~nan_voxels]
-    # print(img_data_l_flat.shape)
-
-    # plt.hist(img_data_l_flat.flatten(), bins=20)
-    # plt.show()
-    # quit()
-    #
-    # corr = np.ma.corrcoef(np.ma.masked_invalid(img_data_l_flat))
-    # corr[np.diag_indices_from(corr)] = np.nan
-    # plt.imshow(corr)
-    # plt.colorbar()
-    # plt.show()
-    #
-    # quit()
-
-
-    # num_non_nans = np.sum(~np.isnan(img_data_l_flat))
-    # print(f'{num_non_nans=}')
-    #
-    # plt.imshow(img_data_l_flat, aspect='auto', interpolation='none')
-    # plt.colorbar()
-    # plt.show()
-    #
-    # # print(nan_voxels.shape)
-    # print(img_data_l_flat.shape)
-    # quit()
-
-    # nan_voxels =dist2MI_all
-
-    # dist2MI_all_flat = dist2MI_all[]
 
     M = np.nanmean(dist2MI_all, axis=0)
     super_M = np.nanmean(M)
@@ -290,7 +266,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
     img = image.new_img_like(get_atlas()['maps'], img_data)
 
-    view = plotting.view_img(img, threshold=1, symmetric_cmap=False, cmap='Reds')
+    view = plotting.view_img(img, threshold=1, symmetric_cmap=False)
     view.open_in_browser()
 
 if __name__ == '__main__':

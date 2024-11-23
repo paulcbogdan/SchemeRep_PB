@@ -32,12 +32,14 @@ def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=Fals
     same_Ms_mat = np.empty((n_voxels0, n_voxels0))
     stim_is_nan = np.isnan(stim_RSM)
     voxels_mat1 = voxels_mat0 if median_cond2 else voxels_mat_bool
+    # print(np.mean(voxels_mat_bool))
 
-    for v in tqdm(range(n_voxels0)):
+    for v in tqdm(range(1, n_voxels0)):
         voxel_l = voxels_mat_bool[:, v]
         same_Ms_v = run_map_MI_RSA(voxel_l, voxels_mat1, stim_RSM,
                                    stim_is_nan, median_cond2=median_cond2)
         same_Ms_mat[v, :] = same_Ms_v
+    # quit()
     return same_Ms_mat
 
 @njit(fastmath=True, nopython=True, cache=True)
@@ -61,9 +63,11 @@ def run_vox_MI_RSA(voxels_mat, stim_RSM, stim_is_nan):
     return same_Ms
 
 def generate_RSA_vox_map(sn, fp, region, semantic, layer,
-                         median_cond2=False):
+                         stdize_by_run=True):
     voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
-        load_img_rsm(region, fp, sn, semantic, layer))
+        load_img_rsm(region, fp, sn, semantic, layer,
+                     stdize_by_run=stdize_by_run))
+
     t_st = time()
     stim_is_nan = np.isnan(stim_RSM)
     same_Ms = run_vox_MI_RSA(voxels_mat, voxels_mat_bool, stim_RSM, stim_is_nan)
@@ -74,7 +78,6 @@ def generate_RSA_vox_map(sn, fp, region, semantic, layer,
     return same_Ms, valid_voxel_idxs
 
 
-# if True:
 @njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
                    stim_is_nan, #stim_M, stim_SD,
@@ -83,16 +86,13 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
     n_trials = voxel_l.shape[0]
     assert n_trials == 114
     n_voxels = voxels_mat.shape[1]
-    # voxel_zeroes = 2
-    # print(median_cond2)
+
+
     if median_cond2:
         # pass
-        center_is_zero = np.argwhere(voxel_l)
+        center_is_zero = np.argwhere(~voxel_l)
         cnt_zero = center_is_zero.shape[0]
-        # print(voxel_l.shape)
-        # print(voxel_l)
-        # quit()
-        center_is_one = np.argwhere(~voxel_l)
+        center_is_one = np.argwhere(voxel_l)
         cnt_one = center_is_one.shape[0]
         voxel_Ms = np.empty((2, n_voxels))
         for v in range(n_voxels):
@@ -100,8 +100,8 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
             for i in range(cnt_zero):
                 t = center_is_zero[i][0]
                 t_at_is_zero[i] = voxels_mat[t, v]
-
             voxel_Ms[0, v] = np.median(t_at_is_zero[:cnt_zero])
+
             t_at_is_one = np.full(n_trials, 0, dtype=np.float64)
             for i in range(cnt_one):
                 t = center_is_one[i][0]
@@ -111,7 +111,6 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
     t2cond0 = np.empty(n_trials, dtype=np.int8)
     for t in range(n_trials):
         t2cond0[t] = np.int8(voxel_l[t])
-
 
     same_Ms = np.empty(n_voxels)
     # cnter = np.zeros((2, 2), dtype=np.int8)
@@ -125,16 +124,19 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
             # cond0 = np.int8(voxel_l[t] == 1)
             if median_cond2:
                 cond0 = t2cond0[t]
-                cond1 = voxels_mat[t, v] < voxel_Ms[cond0, v]
+                cond1 = voxels_mat[t, v] > voxel_Ms[cond0, v]
                 cond1 = np.int8(cond1)
+                # print(f'{cond0}: {cond1} | {voxels_mat[t, v]:.3f} < {voxel_Ms[cond0, v]:.3f}')
                 trial2cond_cond[t] = cond0 * 2 + cond1
             else:
                 # same_Ms[v] = voxels_mat[t, v] * 5
                 trial2cond_cond[t] = t2cond0[t] * 2 + np.int8(voxels_mat[t, v])
         # continue
+        # quit()
         same_total = 0
         n_same = 0
         # continue
+        all = 0
         for t0 in range(n_trials):
             for t1 in range(t0):
                 if stim_is_nan[t0, t1]:
@@ -142,7 +144,14 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
                 if trial2cond_cond[t0] == trial2cond_cond[t1]:
                     n_same += 1
                     same_total += stim_RSM[t0, t1]
+                all += 1
                     # print(stim_RSM[t0, t1])
+
+        # print(np.int8(~(voxels_mat[:, v] < voxel_Ms[t2cond0, v])))
+        # print(t2cond0)
+        # print(trial2cond_cond)
+        # print()
+        # quit()
 
         if n_same == 0:
             same_M = GLOBAL_NAN_VALUE
@@ -182,29 +191,15 @@ def get_img_region(region, fp, sn):
     img[mask < 0.5, :] = np.nan
     return img
 
-def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False):
+def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
+                 stdize_by_run=True):
     # fp_nii = fr'cache/get_img_region_nii/{region}_{fp}_{sn}.nii'
     # Path(fp_nii).parent.mkdir(parents=True, exist_ok=True)
     # if os.path.exists(fp_nii) and not easy_override:
     #     img = image.load_img(fp_nii).get_fdata()
     # else:
     img = get_img_region(region, fp, sn)
-        # image.new_img_like(get_atlas()['maps'], img).to_filename(fp_nii)
 
-
-
-    # t_st = time()
-    # img = get_img_region(region, fp, sn)
-    # print('Time: ', time() - t_st)
-    # image.new_img_like(get_atlas()['maps'], img).to_filename(fp_nii)
-    # t_st = time()
-    # img = image.load_img(fp_nii).get_fdata()
-    # print('Time: ', time() - t_st)
-    # quit()
-
-    # img = utils.pickle_wrap(get_img_region, None,
-    #                         kwargs={'region': region, 'fp': fp, 'sn': sn},
-    #                         verbose=-1, easy_override=False)
 
     valid_voxel_idxs = np.argwhere(~np.isnan(img[:, :, :, 0]))
 
@@ -212,8 +207,21 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False):
                      valid_voxel_idxs[:, 2], :]
     voxels_mat = voxels_mat.T
 
-    # if not median_cond2:
-    voxels_mat_bool = voxels_mat > np.mean(voxels_mat, axis=0)
+    # print(np.nanmean(voxels_mat, axis=0).shape)
+    # plt.imshow(voxels_mat, aspect='auto')
+    # plt.show()
+    # quit()
+
+    if stdize_by_run:
+        voxels_mat = utils.stdize(voxels_mat, stdize_by_run=True, axis=0)
+
+    voxels_mat_bool = voxels_mat > np.nanmedian(voxels_mat, axis=0)
+    # for v in range(1000):
+    #     print(np.me(voxels_mat_bool[:, v]))
+    #     print(voxels_mat_bool[:, v])
+    # quit()
+    # print(np.mean(voxels_mat_bool))
+    # quit()
 
 
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
@@ -221,31 +229,40 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False):
     return voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM
 
 def generate_RSA_size_map(sn, fp, region, semantic, layer,
-                          median_cond2=False):
+                          median_cond2=False, stdize_by_run=True):
     voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
-        load_img_rsm(region, fp, sn, semantic, layer))
+        load_img_rsm(region, fp, sn, semantic, layer, stdize_by_run=stdize_by_run))
+
+    has_nans = []
+    for v in range(7566):
+        # print(np.mean(voxels_mat_bool[:, v]))
+        # quit()
+        cnt_nan = np.sum(np.isnan(voxels_mat[:, v]))
+        has_nans.append(cnt_nan > 0)
+    has_nans = np.array(has_nans)
+
     t_st = time()
     same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
                                  median_cond2=median_cond2)
     print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
     same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
 
-    return same_Ms, valid_voxel_idxs
+    return same_Ms, valid_voxel_idxs, has_nans
 
 
 
 
 def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
-                subtract_other=True, median_cond2=False):
+                subtract_other=True, median_cond2=False, stdize_by_run=True):
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
     stim_M = np.nanmean(stim_RSM) * 10_000
     print(f'Doing: {sn}, {fp}')
     kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
-          'layer': layer}
+          'layer': layer, 'stdize_by_run': stdize_by_run}
     if median_cond2:
         kw['median_cond2'] = True
-    same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
+    same_Ms, valid_voxel_idxs, has_nans = utils.pickle_wrap(generate_RSA_size_map, None,
                                                   kwargs=kw, verbose=-1,
                                                   easy_override=False)
     # same_Ms *= 10_000
@@ -257,7 +274,7 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     if subtract_vox:
         # check for beng extra close to zero: Doing: 138, vis7_fMRI | 4.121147867408581e-13
         kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
-              'layer': layer}
+              'layer': layer, 'stdize_by_run': stdize_by_run}
         vox_Ms, valid_voxel_idxs2 = utils.pickle_wrap(generate_RSA_vox_map, None,
                                                       kwargs=kw,
                                                       verbose=-1, easy_override=False)
@@ -293,31 +310,20 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     t_st = time()
 
     vox_dist2MI, cnter = get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=max_vox)
-    # print(cnter.shape)
-    # plt.imshow(cnter, aspect='auto')
-    # plt.show()
-    # quit()
+
     vox_dist2MI[vox_dist2MI == GLOBAL_NAN_VALUE] = np.nan
     dist2MI = np.nanmean(vox_dist2MI, axis=0)
     print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
-
-    # dist2MI, cnter = calc_dist2MI(same_Ms, euc_mtx, max_vox=max_vox)
-    # dist2MI[dist2MI == GLOBAL_NAN_VALUE] = np.nan
-    # # dist2MI -= np.nanmean(dist2MI)
-    #
-    # r, p = stats.spearmanr(dist2MI, dist2MI2, nan_policy='omit')
-    # print(F'{r=}, {p=}')
-    # quit()
 
     print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
     return vox_dist2MI, dist2MI, valid_voxel_idxs, cnter
 
 def run_RSA_map_all_sn(region, semantic, layer, max_vox=55, subtract_vox=True,
-                       median_cond2=False):
+                       median_cond2=True, stdize_by_run=True):
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI']
     # sns = sns[4::5]
     dist2MI_all = []
     for i, sn in enumerate(sns):
@@ -330,7 +336,8 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=55, subtract_vox=True,
                                                              'region': region,
                                                              'subtract_vox': subtract_vox,
                                                              'max_vox': max_vox,
-                                                             'median_cond2': median_cond2},
+                                                             'median_cond2': median_cond2,
+                                                             'stdize_by_run': True},
                                                      verbose=-1, easy_override=False)
 
             # vox_dist2MI, dist2MI = get_dist2MI(sn, fp, semantic, layer, region,
@@ -426,7 +433,7 @@ def get_idx2euc(region='ITL_L'):
     fp = 'bl7_fMRI'
     semantic = True
     layer = None
-    same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
+    same_Ms, valid_voxel_idxs, has_nans = utils.pickle_wrap(generate_RSA_size_map, None,
                                                   kwargs={'sn': sn, 'fp': fp,
                                                           'region': region,
                                                           'semantic': semantic,
@@ -447,7 +454,7 @@ def plot_euc_hist(region='ITL_L'):
     fp = 'bl7_fMRI'
     semantic = True
     layer = None
-    same_Ms, valid_voxel_idxs = utils.pickle_wrap(generate_RSA_size_map, None,
+    same_Ms, valid_voxel_idxs, has_nans = utils.pickle_wrap(generate_RSA_size_map, None,
                                                   kwargs={'sn': sn, 'fp': fp,
                                                           'region': region,
                                                           'semantic': semantic,
