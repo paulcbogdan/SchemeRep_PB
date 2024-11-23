@@ -263,7 +263,8 @@ def jit_volume_searchlight(mask, radius=2, threshold=0.5, resample=1,
 
 
 @jit(fastmath=True, nopython=True, cache=CACHE_NUMBA)
-def do_int_downsample(img, downsample, mask):
+def do_int_downsample(img, downsample, mask, nan_val=NAN_VAL,
+                      edge_drop=False, fourD_mask=False):
     img_smaller = np.zeros((img.shape[0] // downsample,
                             img.shape[1] // downsample,
                             img.shape[2] // downsample,
@@ -282,16 +283,34 @@ def do_int_downsample(img, downsample, mask):
                 for n in range(n_samples):
                     vec = np.zeros(size)
                     cnt2 = 0
+                    has_nan = False
                     for dii in range(x_orig, x_orig + downsample):
                         for djj in range(y_orig, y_orig + downsample):
                             for dkk in range(z_orig, z_orig + downsample):
-                                if mask[dii, djj, dkk]:
-                                    vec[cnt2] = img[dii, djj, dkk, n]
-                                    cnt2 += 1
-                    if cnt2 == 0:
-                        img_smaller[x, y, z, n] = NAN_VAL
+                                if fourD_mask:
+                                    if mask[dii, djj, dkk, n]:
+                                        vec[cnt2] = img[dii, djj, dkk, n]
+                                        cnt2 += 1
+                                    else:
+                                        has_nan = True
+                                else:
+                                    if mask[dii, djj, dkk]:
+                                        vec[cnt2] = img[dii, djj, dkk, n]
+                                        cnt2 += 1
+                                    else:
+                                        has_nan = True
+                    if edge_drop:
+                        if has_nan:
+                            img_smaller[x, y, z, n] = nan_val
+                        else:
+                            img_smaller[x, y, z, n] = np.sum(vec)
                     else:
-                        img_smaller[x, y, z, n] = np.sum(vec)# / cnt2
+                        if cnt2 == 0:
+                            img_smaller[x, y, z, n] = nan_val
+                        else:
+                            # TODO: maybe double check that this vec is proper
+                            #  and not shrinking edge voxels
+                            img_smaller[x, y, z, n] = np.sum(vec)# / cnt2
 
     return img_smaller
 

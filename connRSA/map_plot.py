@@ -5,8 +5,9 @@ import numpy as np
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import get_default_fp
 from connRSA.gaussian_brain import gaussian_filter_ignore_nan
+from connRSA.jit_funcs import do_int_upsample
 from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
-from connRSA.map_size import get_dist2MI, generate_RSA_vox_map, generate_RSA_size_map
+from connRSA.map_size import get_dist2MI, generate_RSA_size_map
 from org_sns import get_sns
 import utils
 from nilearn import plotting
@@ -16,19 +17,48 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 from time import time
 
-def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None):
+def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
+             downsample_rate=2):
     vox_dist2MI = ndimage.gaussian_filter1d(vox_dist2MI, sigma=2, axis=-1)
+    # print(vox_dist2MI.shape)
+    # quit()
     if max_vox is not None:
         vox_dist2MI = vox_dist2MI[:, :max_vox]
     if min_vox is not None:
         vox_dist2MI = vox_dist2MI[:, min_vox:]
+    # print(vox_dist2MI.shape)
+    # quit()
 
-    peak_dists = np.argmax(vox_dist2MI, axis=-1) + min_vox
+    # peak_dists = np.argmax(vox_dist2MI, axis=-1) + min_vox
+    # peak_dists = np.nanmean(vox_dist2MI, axis=-1)
+    # peak_dists = vox_dist2MI[:, 7]# - np.nanmean(vox_dist2MI, axis=-1)
+    # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
+    #               np.nanmean(vox_dist2MI[:, 5:], axis=-1))
+    peak_dists = np.nanmean(vox_dist2MI, axis=-1)
+    # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
+    #               np.nanmean(vox_dist2MI[:, 4:10], axis=-1))
 
     # img = np.full((97, 115, 97), np.nan)
-    img_data = np.zeros((97, 115, 97))
-    for peak_dist, vox_idx in zip(peak_dists, vox_idxs):
+    if downsample_rate == 3:
+        img_data = np.zeros((32, 38, 32))
+    elif downsample_rate == 2:
+        img_data = np.zeros((48, 57, 48))
+    else:
+        img_data = np.zeros((97, 115, 97))
+    for i, (peak_dist, vox_idx) in enumerate(zip(peak_dists, vox_idxs)):
+        # if peak_dist > 6:
+        #
+        #     # print(vox_dist2MI[i])
+        #     # print(vox_dist2MI.shape)
+        #     # quit()
+        #     plt.plot(vox_dist2MI[i])
+        #     plt.show()
+            # print(vox_idx)
+            # quit()
         img_data[*vox_idx] = peak_dist
+    # img_data
+    if downsample_rate:
+        img_data = do_int_upsample(img_data, downsample_rate, None)
     return img_data
 
 
@@ -59,9 +89,9 @@ def plot_voxs(region='OC_IT_L', semantic=True, layer=None,
         sn_img_datas = []
         sn_dist2MI = []
         for j, fp in enumerate(fps):
-            stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
-                                          layer=layer)
-            stim_M = np.nanmean(stim_RSM) * 10_000
+            # stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
+            #                               layer=layer)
+            # stim_M = np.nanmean(stim_RSM) * 10_000
             # print(f'{sn}, {fp}: {stim_M=:.5f}')
 
             # fp = get_default_fp(get_sn_fp_stim_RSM, {'sn': sn, 'fp': fp,
@@ -179,13 +209,13 @@ def plot_voxs(region='OC_IT_L', semantic=True, layer=None,
     view.open_in_browser()
 
 
-def plot_map_region(region='ITL_L', semantic=True, layer=None,
-                    max_vox=20, subtract_vox=False, subtract_other=False,
-                    min_vox=4):
-
-    # atlas = get_atlas()
-    # print(atlas['maps'].shape)
-    # quit()
+def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
+                    max_vox=10, subtract_vox=False, subtract_other=True,
+                    min_vox=1, downsample_rate=2):
+    if 'OC_IT' in region:
+        max_vox_ = 50
+    else:
+        max_vox_ = 30
 
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
@@ -194,33 +224,38 @@ def plot_map_region(region='ITL_L', semantic=True, layer=None,
     # sns = sns[5::6]
     dist2MI_all = []
     img_data_l = []
-    sns = sns[:4]
 
     for i, sn in enumerate(sns):
-        if sn in ['135', '136', '203', '204']: continue
-        if sn == '205': break
+        if sn in ['112']: continue
+        # if sn in ['135', '136', '203', '204']: continue
+        # if sn == '205': break
         sn_img_datas = []
         sn_dist2MI = []
+
         for j, fp in enumerate(fps):
-            fp_out = get_default_fp(None, {'sn': sn, 'fp': fp, 'semantic': semantic, 'layer': layer,
-                                           'region': region, 'stdize_by_run': True,
-                                           'median_cond2': True, 'just_second_vox': False},
-                                    generate_RSA_size_map, 'cache', 0)
+            # fp_out = get_default_fp(None, {'sn': sn, 'fp': fp, 'semantic': semantic, 'layer': layer,
+            #                                'region': region, 'stdize_by_run': True,
+            #                                'median_cond2': True, 'just_second_vox': False},
+            #                         generate_RSA_size_map, 'cache', 0)
+            # if not os.path.exists(fp_out):
+            #     print(f'Missing: {fp_out}')
+            #     continue
+
+            kw = {'sn': sn, 'fp': fp, 'semantic': semantic, 'layer': layer,
+                  'region': region, 'subtract_vox': False, 'max_vox': max_vox_,
+                  'median_cond2': True, 'stdize_by_run': True,
+                  'subtract_other': True, 'downsample_rate': downsample_rate}
+            # print(kw)
+            # quit()
+            fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
             if not os.path.exists(fp_out):
                 print(f'Missing: {fp_out}')
                 continue
 
-
             vox_dist2MI, _, vox_idxs, cnter = utils.pickle_wrap(get_dist2MI, None,
-                                                     kwargs={'sn': sn, 'fp': fp,
-                                                             'semantic': semantic,
-                                                             'layer': layer,
-                                                             'region': region,
-                                                             'subtract_vox': subtract_vox,
-                                                             'max_vox': max_vox,
-                                                             'median_cond2': True,
-                                                             'stdize_by_run': True},
+                                                                kwargs=kw,
                                                      verbose=-1, easy_override=False)
+
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
             stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
@@ -228,8 +263,9 @@ def plot_map_region(region='ITL_L', semantic=True, layer=None,
             sn_dist2MI.append(dist2MI - np.nanmean(stim_RSM))
 
 
-            img_data = idxs2img(vox_dist2MI, vox_idxs, max_vox=max_vox, min_vox=min_vox)
-            num_non_nans = np.sum(~np.isnan(img_data) & (img_data > 0))
+            img_data = idxs2img(vox_dist2MI, vox_idxs, max_vox=max_vox, min_vox=min_vox,
+                                downsample_rate=downsample_rate)
+            # num_non_nans = np.sum(~np.isnan(img_data) & (img_data > 0))
             # print(f'{num_non_nans=}')
             sn_img_datas.append(img_data)
 
@@ -243,6 +279,8 @@ def plot_map_region(region='ITL_L', semantic=True, layer=None,
         img_data_l.append(img_data)
 
     img_data_l = np.array(img_data_l)
+    num_subj = img_data_l.shape[0]
+    print(f'Number of subjects: {num_subj}')
 
     # print(np.array(dist2MI_all).shape)
     # quit()
@@ -262,31 +300,32 @@ def plot_map_region(region='ITL_L', semantic=True, layer=None,
     t = M / SE
     for dist in range(max_vox):
         print(f'{dist}: {M[dist]=:.2f}, {SE[dist]=:.2f}, {t[dist]=:.2f}')
+    print(f'Number of subjects: {num_subj}')
 
 
-    img_data = np.nanmedian(img_data_l, axis=0)
-    img_data = gaussian_filter_ignore_nan(img_data, 3)
+    img_data = np.nanmean(img_data_l, axis=0)
+    # img_data = stats.zscore(img_data, axis=None, nan_policy='omit')
+    img_data = gaussian_filter_ignore_nan(img_data, 4)
+    img_data[np.nanquantile(img_data, 0.05) > img_data] = np.nanquantile(img_data, 0.05)
+    img_data[np.nanquantile(img_data, 0.95) < img_data] = np.nanquantile(img_data, 0.95)
+    vmin = np.nanquantile(img_data, 0.05)
+    vmax = np.nanquantile(img_data, 0.95)
 
     img = image.new_img_like(get_atlas()['maps'], img_data)
 
-    view = plotting.view_img(img, threshold=1, symmetric_cmap=False)
+    view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
+                             resampling_interpolation='nearest',
+                             vmin=vmin, vmax=vmax)
     view.open_in_browser()
 
 if __name__ == '__main__':
-    # import pickle
-    # fp = 'cache/generate_RSA_size_map/_bl7_fMRI_None_False_ITL_L_True_103.pkl'
-    # # fp = r'C:\PycharmProjects\SchemeRep\cache\get_img_box\_bl7_fMRI_cortical_L_102.pkl'
-    # size = os.path.getsize(fp)
-    # print(f'{size / 1e6:.2f} MB')
-    # t_st = time()
-    # with open(fp, 'rb') as f:
-    #     data = pickle.load(f)
-    # print(f'Load time: {time()-t_st:.3f} s')
-    # quit()
+
+    # plot_map_region(region='OC_IT_L', semantic=False, layer=0)
+    plot_map_region(region='OC_IT_L', semantic=True, layer=None,)
+    # plot_map_region(region='Occipital_L', semantic=False, layer=0,)
 
 
-    # plot_voxs()
-    plot_map_region()
+    # TODO: Test (both - vox1):vox2 ratio? Is vox2 helping encode the same items vox1 is informing?
 
 
 

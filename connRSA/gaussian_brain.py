@@ -160,7 +160,7 @@ def run_all_sns_gaus(region='IT', sigma=10,
                                           'fp': fp, 'sigma': sigma,
                                           'semantic': semantic,
                                           'layer': layer,},
-                                  easy_override=True,
+                                  easy_override=False,
                                   verbose=-1, dir_branches=100)
             rs_all[i, j] = r
             # print(r)
@@ -196,11 +196,11 @@ def plot_gaus_by_region():
     # fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     fig, axs = plt.subplots(2, 3, figsize=(15, 7))
 
-    # region1 = 'ITL'
-    # region2 = 'Occipital'
+    # region1 = 'Parietal'
+    # region2 = 'PFC'
 
-    region1 = 'ITL'
-    region2 = 'Occipital'
+    region1 = 'cortical'
+    region2 = 'Parietal'
 
     plt.sca(axs[0, 0])
     plot_gaus_region(f'{region1}', )
@@ -236,6 +236,7 @@ def plot_gaus_by_region():
 
 def plot_gaus_region(region='IT_L', semantic=True, std=False):
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    print(f'{region=}')
     if len(fps) > 1:
         title = 'All tasks: '
     else:
@@ -252,7 +253,7 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
     title += f'\n{region}'
 
 
-    fzs = [(i, i+1) for i in range(1, 12, 1)]
+    # fzs = [(i, i+1) for i in range(1, 12, 1)]
     sigmas = list(range(20))
     # fzs = [(i, i+2) for i in range(1, 15, 2)]
 
@@ -269,8 +270,8 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
         SE = stats.sem(subj_rs)
         Ms_semantic.append(M)
         SEs_semantic.append(SE)
-    fzs_first = [fz[0] for fz in fzs]
-    plt.errorbar(fzs_first, Ms_semantic, yerr=SEs_semantic,
+    # fzs_first = [fz[0] for fz in fzs]
+    plt.errorbar(sigmas, Ms_semantic, yerr=SEs_semantic,
                  label='Semantic', color='green', marker='.')
 
     Ms_per = []
@@ -287,11 +288,11 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
         SEs_per.append(SE)
         t, p = stats.ttest_rel(subj_rs, subj_rs_semantic)
         if p < .05:
-            plt.text(fzs_first[i],
+            plt.text(sigmas[i],
                      (Ms_semantic[i] + M + np.min([SEs_semantic[i], SE])) / 2,
                      '*', fontsize=18,
                      ha='center', va='top', color='red')
-    plt.errorbar(fzs_first, Ms_per, yerr=SEs_per,
+    plt.errorbar(sigmas, Ms_per, yerr=SEs_per,
                  label='Perceptual', color='darkviolet',
                  marker='.')
     if std:
@@ -316,4 +317,5 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
 
 
 if __name__ == '__main__':
-    analyze_multi_gaus()
+    plot_gaus_by_region()
+    # analyze_multi_gaus()
