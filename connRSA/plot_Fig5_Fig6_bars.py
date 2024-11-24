@@ -600,7 +600,7 @@ def plot_FigureS1_bars():
     # plot_FigureS1_bars_region('ITL', big_voxelwise=False)
     # plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
     plot_FigureS1_bars_region('ITL', big_voxelwise=True)
-    # plot_FigureS1_bars_region('Occipital', big_voxelwise=False)
+    plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
 
 
 import sys

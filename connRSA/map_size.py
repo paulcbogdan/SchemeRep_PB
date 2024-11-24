@@ -763,10 +763,10 @@ if __name__ == '__main__':
 
     # TODO: Try the cortical with median_cond2=True
 
-    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
-                       median_cond2=True)
-    # run_RSA_map_all_sn('cortical_L', True, None, downsample_rate=3,
+    # run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
     #                    median_cond2=True)
+    run_RSA_map_all_sn('cortical_L', True, None, downsample_rate=3,
+                       median_cond2=True, cross_only=True)
 
 
     # run_RSA_map_all_sn('OC_IT_L', False, 0)

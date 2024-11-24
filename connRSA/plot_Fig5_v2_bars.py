@@ -196,7 +196,7 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     # target_ROIs = ['ITL']
     # target_ROIs = ['PFC', 'Parietal']
 
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    fps = ['bl7_fMRI', 'obj7_fMRI', ] # 'con7_fMRI',  'vis7_fMRI'
     # fps = ['obj7_fMRI']
 
     semantic = (False, -1)
@@ -206,7 +206,13 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     DNN_layers = list(range(15)) + [-1]
     DNN_layers = [5, 10, -1]
 
-    semantic_l = [True, (False, 0)]
+    semantic_l = [True, (False, 0), (False, -1)]
+
+
+    # semantic_l = [(False, -1)]
+    semantic_l = [(False, 0), True]
+    # semantic_l = [True]
+
 
     # for DNN_layer in DNN_layers:
     for semantic in semantic_l:
