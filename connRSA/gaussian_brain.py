@@ -16,7 +16,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, gaussian_filter1d
+
 
 def get_gaus_neural_RSM(region, fp, sn, sigma, subtract_sigmas=tuple(),
                         nan_thresh=1.01):
@@ -69,27 +70,43 @@ def get_gaus_neural_RSM(region, fp, sn, sigma, subtract_sigmas=tuple(),
     neural_RSM = get_trial_x_trial(img_box_g_flat)
     return neural_RSM
 
-def gaussian_filter_ignore_nan(data, sigma):
+def gaussian_filter_ignore_nan(data, sigma, d1=False, axis=0):
     # from Google AI
     """Apply a Gaussian filter to an array, ignoring NaN values."""
 
     # Create a mask of non-NaN values
+
+    # Disable RuntimeWarning: invalid value encountered in divide
+    import warnings
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
+
     mask = ~np.isnan(data)
 
     # Replace NaNs with zeros
     data_zeroed = np.where(mask, data, 0)
 
     # Apply Gaussian filter
-    filtered_data = gaussian_filter(data_zeroed, sigma)
+    if d1:
+        filtered_data = gaussian_filter1d(data_zeroed, sigma, axis=axis)
+    else:
+        filtered_data = gaussian_filter(data_zeroed, sigma)
 
     # Compute the sum of weights for each pixel
-    weights = gaussian_filter(mask.astype(float), sigma)
+    if d1:
+        weights = gaussian_filter1d(mask.astype(float), sigma, axis=axis)
+    else:
+        weights = gaussian_filter(mask.astype(float), sigma)
 
     # Normalize the filtered data by the weights
     filtered_data /= weights
+    # mask = mask | (weights > 0)
 
     # Replace values where the original data was NaN
     filtered_data[~mask] = np.nan
+    filtered_data[np.isinf(filtered_data)] = np.nan
+    # print(np.nanmax(filtered_data))
+    # print(filtered_data)
+    # quit()
 
     return filtered_data
 
@@ -196,11 +213,14 @@ def plot_gaus_by_region():
     # fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     fig, axs = plt.subplots(2, 3, figsize=(15, 7))
 
+    # region1 = 'PFC'
+    # region2 = 'Parietal'
+
     # region1 = 'Parietal'
     # region2 = 'PFC'
 
-    region1 = 'cortical'
-    region2 = 'Parietal'
+    region1 = 'LPFC'
+    region2 = 'cortical'
 
     plt.sca(axs[0, 0])
     plot_gaus_region(f'{region1}', )
@@ -254,7 +274,7 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
 
 
     # fzs = [(i, i+1) for i in range(1, 12, 1)]
-    sigmas = list(range(20))
+    sigmas = list(range(13))
     # fzs = [(i, i+2) for i in range(1, 15, 2)]
 
     Ms_semantic = []

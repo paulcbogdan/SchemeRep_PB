@@ -101,8 +101,9 @@ def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=Fals
         ex_neither_mat[v, :] = ex_neither
 
     return (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
-            ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-            MI_neither_mat, ex_neither_mat)
+            #ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
+            MI_neither_mat, #ex_neither_mat
+            )
 
 @njit(fastmath=True, nopython=True, cache=True)
 def run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan):
@@ -312,6 +313,7 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
             ex_both, ex_vox0, ex_vox1, ex_not0only1, ex_not1only0,
             MI_neither, ex_neither)
 
+# @cache
 def get_img_region(region, fp, sn):
     if '_L' in region:
         L_R = 'L'
@@ -379,6 +381,8 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
     voxels_mat = img[valid_voxel_idxs[:, 0], valid_voxel_idxs[:, 1],
                      valid_voxel_idxs[:, 2], :]
     voxels_mat = voxels_mat.T
+    # print(f'{voxels_mat.shape=}')
+    # quit()
 
 
     if stdize_by_run:
@@ -391,6 +395,7 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
                                   layer=layer)
     return voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM
 
+# load_img_rsm('ITL_L', 'obj7_fMRI', 102, True, None)
 
 def generate_RSA_size_map(sn, fp, region, semantic, layer,
                           median_cond2=False, stdize_by_run=True,
@@ -408,8 +413,9 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
 
     t_st = time()
     (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
-     ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-     MI_neither_mat, ex_neither_mat) = (
+     #ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
+     MI_neither_mat, #ex_neither_mat
+     ) = (
         run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
                            median_cond2=median_cond2, just_second_vox=just_second_vox,
                            cross_only=cross_only))
@@ -430,8 +436,8 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
     MI_neither_mat[MI_neither_mat == GLOBAL_NAN_VALUE] = np.nan
 
     return (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
-            ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-            MI_neither_mat, ex_neither_mat,
+            # ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
+            MI_neither_mat, #ex_neither_mat,
             valid_voxel_idxs, has_nans)
 
 
@@ -440,7 +446,7 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
 def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
                 subtract_other=False, median_cond2=False, stdize_by_run=True,
                 downsample_rate=None, stdize_vol=False, cross_only=False,
-                do_itr=False):
+                do_itr=False, dist_downplay=False):
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
     stim_M = np.nanmean(stim_RSM) * 10_000
@@ -451,8 +457,8 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
           'stdize_vol': stdize_vol, 'cross_only': cross_only}
 
     (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
-     ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-     MI_neither_mat, ex_neither_mat,
+     # ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
+     MI_neither_mat, #ex_neither_mat,
      valid_voxel_idxs, has_nans) = utils.pickle_wrap(generate_RSA_size_map, None,
                                                      kwargs=kw, verbose=-1,
                                                      easy_override=False)
@@ -480,6 +486,8 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     # dif2 = MI_not1only0_mat - MI_vox0_mat
 
     itr = MI_both_mat + MI_neither_mat - MI_not0only1_mat - MI_not1only0_mat
+    # itr = MI_both_mat - MI_not0only1_mat + MI_not1only0_mat - MI_neither_mat
+    # itr = MI_vox0_mat
 
 
     print(f'{np.nanmean(MI_both_mat):.2f} = {np.nanmean(MI_vox0_mat):.2f} + '
@@ -491,34 +499,45 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
 
     if do_itr:
         MI_both_mat = itr
-    elif subtract_vox:
-        MI_both_mat -= MI_vox0_mat
-        MI_both_mat -= MI_vox1_mat
-        # check for beng extra close to zero: Doing: 138, vis7_fMRI | 4.121147867408581e-13
-        # kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
-        #       'layer': layer, 'stdize_by_run': stdize_by_run}
-        # vox_Ms, valid_voxel_idxs2 = utils.pickle_wrap(generate_RSA_vox_map, None,
-        #                                               kwargs=kw,
-        #                                               verbose=-1, easy_override=False)
-        # vox_Ms *= 10_000
-        # for i in range(0, valid_voxel_idxs2.shape[0], 100):
-        #     assert tuple(valid_voxel_idxs2[i]) == tuple(valid_voxel_idxs[i]), 'Mismatch idxs'
-        # vox_Ms -= np.nanmean(stim_M)
-        # vox_Ms = vox_Ms[:, None] + vox_Ms[None, :]
-        # same_Ms -= vox_Ms
-    elif subtract_other:
-        MI_both_mat_m = np.nanmean(MI_both_mat, axis=0)
-        same_Ms_m_subber = (MI_both_mat_m[None, :] + MI_both_mat_m[:, None]) / 2
-        MI_both_mat -= same_Ms_m_subber
+    # elif subtract_vox:
+    #     MI_both_mat -= MI_vox0_mat
+    #     MI_both_mat -= MI_vox1_mat
+    # elif subtract_other:
+    #     MI_both_mat_m = np.nanmean(MI_both_mat, axis=0)
+    #     same_Ms_m_subber = (MI_both_mat_m[None, :] + MI_both_mat_m[:, None]) / 2
+    #     MI_both_mat -= same_Ms_m_subber
 
     euc_mtx = get_idx2euc_custom(valid_voxel_idxs)
-    vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
+    # TODO: This won't work because the distance isnt precise
 
-    vox_dist2MI[vox_dist2MI == GLOBAL_NAN_VALUE] = np.nan
+    # print(euc_mtx[0, 0])
+    # quit()
+    # print(np.argwhere(euc_mtx[euc_mtx < .001]))
+    # quit()
+
+    if do_itr:
+        vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
+    else:
+        vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_both_mat[vox_dist2MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
+        vox_dist2MI_vox0, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_vox0[vox_dist2MI_vox0 == GLOBAL_NAN_VALUE] = np.nan
+        vox_dist2MI_vox1, cnter = get_voxel_dist2MI(MI_vox1_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_vox1[vox_dist2MI_vox1 == GLOBAL_NAN_VALUE] = np.nan
+
+        if dist_downplay:
+            dist2corr = [1, 0.7676304760421793, 0.40210419420651833, 0.23158682900552213, 0.19385777196049508, 0.17110289844885315, 0.14556471539576724, 0.10900815045204933, 0.09763350991271262, 0.06542207850538125, 0.047928747382955605, 0.03853565803287913]
+            dist2corr = [1 - x for x in dist2corr]
+            if len(dist2corr) < max_vox:
+                dist2corr = dist2corr + [0] * (max_vox - len(dist2corr))
+            dist2corr = np.array(dist2corr)
+            vox_dist2MI = vox_dist2MI_both_mat - vox_dist2MI_vox0 - vox_dist2MI_vox1 * dist2corr
+        else:
+            vox_dist2MI = vox_dist2MI_both_mat - vox_dist2MI_vox0 - vox_dist2MI_vox1
+
+
     dist2MI = np.nanmean(vox_dist2MI, axis=0)
-    # print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
 
-    # print(f'Time needed for dist2MI: {time() - t_st:.2f} s')
     return vox_dist2MI, dist2MI, valid_voxel_idxs, cnter
 
 def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
@@ -529,8 +548,8 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    sns = sns[1::2]
+    fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI']
+    sns = sns[7::8]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
@@ -545,13 +564,23 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
                   'region': region, 'subtract_vox': subtract_vox, 'max_vox': max_vox,
                   'median_cond2': median_cond2, 'stdize_by_run': True,
                   'subtract_other': subtract_other, 'downsample_rate': downsample_rate,
-                  'stdize_vol': stdize_vol, 'cross_only': cross_only}
+                  'stdize_vol': stdize_vol, 'cross_only': cross_only,
+                  'do_itr': False, 'dist_downplay': False}
 
             print(kw)
             # quit()
             vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
                                                            kwargs=kw, verbose=-1,
                                                            easy_override=False)
+            kw['do_itr'] = True
+            # kw = kw | {'do_itr': True}
+
+            print(kw)
+            # quit()
+            vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
+                                                           kwargs=kw, verbose=-1,
+                                                           easy_override=False)
+
             print('Done')
 
             # vox_dist2MI, dist2MI = get_dist2MI(sn, fp, semantic, layer, region,
@@ -609,18 +638,12 @@ def get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=100):
     cnter = np.zeros((n_rows, max_vox), dtype=np.int32)
 
     for i in range(n_rows):
-        # cnter = np.zeros(max_vox, dtype=np.int32)
-        # idxs = np.zeros((max_vox, n_cols, 2), dtype=np.int32)
         for j in range(n_cols):
             dist = euc_mtx[i, j]
+            # print(dist)
             if dist >= max_vox: continue
             result[i, dist] += same_Ms[i, j]
             cnter[i, dist] += 1
-            # dist = euc_mtx[i, j]
-            # if dist >= max_vox: continue
-            # idxs[dist, cnter[dist], 0] = i
-            # idxs[dist, cnter[dist], 1] = j
-            #
 
         for dist in range(max_vox):
             cnt = cnter[i, dist]
@@ -679,8 +702,71 @@ def plot_euc_hist(region='ITL_L'):
     plt.hist(eucs, bins=100, range=(1, 100), density=True, cumulative=True)
     plt.show()
 
+def get_mean_corr(dist_x=1, dist_y=0, dist_z=0, sn=102):
+    img = get_img_region('OC_IT_R', 'bl7_fMRI', sn)
+    # print(img.shape)
+    img = utils.stdize(img, stdize_by_run=False, axis=(0, 1, 2), nans=True)
+
+    corrs = []
+    while len(corrs) < 100:
+        coord = np.random.randint(0, img.shape[0], 3)
+        if np.isnan(img[coord[0], coord[1], coord[2], 0]):
+            continue
+        coord2 = (coord[0] + dist_x, coord[1] + dist_y, coord[2] + dist_z)
+        if coord2[0] >= img.shape[0] or coord2[1] >= img.shape[1] or coord2[2] >= img.shape[2]:
+            continue
+        if np.isnan(img[coord2[0], coord2[1], coord2[2], 0]):
+            continue
+        try:
+            r, p = stats.pearsonr(img[coord[0], coord[1], coord[2], :],
+                                  img[coord2[0], coord2[1], coord2[2], :],)
+        except ValueError:
+            continue
+        # print(f'{r=:.3f}')
+        corrs.append(r)
+    M_corr = np.mean(corrs)
+    SD_corr = np.std(corrs)
+    print(f'{dist_x}, {dist_y}, {dist_z} | {M_corr=:.3f}, {SD_corr=:.3f}')
+    # quit()
+    return M_corr
+
+@cache
+def get_dist_to_subtract():
+    d = {1: 0.78, 2: 0.4, 3: 0.23, 4: 0.17, 5: 0.16, 6: 0.12,
+         7: 0.10, 8: 0.09, 9: 0.08, 10: 0.1, 11: 0.075, 12: 0.05
+         }
+    return d
+
+def map_distance_space():
+    M_corrs = []
+
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    # fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI']
+    dist2corr = []
+    for dist in range(1, 20):
+        M_corr_all = []
+        for sn in sns[:10]:
+            M_corr = get_mean_corr(dist, 0, 0, sn)
+            M_corr_all.append(M_corr)
+        M_corr_all = np.array(M_corr_all)
+        M_corr = np.mean(M_corr_all)
+        print(f'--- Distance: {dist} | {M_corr=:.3f}')
+        dist2corr.append(M_corr)
+        print(dist2corr)
+    quit()
 
 if __name__ == '__main__':
+    # get_mean_corr()
+    # map_distance_space()
+
+    # TODO: Try the cortical with median_cond2=True
+
+    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
+                       median_cond2=True)
+    # run_RSA_map_all_sn('cortical_L', True, None, downsample_rate=3,
+    #                    median_cond2=True)
 
 
     # run_RSA_map_all_sn('OC_IT_L', False, 0)
@@ -695,11 +781,10 @@ if __name__ == '__main__':
     # run_RSA_map_all_sn('OC_IT_L', True, None, cross_only=True)
     # run_RSA_map_all_sn('OC_IT_R', True, None, cross_only=True)
 
-
-    run_RSA_map_all_sn('OC_IT_L', True, None, median_cond2=True)
-    run_RSA_map_all_sn('OC_IT_L', False, 0, median_cond2=True)
+    # run_RSA_map_all_sn('OC_IT_L', True, None, median_cond2=True)
+    # run_RSA_map_all_sn('OC_IT_L', False, 0, median_cond2=True)
 
     # TODO: Still need to try median_cond2=False, because with it true then the comparison to the
     #   voxel is worse... or I could compute the voxel one based on the median's implied by
     #   the first voxel
-#
+
