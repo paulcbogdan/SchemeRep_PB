@@ -832,7 +832,11 @@ if __name__ == '__main__':
     #                    median_cond2=True, cross_only=False, xor=False,
     #                    RSM_RSM=True)
 
-    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
+    # run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
+    #                    median_cond2=False, cross_only=False, xor=False,
+    #                    RSM_RSM=True)
+
+    run_RSA_map_all_sn('OC_IT_L', False, 0, downsample_rate=2,
                        median_cond2=False, cross_only=False, xor=False,
                        RSM_RSM=True)
 

@@ -28,7 +28,10 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     if min_vox is not None:
         vox_dist2MI = vox_dist2MI[:, min_vox:]
     #
-    peak_dists = np.nanmean(vox_dist2MI[:, :3], axis=-1)
+    peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
+                  np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
+
+    peak_dists = np.nanmean(vox_dist2MI[:, :2], axis=-1)
     # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 2:max_vox], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
@@ -132,11 +135,10 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
             # vox_dist2MI -= np.nanmean(vox_dist2MI[:, min_vox:max_vox],
             #                           axis=1)[..., None]
+            # Subtracting axis 1 and then looking at :3 = find voxels with strongest interaction
             vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
-            # print(np.nanmean(vox_dist2MI[:, :max_vox], axis=1).shape)
-            # quit()
-            # print(np.nanmean(vox_dist2MI, axis=0).shape)
-            # quit()
+
+
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
