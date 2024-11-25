@@ -29,7 +29,7 @@ GLOBAL_NAN_VALUE = -999_999
 
 # @njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=False,
-                       just_second_vox=False, cross_only=False):
+                       just_second_vox=False, cross_only=False, xor=False):
     n_voxels0 = voxels_mat0.shape[1]
     same_Ms_mat = np.empty((n_voxels0, n_voxels0))
     stim_is_nan = np.isnan(stim_RSM)
@@ -72,7 +72,7 @@ def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=Fals
                 run_map_MI_RSA(voxel_l, voxels_mat1, stim_RSM,
                                stim_is_nan, median_cond2=median_cond2,
                                just_second_vox=just_second_vox,
-                               cross_only=cross_only))
+                               cross_only=cross_only, xor=xor))
         except AssertionError:
             MI_both_mat[v, :] = np.nan
             MI_vox0_mat[v, :] = np.nan
@@ -100,9 +100,16 @@ def run_map_MI_RSA_mat(voxels_mat0, voxels_mat_bool, stim_RSM, median_cond2=Fals
         ex_not1only0_mat[v, :] = ex_not1only0
         ex_neither_mat[v, :] = ex_neither
 
+    if xor:
+        ex_benefit = None
+    else:
+        ex_benefit = (ex_both_mat + ex_neither_mat) / (ex_not0only1_mat + ex_not1only0_mat)
+
     return (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
             #ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-            MI_neither_mat, #ex_neither_mat
+            MI_neither_mat,
+            ex_benefit
+            #ex_neither_mat
             )
 
 @njit(fastmath=True, nopython=True, cache=True)
@@ -155,7 +162,8 @@ def run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan):
 @njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
                    stim_is_nan, median_cond2=False,
-                   just_second_vox=False, cross_only=False):
+                   just_second_vox=False, cross_only=False,
+                   xor=False):
     # break into bins
     n_trials = voxel_l.shape[0]
     assert n_trials == 114
@@ -194,18 +202,27 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
         t2vox0[t] = np.int8(voxel_l[t])
 
     MI_both = np.empty(n_voxels, dtype=np.float32)
+    MI_neither = np.empty(n_voxels, dtype=np.float32)
+    ex_both = np.empty(n_voxels, dtype=np.int16)
+    ex_neither = np.empty(n_voxels, dtype=np.int16)
+    # if xor:
+    #     MI_vox0 = 0
+    #     MI_vox1 = 0
+    #     MI_not0only1 = 0
+    #     MI_not1only0 = 0
+    #     ex_vox0 = 0
+    #     ex_vox1 = 0
+    #     ex_not0only1 = 0
+    #     ex_not1only0 = 0
+    # else:
     MI_vox0 = np.empty(n_voxels, dtype=np.float32)
     MI_vox1 = np.empty(n_voxels, dtype=np.float32)
     MI_not0only1 = np.empty(n_voxels, dtype=np.float32)
     MI_not1only0 = np.empty(n_voxels, dtype=np.float32)
-    MI_neither = np.empty(n_voxels, dtype=np.float32)
-
-    ex_both = np.empty(n_voxels, dtype=np.int16)
     ex_vox0 = np.empty(n_voxels, dtype=np.int16)
     ex_vox1 = np.empty(n_voxels, dtype=np.int16)
     ex_not0only1 = np.empty(n_voxels, dtype=np.int16)
     ex_not1only0 = np.empty(n_voxels, dtype=np.int16)
-    ex_neither = np.empty(n_voxels, dtype=np.int16)
 
     # trial2cond_cond = np.empty(n_trials, dtype=np.int8)
     # t2vox1 = np.empty(n_trials, dtype=np.int8)
@@ -255,6 +272,23 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
                     if t2vox0[t1] == t2vox1[t1]:
                         continue
 
+                if xor:
+                    if t2vox0[t0] == t2vox1[t0]:
+                        if t2vox0[t1] == t2vox1[t1]:
+                            n_same += 1
+                            MI_both_voxel += stim_RSM[t0, t1]
+                        else:
+                            n_neither += 1
+                            MI_neither_voxel += stim_RSM[t0, t1]
+                    else:
+                        if t2vox0[t1] != t2vox1[t1]:
+                            n_same += 1
+                            MI_both_voxel += stim_RSM[t0, t1]
+                        else:
+                            n_neither += 1
+                            MI_neither_voxel += stim_RSM[t0, t1]
+                    continue
+
                 if t2vox0[t0] == t2vox0[t1]:
                     n_same0 += 1
                     MI_voxel0 += stim_RSM[t0, t1]
@@ -277,16 +311,24 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
                         MI_neither_voxel += stim_RSM[t0, t1]
 
         ex_both[v] = n_same
-        ex_vox0[v] = n_same0
-        ex_vox1[v] = n_same1
-        ex_not0only1[v] = n_not0only1
-        ex_not1only0[v] = n_not1only0
         ex_neither[v] = n_neither
 
         if n_same == 0:
             MI_both[v] = GLOBAL_NAN_VALUE
         else:
             MI_both[v] = MI_both_voxel / n_same
+        if n_neither == 0:
+            MI_neither[v] = GLOBAL_NAN_VALUE
+        else:
+            MI_neither[v] = MI_neither_voxel / n_neither
+        if xor:
+            continue
+
+        ex_vox0[v] = n_same0
+        ex_vox1[v] = n_same1
+        ex_not0only1[v] = n_not0only1
+        ex_not1only0[v] = n_not1only0
+
         if n_same0 == 0:
             MI_vox0[v] = GLOBAL_NAN_VALUE
         else:
@@ -303,10 +345,7 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
             MI_not1only0[v] = GLOBAL_NAN_VALUE
         else:
             MI_not1only0[v] = MI_voxel_not1only0 / n_not1only0
-        if n_neither == 0:
-            MI_neither[v] = GLOBAL_NAN_VALUE
-        else:
-            MI_neither[v] = MI_neither_voxel / n_neither
+
 
     # return
     return (MI_both, MI_vox0, MI_vox1, MI_not0only1, MI_not1only0,
@@ -400,7 +439,8 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
 def generate_RSA_size_map(sn, fp, region, semantic, layer,
                           median_cond2=False, stdize_by_run=True,
                           just_second_vox=False, downsample_rate=None,
-                          stdize_vol=True, cross_only=False):
+                          stdize_vol=True, cross_only=False,
+                          xor=False):
     voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
         load_img_rsm(region, fp, sn, semantic, layer, stdize_by_run=stdize_by_run,
                      downsample_rate=downsample_rate, stdize_vol=stdize_vol))
@@ -414,11 +454,12 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
     t_st = time()
     (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
      #ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-     MI_neither_mat, #ex_neither_mat
+     MI_neither_mat, ex_benefit
+     #ex_neither_mat
      ) = (
         run_map_MI_RSA_mat(voxels_mat, voxels_mat_bool, stim_RSM,
                            median_cond2=median_cond2, just_second_vox=just_second_vox,
-                           cross_only=cross_only))
+                           cross_only=cross_only, xor=xor))
     # same_Ms = np.float32(same_Ms)
     # MI_both_mat = np.float32(MI_both_mat)
     # MI_vox0_mat = np.float32(MI_vox0_mat)
@@ -429,15 +470,22 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
 
     print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
     MI_both_mat[MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
-    MI_vox0_mat[MI_vox0_mat == GLOBAL_NAN_VALUE] = np.nan
-    MI_vox1_mat[MI_vox1_mat == GLOBAL_NAN_VALUE] = np.nan
-    MI_not0only1_mat[MI_not0only1_mat == GLOBAL_NAN_VALUE] = np.nan
-    MI_not1only0_mat[MI_not1only0_mat == GLOBAL_NAN_VALUE] = np.nan
-    MI_neither_mat[MI_neither_mat == GLOBAL_NAN_VALUE] = np.nan
+    if xor:
+        MI_vox0_mat = None
+        MI_vox1_mat = None
+        MI_not0only1_mat = None
+        MI_not1only0_mat = None
+    else:
+        MI_vox0_mat[MI_vox0_mat == GLOBAL_NAN_VALUE] = np.nan
+        MI_vox1_mat[MI_vox1_mat == GLOBAL_NAN_VALUE] = np.nan
+        MI_not0only1_mat[MI_not0only1_mat == GLOBAL_NAN_VALUE] = np.nan
+        MI_not1only0_mat[MI_not1only0_mat == GLOBAL_NAN_VALUE] = np.nan
+        MI_neither_mat[MI_neither_mat == GLOBAL_NAN_VALUE] = np.nan
 
     return (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
             # ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
             MI_neither_mat, #ex_neither_mat,
+            ex_benefit,
             valid_voxel_idxs, has_nans)
 
 
@@ -446,7 +494,8 @@ def generate_RSA_size_map(sn, fp, region, semantic, layer,
 def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
                 subtract_other=False, median_cond2=False, stdize_by_run=True,
                 downsample_rate=None, stdize_vol=False, cross_only=False,
-                do_itr=False, dist_downplay=False):
+                do_itr=False, dist_downplay=False, xor=False,
+                RSM_RSM=False):
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
     stim_M = np.nanmean(stim_RSM) * 10_000
@@ -454,14 +503,18 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     kw = {'sn': sn, 'fp': fp, 'region': region, 'semantic': semantic,
           'layer': layer, 'stdize_by_run': stdize_by_run,
           'median_cond2': median_cond2, 'downsample_rate': downsample_rate,
-          'stdize_vol': stdize_vol, 'cross_only': cross_only}
+          'stdize_vol': stdize_vol, 'cross_only': cross_only, 'xor': xor}
 
     (MI_both_mat, MI_vox0_mat, MI_vox1_mat, MI_not0only1_mat, MI_not1only0_mat,
      # ex_both_mat, ex_vox0_mat, ex_vox1_mat, ex_not0only1_mat, ex_not1only0_mat,
-     MI_neither_mat, #ex_neither_mat,
+     MI_neither_mat,
+     ex_benefit,
+     #ex_neither_mat,
      valid_voxel_idxs, has_nans) = utils.pickle_wrap(generate_RSA_size_map, None,
                                                      kwargs=kw, verbose=-1,
                                                      easy_override=False)
+    ex_benefit[np.diag_indices_from(ex_benefit)] = np.nan
+
 
     # print(f'{np.nanmean(MI_both_mat)=:.3f}')
     # print(F'{np.nanmean(MI_vox0_mat)=:.3f}')
@@ -469,53 +522,61 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     # print(f'{np.nanmean(MI_not0only1_mat)=:.3f}')
     # print(f'{np.nanmean(MI_not1only0_mat)=:.3f}')
     # quit()
-
+    # print(ex_benefit)
+    # quit()
     MI_both_mat *= 10_000
-    MI_both_mat -= stim_M
-    MI_vox0_mat *= 10_000
-    MI_vox0_mat -= stim_M
-    MI_vox1_mat *= 10_000
-    MI_vox1_mat -= stim_M
-    MI_not0only1_mat *= 10_000
-    MI_not0only1_mat -= stim_M
-    MI_not1only0_mat *= 10_000
-    MI_not1only0_mat -= stim_M
+    if RSM_RSM:
+        if np.sum(np.isinf(ex_benefit)) > 0:
+            print(f'RSM x RSM has infinites: {np.sum(np.isinf(ex_benefit))}')
+            ex_benefit[np.isinf(ex_benefit)] = np.nan
+        M_benefit = np.nanmean(np.log(ex_benefit))
+        print(f'RSM x RSM bias: {M_benefit:.4f}')
+    elif xor:
+        MI_neither_mat *= 10_000
+        dif = MI_both_mat - MI_neither_mat
+        print(f'Stim: {np.nanmean(stim_M):.2f}, main: {np.nanmean(MI_both_mat):.2f}, '
+              f'neither: {np.nanmean(MI_neither_mat):.2f}, '
+              f'xor = {np.nanmean(dif):.2f}, '
+              f'{stim_M=:.2f}')
 
-    dif = MI_both_mat - MI_vox0_mat - MI_vox1_mat
-    # Does voxel 0 kick into overdrive when voxel 1 doesn't cover it
-    # dif2 = MI_not1only0_mat - MI_vox0_mat
+    else:
+        MI_both_mat -= stim_M
 
-    itr = MI_both_mat + MI_neither_mat - MI_not0only1_mat - MI_not1only0_mat
-    # itr = MI_both_mat - MI_not0only1_mat + MI_not1only0_mat - MI_neither_mat
-    # itr = MI_vox0_mat
+        MI_vox0_mat *= 10_000
+        MI_vox0_mat -= stim_M
+        MI_vox1_mat *= 10_000
+        MI_vox1_mat -= stim_M
+        MI_not0only1_mat *= 10_000
+        MI_not0only1_mat -= stim_M
+        MI_not1only0_mat *= 10_000
+        MI_not1only0_mat -= stim_M
+
+        dif = MI_both_mat - MI_vox0_mat - MI_vox1_mat
+        # Does voxel 0 kick into overdrive when voxel 1 doesn't cover it
+        # dif2 = MI_not1only0_mat - MI_vox0_mat
+
+        itr = MI_both_mat + MI_neither_mat - MI_not0only1_mat - MI_not1only0_mat
 
 
-    print(f'{np.nanmean(MI_both_mat):.2f} = {np.nanmean(MI_vox0_mat):.2f} + '
-          f'{np.nanmean(MI_vox1_mat):.2f} | Difference = {np.nanmean(dif):.2f}, '
-          f'Interaction = {np.nanmean(itr):.2f} | '
-          f'{stim_M=:.2f}')
+        print(f'{np.nanmean(MI_both_mat):.2f} = {np.nanmean(MI_vox0_mat):.2f} + '
+              f'{np.nanmean(MI_vox1_mat):.2f} | Difference = {np.nanmean(dif):.2f}, '
+              f'Interaction = {np.nanmean(itr):.2f} | '
+              f'{stim_M=:.2f}')
 
-    # MI_both_mat = MI_both_mat
 
-    if do_itr:
-        MI_both_mat = itr
-    # elif subtract_vox:
-    #     MI_both_mat -= MI_vox0_mat
-    #     MI_both_mat -= MI_vox1_mat
-    # elif subtract_other:
-    #     MI_both_mat_m = np.nanmean(MI_both_mat, axis=0)
-    #     same_Ms_m_subber = (MI_both_mat_m[None, :] + MI_both_mat_m[:, None]) / 2
-    #     MI_both_mat -= same_Ms_m_subber
+        if do_itr:
+            MI_both_mat = itr
 
     euc_mtx = get_idx2euc_custom(valid_voxel_idxs)
     # TODO: This won't work because the distance isnt precise
 
-    # print(euc_mtx[0, 0])
-    # quit()
-    # print(np.argwhere(euc_mtx[euc_mtx < .001]))
-    # quit()
 
-    if do_itr:
+    if RSM_RSM:
+        vox_dist2MI, cnter = get_voxel_dist2MI(np.log(ex_benefit), euc_mtx, max_vox=max_vox)
+    elif xor:
+        # MI_both_mat = dif
+        vox_dist2MI, cnter = get_voxel_dist2MI(dif, euc_mtx, max_vox=max_vox)
+    elif do_itr:
         vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
     else:
         vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
@@ -542,14 +603,15 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
 
 def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
                        median_cond2=False, stdize_by_run=True, downsample_rate=2,
-                       subtract_other=False, stdize_vol=True, cross_only=False):
+                       subtract_other=False, stdize_vol=True, cross_only=False,
+                       xor=False, RSM_RSM=False):
     if 'OC_IT' in region:
         max_vox = 50
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
-    fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI']
-    sns = sns[7::8]
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    sns = sns[3::4]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
@@ -565,23 +627,24 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
                   'median_cond2': median_cond2, 'stdize_by_run': True,
                   'subtract_other': subtract_other, 'downsample_rate': downsample_rate,
                   'stdize_vol': stdize_vol, 'cross_only': cross_only,
-                  'do_itr': False, 'dist_downplay': False}
+                  'do_itr': False, 'dist_downplay': False, 'xor': xor,
+                  'RSM_RSM': RSM_RSM}
 
             print(kw)
             # quit()
             vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
                                                            kwargs=kw, verbose=-1,
-                                                           easy_override=False)
+                                                           easy_override=True)
             kw['do_itr'] = True
             # kw = kw | {'do_itr': True}
 
             print(kw)
             # quit()
-            vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
-                                                           kwargs=kw, verbose=-1,
-                                                           easy_override=False)
-
-            print('Done')
+            # vox_dist2MI, dist2MI, _, _ = utils.pickle_wrap(get_dist2MI, None,
+            #                                                kwargs=kw, verbose=-1,
+            #                                                easy_override=False)
+            #
+            # print('Done')
 
             # vox_dist2MI, dist2MI = get_dist2MI(sn, fp, semantic, layer, region,
             #                                    subtract_vox, max_vox)
@@ -763,10 +826,18 @@ if __name__ == '__main__':
 
     # TODO: Try the cortical with median_cond2=True
 
+    # TODO: Maybe try median_cond2=False?
+
     # run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
-    #                    median_cond2=True)
-    run_RSA_map_all_sn('cortical_L', True, None, downsample_rate=3,
-                       median_cond2=True, cross_only=True)
+    #                    median_cond2=True, cross_only=False, xor=False,
+    #                    RSM_RSM=True)
+
+    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=3,
+                       median_cond2=False, cross_only=False, xor=False,
+                       RSM_RSM=True)
+
+    # run_RSA_map_all_sn('cortical_L', True, None, downsample_rate=3,
+    #                    median_cond2=True, cross_only=False, xor=True)
 
 
     # run_RSA_map_all_sn('OC_IT_L', False, 0)

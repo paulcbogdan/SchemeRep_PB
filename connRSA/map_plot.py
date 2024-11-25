@@ -28,9 +28,12 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     if min_vox is not None:
         vox_dist2MI = vox_dist2MI[:, min_vox:]
     #
-    peak_dists = np.nanmean(vox_dist2MI[:, 0:2], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, :3], axis=-1)
     # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
-    #               np.nanmean(vox_dist2MI[:, 2:10], axis=-1))
+    #               np.nanmean(vox_dist2MI[:, 2:max_vox], axis=-1))
+    # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
+    # peak_dists = np.nanmean(vox_dist2MI[:, 5:], axis=-1)
+
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
     # peak_dists = np.argmax(vox_dist2MI, axis=-1) + min_vox
 
@@ -85,7 +88,7 @@ def report_text(dist2MI_all, max_vox):
 
 def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                     max_vox=15, subtract_vox=True, subtract_other=False,
-                    min_vox=1, downsample_rate=3, median_cond2=True,
+                    min_vox=1, downsample_rate=3, median_cond2=False,
                     stdize_vol=True, cross_only=False):
     if 'OC_IT' in region:
         max_vox_ = 50
@@ -95,7 +98,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
-    fps = ['bl7_fMRI', 'obj7_fMRI']#, 'con7_fMRI', 'vis7_fMRI'] #
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI'] #
     # sns = sns[5::6]
     dist2MI_all = []
     img_data_l = []
@@ -112,9 +115,10 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                   'median_cond2': median_cond2, 'stdize_by_run': True,
                   'subtract_other': subtract_other, 'downsample_rate': downsample_rate,
                   'stdize_vol': stdize_vol, 'cross_only': cross_only,
-                  'do_itr': False, 'dist_downplay': False
+                  'do_itr': False, 'dist_downplay': False,
+                  'xor': False, 'RSM_RSM': True
                   }
-            print(kw)
+            # print(kw)
 
             fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
             if not os.path.exists(fp_out):
@@ -126,6 +130,13 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                 utils.pickle_wrap(get_dist2MI, None, kwargs=kw,
                                   verbose=-1, easy_override=False))
 
+            # vox_dist2MI -= np.nanmean(vox_dist2MI[:, min_vox:max_vox],
+            #                           axis=1)[..., None]
+            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            # print(np.nanmean(vox_dist2MI[:, :max_vox], axis=1).shape)
+            # quit()
+            # print(np.nanmean(vox_dist2MI, axis=0).shape)
+            # quit()
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -183,10 +194,10 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     # print(np.sum(~np.isnan(img_data)))
     # print(img_data.shape)
     # quit()
-    vmin = np.nanquantile(img_data, 0.05)
-    vmax = np.nanquantile(img_data, 0.95)
-    vmin = -5
-    vmax = 5
+    vmin = np.nanquantile(img_data, 0.01)
+    vmax = np.nanquantile(img_data, 0.99)
+    # vmin = -5
+    # vmax = 10
     # print(np.nanmin(img_data))
 
     # quit()
@@ -197,7 +208,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     img_data[np.isnan(img_data)] = 0
     img = image.new_img_like(get_atlas()['maps'], img_data)
 
-    view = plotting.view_img(img, threshold=2, symmetric_cmap=False,
+    view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
                              resampling_interpolation='nearest',
                              vmin=vmin, vmax=vmax
                              )
@@ -205,10 +216,10 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
 if __name__ == '__main__':
 
-    # plot_map_region(region='cortical_L', semantic=False, layer=0,
-    #                 downsample_rate=3)
-    plot_map_region(region='cortical_L', semantic=True, layer=None,
+    plot_map_region(region='cortical_L', semantic=False, layer=0,
                     downsample_rate=3)
+    # plot_map_region(region='cortical_L', semantic=True, layer=None,
+    #                 downsample_rate=3)
 
 
     # TODO: Test (both - vox1):vox2 ratio? Is vox2 helping encode the same items vox1 is informing?

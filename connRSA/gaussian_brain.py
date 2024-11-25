@@ -216,11 +216,11 @@ def plot_gaus_by_region():
     # region1 = 'PFC'
     # region2 = 'Parietal'
 
-    # region1 = 'Parietal'
-    # region2 = 'PFC'
+    region1 = 'Parietal'
+    region2 = 'PFC'
 
-    region1 = 'LPFC'
-    region2 = 'cortical'
+    # region1 = 'LPFC'
+    # region2 = 'cortical'
 
     plt.sca(axs[0, 0])
     plot_gaus_region(f'{region1}', )
