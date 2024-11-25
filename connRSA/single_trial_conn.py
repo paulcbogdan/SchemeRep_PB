@@ -27,8 +27,12 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
            RDM_method='by_run', combine_regions=False, plotting=None,
            stdize_by_run=False, semantic=False):
     scores_all = []
+
     sizes_all = []
     trialwise_all = []
+    # print(fps)
+    # print(RSA)
+    # quit()
     for fp0 in fps:
         # if fp0 != 'obj7_fMRI':
         #     continue
@@ -36,6 +40,8 @@ def run_sn(fps, RSA, sn, atlas, d_vecs, networks=None,
         if RSA:
             if plotting is None:
                 f = RSA_sn
+                # print('test')
+                # quit()
             elif 'ROIs' in plotting:
                 PFC2 = 'PFC2' in plotting
                 PFC = ('PFC' in plotting) and ('PFC2' not in plotting)
@@ -195,12 +201,18 @@ def run_settings(RSA=True, semantic=False, do_networks=False,
     else:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=combine_regions,
-                          split=split, split_code='xyz',)
+                          # split=split,
+                          # split_code='xyz',
+                          )
                           # shenyang='_sh' in atlas)
     fps = prep_fps(four_tasks)
     age2sn = get_sns('all', sh=False)
     sns = age2sn[age]
     # sns = ['126']
+
+    # sns = sns[4::5]
+    # print(RSA)
+    # quit()
 
     if isinstance(do_networks, str):
         raise ValueError(f'Why is do_networks a string? {do_networks=}')

@@ -163,6 +163,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         cmb = '_cmb' if (combine_regions and BOLD) else ''
         fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
+        # print(fp_RSM)
+        # quit()
 
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)

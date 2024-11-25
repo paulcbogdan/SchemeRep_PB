@@ -932,7 +932,8 @@ def do_regr():
     # target_ROIs = ['FPT', 'DMN', 'FP']
     target_ROIs = ['IT']
     target_ROIs = ['Ventral']
-    # target_ROIs = ['Parietal']
+    target_ROIs = ['OrG', 'SFG', 'INS']
+    target_ROIs = ['INS']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
@@ -955,6 +956,8 @@ def do_regr():
             voxel_small_M = fr'{target_ROI}_M'
             prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                          ERS_alt=ERS_alt, **kwargs)
+            # print('test')
+            # quit()
 
             outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
                            'ERS_alt': ERS_alt,

@@ -600,7 +600,7 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     #     print(f'{e=}')
 
 
-def run_IC_analysis(ERS=True, regress_FC=True):
+def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
     # semantic = False
     # regress_FC = False
 
@@ -698,6 +698,8 @@ def run_IC_analysis(ERS=True, regress_FC=True):
 
     corrs = np.array(corrs)
     corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
+    if get_M and not regress_FC:
+        return corrs
 
     # M_ventral_FC, M_occ_FC,
     corrs_FC, sns_FC = (
@@ -731,7 +733,8 @@ def run_IC_analysis(ERS=True, regress_FC=True):
             corr = corr_flat.reshape(corr.shape)
             corrs[sn_i] = corr
 
-
+    if get_M:
+        return corrs
 
     M = np.nanmean(corrs, axis=0)
     SE = stats.sem(corrs, axis=0, nan_policy='omit')
@@ -831,7 +834,7 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
 if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
-    plot_FC_mat(drop_con=False, four_tasks='7')
-    run_IC_analysis(ERS=True, regress_FC=False)
+    # plot_FC_mat(drop_con=False, four_tasks='7')
+    # run_IC_analysis(ERS=True, regress_FC=False)
     run_IC_analysis(ERS=False, regress_FC=False)
     # plot_FC_mat()

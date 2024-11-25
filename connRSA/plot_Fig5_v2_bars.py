@@ -191,12 +191,14 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL']
+
+    target_ROIs = ['OrG', 'SFG']
     # target_ROIs = ['Occipital']
     # target_ROIs = ['ITL']
     # target_ROIs = ['ITL']
     # target_ROIs = ['PFC', 'Parietal']
 
-    fps = ['bl7_fMRI', 'obj7_fMRI', ] # 'con7_fMRI',  'vis7_fMRI'
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ] #
     # fps = ['obj7_fMRI']
 
     semantic = (False, -1)

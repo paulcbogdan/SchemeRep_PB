@@ -1,6 +1,7 @@
 import os.path
 
 import numpy as np
+from nilearn.experimental.surface import load_fsaverage
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import get_default_fp
@@ -12,10 +13,11 @@ from org_sns import get_sns
 import utils
 from nilearn import plotting
 from scipy import ndimage
-from nilearn import image
+from nilearn import image, surface
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 from time import time
+# from nilearn.surface import SurfaceImage
 
 def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
              downsample_rate=2):
@@ -31,7 +33,7 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
                   np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
 
-    peak_dists = np.nanmean(vox_dist2MI[:, :2], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, :3], axis=-1)
     # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 2:max_vox], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
@@ -119,26 +121,51 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                   'subtract_other': subtract_other, 'downsample_rate': downsample_rate,
                   'stdize_vol': stdize_vol, 'cross_only': cross_only,
                   'do_itr': False, 'dist_downplay': False,
-                  'xor': False, 'RSM_RSM': True
+                  'xor': False, 'RSM_RSM': True,
+                  'RSM_RSM_override': True
                   }
-            # print(kw)
+            print(kw)
 
             fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
             if not os.path.exists(fp_out):
                 print(f'Missing: {fp_out}')
                 continue
             print('Go')
+            # kw['RSM_RSM_override'] = False
 
             vox_dist2MI, _, vox_idxs, cnter = (
                 utils.pickle_wrap(get_dist2MI, None, kwargs=kw,
                                   verbose=-1, easy_override=False))
+            # # vox_dist2MI[cnter[:, 1] < 10] = np.nan
+            vox_dist2MI[vox_dist2MI == -999_999] = np.nan
+            cnter = np.array(cnter, dtype=np.float32)
+            if 'cortical' in region:
+                vox_dist2MI[np.sum(cnter[:, :3], axis=1) < 20] = np.nan
+            # print(vox_dist2MI)
+            # quit()
+            # cnter[np.sum(cnter[:, :3], axis=1) < 70] = np.nan
+
+            # vox_dist2MI = np.array(cnter, dtype=np.float32)
+
+            # plt.imshow(cnter, aspect='auto', interpolation='none')
+            # plt.show()
+
+            # plt.hist(np.sum(cnter[:, :3], axis=1), bins=50)
+            # plt.show()
+            # quit()
+
+            # Shape: (9607, 30)
+
+            # Subtracting axis 1 = find voxels with strongest low > high effect
 
             # vox_dist2MI -= np.nanmean(vox_dist2MI[:, min_vox:max_vox],
             #                           axis=1)[..., None]
-            # Subtracting axis 1 and then looking at :3 = find voxels with strongest interaction
+
+            # Subtracting 0 = find voxels that have the strongest effect across brain
             vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
-
-
+            # plt.imshow(vox_dist2MI, aspect='auto', interpolation='none')
+            # plt.show()
+            # quit()
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -159,6 +186,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
         img_data = np.nanmean(sn_img_datas, axis=0)
         img_data_l.append(img_data)
+        # break
 
     img_data_l = np.array(img_data_l)
     num_subj = img_data_l.shape[0]
@@ -175,6 +203,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     print(f'{num_subj=}')
 
     img_data = np.nanmean(img_data_l, axis=0) / np.nanstd(img_data_l, axis=0) * np.sqrt(num_subj)
+    # num_not_nan = np.sum(~np.isnan(img_data))
+    # print(f'{num_not_nan=}')
+    # quit()
     # img_data = np.nanmean(img_data_l, axis=0)
 
     # img_data = stats.zscore(img_data, axis=None, nan_policy='omit')
@@ -196,14 +227,21 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     # print(np.sum(~np.isnan(img_data)))
     # print(img_data.shape)
     # quit()
-    vmin = np.nanquantile(img_data, 0.01)
-    vmax = np.nanquantile(img_data, 0.99)
+
+    if 'cortical' in region:
+        vmin = np.nanquantile(img_data, 0.001)
+        vmax = np.nanquantile(img_data, 0.999)
+    else:
+        vmin = np.nanquantile(img_data, 0.01)
+        vmax = np.nanquantile(img_data, 0.99)
     # vmin = -5
     # vmax = 10
     # print(np.nanmin(img_data))
 
     # quit()
     print(f'{vmin=:.3f} {vmax=:.3f}')
+    # vmin = -3
+    # vmax = 3
     # plt.hist(img_data.flatten())
     # plt.show()
     # quit()
@@ -215,11 +253,56 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                              vmin=vmin, vmax=vmax
                              )
     view.open_in_browser()
+    # quit()
+
+    # fsaverage_meshes = load_fsaverage()
+
+    # img = SurfaceImage.from_volume(
+    #     mesh='fsaverage5',
+    #     volume_img=img,
+    # )
+
+    # view = plotting.plot_surf_roi(
+    #     # surf_mesh=fsaverage_meshes["inflated"],
+    #     surf_mesh='fsaverage5',
+    #     roi_map=img,
+    #     threshold="90%",
+    #     # bg_map=fsaverage_sulcal,
+    #     # hemi="right",
+    #     # title="3D visualization in a web browser",
+    # )
+
+
+
+    #
+    fig, axs = plotting.plot_img_on_surf(img,
+                                         # threshold=thresh,
+                                         # cmap=cmap, title=title,
+                                         # vmin=0 if only_positive else -vmax,
+                                         vmax=vmax, vmin=vmin,
+                                         inflate=False,
+                                         surf_mesh='fsaverage5',
+                                         avg_method='median',
+                                         hemispheres=['left'],
+                                         # threshold=3,
+                                         )
+    plt.show()
+    # view.open_in_browser()
 
 if __name__ == '__main__':
 
-    plot_map_region(region='cortical_L', semantic=False, layer=0,
-                    downsample_rate=3)
+    # plot_map_region(region='cortical_L', semantic=False, layer=0,
+    #                 downsample_rate=3)
+
+    # plot_map_region(region='PFC_L', semantic=False, layer=0,
+    #                 downsample_rate=2)
+
+    plot_map_region(region='cortical_R', semantic=False, layer=0,
+                    downsample_rate=2, median_cond2=True)
+
+    # plot_map_region(region='OC_IT_L', semantic=False, layer=0,
+    #                 downsample_rate=2)
+
     # plot_map_region(region='cortical_L', semantic=True, layer=None,
     #                 downsample_rate=3)
 

@@ -59,12 +59,14 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
 
 
     settings['conn'] = 'BOLD'
-    print(f'BOLD ' * 10)
+    # print(f'BOLD ' * 10)
+    # print(RSA)
     results_bold_comb = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=False,
+                                   kwargs=settings, easy_override=True,
                                    verbose=1, cache_dir=dir_results,
                                    dt_max=dt_max)
     report_results(results_bold_comb, do_lmer=False)
+    # quit()
 
     if settings['do_networks'] != 19: # this is covered by combine one below
         print(f'COMBINE BIG ' * 10)
@@ -134,8 +136,10 @@ if __name__ == '__main__':
     # targets = ['OC', 'IT', 'OC_IT']
     targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
     targets = ['Ventral']
+    targets = ['SFG']
     # targets = ['ITL']
     for sem_per in [True, False]:
         for target in targets[::-1]:
-            run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target)
+            run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,
+                                RSA=True)
 

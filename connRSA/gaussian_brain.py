@@ -168,6 +168,7 @@ def run_all_sns_gaus(region='IT', sigma=10,
 
     rs_all = np.full((len(sns), len(fps)), np.nan)
     # print(f'GO: {region}, {sigma}')
+    print(f'Cooking: {region}, {sigma=}')
     sns = sns[::-1]
     for i, sn in enumerate(sns):
         for j, fp in enumerate(fps):
@@ -213,28 +214,28 @@ def plot_gaus_by_region():
     # fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     fig, axs = plt.subplots(2, 3, figsize=(15, 7))
 
-    # region1 = 'PFC'
-    # region2 = 'Parietal'
+    # region1 = 'Occipital'
+    # region2 = 'ITL'
 
-    region1 = 'Parietal'
-    region2 = 'PFC'
+    # region1 = 'cortical'
+    # region2 = 'PFC'
 
-    # region1 = 'LPFC'
-    # region2 = 'cortical'
+    region1 = 'LPFC'
+    region2 = 'Parietal'
 
     plt.sca(axs[0, 0])
-    plot_gaus_region(f'{region1}', )
+    plot_gaus_region(f'{region1}_L', )
     plt.sca(axs[0, 1])
     plot_gaus_region(f'{region1}_L', )
     plt.sca(axs[0, 2])
     plot_gaus_region(f'{region1}_R', )
 
     plt.sca(axs[1, 0])
-    plot_gaus_region(f'{region2}', )
+    plot_gaus_region(f'{region2}_L', )
     plt.sca(axs[1, 1])
     plot_gaus_region(f'{region2}_L', )
     plt.sca(axs[1, 2])
-    plot_gaus_region(f'{region2}_R', )
+    plot_gaus_region(f'{region2}_L', )
 
     tuples_lohand_lolbl = [plt.gca().get_legend_handles_labels()]
     tolohs = zip(*tuples_lohand_lolbl)
@@ -274,13 +275,14 @@ def plot_gaus_region(region='IT_L', semantic=True, std=False):
 
 
     # fzs = [(i, i+1) for i in range(1, 12, 1)]
-    sigmas = list(range(13))
+    sigmas = list(range(8))
     # fzs = [(i, i+2) for i in range(1, 15, 2)]
 
     Ms_semantic = []
     SEs_semantic = []
     subj_rs_l_semantic = []
     for sigma in sigmas:
+        # subj_rs = run_all_sns_gaus(region, sigma, semantic=False, layer=0)
         subj_rs = run_all_sns_gaus(region, sigma, semantic=True, layer=None)
         subj_rs_l_semantic.append(subj_rs)
         if std:
