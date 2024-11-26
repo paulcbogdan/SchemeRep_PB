@@ -21,6 +21,11 @@ ENCODING_PER_CLASS = 6
 FEATURES_PER_CLASS = 16
 CATEGORIES_PER_CLASS = 10
 
+N_CLASSES = 1
+ENCODING_PER_CLASS = 5
+FEATURES_PER_CLASS = 30
+CATEGORIES_PER_CLASS = 10
+
 class FeatureGenerator_OLD:
     def __init__(self, n_classes=N_CLASSES, features_per_class=FEATURES_PER_CLASS,
                  correlation_strength=0.7):
@@ -300,24 +305,65 @@ def get_encoding(model, generator, n_samples=1):
         encodings = model.encode(new_samples)
     return encodings.numpy(), new_samples.numpy()
 
+def make_RSMs(model, n_samples=1000):
+    new_samples = torch.FloatTensor(generator.generate_sample(n_samples))
+    if new_samples.dim() == 1:
+        new_samples = new_samples.unsqueeze(0)
+    # sensitivities = []
+    # for feature in tqdm(range(new_samples.shape[1]), desc='testing features'):
+    encodings_all = []
+    for i in range(0, n_samples):
+        # sample = deepcopy(new_samples[i:i+2])
+        sample = np.array([deepcopy(new_samples[i]), deepcopy(new_samples[i])])
+        with torch.no_grad():
+            encoding0 = model.encode(torch.FloatTensor(sample)).numpy()
+        encoding0 = encoding0[0, :]
+        encodings_all.append(encoding0)
+    encodings_all = np.array(encodings_all)
+    encoding_mtxs = np.abs(encodings_all[:, None, :] - encodings_all[None, :, :])
+
+    trils = np.tril_indices_from(encoding_mtxs[..., 0], k=-1)
+    encoding_mtxs = encoding_mtxs[trils[0], trils[1], :]
+    num_nans = np.sum(np.isnan(encoding_mtxs))
+    print(f'Number of NaNs in encoding: {num_nans}')
+    corr = np.corrcoef(encoding_mtxs.T)
+    corr[np.diag_indices_from(corr)] = np.nan
+    M_corr = np.nanmean(corr)
+    SE_corr = np.nanstd(corr) / np.sqrt(corr.size)
+    plt.imshow(corr, cmap='viridis')
+    plt.title(f'RSM. {M_corr:.3f} +/- {SE_corr:.3f}')
+    vabs = np.max(np.abs(corr))
+    plt.clim(-vabs, vabs)
+    plt.colorbar()
+    plt.show()
+
+    print(encoding_mtxs.shape)
+    quit()
+
 def sensitivity_toggle(model, n_samples=1000):
+
+    make_RSMs(model, n_samples)
+
     new_samples = torch.FloatTensor(generator.generate_sample(n_samples))
     if new_samples.dim() == 1:
         new_samples = new_samples.unsqueeze(0)
     sensitivities = []
     for feature in tqdm(range(new_samples.shape[1]), desc='testing features'):
         all_difs = []
-        for i in range(0, n_samples, 2):
-            sample = deepcopy(new_samples[i:i+2])
-
+        for i in range(0, n_samples):
+            # sample = deepcopy(new_samples[i:i+2])
+            sample = np.array([deepcopy(new_samples[i]), deepcopy(new_samples[i])])
             sample[:, feature] = -1
             with torch.no_grad():
                 encoding0 = model.encode(torch.FloatTensor(sample))
                 sample[:, feature] = 1
                 encoding1 = model.encode(torch.FloatTensor(sample))
             dif = encoding1 - encoding0
+            # dif = np.mean(dif.numpy(), axis=0)
             # max_dif = torch.max(torch.abs(dif), dim=1)[0]
             # print(f'{max_dif=}')
+            # print(dif.shape)
+            # quit()
             all_difs.append(np.mean(dif.numpy(), axis=0))
         all_difs = np.array(all_difs)
         sensitivity = np.mean(np.abs(all_difs), axis=0)

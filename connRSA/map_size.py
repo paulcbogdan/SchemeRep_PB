@@ -302,9 +302,9 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
             for t1 in range(t0):
                 if stim_is_nan[t0, t1]:
                     break
-                if cross_only:
-                    if t2vox0[t1] == t2vox1[t1]:
-                        continue
+                # if cross_only:
+                #     if t2vox0[t1] == t2vox1[t1]:
+                #         continue
 
                 if xor:
                     if t2vox0[t0] == t2vox1[t0]:
@@ -619,7 +619,8 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
         # ex_benefit = ex_RSM_RSM_interaction_equal_mat
         ex_benefit = (ex_RSM_RSM_interaction_equal_mat + ex_RSM_RSM_interaction_unequal_mat) / 2
 
-    MI_both_mat *= 10_000
+    if not RSM_RSM:
+        MI_both_mat *= 10_000
     if RSM_RSM:
         if np.sum(np.isinf(ex_benefit)) > 0:
             print(f'RSM x RSM has infinites: {np.sum(np.isinf(ex_benefit))}')
@@ -706,7 +707,9 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    sns = sns[1::6]
+    sns = sns[0::8]
+    # sns = sns[::-2]
+    # sns = sns[0:]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
