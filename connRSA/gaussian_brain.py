@@ -220,18 +220,18 @@ def plot_gaus_by_region():
     # region1 = 'cortical'
     # region2 = 'PFC'
 
-    region1 = 'LPFC'
-    region2 = 'Parietal'
+    region2 = 'cortical'
+    region1 = 'Parietal'
 
     plt.sca(axs[0, 0])
-    plot_gaus_region(f'{region1}_L', )
+    plot_gaus_region(f'{region1}', )
     plt.sca(axs[0, 1])
     plot_gaus_region(f'{region1}_L', )
     plt.sca(axs[0, 2])
     plot_gaus_region(f'{region1}_R', )
 
     plt.sca(axs[1, 0])
-    plot_gaus_region(f'{region2}_L', )
+    plot_gaus_region(f'{region2}', )
     plt.sca(axs[1, 1])
     plot_gaus_region(f'{region2}_L', )
     plt.sca(axs[1, 2])

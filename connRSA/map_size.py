@@ -185,27 +185,18 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
         cnt_zero = center_is_zero.shape[0]
         center_is_one = np.argwhere(voxel_l)
         cnt_one = center_is_one.shape[0]
-        # print(voxel_l)
         voxel_Ms = np.empty((2, n_voxels))
         for v in range(n_voxels):
             t_at_is_zero = np.full(n_trials, 0, dtype=np.float32)
-            # print(v)
             for i in range(cnt_zero):
                 t = center_is_zero[i][0]
                 t_at_is_zero[i] = voxels_mat[t, v]
             voxel_Ms[0, v] = np.median(t_at_is_zero[:cnt_zero])
-            # print(v)
-            # print(5)
             t_at_is_one = np.full(n_trials, 0, dtype=np.float32)
-            # print(cnt_one)
             for i in range(cnt_one):
-                # print(i)
-                # print(center_is_one)
                 t = center_is_one[i][0]
-                # print(2)
                 t_at_is_one[i] = voxels_mat[t, v]
             voxel_Ms[1, v] = np.median(t_at_is_one[:cnt_one])
-            # return
 
 
     t2vox0 = np.empty(n_trials, dtype=np.int8)
@@ -221,7 +212,7 @@ def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
     #     MI_vox1 = 0
     #     MI_not0only1 = 0
     #     MI_not1only0 = 0
-    #     ex_vox0 = 0
+    #     ex_vox0 = 0#
     #     ex_vox1 = 0
     #     ex_not0only1 = 0
     #     ex_not1only0 = 0
@@ -477,7 +468,6 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
         nan_val = GLOBAL_NAN_VALUE
         mask = ~np.isnan(img)
         img[np.isnan(img)] = nan_val
-        # print(np.sum(mask))
 
         img = do_int_downsample(img, downsample_rate, mask,
                                 nan_val=nan_val, fourD_mask=True)
@@ -707,7 +697,7 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    sns = sns[0::8]
+    sns = sns[2::3]
     # sns = sns[::-2]
     # sns = sns[0:]
     dist2MI_all = []

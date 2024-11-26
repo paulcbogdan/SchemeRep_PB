@@ -280,6 +280,10 @@ def do_int_downsample(img, downsample, mask, nan_val=NAN_VAL,
             y_orig = y * downsample
             for z in range(Z_len_):
                 z_orig = z * downsample
+                # if not fourD_mask:
+                #     if not mask[x_orig, y_orig, z_orig]:
+                #         img_smaller[x, y, z] = nan_val
+                #         continue
                 for n in range(n_samples):
                     vec = np.zeros(size)
                     cnt2 = 0
