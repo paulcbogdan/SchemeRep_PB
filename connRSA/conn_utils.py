@@ -214,9 +214,31 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         RSM_fMRI = np.nanmean(-abs(vecs0 - vecs1), axis=-1)  # Euclidean
         # RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
     elif trial_similarity == 'euc':
+        # print('TOAST')
+        # import matplotlib.pyplot as plt
+
+        nan_cols = np.isnan(vecs0).any(axis=(0, 1))
+        # print(vecs0.shape)
+        # print(vecs1.shape)
+        # print(nan_cols.shape)
+        vecs0 = vecs0[:, :, ~nan_cols]
+        vecs1 = vecs1[:, :, ~nan_cols]
+
+
+
+        # plt.imshow(vecs0[0, ...], aspect='auto')
+        # plt.show()
+
+        # from scipy.spatial import distance
+        # RSM_fMRI = -distance.cdist(vecs0[0, ...], vecs0[0, ...], 'euclidean')
+
         RSM_fMRI = scipy_dist(np.squeeze(vecs0), np.squeeze(vecs1),
-                              metric='euclidean')
+                              metric='euclidean', )
+        # RSM_fMRI =
         # print(RSM_fMRI.shape)
+        # plt.imshow(RSM_fMRI)
+        # plt.show()
+        # quit()
         # quit()
         # RSM_fMRI = prune_RSM_outliers(RSM_fMRI, z=3)
     elif trial_similarity == 'spear':

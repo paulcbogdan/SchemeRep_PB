@@ -46,6 +46,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
     IRAFs_all_ROI = []
     RSM_stim = get_stim_RDM(df_sn, d_vecs, obj_only=True,
                             dist=trial_similarity)
+    # print('TEEEEST')
+
     print('RSA_sn')
     if 'norm' in conn and 'avg' in conn:
         networks = {'MTL': ['Hipp', 'PhG', 'ATL'],
@@ -128,6 +130,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             else:
                 vecs = stdize(vecs, axis=1, nans=True)
 
+
         if RDM_method == 'by_run':
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
@@ -143,16 +146,18 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
         elif RDM_method == 'within_nan':
+            # trial_similarity = 'corr'
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
-
-
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
         else:
             raise ValueError(f'{RDM_method=} not supported')
 
+
+
         scores.append(z)
+
 
         RSM_fmri_l.append(RSM_fMRI)
         IRAFs = get_IRAFs(RSM_fMRI, RSM_stim, df_sn,
@@ -160,10 +165,13 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                           by_run=RDM_method == 'by_run')
         IRAFs_all_ROI.append(IRAFs)
 
+
+
         cmb = '_cmb' if (combine_regions and BOLD) else ''
         fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
-        # print(fp_RSM)
+
+        print(fp_RSM)
         # quit()
 
         with open(fp_RSM, 'wb') as f:

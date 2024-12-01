@@ -94,6 +94,10 @@ def scipy_dist(all_vecs, vecs1=None, metric='seuclidean'):
             vecs1 = vecs1[:, None]
         vecs1 = np.array(vecs1)
         RSM = -distance.cdist(all_vecs, vecs1, metric)
+    # plt.imshow(RSM)
+    # plt.show()
+    # quit()
+    # print('TEST')
 
     return RSM
 

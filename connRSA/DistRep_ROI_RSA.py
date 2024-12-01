@@ -62,7 +62,7 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
     # print(f'BOLD ' * 10)
     # print(RSA)
     results_bold_comb = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=True,
+                                   kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results,
                                    dt_max=dt_max)
     report_results(results_bold_comb, do_lmer=False)
@@ -78,14 +78,18 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
         report_results(results_bold_cmb_big, do_lmer=False)
 
     # dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
-
+    print('TOAST')
     settings['do_networks'] = False
     settings['combine_regions'] = False
     results_bold_sep = pickle_wrap(run_settings, None,
                                    kwargs=settings, easy_override=False,
                                    verbose=1, cache_dir=dir_results,
                                    dt_max=dt_max)
-    # report_results(results_bold_sep, do_lmer=False)
+    report_results(results_bold_sep, do_lmer=False)
+    # print('TEST')
+    # quit()
+    # quit()
+    #
     # print(settings)
     # quit()
 
@@ -108,14 +112,16 @@ def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
     # Don't modify the below ones
     # RSA = True
     conn = 'prod'
-    trial_similarity = 'corr'
+    # trial_similarity = 'corr'
+    trial_similarity = 'euc'
     second_order = 'spear'
     four_tasks = '7'
     combine_regions = False
     split = False
     RDM_method = 'within_nan'
     age = 'healthy'
-    stdize_by_run = False # True if trialc_similarity == 'euc' else False
+    # stdize_by_run = False # True if trialc_similarity == 'euc' else False
+    stdize_by_run = True if trial_similarity == 'euc' else False
 
     do_networks = ROI2NETWORK[target_ROI]
 
@@ -136,10 +142,10 @@ if __name__ == '__main__':
     # targets = ['OC', 'IT', 'OC_IT']
     targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
     targets = ['Ventral']
-    targets = ['SFG']
-    # targets = ['ITL']
+    targets = ['Occipital', 'IT', 'ITL']
+    targets = ['ITL']
     for sem_per in [True, False]:
-        for target in targets[::-1]:
+        for target in targets:#[::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,
                                 RSA=True)
 

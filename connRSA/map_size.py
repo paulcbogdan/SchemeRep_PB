@@ -143,32 +143,6 @@ def run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan):
         same_Ms[v] = same_M
     return same_Ms
 
-# def generate_RSA_vox_map(sn, fp, region, semantic, layer,
-#                          stdize_by_run=True):
-#     voxels_mat, voxels_mat_bool, valid_voxel_idxs, stim_RSM = (
-#         load_img_rsm(region, fp, sn, semantic, layer,
-#                      stdize_by_run=stdize_by_run))
-#
-#     t_st = time()
-#     stim_is_nan = np.isnan(stim_RSM)
-#     same_Ms = run_vox_MI_RSA(voxels_mat_bool, stim_RSM, stim_is_nan)
-#     # same_Ms = run_map_MI_RSA_mat(voxels_mat, voxels_mat, stim_RSM)
-#     print(f'Time needed for same_Ms: {time() - t_st:.2f} s')
-#     same_Ms[same_Ms == GLOBAL_NAN_VALUE] = np.nan
-#
-#     return same_Ms, valid_voxel_idxs
-#
-# def generate_RSA_vox_vox_map(sn, fp, region, semantic, layer,
-#                              stdize_by_run=True,):
-#     same_Ms, valid_voxel_idxs = generate_RSA_vox_map(sn, fp, region, semantic, layer,
-#                                                      stdize_by_run=stdize_by_run)
-#
-#     vox_vox_Ms = generate_RSA_size_map(sn, fp, region, semantic, layer,
-#                                        median_cond2=True, stdize_by_run=stdize_by_run,
-#                                        just_second_vox=True)
-#     vox_vox_Ms = vox_vox_Ms + same_Ms[:, None]
-#     return vox_vox_Ms
-
 
 @njit(fastmath=True, nopython=True, cache=True, parallel=True)
 def run_map_MI_RSA(voxel_l, voxels_mat, stim_RSM,
@@ -658,18 +632,18 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
 
 
     if RSM_RSM:
-        vox_dist2MI, cnter = get_voxel_dist2MI(np.log(ex_benefit), euc_mtx, max_vox=max_vox)
+        vox_dist2MI, cnter = get_voxel_dist2MI(np.log(ex_benefit), euc_mtx, max_dist=max_vox)
     elif xor:
         # MI_both_mat = dif
-        vox_dist2MI, cnter = get_voxel_dist2MI(dif, euc_mtx, max_vox=max_vox)
+        vox_dist2MI, cnter = get_voxel_dist2MI(dif, euc_mtx, max_dist=max_vox)
     elif do_itr:
-        vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
     else:
-        vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
         vox_dist2MI_both_mat[vox_dist2MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
-        vox_dist2MI_vox0, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_vox0, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_dist=max_vox)
         vox_dist2MI_vox0[vox_dist2MI_vox0 == GLOBAL_NAN_VALUE] = np.nan
-        vox_dist2MI_vox1, cnter = get_voxel_dist2MI(MI_vox1_mat, euc_mtx, max_vox=max_vox)
+        vox_dist2MI_vox1, cnter = get_voxel_dist2MI(MI_vox1_mat, euc_mtx, max_dist=max_vox)
         vox_dist2MI_vox1[vox_dist2MI_vox1 == GLOBAL_NAN_VALUE] = np.nan
 
         if dist_downplay:
@@ -697,8 +671,8 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    sns = sns[2::3]
-    # sns = sns[::-2]
+    # sns = sns[3::4]
+    sns = sns[1::2]
     # sns = sns[0:]
     dist2MI_all = []
     for i, sn in enumerate(sns):
@@ -782,21 +756,21 @@ def calc_dist2MI(same_Ms, euc_mtx, max_vox=100):
     return result, cnter
 
 @njit(fastmath=True, nopython=True, cache=True)
-def get_voxel_dist2MI(same_Ms, euc_mtx, max_vox=100):
+def get_voxel_dist2MI(same_Ms, euc_mtx, max_dist=100):
     # TODO: Increase max vox for OC_IT
     n_rows, n_cols = same_Ms.shape
-    result = np.zeros((n_rows, max_vox))
-    cnter = np.zeros((n_rows, max_vox), dtype=np.int32)
+    result = np.zeros((n_rows, max_dist))
+    cnter = np.zeros((n_rows, max_dist), dtype=np.int32)
 
     for i in range(n_rows):
         for j in range(n_cols):
             dist = euc_mtx[i, j]
             # print(dist)
-            if dist >= max_vox: continue
+            if dist >= max_dist: continue
             result[i, dist] += same_Ms[i, j]
             cnter[i, dist] += 1
 
-        for dist in range(max_vox):
+        for dist in range(max_dist):
             cnt = cnter[i, dist]
             # for i in range(cnt):
             #     idx0 = idxs[dist, i, 0]
@@ -920,8 +894,12 @@ if __name__ == '__main__':
     #                    median_cond2=True, cross_only=False, xor=False,
     #                    RSM_RSM=True)
 
-    run_RSA_map_all_sn('cortical_R', False, 0, downsample_rate=2,
+    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
                        median_cond2=False, cross_only=False, xor=False,
+                       RSM_RSM=True, RSM_RSM_override=True)
+
+    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
+                       median_cond2=True, cross_only=False, xor=False,
                        RSM_RSM=True, RSM_RSM_override=True)
     #
     # run_RSA_map_all_sn('OC_IT_L', False, 0, downsample_rate=1,

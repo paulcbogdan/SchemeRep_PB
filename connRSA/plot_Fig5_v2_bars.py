@@ -13,12 +13,17 @@ import matplotlib.pyplot as plt
 # TODO: box bar
 
 def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
-                    easy_override=False, ax=None, plot_i=0):
+                    easy_override=True, ax=None, plot_i=0):
     kw['return_dif'] = True
     # kw['cv'] = False
 
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
+
+    bad_sns_euc = ['132', '138', '224', '234']
+    if kw['trial_similarity'] == 'euc':
+        sns = [sn for sn in sns if sn not in bad_sns_euc]
+
     sns = [sn for sn in sns if sn not in bad_sns]
     betas_local = np.full((len(sns), len(fps)), np.nan)
     betas_dist = np.full((len(sns), len(fps)), np.nan)
@@ -26,14 +31,17 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     corrs_local = np.full((len(sns), len(fps)), np.nan)
     corrs_dist = np.full((len(sns), len(fps)), np.nan)
     for i, sn in enumerate(sns):
+        # if sn in ['132', '138', '224', '234']: continue
         for j, fp in enumerate(fps):
+            print(f'{sn}, {fp}')
             kw['sn'] = sn
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M'
             dist_key = f'{region}_BOLD_cmb' if big_voxelwise else f'{region}_BOLD'
             kw['ROIs_ctrl'] = [dist_key]
             beta1, beta2, dif = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
-                                                  verbose=-1, easy_override=easy_override)
+                                                  verbose=-1,
+                                                  easy_override=easy_override)
             betas_local[i, j] = beta1
             betas_dist[i, j] = beta2
             betas_dif[i, j] = dif
@@ -192,7 +200,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL']
 
-    target_ROIs = ['OrG', 'SFG']
+    # target_ROIs = ['OrG', 'SFG']
     # target_ROIs = ['Occipital']
     # target_ROIs = ['ITL']
     # target_ROIs = ['ITL']
@@ -237,9 +245,10 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
 
             kwargs = {'semantic': semantic,
                       'fp': None,
-                      'trial_similarity': 'corr',
+                      'trial_similarity': 'euc',
                       'second_order': 'spear', 'RDM_method': 'within_nan',
-                      'stdize_by_run': False, 'regress_row': False,
+                      'stdize_by_run': True,
+                      'regress_row': False,
                       }
             plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
                             ax=axs[i], plot_i=i)

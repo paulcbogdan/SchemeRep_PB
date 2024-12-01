@@ -30,10 +30,10 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     if min_vox is not None:
         vox_dist2MI = vox_dist2MI[:, min_vox:]
     #
-    peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
-                  np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
+    # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
+    #               np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
 
-    peak_dists = np.nanmean(vox_dist2MI[:, :3], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, 1:10], axis=-1)
     # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 2:max_vox], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
@@ -44,12 +44,19 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
 
 
     # img = np.full((97, 115, 97), np.nan)
+    # if downsample_rate == 3:
+    #     img_data = np.zeros((32, 38, 32))
+    # elif downsample_rate == 2:
+    #     img_data = np.zeros((48, 57, 48))
+    # else:
+    #     img_data = np.zeros((97, 115, 97))
+
     if downsample_rate == 3:
-        img_data = np.zeros((32, 38, 32))
+        img_data = np.full((32, 38, 32), np.nan)
     elif downsample_rate == 2:
-        img_data = np.zeros((48, 57, 48))
+        img_data = np.full((48, 57, 48), np.nan)
     else:
-        img_data = np.zeros((97, 115, 97))
+        img_data = np.full((97, 115, 97), np.nan)
     for i, (peak_dist, vox_idx) in enumerate(zip(peak_dists, vox_idxs)):
         # if peak_dist > 6:
         #
@@ -60,6 +67,7 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
         #     plt.show()
             # print(vox_idx)
             # quit()
+        # print(vox_idxs)
         img_data[*vox_idx] = peak_dist
     # img_data
     if downsample_rate:
@@ -163,9 +171,6 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
             # Subtracting 0 = find voxels that have the strongest effect across brain
             vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
-            # plt.imshow(vox_dist2MI, aspect='auto', interpolation='none')
-            # plt.show()
-            # quit()
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -174,7 +179,8 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
             sn_dist2MI.append(dist2MI - np.nanmean(stim_RSM))
 
 
-            img_data = idxs2img(vox_dist2MI, vox_idxs, max_vox=max_vox, min_vox=min_vox,
+            img_data = idxs2img(vox_dist2MI, vox_idxs,
+                                max_vox=max_vox, min_vox=min_vox,
                                 downsample_rate=downsample_rate)
             sn_img_datas.append(img_data)
 
@@ -250,7 +256,8 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
     view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
                              resampling_interpolation='nearest',
-                             vmin=vmin, vmax=vmax
+                             vmin=vmin, vmax=vmax,
+                             cmap='cold_hot_r'
                              )
     view.open_in_browser()
     # quit()
@@ -279,11 +286,13 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                                          # threshold=thresh,
                                          # cmap=cmap, title=title,
                                          # vmin=0 if only_positive else -vmax,
-                                         vmax=vmax, vmin=vmin,
+                                         # vmax=vmax, vmin=vmin,
+                                         vmin=-10, vmax=10,
                                          inflate=False,
                                          surf_mesh='fsaverage5',
                                          avg_method='median',
-                                         hemispheres=['left'],
+                                         hemispheres=['right' if '_R' in region else 'left'],
+                                         cmap='cold_hot_r'
                                          # threshold=3,
                                          )
     plt.show()

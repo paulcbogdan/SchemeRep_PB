@@ -244,6 +244,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
 
+
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 
     # fp_stim = f'{dir_focus}/{sn}_stim_{semantic}.npy'
@@ -256,6 +257,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     elif isinstance(semantic, tuple):
         assert not semantic[0]
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
+    else:
+        raise ValueError
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 
@@ -272,15 +275,23 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 continue
             with open(fp_ctrl, 'rb') as f:
                 RSM_ctrl = np.load(f)
+                # print(f'{fp_ctrl=}')
+
+                # print(RSM_ctrl.shape)
                 # plt.imshow(RSM_ctrl)
                 # plt.show()
                 # quit()
+                # print(RSM_ctrl.shape)
+
                 RSM_ctrl_l.append(RSM_ctrl)
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
             flat_ctrl_l.append(flat_ctrls)
         flat_ctrls = np.array(flat_ctrl_l).T
 
+
         nan_cols = np.isnan(flat_ctrls).any(axis=0)
+
+
         # print(f'{nan_cols=}')
         # quit()
         n_nans_cols = np.sum(nan_cols)
@@ -302,6 +313,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             nan_cols = np.isnan(flat_ctrls).any(axis=0)
             n_good_cols = np.sum(~nan_cols)
             print(f'\tAfter dropping rows: {n_good_cols=}')
+            # print(flat_ctrls.shape)
+            # quit()
             flat_ctrls = flat_ctrls[:, ~nan_cols]
         elif n_bad_cols > 10:
             print(f'Lots of bad columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
@@ -310,6 +323,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         else:
             flat_ctrls = flat_ctrls[:, ~nan_cols]
 
+        # print(flat_ctrls.shape)
+        # quit()
 
         if regress_row:
 
@@ -338,6 +353,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         # print(f'{flat_focus.shape=}')
         # print(f'{flat_ctrls.shape=}')
         # quit()
+        # print(flat_itr.shape)
+        # print(flat_focus.shape)
+        # print(flat_ctrls.shape)
 
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:
@@ -376,6 +394,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         return solution[1], r_sq
 
     adj_r_sq = 1 - (1 - r_sq) * (n - 1) / (n - p - 1)
+    # print(solution.shape)
+    # quit()
     return solution[1], r_sq
 
 def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
@@ -888,6 +908,7 @@ def prep_ROI_avg(target_name, ROI_cols,
     sns = get_sns('all')['healthy']
     for sn in sns:
         fp_out = f'{dir_focus}/{sn}_{target_name}.npy'
+        print(f'{fp_out=}')
         if os.path.isfile(fp_out) and os.path.getsize(fp_out) > 2048:
             continue
 
@@ -921,19 +942,22 @@ def do_regr():
     RSA = True
     semantic = False
     ERS_alt = False
-    trial_similarity = 'corr' # euc
+    # trial_similarity = 'corr' # euc
+    trial_similarity = 'euc' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
     four_tasks = '7'
     stdize_by_run = True if trial_similarity == 'euc' else False
+    # stdize_by_run = False
 
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
     # target_ROIs = ['FPT', 'DMN', 'FP']
-    target_ROIs = ['IT']
     target_ROIs = ['Ventral']
     target_ROIs = ['OrG', 'SFG', 'INS']
-    target_ROIs = ['INS']
+    # target_ROIs = ['INS']
+    target_ROIs = ['IT', 'ITL', 'Occipital']
+
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
@@ -956,6 +980,8 @@ def do_regr():
             voxel_small_M = fr'{target_ROI}_M'
             prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                          ERS_alt=ERS_alt, **kwargs)
+            print(f'prepped: {voxel_small_M}')
+            continue
             # print('test')
             # quit()
 

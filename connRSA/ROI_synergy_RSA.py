@@ -207,9 +207,9 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
 
     for v0 in range(n_voxels):
         for v1 in range(v0):
-            n_both = 0
-            n_same0 = 0
-            n_same1 = 0
+            # n_both = 0
+            # n_same0 = 0
+            # n_same1 = 0
 
             n_both_equal = 0
             n_both_unequal = 0
@@ -218,9 +218,9 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
             n_same0_equal = 0
             n_same0_unequal = 0
 
-            I_both = 0
-            I_same0 = 0
-            I_same1 = 0
+            # I_both = 0
+            # I_same0 = 0
+            # I_same1 = 0
 
             I_both_equal = 0
             I_both_unequal = 0
@@ -238,8 +238,8 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
                         break
 
                     if vecs_bool[t0, v0] == vecs_bool[t1, v0]:
-                        n_same0 += 1
-                        I_same0 += stim_RSM[t0, t1]
+                        # n_same0 += 1
+                        # I_same0 += stim_RSM[t0, t1]
 
                         if vecs_bool[t0, v0] == vecs_bool[t0, v1]:
                             n_same0_equal += 1
@@ -249,10 +249,10 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
                             I_same0_unequal += stim_RSM[t0, t1]
 
                         if vecs_bool[t0, v1] == vecs_bool[t1, v1]:
-                            n_same1 += 1
-                            I_same1 += stim_RSM[t0, t1]
-                            n_both += 1
-                            I_both += stim_RSM[t0, t1]
+                            # n_same1 += 1
+                            # I_same1 += stim_RSM[t0, t1]
+                            # n_both += 1
+                            # I_both += stim_RSM[t0, t1]
 
                             if vecs_bool[t0, v0] == vecs_bool[t0, v1]:
                                 n_same1_equal += 1
@@ -267,8 +267,8 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
 
                     else:
                         if vecs_bool[t0, v1] == vecs_bool[t1, v1]:
-                            n_same1 += 1
-                            I_same1 += stim_RSM[t0, t1]
+                            # n_same1 += 1
+                            # I_same1 += stim_RSM[t0, t1]
 
                             if vecs_bool[t0, v0] == vecs_bool[t0, v1]:
                                 n_same1_equal += 1
@@ -277,20 +277,31 @@ def get_ROI_synergy(vecs_bool, stim_RSM, nan_mask, stim_is_nan):
                                 n_same1_unequal += 1
                                 I_same1_unequal += stim_RSM[t0, t1]
 
-            if n_same0 == 0 or n_same1 == 0:
-                skips += 1
-                continue
-            if n_both == 0:
-                skips += 1
-                continue
+            # if n_same0 == 0 or n_same1 == 0:
+            #     skips += 1
+            #     continue
+            # if n_both == 0:
+            #     skips += 1
+            #     continue
 
-            I_same0 /= n_same0
-            I_same1 /= n_same1
+            if n_both_equal == 0 or n_both_unequal == 0 or n_same1_equal == 0 or n_same1_unequal == 0 \
+                    or n_same0_equal == 0 or n_same0_unequal == 0:
+                skips += 1
+                continue
+            # if n_same1_equal == 0 or n_same1_unequal == 0:
+            #     skips += 1
+            #     continue
+
+            I_same0 = I_same0_equal / n_same0_equal + I_same0_unequal / n_same0_unequal
+            I_same1 = I_same1_equal / n_same1_equal + I_same1_unequal / n_same1_unequal
+            I_both = I_both_equal / n_both_equal + I_both_unequal / n_both_unequal
+
+            # I_same0 /= n_same0
+            # I_same1 /= n_same1
+            # I_both /= n_both
 
             I_same0_all += I_same0
             I_same1_all += I_same1
-
-            I_both /= n_both
             I_both_all += I_both
 
     return I_both_all, I_same0_all, I_same1_all, skips
@@ -458,7 +469,7 @@ def get_synergy_score(sn, fp, median, semantic, layer,
     return synergies
 
 def do_ROI_synergy(median=True, semantic=True, layer=None,
-                   stdize_vol=True, downsample_rate=2,
+                   stdize_vol=True, downsample_rate=4,
                    combine_regions=True):
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
