@@ -46,6 +46,8 @@ def stdize(v, axis=None, nans=False, rankdata=False, stdize_by_run=False):
         #                            rankdata=rankdata)),
         #                    axis=axis)
 
+        print(f'{slices0=}, {slices1=}, {slices2=}')
+
         v = np.concatenate((stdize(v[tuple(slices0)], axis=axis, nans=nans,
                                    rankdata=rankdata),
                             stdize(v[tuple(slices1)], axis=axis, nans=nans,

@@ -49,6 +49,7 @@ def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
     except FileNotFoundError:
         # print('Not found!')
         RSM = np.full((114, 114), np.nan)
+        print('Not found!')
     except ValueError as e:
         print(f'{fp_focus1=}')
         print(f'allow_pickl=False ({sn}, {ROI}, {fp}): {e=}')
@@ -56,6 +57,10 @@ def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
 
     if within_nan:
         RSM = within_run_to_nan(RSM)
+    # print(RSM.shape)
+    # plt.imshow(RSM)
+    # plt.show()
+    # quit()
 
     df_sn = get_trial_info(sn, verbose=-1)
     df_sn, sess = sort_df_sn(df_sn, fp)
@@ -76,8 +81,8 @@ def get_IC_mat(sn, ROIs, fp, trial_similarity, stdize_by_run, second_order,
     for ROI in ROIs:
         RSM = get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run,
                           second_order, within_nan=within_nan)
-
         RSMs.append(RSM)
+
     RSMs = np.array(RSMs)
     nan_cols = np.all(np.isnan(RSMs), axis=0)
     RSMs = RSMs[:, ~nan_cols]
@@ -687,7 +692,7 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
             for fp in fps:
                 kwargs['fp'] = fp
                 corr = pickle_wrap(get_IC_mat, kwargs=kwargs, verbose=-1,
-                                   easy_override=False, dt_max=dt_max)
+                                   easy_override=True, dt_max=dt_max)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
 

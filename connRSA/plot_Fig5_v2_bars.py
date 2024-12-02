@@ -33,7 +33,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     for i, sn in enumerate(sns):
         # if sn in ['132', '138', '224', '234']: continue
         for j, fp in enumerate(fps):
-            print(f'{sn}, {fp}')
+            # print(f'{sn}, {fp}')
             kw['sn'] = sn
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M'
@@ -169,6 +169,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 
     plt.ylim(0, max_height * 1.1)
+    # plt.ylim(0, 0.02)
     # if std:
     #     pass
     # else:

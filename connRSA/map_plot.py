@@ -33,14 +33,19 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
 
-    peak_dists = np.nanmean(vox_dist2MI[:, 1:10], axis=-1)
-    # peak_dists = (np.nanmean(vox_dist2MI[:, :2], axis=-1) -
-    #               np.nanmean(vox_dist2MI[:, 2:max_vox], axis=-1))
+    # peak_dists = np.nanmean(vox_dist2MI[:, :], axis=-1)
+    # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
+    #               np.nanmean(vox_dist2MI[:, 3:], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
     # peak_dists = np.nanmean(vox_dist2MI[:, 5:], axis=-1)
 
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
-    # peak_dists = np.argmax(vox_dist2MI, axis=-1) + min_vox
+    # print(vox_dist2MI.shape)
+    # quit()
+    peak_dists = np.nanmean(vox_dist2MI[:, 5:20], axis=-1)
+    # peak_dists -= np.nanmean(peak_dists)
+    # print(peak_dists.shape)
+    # quit()
 
 
     # img = np.full((97, 115, 97), np.nan)
@@ -51,7 +56,11 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # else:
     #     img_data = np.zeros((97, 115, 97))
 
-    if downsample_rate == 3:
+    if downsample_rate == 5:
+        img_data = np.full((97 // 5, 115 // 5, 97 // 5), np.nan)
+    elif downsample_rate == 4:
+        img_data = np.full((97 // 4, 115 // 4, 97 // 4), np.nan)
+    elif downsample_rate == 3:
         img_data = np.full((32, 38, 32), np.nan)
     elif downsample_rate == 2:
         img_data = np.full((48, 57, 48), np.nan)
@@ -70,6 +79,7 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
         # print(vox_idxs)
         img_data[*vox_idx] = peak_dist
     # img_data
+    # print(f'{img_data.shape=}')
     if downsample_rate:
         img_data = do_int_upsample(img_data, downsample_rate, None)
         # num_not_nans = np.sum(~np.isnan(img_data) & (img_data > 0))
@@ -292,8 +302,8 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                                          surf_mesh='fsaverage5',
                                          avg_method='median',
                                          hemispheres=['right' if '_R' in region else 'left'],
-                                         cmap='cold_hot_r'
-                                         # threshold=3,
+                                         cmap='cold_hot_r',
+                                         threshold=2,
                                          )
     plt.show()
     # view.open_in_browser()
@@ -307,7 +317,7 @@ if __name__ == '__main__':
     #                 downsample_rate=2)
 
     plot_map_region(region='cortical_R', semantic=False, layer=0,
-                    downsample_rate=2, median_cond2=True)
+                    downsample_rate=2, median_cond2=False)
 
     # plot_map_region(region='OC_IT_L', semantic=False, layer=0,
     #                 downsample_rate=2)

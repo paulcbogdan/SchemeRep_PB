@@ -141,7 +141,7 @@ def prep_networks(network_setting=1):
                                  'pSTS', 'SPL', 'IPL', 'Pcun', 'PoG', 'INS',
                                  'CG', 'ACC', 'PCC',
                                  'EVC', 'LOC', 'sOcG',
-                                 'ITG', 'FuG', 'PhG', 'ATL', 'MTG',
+                                 'ITG', 'FuG', 'PhG', 'ATL', 'MTG', 'STG',
                                  'SPL', 'IPL', 'Pcun', 'pSTS']}
     elif network_setting == 24:
         networks = {'IT': ['ITG', 'FuG', 'PhG', 'ATL_L_7_3', 'ATL_R_7_3']}
