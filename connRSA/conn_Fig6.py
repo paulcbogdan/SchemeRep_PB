@@ -27,6 +27,7 @@ import seaborn as sns
 
 # suppress RuntimeWarning: All-NaN slice
 from warnings import filterwarnings
+from nilearn import image, plotting
 filterwarnings("ignore", category=RuntimeWarning,
                message="All-NaN slice encountered")
 
@@ -82,7 +83,6 @@ def get_IC_mat(sn, ROIs, fp, trial_similarity, stdize_by_run, second_order,
         RSM = get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run,
                           second_order, within_nan=within_nan)
         RSMs.append(RSM)
-
     RSMs = np.array(RSMs)
     nan_cols = np.all(np.isnan(RSMs), axis=0)
     RSMs = RSMs[:, ~nan_cols]
@@ -692,7 +692,7 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
             for fp in fps:
                 kwargs['fp'] = fp
                 corr = pickle_wrap(get_IC_mat, kwargs=kwargs, verbose=-1,
-                                   easy_override=True, dt_max=dt_max)
+                                   easy_override=False, dt_max=dt_max)
                 sn_corrs.append(corr)
             sn_corrs = np.array(sn_corrs)
 
@@ -836,10 +836,58 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
     return corrs, sns
 
+def plot_IC_mat_on_brain(ERS=False, regress_FC=True):
+    corr = run_IC_analysis(ERS=ERS, regress_FC=regress_FC, get_M=True)
+    atlas = get_atlas()
+
+    out = np.zeros(atlas['maps'].shape)
+    for i, (ROI, region_i) in enumerate(zip(atlas['ROIs'],
+                                            atlas['ROI_regions'])):
+        i_l = []
+        for j, region_j in enumerate(atlas['ROI_regions']):
+            if region_i == region_j:
+                i_l.append(corr[:, i, j])
+        ROI_i_score = np.nanmean(i_l)
+        print(f'{ROI}: {ROI_i_score=:.3f}')
+        out[atlas['maps'].get_fdata() == i + 1] = ROI_i_score
+    img = image.new_img_like(atlas['maps'], out)
+    # quit()
+
+    vmin = np.nanquantile(out[out > 0], 0.001)
+    vmax = np.nanquantile(out[out > 0], 0.999)
+    print(f'{vmin=:.3f}, {vmax=:.3f}')
+    fig, axs = plotting.plot_img_on_surf(img,
+                                         # threshold=thresh,
+                                         # cmap=cmap, title=title,
+                                         # vmin=0 if only_positive else -vmax,
+                                         vmax=vmax, vmin=vmin,
+                                         # vmin=-10, vmax=10,
+                                         inflate=False,
+                                         surf_mesh='fsaverage5',
+                                         avg_method='median',
+                                         # hemispheres=['right' if '_R' in region else 'left'],
+                                         cmap='cold_hot_r',
+                                         # threshold=2,
+                                         )
+    plt.show()
+
+    view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
+                             resampling_interpolation='nearest',
+                             vmin=vmin, vmax=vmax,
+                             cmap='cold_hot_r'
+                             )
+    view.open_in_browser()
+    quit()
+
+
+
+    # print(corr.shape)
+    # quit()
 
 if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     # plot_FC_mat(drop_con=False, four_tasks='7')
     # run_IC_analysis(ERS=True, regress_FC=False)
-    run_IC_analysis(ERS=False, regress_FC=False)
+    # run_IC_analysis(ERS=False, regress_FC=True)
+    plot_IC_mat_on_brain()
     # plot_FC_mat()

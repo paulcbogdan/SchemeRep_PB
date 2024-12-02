@@ -473,7 +473,12 @@ def load_img_rsm(region, fp, sn, semantic, layer, easy_override=False,
 
 
     if stdize_by_run:
-        voxels_mat = utils.stdize(voxels_mat, stdize_by_run=True, axis=0)
+        run0 = stats.zscore(voxels_mat[:38, :], axis=0, nan_policy='omit')
+        run1 = stats.zscore(voxels_mat[38:76, :], axis=0, nan_policy='omit')
+        run2 = stats.zscore(voxels_mat[76:114, :], axis=0, nan_policy='omit')
+        voxels_mat = np.concatenate((run0, run1, run2), axis=0)
+
+        # voxels_mat = utils.stdize(voxels_mat, stdize_by_run=True, axis=0)
 
     voxels_mat_bool = voxels_mat > np.nanmedian(voxels_mat, axis=0)
 
@@ -552,7 +557,8 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
                 subtract_other=False, median_cond2=False, stdize_by_run=True,
                 downsample_rate=None, stdize_vol=False, cross_only=False,
                 do_itr=False, dist_downplay=False, xor=False,
-                RSM_RSM=False, RSM_RSM_override=True):
+                RSM_RSM=False, RSM_RSM_override=True, #vox0_RSA=False
+                ):
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
     stim_M = np.nanmean(stim_RSM) * 10_000
@@ -598,7 +604,11 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
               f'neither: {np.nanmean(MI_neither_mat):.2f}, '
               f'xor = {np.nanmean(dif):.2f}, '
               f'{stim_M=:.2f}')
-
+    elif vox0_RSA:
+        MI_vox0_mat *= 10_000
+        MI_vox0_mat -= stim_M
+        print(f'{np.nanmean(MI_vox0_mat)=:.2f} | '
+              f'{stim_M=:.2f}')
     else:
         MI_both_mat -= stim_M
 
@@ -638,6 +648,8 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
         vox_dist2MI, cnter = get_voxel_dist2MI(dif, euc_mtx, max_dist=max_vox)
     elif do_itr:
         vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
+    elif vox0_RSA:
+        vox_dist2MI, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_dist=max_vox)
     else:
         vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
         vox_dist2MI_both_mat[vox_dist2MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
@@ -671,8 +683,8 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    # sns = sns[3::4]
-    sns = sns[1::2]
+    sns = sns[3::4]
+    # sns = sns[1::2]
     # sns = sns[0:]
     dist2MI_all = []
     for i, sn in enumerate(sns):
@@ -898,9 +910,13 @@ if __name__ == '__main__':
                        median_cond2=False, cross_only=False, xor=False,
                        RSM_RSM=True, RSM_RSM_override=True)
 
-    run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
-                       median_cond2=True, cross_only=False, xor=False,
+    run_RSA_map_all_sn('cortical_R', False, 0, downsample_rate=2,
+                       median_cond2=False, cross_only=False, xor=False,
                        RSM_RSM=True, RSM_RSM_override=True)
+
+    # run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
+    #                    median_cond2=True, cross_only=False, xor=False,
+    #                    RSM_RSM=True, RSM_RSM_override=True)
     #
     # run_RSA_map_all_sn('OC_IT_L', False, 0, downsample_rate=1,
     #                    median_cond2=False, cross_only=False, xor=False,

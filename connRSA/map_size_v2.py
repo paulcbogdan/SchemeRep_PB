@@ -625,11 +625,12 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI'] #
-    bad_tups = [('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')]
+    bad_tups = [('224', 'obj7_fMRI'), ('234', 'obj7_fMRI'), ('132', 'bl7_fMRI'),
+                ('138', 'vis7_fMRI'), ('132', 'obj7_fMRI')]
     # fps = ['obj7_fMRI', 'con7_fMRI',  'vis7_fMRI']
     # fps = ['con7_fMRI']
     # sns = sns[::-1]
-    # sns = sns[3::4]
+    sns = sns[5::6]
     # sns = ['132']
     img_data_l = []
     for i, sn in tqdm(enumerate(sns)):
@@ -656,13 +657,13 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
                     utils.pickle_wrap(get_dist2MI_v2, None, kwargs=kw, verbose=-1,
                                       easy_override=False))
 
-            # plt.imshow(cnter, aspect='auto', interpolation='none')
+            # plt.imshow(vox_dist2MI, aspect='auto', interpolation='none')
             # plt.colorbar()
             # plt.show()
             # quit()
 
 
-            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            # vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
             # vox_dist2MI = stats.zscore(vox_dist2MI, axis=0)
             vox_idxs = np.array(vox_idxs // ROI_size, dtype=np.int8)
             img_data = idxs2img(vox_dist2MI, vox_idxs,
@@ -686,8 +687,15 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     vmin = np.nanquantile(img_data, .001)
     print(f'{vmin=:.3f}')
     vmax = np.nanquantile(img_data, .999)
+    # vmax = 0.025
+    # vmin = 0.0
     vabs = np.max(np.abs([vmin, vmax]))
+    # vabs = 5
     print(f'{vmax=:.3f}')
+    # quit()
+    # vmin = -.01
+    # vmax = .03
+
     # img_data[img_data < vmin] = vmin
     # img_data[img_data > vmax] = vmax
     # plt.hist(img_data.flatten())
@@ -696,14 +704,20 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
     # img_data *= 10
 
+    # plt.imshow(img_data[20, :, :], aspect='auto', interpolation='none',)
+    # plt.show()
+    # quit()
 
     img = image.new_img_like(get_atlas()['maps'], img_data)
-    img = image.smooth_img(img, fwhm=2)
+    # img = image.smooth_img(img, fwhm=1)
 
     if vmax > 2:
+        print('TEST')
+        # pass
         # img = image.smooth_img(img, fwhm=2)
-        img = image.threshold_img(img, threshold=2, copy=False, cluster_threshold=100)
+        # img = image.threshold_img(img, threshold=2, copy=False, cluster_threshold=100)
     else:
+        # pass
         img = image.threshold_img(img, threshold=0.01, copy=False, cluster_threshold=20)
 
     fig, axs = plotting.plot_img_on_surf(img,
@@ -714,33 +728,35 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
                                          # inflate=True,
                                          # views=['posterior', 'ventral'],
                                          surf_mesh='fsaverage5',
-                                         avg_method='max',
+                                         avg_method='median',
                                          hemispheres=['right' if '_R' in region else 'left'],
                                          cmap='cold_hot_r',
                                          cbar_tick_format='%.1f',
-                                         threshold=2 if vmax > 2 else 0.0,
+                                         # threshold=-1,
+                                         threshold=0.001,
+                                         # threshold=2 if vmax > 2 else 0.0,
                                          )
     plt.show()
     # return
 
-    # view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
-    #                          resampling_interpolation='nearest',
-    #                          vmin=vmin, vmax=vmax,
-    #                          # vmin=-5, vmax=5,
-    #                          cmap='cold_hot_r'
-    #                          )
-    # view.open_in_browser()
+    view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
+                             resampling_interpolation='nearest',
+                             vmin=vmin, vmax=vmax,
+                             # vmin=-5, vmax=5,
+                             cmap='cold_hot_r'
+                             )
+    view.open_in_browser()
 
 
-    # quit()
+    quit()
 
 
 
 if __name__ == '__main__':
     # spearman makes no difference
 
+    # run_RSA_map_all_sn('OC_IT_L', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
     # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
-    # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
 
     # TODO:
 
@@ -752,6 +768,8 @@ if __name__ == '__main__':
 
     # DID OVERNIGHT 12/1/2024
     #
-    run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=False)
-    run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
+    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=False)
+    # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
 
+    run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True)
+    # run_RSA_map_all_sn('OC_T_L', ROI_size=2, smallest_cube=6, size_limit=True)

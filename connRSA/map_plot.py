@@ -42,7 +42,7 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
     # print(vox_dist2MI.shape)
     # quit()
-    peak_dists = np.nanmean(vox_dist2MI[:, 5:20], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, 0:10], axis=-1)
     # peak_dists -= np.nanmean(peak_dists)
     # print(peak_dists.shape)
     # quit()
@@ -142,12 +142,14 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                   'xor': False, 'RSM_RSM': True,
                   'RSM_RSM_override': True
                   }
+            # kw['RSM_RSM']
+            # kw['vox0_RSA'] = True
             print(kw)
 
             fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
-            if not os.path.exists(fp_out):
-                print(f'Missing: {fp_out}')
-                continue
+            # if not os.path.exists(fp_out):
+            #     print(f'Missing: {fp_out}')
+            #     continue
             print('Go')
             # kw['RSM_RSM_override'] = False
 
@@ -180,7 +182,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
             #                           axis=1)[..., None]
 
             # Subtracting 0 = find voxels that have the strongest effect across brain
-            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            # vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -218,7 +220,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     print(f'{img_data_l.shape=}')
     print(f'{num_subj=}')
 
-    img_data = np.nanmean(img_data_l, axis=0) / np.nanstd(img_data_l, axis=0) * np.sqrt(num_subj)
+    img_data = np.nanmean(img_data_l, axis=0)# / np.nanstd(img_data_l, axis=0) * np.sqrt(num_subj)
     # num_not_nan = np.sum(~np.isnan(img_data))
     # print(f'{num_not_nan=}')
     # quit()
@@ -244,9 +246,11 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     # print(img_data.shape)
     # quit()
 
+    img_data[np.isinf(img_data)] = np.nan
+    img_data[(img_data < .00000001) & (img_data > -.00000001)] = np.nan
     if 'cortical' in region:
-        vmin = np.nanquantile(img_data, 0.001)
-        vmax = np.nanquantile(img_data, 0.999)
+        vmin = np.nanquantile(img_data, 0.01)
+        vmax = np.nanquantile(img_data, 0.99)
     else:
         vmin = np.nanquantile(img_data, 0.01)
         vmax = np.nanquantile(img_data, 0.99)
@@ -296,14 +300,14 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                                          # threshold=thresh,
                                          # cmap=cmap, title=title,
                                          # vmin=0 if only_positive else -vmax,
-                                         # vmax=vmax, vmin=vmin,
-                                         vmin=-10, vmax=10,
+                                         vmax=vmax, vmin=vmin,
+                                         # vmin=-10, vmax=10,
                                          inflate=False,
                                          surf_mesh='fsaverage5',
                                          avg_method='median',
                                          hemispheres=['right' if '_R' in region else 'left'],
                                          cmap='cold_hot_r',
-                                         threshold=2,
+                                         # threshold=2,
                                          )
     plt.show()
     # view.open_in_browser()
@@ -316,8 +320,8 @@ if __name__ == '__main__':
     # plot_map_region(region='PFC_L', semantic=False, layer=0,
     #                 downsample_rate=2)
 
-    plot_map_region(region='cortical_R', semantic=False, layer=0,
-                    downsample_rate=2, median_cond2=False)
+    plot_map_region(region='cortical_L', semantic=False, layer=0,
+                    downsample_rate=2, median_cond2=True)
 
     # plot_map_region(region='OC_IT_L', semantic=False, layer=0,
     #                 downsample_rate=2)
