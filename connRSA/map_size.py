@@ -557,7 +557,7 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
                 subtract_other=False, median_cond2=False, stdize_by_run=True,
                 downsample_rate=None, stdize_vol=False, cross_only=False,
                 do_itr=False, dist_downplay=False, xor=False,
-                RSM_RSM=False, RSM_RSM_override=True, #vox0_RSA=False
+                RSM_RSM=False, RSM_RSM_override=True, vox0_RSA=False
                 ):
     stim_RSM = get_sn_fp_stim_RSM(sn, fp, semantic=semantic,
                                   layer=layer)
@@ -591,7 +591,12 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
 
     if not RSM_RSM:
         MI_both_mat *= 10_000
-    if RSM_RSM:
+    if vox0_RSA:
+        MI_vox0_mat *= 10_000
+        MI_vox0_mat -= stim_M
+        print(f'{np.nanmean(MI_vox0_mat)=:.2f} | '
+              f'{stim_M=:.2f}')
+    elif RSM_RSM:
         if np.sum(np.isinf(ex_benefit)) > 0:
             print(f'RSM x RSM has infinites: {np.sum(np.isinf(ex_benefit))}')
             ex_benefit[np.isinf(ex_benefit)] = np.nan
@@ -603,11 +608,6 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
         print(f'Stim: {np.nanmean(stim_M):.2f}, main: {np.nanmean(MI_both_mat):.2f}, '
               f'neither: {np.nanmean(MI_neither_mat):.2f}, '
               f'xor = {np.nanmean(dif):.2f}, '
-              f'{stim_M=:.2f}')
-    elif vox0_RSA:
-        MI_vox0_mat *= 10_000
-        MI_vox0_mat -= stim_M
-        print(f'{np.nanmean(MI_vox0_mat)=:.2f} | '
               f'{stim_M=:.2f}')
     else:
         MI_both_mat -= stim_M
@@ -640,16 +640,15 @@ def get_dist2MI(sn, fp, semantic, layer, region, subtract_vox, max_vox,
     euc_mtx = get_idx2euc_custom(valid_voxel_idxs)
     # TODO: This won't work because the distance isnt precise
 
-
-    if RSM_RSM:
+    if vox0_RSA:
+        vox_dist2MI, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_dist=max_vox)
+    elif RSM_RSM:
         vox_dist2MI, cnter = get_voxel_dist2MI(np.log(ex_benefit), euc_mtx, max_dist=max_vox)
     elif xor:
         # MI_both_mat = dif
         vox_dist2MI, cnter = get_voxel_dist2MI(dif, euc_mtx, max_dist=max_vox)
     elif do_itr:
         vox_dist2MI, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
-    elif vox0_RSA:
-        vox_dist2MI, cnter = get_voxel_dist2MI(MI_vox0_mat, euc_mtx, max_dist=max_vox)
     else:
         vox_dist2MI_both_mat, cnter = get_voxel_dist2MI(MI_both_mat, euc_mtx, max_dist=max_vox)
         vox_dist2MI_both_mat[vox_dist2MI_both_mat == GLOBAL_NAN_VALUE] = np.nan
@@ -685,7 +684,7 @@ def run_RSA_map_all_sn(region, semantic, layer, max_vox=30, subtract_vox=True,
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     sns = sns[3::4]
     # sns = sns[1::2]
-    # sns = sns[0:]
+    # sns = sns[::-1]
     dist2MI_all = []
     for i, sn in enumerate(sns):
         sn_dist2MI = []
@@ -908,11 +907,13 @@ if __name__ == '__main__':
 
     run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
                        median_cond2=False, cross_only=False, xor=False,
-                       RSM_RSM=True, RSM_RSM_override=True)
+                       # RSM_RSM=True, RSM_RSM_override=True
+                       )
 
-    run_RSA_map_all_sn('cortical_R', False, 0, downsample_rate=2,
-                       median_cond2=False, cross_only=False, xor=False,
-                       RSM_RSM=True, RSM_RSM_override=True)
+    # run_RSA_map_all_sn('cortical_R', False, 0, downsample_rate=2,
+    #                    median_cond2=False, cross_only=False, xor=False,
+                       # RSM_RSM=True, RSM_RSM_override=True
+                       # )
 
     # run_RSA_map_all_sn('cortical_L', False, 0, downsample_rate=2,
     #                    median_cond2=True, cross_only=False, xor=False,

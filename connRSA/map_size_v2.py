@@ -90,7 +90,7 @@ def parse_into_cubes(img, ROI_size=2, threshold=6):
 
 @njit(fastmath=True, nopython=True, cache=True)
 def make_RSMs(ROI_trial_vec, ROI_sizes,
-              spearman=False
+              spearman=False, euc=False
               ):
     num_ROIS = ROI_trial_vec.shape[0]
     num_trials = ROI_trial_vec.shape[1]
@@ -115,41 +115,59 @@ def make_RSMs(ROI_trial_vec, ROI_sizes,
                 #     continue
                 # elif j < k:
                 #     continue
-                prod_sum = 0
-                j_sum = 0
-                jj_sum = 0
-                k_sum = 0
-                kk_sum = 0
-                num_points = 0
-                # print(ROI_size)
 
-                for x in range(ROI_size):
-                    # if is_na[i, j, l] or is_na[i, k, l]:
-                    #     continue
-                    if ROI_trial_vec[i, j, x] < HIGH_GLOBAL:
-                        raise ValueError
-                    if ROI_trial_vec[i, k, x] < HIGH_GLOBAL:
-                        raise ValueError
-                    prod_sum += (ROI_trial_vec[i, j, x] *
-                                 ROI_trial_vec[i, k, x])
-                    jj_sum += ROI_trial_vec[i, j, x] ** 2
-                    kk_sum += ROI_trial_vec[i, k, x] ** 2
-                    j_sum += ROI_trial_vec[i, j, x]
-                    k_sum += ROI_trial_vec[i, k, x]
-                    num_points += 1
-                if num_points == 0: continue
-                if np.abs(prod_sum) < 1e-12: # all zeroes in one
-                    continue
+                if euc:
+                    # num_points = 0
+                    total_dif = 0
+                    for x in range(ROI_size):
+                        if ROI_trial_vec[i, j, x] < HIGH_GLOBAL:
+                            raise ValueError
+                        if ROI_trial_vec[i, k, x] < HIGH_GLOBAL:
+                            raise ValueError
+                        dif = np.abs(ROI_trial_vec[i, j, x] - ROI_trial_vec[i, k, x])
+                        total_dif += dif ** 2
+                        # num_points += 1
+                    # if num_points == 0: continue
+                    dist = np.sqrt(total_dif)
+                    out[i, j, k] = dist
+                    out[i, k, j] = dist
+                else:
 
-                E_JK = prod_sum / num_points
-                E_J = j_sum / num_points
-                E_K = k_sum / num_points
-                numerator = E_JK - (E_J * E_K)
-                E_JJ = jj_sum / num_points
-                E_KK = kk_sum / num_points
-                denominator = np.sqrt((E_JJ - E_J ** 2) * (E_KK - E_K ** 2))
-                out[i, j, k] = numerator / denominator
-                out[i, k, j] = numerator / denominator
+                    prod_sum = 0
+                    j_sum = 0
+                    jj_sum = 0
+                    k_sum = 0
+                    kk_sum = 0
+                    num_points = 0
+                    # print(ROI_size)
+
+                    for x in range(ROI_size):
+                        # if is_na[i, j, l] or is_na[i, k, l]:
+                        #     continue
+                        if ROI_trial_vec[i, j, x] < HIGH_GLOBAL:
+                            raise ValueError
+                        if ROI_trial_vec[i, k, x] < HIGH_GLOBAL:
+                            raise ValueError
+                        prod_sum += (ROI_trial_vec[i, j, x] *
+                                     ROI_trial_vec[i, k, x])
+                        jj_sum += ROI_trial_vec[i, j, x] ** 2
+                        kk_sum += ROI_trial_vec[i, k, x] ** 2
+                        j_sum += ROI_trial_vec[i, j, x]
+                        k_sum += ROI_trial_vec[i, k, x]
+                        num_points += 1
+                    if num_points == 0: continue
+                    if np.abs(prod_sum) < 1e-12: # all zeroes in one
+                        continue
+
+                    E_JK = prod_sum / num_points
+                    E_J = j_sum / num_points
+                    E_K = k_sum / num_points
+                    numerator = E_JK - (E_J * E_K)
+                    E_JJ = jj_sum / num_points
+                    E_KK = kk_sum / num_points
+                    denominator = np.sqrt((E_JJ - E_J ** 2) * (E_KK - E_K ** 2))
+                    out[i, j, k] = numerator / denominator
+                    out[i, k, j] = numerator / denominator
     return out
 
 @njit(fastmath=True, nopython=True, cache=True)
@@ -536,14 +554,18 @@ def org_size2_data(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
 
 
 def prep_RSM_x_RSM(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
-                   size_limit=False, spearman=False, stdize_by_run=False):
+                   size_limit=False, spearman=False, stdize_by_run=False,
+                   euc=False):
 
+    if euc:
+        assert size_limit
+        assert not spearman
 
     img_mat, ROI_sizes_, ROI_sizes, within_range, euc_mtx, valid_voxel_idxs = (
         org_size2_data(region, fp, sn, ROI_size, max_dist, smallest_cube, size_limit,
                        stdize_by_run))
     # print(ROI_sizes_)
-    RSMs = make_RSMs(img_mat, ROI_sizes_, spearman=spearman)
+    RSMs = make_RSMs(img_mat, ROI_sizes_, spearman=spearman, euc=euc)
 
     t_st = time()
     RSM_x_RSM_map = numba_fast_RSM_x_RSM(RSMs, within_range)
@@ -589,7 +611,8 @@ def get_dist2MI_v2_RSA(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
     return vox_dist2MI, None, valid_voxel_idxs, cnter
 
 def get_dist2MI_v2(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
-                   size_limit=True, spearman=False, stdize_by_run=False):
+                   size_limit=True, spearman=False, stdize_by_run=False,
+                   euc=False):
     # RSM_x_RSM_map, euc_mtx, valid_voxel_idxs, ROI_sizes = (
     #     prep_RSM_x_RSM(region, fp, sn, ROI_size, max_dist, smallest_cube))
     RSM_x_RSM_map, euc_mtx, valid_voxel_idxs, ROI_sizes = (
@@ -599,7 +622,8 @@ def get_dist2MI_v2(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
                                                   'smallest_cube': smallest_cube,
                                                   'size_limit': size_limit,
                                                   'spearman': spearman,
-                                                  'stdize_by_run': stdize_by_run},
+                                                  'stdize_by_run': stdize_by_run,
+                                                  'euc': euc},
                           verbose=-1, easy_override=False))
     # plt.imshow(RSM_x_RSM_map, aspect='auto', interpolation='none')
     # plt.colorbar()
@@ -614,7 +638,9 @@ def get_dist2MI_v2(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
 
 def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
                        min_vox=1, max_vox=20, smallest_cube=20,
-                       size_limit=True, RSA=False, spearman=True):
+                       size_limit=True, RSA=False, spearman=False,
+                       euc=False
+                       ):
 # def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 #                        min_vox=1, max_vox=10, smallest_cube=5,
 #                        size_limit=True, RSA=False):
@@ -630,11 +656,11 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     # fps = ['obj7_fMRI', 'con7_fMRI',  'vis7_fMRI']
     # fps = ['con7_fMRI']
     # sns = sns[::-1]
-    sns = sns[5::6]
+    # sns = sns[5::6]
     # sns = ['132']
     img_data_l = []
     for i, sn in tqdm(enumerate(sns)):
-        # if sn in ['136']: break
+        if sn in ['136']: break
         # if sn in ['106']: break
         sn_img_data = []
         for j, fp in enumerate(fps):
@@ -645,7 +671,8 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
             kw = {'sn': sn, 'fp': fp, 'region': region, 'ROI_size': ROI_size,
                   'max_dist': max_dist, 'smallest_cube': smallest_cube,
-                  'size_limit': size_limit, 'stdize_by_run': True}
+                  'size_limit': size_limit, 'stdize_by_run': True,
+                  'euc': euc}
 
             if RSA:
                 vox_dist2MI, _, vox_idxs, cnter = (
@@ -663,12 +690,20 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
             # quit()
 
 
-            # vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            # print(vox_dist2MI)
+            # quit()
             # vox_dist2MI = stats.zscore(vox_dist2MI, axis=0)
             vox_idxs = np.array(vox_idxs // ROI_size, dtype=np.int8)
             img_data = idxs2img(vox_dist2MI, vox_idxs,
                                 max_vox=max_vox, min_vox=min_vox,
                                 downsample_rate=ROI_size)
+            # print(img_data)
+            # plt.imshow(img_data[:, :, 32], aspect='auto', interpolation='none')
+            # plt.show()
+            # quit()
+            # print(img_data)
+            # quit()
             sn_img_data.append(img_data)
         img_data = np.nanmean(sn_img_data, axis=0)
         img_data_l.append(img_data)
@@ -681,20 +716,23 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     # img_data -= np.nanmean(img_data)
 
 
-    img_data[np.isinf(img_data)] = np.nan
-    img_data[np.isnan(img_data)] = 0
+    # print(img_data)
+    # plt.imshow(img_data[:, :, 32], aspect='auto', interpolation='none')
+    # plt.show()
+    # quit()
 
-    vmin = np.nanquantile(img_data, .001)
+
+    img_data[np.isinf(img_data)] = np.nan
+    vmin = np.nanquantile(img_data, .01)
     print(f'{vmin=:.3f}')
-    vmax = np.nanquantile(img_data, .999)
-    # vmax = 0.025
-    # vmin = 0.0
-    vabs = np.max(np.abs([vmin, vmax]))
-    # vabs = 5
+    vmax = np.nanquantile(img_data, .99)
     print(f'{vmax=:.3f}')
     # quit()
-    # vmin = -.01
-    # vmax = .03
+
+    vabs = np.max(np.abs([vmin, vmax]))
+
+
+    img_data[np.isnan(img_data)] = 0
 
     # img_data[img_data < vmin] = vmin
     # img_data[img_data > vmax] = vmax
@@ -730,14 +768,15 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
                                          surf_mesh='fsaverage5',
                                          avg_method='median',
                                          hemispheres=['right' if '_R' in region else 'left'],
-                                         cmap='cold_hot_r',
+                                         # cmap='cold_hot_r',
+                                         cmap='turbo_r',
                                          cbar_tick_format='%.1f',
                                          # threshold=-1,
                                          threshold=0.001,
-                                         # threshold=2 if vmax > 2 else 0.0,
+                                         # threshold=1 if vmax > 2 else 0.0,
                                          )
     plt.show()
-    # return
+    return
 
     view = plotting.view_img(img, threshold=0, symmetric_cmap=False,
                              resampling_interpolation='nearest',
@@ -748,7 +787,7 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     view.open_in_browser()
 
 
-    quit()
+    # quit()
 
 
 
@@ -768,8 +807,14 @@ if __name__ == '__main__':
 
     # DID OVERNIGHT 12/1/2024
     #
-    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=False)
+    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('cortical_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('cortical_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=True)
+
     # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
 
-    run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True)
-    # run_RSA_map_all_sn('OC_T_L', ROI_size=2, smallest_cube=6, size_limit=True)
+    # run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('OC_T_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+
+    # run_RSA_map_all_sn('PFC_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('OC_T_R', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)

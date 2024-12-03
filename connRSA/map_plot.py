@@ -42,7 +42,11 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
     # print(vox_dist2MI.shape)
     # quit()
-    peak_dists = np.nanmean(vox_dist2MI[:, 0:10], axis=-1)
+    # print(vox_dist2MI)
+    # quit()
+    peak_dists = np.nanmean(vox_dist2MI[:, 0:15], axis=-1)
+    # print(peak_dists)
+    # quit()
     # peak_dists -= np.nanmean(peak_dists)
     # print(peak_dists.shape)
     # quit()
@@ -78,12 +82,18 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
             # quit()
         # print(vox_idxs)
         img_data[*vox_idx] = peak_dist
+        # print(peak_dist)
     # img_data
     # print(f'{img_data.shape=}')
     if downsample_rate:
+
         img_data = do_int_upsample(img_data, downsample_rate, None)
+
         # num_not_nans = np.sum(~np.isnan(img_data) & (img_data > 0))
         # print(f'Highest: {num_not_nans=}')
+        # print('test')
+        # print(img_data)
+        # quit()
         img_data_ = np.full((97, 115, 97), np.nan)
         img_data_[:img_data.shape[0], :img_data.shape[1], :img_data.shape[2]] = img_data
         img_data = img_data_
@@ -128,7 +138,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
     for i, sn in enumerate(sns):
         # if sn in ['108', '109', '112', '113', '117', '118']: continue
-        # if sn == '123': break
+        if sn == '211': break
         sn_img_datas = []
         sn_dist2MI = []
 
@@ -143,19 +153,19 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                   'RSM_RSM_override': True
                   }
             # kw['RSM_RSM']
-            # kw['vox0_RSA'] = True
+            kw['vox0_RSA'] = True
             print(kw)
 
             fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
             # if not os.path.exists(fp_out):
             #     print(f'Missing: {fp_out}')
             #     continue
-            print('Go')
+            # print('Go')
             # kw['RSM_RSM_override'] = False
 
             vox_dist2MI, _, vox_idxs, cnter = (
                 utils.pickle_wrap(get_dist2MI, None, kwargs=kw,
-                                  verbose=-1, easy_override=False))
+                                  verbose=-1, easy_override=True))
             # # vox_dist2MI[cnter[:, 1] < 10] = np.nan
             vox_dist2MI[vox_dist2MI == -999_999] = np.nan
             cnter = np.array(cnter, dtype=np.float32)
@@ -182,7 +192,7 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
             #                           axis=1)[..., None]
 
             # Subtracting 0 = find voxels that have the strongest effect across brain
-            # vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -248,6 +258,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
 
     img_data[np.isinf(img_data)] = np.nan
     img_data[(img_data < .00000001) & (img_data > -.00000001)] = np.nan
+    # print(img_data.shape)
+    # quit()
+    # img_data -= np.nanmean(img_data)
     if 'cortical' in region:
         vmin = np.nanquantile(img_data, 0.01)
         vmax = np.nanquantile(img_data, 0.99)
@@ -321,7 +334,7 @@ if __name__ == '__main__':
     #                 downsample_rate=2)
 
     plot_map_region(region='cortical_L', semantic=False, layer=0,
-                    downsample_rate=2, median_cond2=True)
+                    downsample_rate=2, median_cond2=False)
 
     # plot_map_region(region='OC_IT_L', semantic=False, layer=0,
     #                 downsample_rate=2)
@@ -329,6 +342,9 @@ if __name__ == '__main__':
     # plot_map_region(region='cortical_L', semantic=True, layer=None,
     #                 downsample_rate=3)
 
+    # For median_cond2, if two RSMs are very independent, then a positive correlation reflects
+    #   just an attention/salience/focus effect?
+    #   Maybe test vox0_RSA and vox1_RSA given median_cond=True
 
     # TODO: Test (both - vox1):vox2 ratio? Is vox2 helping encode the same items vox1 is informing?
 

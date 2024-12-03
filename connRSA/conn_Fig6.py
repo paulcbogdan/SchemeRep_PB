@@ -19,11 +19,13 @@ from networks.old.networks import prep_networks
 
 from Utils.plotting_funcs import plot_connectivity
 from organize_bhv import get_trial_info, sort_df_sn
+from stim import get_semantic_vectors, get_DNN_vecs
 from utils import stdize
 from Utils.pickle_wrap_funcs import pickle_wrap
 from functools import cache
 import seaborn as sns
 
+from numba import njit
 
 # suppress RuntimeWarning: All-NaN slice
 from warnings import filterwarnings
@@ -147,6 +149,137 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     t_end = time()
     print(f'Numba corr calc: {t_end - t_st:.3f}')
     return corrs
+
+@cache
+def get_feat_RSMs(sn, fp, semantic=False):
+    if semantic == 'random':
+        out = np.random.normal(size=(10_000, 114, 114))
+        return out
+    df_sn = get_trial_info(sn)
+    sess = (fp.split('_')[0].replace('2', '').replace('3', '').
+            replace('4', '').replace('7', '').replace('8', ''))
+    df_sn['sess'] = sess
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True)
+
+    if semantic:
+        d_vecs = get_semantic_vectors()
+    else:
+        d_vecs = get_DNN_vecs(DNN_layer=0, PCA=True)
+
+    num_feats = d_vecs[next(iter(d_vecs.keys()))]
+    # print(len(d_vecs))
+    # quit()
+    out = np.full((len(num_feats), 114, 114), np.nan)
+    for k in range(len(num_feats)):
+        for i, obj0 in enumerate(df_sn['obj']):
+            for j, obj1 in enumerate(df_sn['obj']):
+                if i >= j:
+                    continue
+                dif = np.abs(d_vecs[obj0][k] - d_vecs[obj1][k])
+                out[k, i, j] = dif
+                out[k, j, i] = dif
+    return out
+
+
+
+def get_RSA_feat_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
+                     second_order, RDM_method, semantic,
+                     just_get_IRAFs=False):
+    dir_root = fr'cache/conn_RSA/ars/RSA'
+    # num_pairs = (len(fps) * (len(fps) - 1)) // 2
+
+    sn_corrs = []
+    for j, fp0 in enumerate(fps):
+        ROI_RSMs = []
+        skip_idx_ROIs = []
+        # stim_RSMs = []
+        for i, ROI in enumerate(ROIs):
+            # feat_RSMs = get_feat_RSMs(sn, fp0, semantic=semantic)
+            dir0_focus = (f'{dir_root}/{fp0}_{trial_similarity}_'
+                          f'{second_order}_{RDM_method}_{stdize_by_run}')
+            fp0_focus = f'{dir0_focus}/{sn}_{ROI}_BOLD.npy'
+            try:
+                with open(fp0_focus, 'rb') as f:
+                    ROI_RSM = np.load(f)
+                skip_idx_ROIs.append(False)
+                # if RDM_method == 'within_nan':
+                #     RSM0_focus = within_run_to_nan(RSM0_focus)
+            except FileNotFoundError:
+                ROI_RSM = np.zeros((114, 114))
+                skip_idx_ROIs.append(True)
+                print(f'Missing: {ROI}, {fp0=}')
+                # ar[i, j, :] = np.full(114, np.nan)
+                # continue
+            ROI_RSMs.append(ROI_RSM)
+
+        ROI_RSMs = np.array(ROI_RSMs)
+        # print(ROI_RSMs)
+        # quit()
+        stim_RSMs = get_feat_RSMs(sn, fp0, semantic=semantic)
+        skip_idx_ROIs = np.array(skip_idx_ROIs)
+        t_st = time()
+        ROI_feat_rs = get_ROI_RSMs_x_stim_RSMs(ROI_RSMs, stim_RSMs, skip_idx_ROIs)
+        t_end = time()
+        print(f'Numba feat x stim calc: {t_end - t_st:.3f} s')
+        corr = np.corrcoef(ROI_feat_rs)
+        sn_corrs.append(corr)
+    sn_corrs = np.array(sn_corrs)
+    # plt.imshow(sn_corrs[0])
+    # plt.show()
+    # quit()
+    return sn_corrs
+
+
+@njit(fastmath=True, nopython=True, cache=True)
+def get_std_rsm_flat(ROI_RSMs, skip_idx):
+    idx_to_run = np.empty(114)
+    for t in range(114):
+        idx_to_run[t] = t // 38
+    num_ROIs = ROI_RSMs.shape[0]
+    # print(ROI_RSMs)
+    # quit()
+    ROI_RSMs_flat = np.empty((num_ROIs, 4332), dtype=np.float32)
+    for ROI_i in range(num_ROIs):
+        if skip_idx[ROI_i]:
+            ROI_RSMs_flat[ROI_i, :] = np.zeros(4332)
+            continue
+        # zscore
+        v = np.empty(4332)
+        idx = 0
+        for t0 in range(114):
+            for t1 in range(t0):
+                if idx_to_run[t0] == idx_to_run[t1]:
+                    continue
+                v[idx] = ROI_RSMs[ROI_i, t0, t1]
+                # print(ROI_RSMs[ROI_i, t0, t1])
+                idx += 1
+        # TODO: Chck if any nan
+
+        M = np.mean(v)
+        # print(M)
+        # quit()
+        sd = np.std(v)
+        # print(sd)
+        # print(v)
+        # quit()
+        ROI_RSMs_flat[ROI_i, :] = (v - M) / sd
+    return ROI_RSMs_flat
+
+@njit(fastmath=True, nopython=True, cache=True)
+def get_ROI_RSMs_x_stim_RSMs(ROI_RSMs, stim_RSMs, skip_idx_ROIs):
+    num_ROIs = ROI_RSMs.shape[0]
+    num_stim = stim_RSMs.shape[0]
+    out = np.empty((num_ROIs, num_stim))
+
+    stim_RSMs_flat = get_std_rsm_flat(stim_RSMs, np.zeros(num_stim, dtype=np.bool_))
+    ROI_RSMs_flat = get_std_rsm_flat(ROI_RSMs, skip_idx_ROIs)
+
+    for ROI_i in range(num_ROIs):
+        for stim_j in range(num_stim):
+            ROI_v = ROI_RSMs_flat[ROI_i, :]
+            stim_v = stim_RSMs_flat[stim_j, :]
+            out[ROI_i, stim_j] = np.mean(ROI_v * stim_v)
+    return out
 
 def get_cross_IRAF_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                        second_order, RDM_method, semantic,
@@ -457,26 +590,6 @@ def get_idxs(ROI):
 
 def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
 
-    # ventral_idxs = get_idxs('ITL')
-    # occ_idxs = get_idxs('Occipital')
-    # corrs_FC[:, *np.diag_indices(corrs_FC.shape[1])] = np.nan
-    # corrs_ventral = corrs_FC[:, ventral_idxs][:, :, ventral_idxs]
-    # M_ventral_FC = np.nanmean(corrs_ventral, axis=(1, 2))
-    # corrs_occ = corrs_FC[:, occ_idxs][:, :, occ_idxs]
-    # M_occ_FC = np.nanmean(corrs_occ, axis=(1, 2))
-    #
-    # print(f'Ventral: {np.nanmean(M_ventral_FC):.3f} '
-    #       f'({np.nanstd(M_ventral_FC):.3f})')
-    # print(f'Occ: {np.nanmean(M_occ_FC):.3f} ({np.nanstd(M_occ_FC):.3f})')
-    # t, p = stats.ttest_rel(M_ventral_FC, M_occ_FC)
-    # N = M_ventral_FC.shape[0]
-    # d = t / np.sqrt(N)
-    # print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
-    # print(f'{len(sns_FC)=}')
-    # M_ventral_FC = [M_ventral_FC[sns_FC.index(sn)] for sn in sns]
-    # M_occ_FC = [M_occ_FC[sns_FC.index(sn)] for sn in sns]
-    # t_FC, p_FC = stats.ttest_rel(M_ventral_FC, M_occ_FC)
-    # print(f'vetral vs. occ FC: {t_FC=:.3f}, {p_FC=:.3f}')
 
     networks = ['Occipital', 'ITL', 'Parietal', 'PFC']
     network2name = {'Occipital': 'Occipital', 'ITL': 'Temporal',
@@ -605,9 +718,11 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     #     print(f'{e=}')
 
 
-def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
+def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
+                    rsa_feat=True):
     # semantic = False
     # regress_FC = False
+    # rsa_feat = False
 
     dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
 
@@ -617,8 +732,9 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
 
     cross = False
     IRAF = False
+    # rsa_feat = True
 
-    semantic = False
+    semantic = True
     drop_con = False
     same_RSM_corr = False
     trial_similarity = 'corr' # euc
@@ -639,6 +755,7 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
            '208', '209', '210', '211', '212', '214',
            '216', '217', '218', '219', '221', '222', '224', '225', '227',
            '230', '232', '233', '234', '235', '239']
+    # sns = sns[::-1]
 
     four_tasks = '7'
     fps = prep_fps(four_tasks)
@@ -658,7 +775,24 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False):
     for i, sn in tqdm(enumerate(sns), desc=f'Looping IC: {cross=}'):
 
         kwargs['sn'] = sn
-        if IRAF:
+        if rsa_feat:
+            kwargs['fps'] = fps
+            kwargs['second_order'] = 'spear'
+            kwargs['RDM_method'] = 'within_nan'
+            kwargs['semantic'] = semantic
+            sn_corrs = pickle_wrap(get_RSA_feat_mat,
+                                   kwargs=kwargs, verbose=-1,
+                                   easy_override=False,
+                                   dt_max=dt_max)
+
+            kwargs['semantic'] = 'random'
+            sn_corrs_random = pickle_wrap(get_RSA_feat_mat,
+                                          kwargs=kwargs, verbose=-1,
+                                          easy_override=False,
+                                          dt_max=dt_max)
+            # sn_corrs = sn_corrs - sn_corrs_random
+            # sn_corrs = sn_corrs_random
+        elif IRAF:
             kwargs['fps'] = fps
             kwargs['second_order'] = 'spear'
             kwargs['RDM_method'] = 'within_nan'
@@ -888,6 +1022,6 @@ if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     # plot_FC_mat(drop_con=False, four_tasks='7')
     # run_IC_analysis(ERS=True, regress_FC=False)
-    # run_IC_analysis(ERS=False, regress_FC=True)
-    plot_IC_mat_on_brain()
+    run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=True)
+    # plot_IC_mat_on_brain()
     # plot_FC_mat()
