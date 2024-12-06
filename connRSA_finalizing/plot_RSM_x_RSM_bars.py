@@ -61,7 +61,8 @@ def interaction_bars(kwargs):
                 else:
                     kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
                 kwargs['ROIs_ctrl'] = []
-                print(f'{kwargs=}')
+                # print(f'{kwargs=}')
+                # quit()
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1, easy_override=False)
 
@@ -332,7 +333,7 @@ def do_regr_dif(semantic=False, RSA=True, big_voxelwise=True,
                   'second_order': second_order,
                   'RDM_method': RDM_method,
                   'stdize_by_run': stdize_by_run,
-                  'regress_row': regress_row, 'four_tasks': four_tasks,
+                  'regress_row': regress_row, #'four_tasks': four_tasks,
                   }
 
         target_name = fr'{target_ROI}_M'
@@ -410,16 +411,18 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
     stdize_by_run = False
     regress_row = False
 
-    kwargs = {'fp': None, 'fp0': None,
-              'fp1': None, 'trial_similarity': trial_similarity,
+    kwargs = {'fp': None,
+              # 'fp0': None,
+              # 'fp1': None,
+              'trial_similarity': trial_similarity,
               'second_order': second_order,
               'RDM_method': RDM_method,
               'stdize_by_run': stdize_by_run,
-              'regress_row': regress_row, 'four_tasks': four_tasks,
+              'regress_row': regress_row, #'four_tasks': four_tasks,
               }
 
 
-    fps = prep_fps(kwargs['four_tasks'])
+    fps = prep_fps(four_tasks)
     sns = get_sns('all')['healthy']
 
     bad_sns = ['116', '125', '133', '213', '215', '231']
@@ -443,7 +446,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
         cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
     for i, sn in enumerate(sns):
         for j, fp in enumerate(fps):
-            kwargs['cv'] = False
+            # kwargs['cv'] = False
             kwargs['return_dif'] = True
             kwargs['sn'] = sn
             kwargs['fp'] = fp
@@ -454,7 +457,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
                 if cond[0] in ['Occipital', 'IT']:
                     kwargs['semantic'] = cond[1]
                     if big_voxelwise:
-                        kwargs['ROI_focus'] = f'{cond[0]}_BOLD_cmb'
+                        kwargs['ROI_focus'] = f'{cond[0]}_BOLD_ctrl_cmb'
                     else:
                         kwargs['ROI_focus'] = f'{cond[0]}_BOLD'
 
@@ -462,7 +465,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
                 else:
                     kwargs['semantic'] = cond[0]
                     if cond[1] == 'Local':
-                        kwargs['ROI_focus'] = f'{region}_M'
+                        kwargs['ROI_focus'] = f'{region}_M_{trial_similarity}'
                         # kwargs['ROIs_ctrl'] = [f'{region}_BOLD_cmb']
                     else:
                         if big_voxelwise:
@@ -471,12 +474,18 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
                             kwargs['ROI_focus'] = f'{region}_BOLD'
                         # kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
                     kwargs['ROIs_ctrl'] = [] # f'{region}_M'
+                if kwargs['semantic'] == False:
+                    kwargs['semantic'] = (False, 0)
 
-                beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                          verbose=-1, easy_override=False)
-
+                beta1, test, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
+                                          verbose=-1, easy_override=True)
+                # print(beta1)
+                # print(test)
+                # print(kwargs)
+                # print('--------')
+                # quit()
                 cond2betas[cond][i, j] = beta1 * 1000
-            # quit()
+    # quit()
 
     cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
                   in cond2betas.items()}
@@ -600,9 +609,9 @@ def plot_Figure5_bars():
 
 def plot_FigureS1_bars():
     plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
-    # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
-    # plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
-    # plot_FigureS1_bars_region('PFC', big_voxelwise=True)
+    plot_FigureS1_bars_region('ITL', big_voxelwise=False)
+    plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
+    plot_FigureS1_bars_region('PFC', big_voxelwise=True)
 
     # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
     # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
@@ -611,7 +620,7 @@ def plot_FigureS1_bars():
     # plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
     # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
     # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
-    # plot_FigureS1_bars_region('OrG', big_voxelwise=False)
+    # plot_FigureS1_bars_region('OrG', big_voxelwise=True)
     # plot_FigureS1_bars_region('SFG', big_voxelwise=False)
     # plot_FigureS1_bars_region('INS', big_voxelwise=False)
     # plot_FigureS1_bars_region('ITG', big_voxelwise=False)

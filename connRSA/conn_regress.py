@@ -254,7 +254,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     if isinstance(semantic, bool) and semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
     elif isinstance(semantic, bool) and not semantic:
-        RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 2)
+        RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 0)
     elif isinstance(semantic, tuple):
         assert not semantic[0]
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
@@ -935,6 +935,7 @@ def prep_ROI_avg(target_name, ROI_cols,
         ctrl_M = np.nanmean(np.array(l), axis=0)
         with open(fp_out, 'wb') as f:
             np.save(f, ctrl_M)
+        print(fp_out)
 
 
 def do_regr():
@@ -967,7 +968,11 @@ def do_regr():
 
     target_ROIs = get_atlas(combine_regions=True,
                             combine_bilateral=True)['tick_labels']
-    target_ROIs = ['tha_str']
+    # target_ROIs = ['tha_str']
+    target_ROIs = (['IT', 'ITL', 'Occipital', 'Parietal', 'PFC', 'subcort'] +
+                   target_ROIs)
+    # target_ROIs = ['Occipital']
+
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
@@ -987,11 +992,11 @@ def do_regr():
                       'regress_row': regress_row, 'four_tasks': four_tasks,
                       }
 
-            voxel_small_M = fr'{target_ROI}_M'
+            voxel_small_M = fr'{target_ROI}_M_{trial_similarity}'
             prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                          ERS_alt=ERS_alt, **kwargs)
             print(f'prepped: {voxel_small_M}')
-            # continue
+            continue
             # print('test')
             # quit()
 
@@ -1009,7 +1014,7 @@ def do_regr():
 
             t_ROIs_all, t_bold_all, t_conn_all, title = (
                 pickle_wrap(plot_stacked_bars, kwargs=outer_kwargs,
-                            verbose=-1, easy_override=False))
+                            verbose=-1, easy_override=True))
 
             print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
                   f'{t_conn_all:.2f}')

@@ -166,7 +166,7 @@ if __name__ == '__main__':
     targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
     targets = ['Ventral']
     targets = ['Occipital', 'IT', 'ITL']
-    targets = ['tha_str']
+    # targets = ['tha_str']
     # targets = ['ITL']
     for sem_per in [True, False]:
         for target in targets:#[::-1]:

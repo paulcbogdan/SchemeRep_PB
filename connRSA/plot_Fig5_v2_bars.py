@@ -36,26 +36,36 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             # print(f'{sn}, {fp}')
             kw['sn'] = sn
             kw['fp'] = fp
-            kw['ROI_focus'] = f'{region}_M'
+            kw['ROI_focus'] = f'{region}_M_corr'
             dist_key = f'{region}_BOLD_cmb' if big_voxelwise else f'{region}_BOLD'
-            dist_key = f'{region}_BOLD_ctrl_cmb'
+            # dist_key = f'{region}_BOLD_ctrl_cmb'
             kw['ROIs_ctrl'] = [dist_key]
+            kw['return_dif'] = True
+            # easy_override = True
             beta1, beta2, dif = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                   verbose=-1,
                                                   easy_override=easy_override)
+            # print(beta1)
+            # print(beta2)
             betas_local[i, j] = beta1
             betas_dist[i, j] = beta2
             betas_dif[i, j] = dif
 
             kw['ROIs_ctrl'] = []
+            # print(kw)
             corr_local, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                  verbose=-1, easy_override=easy_override)
+            # print(corr_local)
+            # quit()
             corrs_local[i, j] = corr_local
 
             kw['ROI_focus'] = dist_key
+
             corr_dist, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                 verbose=-1, easy_override=easy_override)
             corrs_dist[i, j] = corr_dist
+            print(corr_dist)
+            quit()
 
     assert np.sum(np.isnan(corrs_local)) == 0
     assert np.sum(np.isnan(corrs_dist)) == 0
@@ -264,5 +274,5 @@ if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
     # plot_Fig5_v2_bars_all(semantic=True,) 
-    plot_Fig5_v2_bars_all(big_voxelwise=True)
+    plot_Fig5_v2_bars_all(big_voxelwise=False)
 
