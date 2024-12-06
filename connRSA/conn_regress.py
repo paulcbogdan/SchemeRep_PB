@@ -234,7 +234,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    cv=None,
                    fp0=None, fp1=None, four_tasks=None,
                    regress_row=True, return_dif=False):
-
+    # print('test')
+    # quit()
     dir_in = fr'C:/PycharmProjects/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
@@ -275,6 +276,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 continue
             with open(fp_ctrl, 'rb') as f:
                 RSM_ctrl = np.load(f)
+
                 # print(f'{fp_ctrl=}')
 
                 # print(RSM_ctrl.shape)
@@ -287,6 +289,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
             flat_ctrl_l.append(flat_ctrls)
         flat_ctrls = np.array(flat_ctrl_l).T
+
 
 
         nan_cols = np.isnan(flat_ctrls).any(axis=0)
@@ -942,8 +945,8 @@ def do_regr():
     RSA = True
     semantic = False
     ERS_alt = False
-    # trial_similarity = 'corr' # euc
-    trial_similarity = 'euc' # euc
+    trial_similarity = 'corr' # euc
+    # trial_similarity = 'euc' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
     four_tasks = '7'
@@ -957,7 +960,14 @@ def do_regr():
     target_ROIs = ['OrG', 'SFG', 'INS']
     # target_ROIs = ['INS']
     target_ROIs = ['IT', 'ITL', 'Occipital']
+    target_ROIs = ['ITG', 'FuG', 'PhG', 'OcG', 'Cun']
+    target_ROIs = ['STG', 'MTG', 'EVC', 'LOC', 'ATL', 'IFG', 'MFG']
+    # target_ROIs = ['Hipp', 'Tha', 'Amyg', 'Str']
 
+
+    target_ROIs = get_atlas(combine_regions=True,
+                            combine_bilateral=True)['tick_labels']
+    target_ROIs = ['tha_str']
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
@@ -981,7 +991,7 @@ def do_regr():
             prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
                          ERS_alt=ERS_alt, **kwargs)
             print(f'prepped: {voxel_small_M}')
-            continue
+            # continue
             # print('test')
             # quit()
 
@@ -999,7 +1009,7 @@ def do_regr():
 
             t_ROIs_all, t_bold_all, t_conn_all, title = (
                 pickle_wrap(plot_stacked_bars, kwargs=outer_kwargs,
-                            verbose=-1, easy_override=True))
+                            verbose=-1, easy_override=False))
 
             print(f'{target_ROI} | {t_ROIs_all:.2f}, {t_bold_all:.2f} '
                   f'{t_conn_all:.2f}')

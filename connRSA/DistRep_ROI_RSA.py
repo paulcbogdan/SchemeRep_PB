@@ -17,7 +17,8 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
                'IT': 24, 'ITL': 25, 'Parietal': 26, 'OC_IT': 27, 'OC_T': 27,
                'cortex': 28, 'FP': 29, 'DMN': 29, 'FPT': 29,
                'Temporal': 30,
-               'PL': 31, 'LPFC': 31}
+               'PL': 31, 'LPFC': 31,
+               'tha_str': 32}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'PCL': 19, 'ATL': 19, 'STG': 19, 'MTG': 19, 'ITG': 19,
                     'FuG': 19, 'PhG': 19, 'pSTS': 19, 'SPL': 19, 'IPL': 19,
@@ -77,6 +78,18 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
                                            dt_max=dt_max)
         report_results(results_bold_cmb_big, do_lmer=False)
 
+    if settings['do_networks'] != 19: # this is covered by combine one below
+        settings['conn'] = 'BOLD_ctrl'
+        print(f'COMBINE BIG BOLD ctrl' * 10)
+        settings['combine_regions'] = True
+        results_bold_cmb_big = pickle_wrap(run_settings, None,
+                                           kwargs=settings, easy_override=False,
+                                           verbose=1, cache_dir=dir_results,
+                                           dt_max=dt_max)
+        report_results(results_bold_cmb_big, do_lmer=False)
+    return
+
+    settings['conn'] = 'BOLD'
     # dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
     print('TOAST')
     settings['do_networks'] = False
@@ -103,6 +116,16 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
                                        verbose=1, cache_dir=dir_results)
     report_results(results_bold_sep_big, do_lmer=False)
 
+
+    print(f'BOLD SUB MEAN ' * 10)
+    settings['conn'] = 'BOLD_ctrl'
+    settings['combine_regions'] = True
+
+    results_bold_sep_big_sub_mean = pickle_wrap(run_settings, None,
+                                       kwargs=settings, easy_override=True,
+                                       verbose=1, cache_dir=dir_results)
+    report_results(results_bold_sep_big, do_lmer=False)
+
     # return (results_conn, results_bold_comb, results_bold_sep_big,
     #         results_bold_sep)
 
@@ -112,8 +135,8 @@ def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
     # Don't modify the below ones
     # RSA = True
     conn = 'prod'
-    # trial_similarity = 'corr'
-    trial_similarity = 'euc'
+    trial_similarity = 'corr'
+    # trial_similarity = 'euc'
     second_order = 'spear'
     four_tasks = '7'
     combine_regions = False
@@ -143,7 +166,8 @@ if __name__ == '__main__':
     targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
     targets = ['Ventral']
     targets = ['Occipital', 'IT', 'ITL']
-    targets = ['ITL']
+    targets = ['tha_str']
+    # targets = ['ITL']
     for sem_per in [True, False]:
         for target in targets:#[::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,

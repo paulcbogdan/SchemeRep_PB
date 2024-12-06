@@ -176,6 +176,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
                  org_by_region=False, inc=None, drop_nan_voxels=True,
                  easy_override=False, combine_regions=False,
                  verbose=0):
+    # print(f'{combine_regions=}')
     ROIs = atlas['ROIs']
     ROI_regions = atlas['ROI_regions']
     shenyang_key = atlas['shenyang']
@@ -195,6 +196,7 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
     fp_cache = fr'cache\ROI2vecs\sn{sn}_{fp_fMRI_col}{inc_str}_nROI{n_ROIs}' \
                fr'_reg{n_regions}{org_by_region_str}{nan_str}{combine_str}' \
                fr'{sh_str}{stim_order}.pkl'
+    # print(f'{fp_cache=}')
     if verbose >= 0: print(f'Load ROI2vecs: {fp_cache=}')
     f = lambda: get_ROI_vecs_(df_sn, fp_fMRI_col, atlas, nan_thresh=nan_thresh,
                               org_by_region=org_by_region, drop_nan_voxels=drop_nan_voxels)

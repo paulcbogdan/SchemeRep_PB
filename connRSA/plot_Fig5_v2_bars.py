@@ -38,6 +38,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M'
             dist_key = f'{region}_BOLD_cmb' if big_voxelwise else f'{region}_BOLD'
+            dist_key = f'{region}_BOLD_ctrl_cmb'
             kw['ROIs_ctrl'] = [dist_key]
             beta1, beta2, dif = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                   verbose=-1,
@@ -198,8 +199,9 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 
 
-def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
+def plot_Fig5_v2_bars_all(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL']
+    target_ROIs = ['Occipital', 'Occipital']
 
     # target_ROIs = ['OrG', 'SFG']
     # target_ROIs = ['Occipital']
@@ -246,13 +248,13 @@ def plot_Fig5_v2_bars_all(semantic=False, big_voxelwise=True):
 
             kwargs = {'semantic': semantic,
                       'fp': None,
-                      'trial_similarity': 'euc',
+                      'trial_similarity': 'corr',
                       'second_order': 'spear', 'RDM_method': 'within_nan',
-                      'stdize_by_run': True,
+                      'stdize_by_run': False,
                       'regress_row': False,
                       }
             plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
-                            ax=axs[i], plot_i=i)
+                            ax=axs[i] , plot_i=i)
         plt.show()
     quit()
 
@@ -262,5 +264,5 @@ if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
     # plot_Fig5_v2_bars_all(semantic=True,) 
-    plot_Fig5_v2_bars_all(semantic=True, big_voxelwise=True)
+    plot_Fig5_v2_bars_all(big_voxelwise=True)
 

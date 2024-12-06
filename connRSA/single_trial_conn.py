@@ -182,7 +182,7 @@ def prep_results_d(settings, networks, atlas, sns):
     results['settings'] = settings
     return results
 
-def run_settings(RSA=True, semantic=False, do_networks=False,
+def  run_settings(RSA=True, semantic=False, do_networks=False,
                  conn='euc', trial_similarity='euc',
                  second_order='spear', four_tasks=False,
                  combine_regions=False, split=False, RDM_method='by_run',

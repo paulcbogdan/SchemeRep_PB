@@ -48,7 +48,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
                             dist=trial_similarity)
     # print('TEEEEST')
 
-    print('RSA_sn')
+    print(f'RSA_sn: {sn}/{fp}')
     if 'norm' in conn and 'avg' in conn:
         networks = {'MTL': ['Hipp', 'PhG', 'ATL'],
                     'Occipital': ['EVC', 'LOC', 'sOcG'],
@@ -113,7 +113,6 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             vecs = get_conn_vecs(vecs_BOLD, conn=conn,
                                  stdize_by_run=stdize_by_run)
 
-
         if 'avg' in conn:
             vecs = np.nanmean(vecs, axis=-1)[..., None]
 
@@ -171,7 +170,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
         fp_RSM = f'{dir_out}/{fn_RSM}'
 
-        print(fp_RSM)
+        # print(fp_RSM)
         # quit()
 
         with open(fp_RSM, 'wb') as f:

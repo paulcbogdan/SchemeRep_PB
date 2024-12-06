@@ -656,11 +656,11 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     # fps = ['obj7_fMRI', 'con7_fMRI',  'vis7_fMRI']
     # fps = ['con7_fMRI']
     # sns = sns[::-1]
-    # sns = sns[5::6]
+    # sns = sns[5:6]
     # sns = ['132']
     img_data_l = []
     for i, sn in tqdm(enumerate(sns)):
-        if sn in ['136']: break
+        # if sn in ['136']: break
         # if sn in ['106']: break
         sn_img_data = []
         for j, fp in enumerate(fps):
@@ -691,6 +691,7 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
 
             vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            vox_dist2MI = stats.zscore(vox_dist2MI, axis=0, nan_policy='omit')
             # print(vox_dist2MI)
             # quit()
             # vox_dist2MI = stats.zscore(vox_dist2MI, axis=0)
@@ -723,9 +724,9 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
 
     img_data[np.isinf(img_data)] = np.nan
-    vmin = np.nanquantile(img_data, .01)
+    vmin = np.nanquantile(img_data, .1)
     print(f'{vmin=:.3f}')
-    vmax = np.nanquantile(img_data, .99)
+    vmax = np.nanquantile(img_data, .9)
     print(f'{vmax=:.3f}')
     # quit()
 
@@ -749,14 +750,14 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     img = image.new_img_like(get_atlas()['maps'], img_data)
     # img = image.smooth_img(img, fwhm=1)
 
-    if vmax > 2:
-        print('TEST')
+    # if vmax > 2:
+    #     print('TEST')
         # pass
         # img = image.smooth_img(img, fwhm=2)
         # img = image.threshold_img(img, threshold=2, copy=False, cluster_threshold=100)
-    else:
+    # else:
         # pass
-        img = image.threshold_img(img, threshold=0.01, copy=False, cluster_threshold=20)
+        # img = image.threshold_img(img, threshold=0.01, copy=False, cluster_threshold=20)
 
     fig, axs = plotting.plot_img_on_surf(img,
                                          # vmin=vmin, vmax=vmax,
@@ -772,7 +773,7 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
                                          cmap='turbo_r',
                                          cbar_tick_format='%.1f',
                                          # threshold=-1,
-                                         threshold=0.001,
+                                         threshold=0.00001,
                                          # threshold=1 if vmax > 2 else 0.0,
                                          )
     plt.show()
@@ -813,7 +814,9 @@ if __name__ == '__main__':
 
     # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
 
-    # run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('OC_T_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('PFC_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
     run_RSA_map_all_sn('OC_T_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
 
     # run_RSA_map_all_sn('PFC_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)

@@ -3,6 +3,7 @@ import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
 from connRSA.conn_Fig6 import get_idxs
+from connRSA.jit_funcs import do_int_downsample, do_int_upsample
 
 
 def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
@@ -15,28 +16,60 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     #                                   atlas_OG['ROI_regions']):
     #     print(f'{region_OG} | {region}: {ROI}')
 
-    rois = sorted(get_idxs(system))
+    idxs = get_idxs(system)
+    print(idxs)
+    # quit()
+    rois = sorted(idxs)
+    # rois = rois[5:6]
+    # rois = rois[11:12]
+    # rois = rois[1:2]
+
+
     print(f'{system} | number of ROIs: {len(rois)}')
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
-    return
+
+
+
 
     if voxelwise:
         vmin = np.min(data[data > 0.5])
         print(f'{vmin=}')
         vmax = np.max(data)
         print(f'{vmax=}')
+
         sag = np.sum(data, axis=0) > 0
         data[:, :, :] = 0
         data[20, sag] = 1
 
-        rand = np.random.randint(vmin, vmax, data.shape)
-        data = np.where(data > 0.5, rand, data)
+        rand = np.random.randint(0, 100, data.shape)
+        data = np.where(data > 0.1, rand, data)
+        data[1::2, :, :] = -999_999
+        data[:, 1::2, :] = -999_999
+        data[:, :, 1::2] = -999_999
+
+        # data[:, :, 0::2] = 0
+
+    downsample = 2
+    if downsample > 1:
+        data = data[..., None]
+        mask = data > 0.5
+        data = do_int_downsample(data, downsample, mask, nan_val=-999_999,
+                                edge_drop=False, fourD_mask=False)
+        data[data < 0] = 0
+        data = data[..., 0]
+        data = do_int_upsample(data, downsample, mask)
+        data[data > 0] -= np.min(data[data > 0])
 
     img = image.new_img_like(atlas['maps'], data)
+    # plt.hist(data[data > 0].flatten())
+    # plt.show()
+    # quit()
+
     fig = plt.figure(figsize=(4.2, 5))
 
-    plotting.plot_glass_brain(img, cmap='turbo',#plt.get_cmap(cmap),
+    plotting.plot_glass_brain(img,
+                              cmap='turbo',#plt.get_cmap(cmap),
                               black_bg=False,
                               vmin=0.5,
                               resampling_interpolation='nearest',
@@ -52,7 +85,7 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     #                           resampling_interpolation='nearest',
     #                           display_mode='x', figure=fig,
     #                           bg_img=None)
-    plt.show()
+    plt.show(dpi=1000)
 
 NUM_VOXELS_ALL = []
 
@@ -78,8 +111,6 @@ def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
         lowest_roi = np.min(rois)
         data[data >= lowest_roi] -= (lowest_roi - 1)
 
-
-
     low_num_voxels_system = np.min(num_voxels_system)
     high_num_voxels_system = np.max(num_voxels_system)
     median_num_voxels_system = np.median(num_voxels_system)
@@ -87,8 +118,8 @@ def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
     SD_num_voxels_system = np.std(num_voxels_system)
     print(f'{low_num_voxels_system=:.0f} | {high_num_voxels_system=:.0f} | {median_num_voxels_system=:.0f} | '
           f'M = {mean_num_voxels_system:.0f} [SD = {SD_num_voxels_system:.0f}]')
-    plt.hist(num_voxels_system, bins=32, range=(0, 1600))
-    plt.show()
+    # plt.hist(num_voxels_system, bins=32, range=(0, 1600))
+    # plt.show()
 
     if len(NUM_VOXELS_ALL) > 100:
         low_num_voxels = np.min(NUM_VOXELS_ALL)
@@ -114,5 +145,5 @@ def do_slicing(data):
 
 if __name__ == '__main__':
     # 'ITL', 'OC_IT'
-    for target in ['Occipital', 'IT', 'Parietal', 'PFC']:
-        plot_large_avg_ROIs(target, )
+    for target in ['Occipital']:#, 'IT', 'Parietal', 'PFC']:
+        plot_large_avg_ROIs(target, voxelwise=True)

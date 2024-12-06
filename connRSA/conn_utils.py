@@ -1,8 +1,9 @@
 from collections import defaultdict
 
 import numpy as np
+from pygments.unistring import combine
 
-from Utils.atlas_funcs import get_atlas
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from Study1A.load_Study1A_funcs import get_ROI_vecs
 from stim import scipy_dist
 from utils import tril_flat, stdize, pb_outer_euc, pb_outer
@@ -152,6 +153,30 @@ def cluster_regions(ROI2vecs, networks):
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new
 
+def get_BOLD_ctrl(combine_regions, sn, fp0, df_sn, org_by_region,
+                  easy_override):
+    atlas = get_atlas(combine_regions=False)
+    ROIs = get_BNA_ROIs('BNA_region')
+    ROIs = [ROI.split('_')[0] for ROI in ROIs[::2]]
+    assert combine_regions
+    ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
+                             drop_nan_voxels=False,
+                             org_by_region=org_by_region,
+                             easy_override=easy_override,
+                             combine_regions=False,
+                             verbose=-1)
+
+    ROI2vecs0_ = {}
+    for ROI in ROIs:
+        l = []
+        for ROI_small, vecs in ROI2vecs0.items():
+            if ROI in ROI_small:
+                l.append(vecs)
+                vecs -= np.nanmean(vecs, axis=1)[:, None]
+        vecs = np.concatenate(l, axis=1)
+        ROI2vecs0_[ROI] = vecs
+    ROI2vecs0 = ROI2vecs0_
+    return ROI2vecs0
 
 def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       org_by_region=True, cross_region=False,
@@ -161,21 +186,32 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
     # print(f'{org_by_region=}')
 
     assert not (combine_regions and org_by_region)
+    # print(conn)
+    # quit()
 
-    ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
-                             drop_nan_voxels=False,
-                             org_by_region=org_by_region,
-                             easy_override=easy_override,
-                             combine_regions=combine_regions,
-                             verbose=-1)
-
-    if fp1 is not None:
-        ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
+    if conn == 'BOLD_ctrl':
+        ROI2vecs0 = get_BOLD_ctrl(combine_regions, sn, fp0, df_sn, org_by_region,
+                                  easy_override)
+    else:
+        ROI2vecs0 = get_ROI_vecs(sn, atlas, fp0, df_sn, nan_thresh=1.01,
                                  drop_nan_voxels=False,
                                  org_by_region=org_by_region,
                                  easy_override=easy_override,
                                  combine_regions=combine_regions,
                                  verbose=-1)
+
+
+    if fp1 is not None:
+        if conn == 'BOLD_ctrl':
+            ROI2vecs1 = get_BOLD_ctrl(combine_regions, sn, fp1, df_sn, org_by_region,
+                                      easy_override)
+        else:
+            ROI2vecs1 = get_ROI_vecs(sn, atlas, fp1, df_sn, nan_thresh=1.01,
+                                     drop_nan_voxels=False,
+                                     org_by_region=org_by_region,
+                                     easy_override=easy_override,
+                                     combine_regions=combine_regions,
+                                     verbose=-1)
     else:
         ROI2vecs1 = None
 
@@ -184,14 +220,18 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
             ROI2vecs0 = calculate_cross_region_vecs(ROI2vecs0, networks,
                                                     conn=conn)
         else:
-            ROI2vecs0 = cluster_regions(ROI2vecs0, networks)
+            ROI2vecs0 = cluster_regions(ROI2vecs0, networks,
+                                        # bold_ctrl=conn == 'BOLD_ctrl'
+                                        )
 
         if fp1 is not None:
             if cross_region:
                 ROI2vecs1 = calculate_cross_region_vecs(ROI2vecs1, networks,
                                                         conn=conn)
             else:
-                ROI2vecs1 = cluster_regions(ROI2vecs1, networks)
+                ROI2vecs1 = cluster_regions(ROI2vecs1, networks,
+                                            # bold_ctrl=conn == 'BOLD_ctrl'
+                                            )
 
     if fp1 is not None:
         return ROI2vecs0, ROI2vecs1

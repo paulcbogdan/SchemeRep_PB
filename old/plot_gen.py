@@ -138,15 +138,19 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
 
     vabs = np.nanmax(np.abs(Ms))
     # print(f'{vabs=}')
-    cmap = get_split_cmap(vabs, thresh, 'rainbow_r',)
+    if cmap not in ['RdPu', 'BuPu']:
+        cmap = get_split_cmap(vabs, thresh, 'rainbow_r', )
+    # cmap = 'RdPu'
     # quit()
     # cmap = 'rainbow_r'
     # if strict_thresh:
     #     img_data[np.abs(img_data) < thresh] = 0
     # else:
     #     img_data[np.abs(img_data) < thresh] = thresh - .1
-
+    # cmap = 'Purples'
     img_data[img_data < 0] = 0
+    # print(img_data.shape)
+    # quit()
 
     img = image.new_img_like(atlas['maps'], img_data)
     print(f'{thresh=}')
@@ -155,9 +159,25 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                          cmap=cmap, title=title,
                                          vmin=0 if only_positive else -vmax,
                                          vmax=vmax,
+                                         alpha=.03,
                                          inflate=False,
+                                         # views=['vent']
+                                         # symmetric_cbar=False,
                                          surf_mesh='fsaverage5',
                                          avg_method='median')
+    # plotting.plot_glass_brain(img, threshold=thresh,
+    #                           cmap=cmap, title=title,
+    #                           vmin=0 if only_positive else -vmax,
+    #                           vmax=vmax,)
+
+    # plt.show()
+    # quit()
+
+
+
+    if vmax == 6 and thresh == 2:
+        axs[4].set_xticks([0, 2, 4, 6], [0, 2, 4, 6],
+                          fontsize=11)
 
     # if thresh > 5 or True:
     #     axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
@@ -176,6 +196,10 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         plotting.show()
 
         plt.clf()
+    return
+    view = plotting.view_img(img, threshold=thresh, cmap=cmap, colorbar=True,
+                        vmax=vmax)
+    view.open_in_browser()
     return
 
     plotting.plot_stat_map(img,

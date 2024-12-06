@@ -1,9 +1,12 @@
+import utils
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
-from connRSA.conn_regress import run_all_sn
+from connRSA.conn_regress import run_all_sn, run_all_sn_
 from old.plot_gen import my_plot_surf
+import numpy as np
+from nilearn import image, plotting
+import matplotlib.pyplot as plt
 
-
-def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
+def plot_cortex_RSA(semantic=False, RSA=True, control_network=False):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -39,10 +42,20 @@ def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
             else:
                 kwargs_['ROIs_ctrl'] = []
 
-            t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
-                                                    easy_override=True,
-                                                    )
+            # t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
+            #                                         easy_override=False,
+            #                                         )
+
+            t_ROIs_all, r_sqs_ROIs_all = (
+                utils.pickle_wrap(run_all_sn_, kwargs={'kwargs': kwargs_,
+                                                       'RSA': RSA,
+                                                       'ISPC': False,
+                                                       'ERS_alt': False},))
+
+            # print(t_ROIs_all)
+            # quit()
             ts_ROI.append(t_ROIs_all)
+            print(f'{target_ROI=}, t = {t_ROIs_all:.3f}')
 
     if len(target_ROIs) >= 10:
         if len(target_ROIs) > 40:
@@ -51,17 +64,45 @@ def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
             cbl = True
         atlas = get_atlas(combine_regions=False, combine_bilateral=cbl)
 
-        vmax = 5
-        thresh = 2.5
+        vmax = 6
+        thresh = 2
 
         title_ROI = 'Semantic' if semantic else 'Perceptual'
+        title_ROI = title_ROI if RSA else 'NPS'
         fp_out = fr'result_pics\ROI_RSA\cortex_RSA_{title_ROI}.png'
+        print(ts_ROI)
         my_plot_surf(ts_ROI, atlas, title_ROI, vmax=vmax, thresh=thresh,
-                     fp_out=fp_out, only_positive=False)
+                     fp_out=fp_out, only_positive=True,
+                     cmap='RdPu' if semantic else 'BuPu')
+
+
 
 
 if __name__ == '__main__':
-    plot_cortex_RSA()
+    from nilearn.datasets import MNI152_FILE_PATH
+    from nilearn import datasets, plotting, image
+
+    # img_data = np.random.normal(size=(97, 115, 97))
+    # img_3d_mni = image.new_img_like(get_atlas()['maps'], img_data)
+
+    # data = datasets.fetch_abide_pcp(n_subjects=1)
+    # img_3d_mni = image.index_img(data['func_preproc'][0], 0)
+    # fig, axs = plotting.plot_img_on_surf(
+    #     image.index_img(data['func_preproc'][0], 0),
+    #     threshold=2, alpha=.7, )
+    # plt.show()
+    # quit()
+    #
+    # plot_cortex_RSA()
+
+    plotting.plot_img_on_surf(
+        MNI152_FILE_PATH,
+        threshold=0.01,
+        alpha=.1,
+    )
+    plt.show()
+
+
 
 
 

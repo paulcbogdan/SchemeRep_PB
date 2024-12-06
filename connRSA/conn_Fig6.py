@@ -30,6 +30,8 @@ from numba import njit
 # suppress RuntimeWarning: All-NaN slice
 from warnings import filterwarnings
 from nilearn import image, plotting
+from nilearn import plotting
+
 filterwarnings("ignore", category=RuntimeWarning,
                message="All-NaN slice encountered")
 
@@ -52,7 +54,7 @@ def get_ROI_RSM(sn, ROI, fp, trial_similarity, stdize_by_run, second_order,
     except FileNotFoundError:
         # print('Not found!')
         RSM = np.full((114, 114), np.nan)
-        print('Not found!')
+        print(f'Not found! {sn}/{fp}/{ROI}')
     except ValueError as e:
         print(f'{fp_focus1=}')
         print(f'allow_pickl=False ({sn}, {ROI}, {fp}): {e=}')
@@ -130,7 +132,6 @@ def get_cross_IC_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         # Below code would make it so every RSM pair is calculated on the exact same
         # print(f'{l.shape=}')
         bad_cols = np.all(np.isnan(l), axis=(2)) # RSM cell is NaN for all ROI
-        # print(f'{np.sum(bad_cols)=}')
         bad_cols = np.any(bad_cols, axis=(0, 1)) # any ROI has NaNs. Not great.
     else:
         bad_cols = np.all(np.isnan(l), axis=(0, 1, 2)) # RSM cell is NaN for all
@@ -184,7 +185,8 @@ def get_feat_RSMs(sn, fp, semantic=False):
 
 def get_RSA_feat_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                      second_order, RDM_method, semantic,
-                     just_get_IRAFs=False):
+                     just_get_IRAFs=False,
+                     odd_even=True):
     dir_root = fr'cache/conn_RSA/ars/RSA'
     # num_pairs = (len(fps) * (len(fps) - 1)) // 2
 
@@ -213,40 +215,100 @@ def get_RSA_feat_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
             ROI_RSMs.append(ROI_RSM)
 
         ROI_RSMs = np.array(ROI_RSMs)
-        # print(ROI_RSMs)
-        # quit()
         stim_RSMs = get_feat_RSMs(sn, fp0, semantic=semantic)
         skip_idx_ROIs = np.array(skip_idx_ROIs)
-        t_st = time()
-        ROI_feat_rs = get_ROI_RSMs_x_stim_RSMs(ROI_RSMs, stim_RSMs, skip_idx_ROIs)
-        t_end = time()
-        print(f'Numba feat x stim calc: {t_end - t_st:.3f} s')
-        corr = np.corrcoef(ROI_feat_rs)
-        sn_corrs.append(corr)
+        if odd_even:
+            ROI_RSMs_odd = ROI_RSMs[:, ::2, ::2]
+            ROI_RSMs_even = ROI_RSMs[:, 1::2, 1::2]
+            stim_RSMs_odd = stim_RSMs[:, ::2, ::2]
+            stim_RSMs_even = stim_RSMs[:, 1::2, 1::2]
+            from scipy import spatial
+            t_st = time()
+            ROI_feat_rs_odd = get_ROI_RSMs_x_stim_RSMs(ROI_RSMs_odd, stim_RSMs_odd,
+                                                       skip_idx_ROIs)
+            ROI_feat_rs_even = get_ROI_RSMs_x_stim_RSMs(ROI_RSMs_even, stim_RSMs_even,
+                                                        skip_idx_ROIs)
+            t_end = time()
+            print(f'Numba feat x stim calc: {t_end - t_st:.3f} s')
+
+            corr = spatial.distance.cdist(ROI_feat_rs_odd, ROI_feat_rs_even, 'correlation')
+            # print(corr)
+            # quit()
+            # flip corr over diagonal
+            # corr = np.zeros((5, 5))
+            # corr[2, 4] = 1
+            # corr_flip = np.flip(corr, axis=1)
+            # plt.imshow(corr)
+            # plt.show()
+            # plt.imshow(corr_flip)
+            # plt.show()
+
+            corr_t = np.transpose(corr)
+            corr = (corr + corr_t) / 2
+            # plt.imshow(corr90)
+            # plt.show()
+            #
+            # print(corr.shape)
+            # quit()
+
+            # corr = np.corrcoef(ROI_feat_rs)
+            sn_corrs.append(corr)
+        else:
+            t_st = time()
+            ROI_feat_rs = get_ROI_RSMs_x_stim_RSMs(ROI_RSMs, stim_RSMs, skip_idx_ROIs)
+            t_end = time()
+            print(f'Numba feat x stim calc: {t_end - t_st:.3f} s')
+            corr = np.corrcoef(ROI_feat_rs)
+            sn_corrs.append(corr)
     sn_corrs = np.array(sn_corrs)
     # plt.imshow(sn_corrs[0])
     # plt.show()
     # quit()
     return sn_corrs
 
-
+# num_trials = 57
+# idx_to_run = np.empty(num_trials)
+# for t in range(num_trials):
+#     idx_to_run[t] = t // (num_trials // 3)
+#
+# idx = 0
+# for t0 in range(num_trials):
+#     for t1 in range(t0):
+#         if idx_to_run[t0] == idx_to_run[t1]:
+#             continue
+#         # print(ROI_RSMs[ROI_i, t0, t1])
+#         idx += 1
+# print(idx)
+# quit()
 @njit(fastmath=True, nopython=True, cache=True)
 def get_std_rsm_flat(ROI_RSMs, skip_idx):
-    idx_to_run = np.empty(114)
-    for t in range(114):
-        idx_to_run[t] = t // 38
+    # print(ROI_RSMs.shape)
+    # quit()
+    num_trials = ROI_RSMs.shape[2]
+    idx_to_run = np.empty(num_trials)
+    for t in range(num_trials):
+        idx_to_run[t] = t // (num_trials // 3)
     num_ROIs = ROI_RSMs.shape[0]
     # print(ROI_RSMs)
     # quit()
-    ROI_RSMs_flat = np.empty((num_ROIs, 4332), dtype=np.float32)
+    if num_trials == 114:
+        ROI_RSMs_flat = np.empty((num_ROIs, 4332), dtype=np.float32)
+    else:
+        ROI_RSMs_flat = np.empty((num_ROIs, 1083), dtype=np.float32)
     for ROI_i in range(num_ROIs):
         if skip_idx[ROI_i]:
-            ROI_RSMs_flat[ROI_i, :] = np.zeros(4332)
+            if num_trials == 114:
+                ROI_RSMs_flat[ROI_i, :] = np.zeros(4332)
+            else:
+                ROI_RSMs_flat[ROI_i, :] = np.zeros(1083)
             continue
         # zscore
-        v = np.empty(4332)
+        if num_trials == 114:
+            v = np.empty(4332)
+        else:
+            v = np.empty(1083)
         idx = 0
-        for t0 in range(114):
+        for t0 in range(num_trials):
             for t1 in range(t0):
                 if idx_to_run[t0] == idx_to_run[t1]:
                     continue
@@ -387,7 +449,8 @@ def numba_IRAF_x_IRAF(ar):
 
 def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
                       cross=False, nan_block=True, do_same=False,
-                      get_var=False):
+                      get_var=False,
+                      ):
     dir_root = fr'cache/conn_RSA/ars/ERS'
     # ROI2fps2iERS = {}
     num_pairs = (len(fps) * (len(fps) - 1)) // 2
@@ -398,6 +461,7 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
     fp12block2objs = {}
 
     M_ERS_difs = []
+
     for i, ROI in enumerate(ROIs):
         # ROI2fps2iERS[ROI] = {}
         # l_ERS_dif_M = []
@@ -405,11 +469,10 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         for fp0 in fps:
             for fp1 in fps:
                 if fp0 >= fp1: continue
+                stdize_by_run_ = False
                 dir_focus = (fr'{dir_root}/{fp0}_{fp1}_{trial_similarity}_'
-                             fr'{stdize_by_run}')
+                             fr'{stdize_by_run_}')
                 fp = f'{dir_focus}/{sn}_{ROI}_BOLD.npy'
-                # print(fp)
-                # quit()
 
                 if nan_block:
                     if fp1 not in fp12block2objs:
@@ -480,13 +543,28 @@ def get_cross_ERS_mat(sn, ROIs, fps, trial_similarity, stdize_by_run,
         valid_pairs = sorted(list(valid_pairs))
         # print(valid_pairs)
         # quit()
+
         pair2fp2ROI2iNPS = np.full((len(valid_pairs), 2, len(ROIs), 114), np.nan)
         for i, (tup01, tup23) in enumerate(valid_pairs):
             cnt = tup2cnt[tup01]
             cnt2 = tup2cnt[tup23]
             pair2fp2ROI2iNPS[i, 0, :, :] = fp2ROI2iNPS[cnt, :, :]
             pair2fp2ROI2iNPS[i, 1, :, :] = fp2ROI2iNPS[cnt2, :, :]
-        pair2fp2ROI2iNPS = stdize(pair2fp2ROI2iNPS, axis=-1)
+        # print(fp2ROI2iNPS)
+        # quit()
+        if stdize_by_run:
+            # print(pair2fp2ROI2iNPS)
+            run0 = pair2fp2ROI2iNPS[..., :38]
+            run0 = stats.zscore(run0, axis=-1, nan_policy='omit')
+            run1 = pair2fp2ROI2iNPS[..., 38:76]
+            run1 = stats.zscore(run1, axis=-1, nan_policy='omit')
+            run2 = pair2fp2ROI2iNPS[..., 76:]
+            run2 = stats.zscore(run2, axis=-1, nan_policy='omit')
+            pair2fp2ROI2iNPS = np.concatenate([run0, run1, run2], axis=-1)
+            # print(pair2fp2ROI2iNPS)
+            # quit()
+        else:
+            pair2fp2ROI2iNPS = stdize(pair2fp2ROI2iNPS, axis=-1)
         corrs = numba_fpfp_x_fpfp_NPS(pair2fp2ROI2iNPS)
         # print(corrs.shape)
         # diag = np.diag(np.nanmean(corrs, axis=0))
@@ -614,6 +692,10 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
         df_as_l['val'].extend(net_sn_vals)
 
     df = pd.DataFrame(df_as_l)
+
+    # cross huge outlier
+    # df = df[df['sn'] != '205']
+
     plt.figure(figsize=(3.5, 4))
     plt.rcParams.update({'font.size': 14})
     bp = sns.stripplot(x='net', y='val', #hue='net', #palette=colors,
@@ -646,13 +728,24 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     df_OC = df[df['net'] == 'Occipital']['val'].values
     df_ITL = df[df['net'] == 'Temporal']['val'].values
     t, p = stats.ttest_rel(df_OC, df_ITL)
+    # print(df_ITL)
+    idx = np.argmax(df_ITL)
+    # print(idx)
+    # print(df_ITL[idx])
+    # quit()
+    N = np.sum(~np.isnan(df_OC))
     d = t / np.sqrt(len(df_OC))
-    print(f'{fn_out}: {d=:.3f}')
+    M_OC = np.nanmean(df_OC)
+    M_ITL = np.nanmean(df_ITL)
+    print(f'{fn_out}: {d=:.3f}, {M_OC=:.3f}, {M_ITL=:.3f}, '
+          f't[{N - 1}] = {t:.2f}, {p=:.3f}')
 
 
     # plt.text(0)
     # plt.title(title)
-    if 'regressed' in fn_out:
+    if True:
+        pass
+    elif 'regressed' in fn_out:
         pass
     else:
         if 'NPS' in fn_out:
@@ -683,41 +776,6 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     plt.savefig(fp_fig, dpi=300)
     plt.show()
 
-    # quit()
-
-        # print(f'{net}: {net_M=:.3f} [{net_SE:.3f}]')
-    # quit()
-
-    # ventral_idxs = get_idxs('ITL')
-    # occ_idxs = get_idxs('Occipital')
-    # corrs_ventral = corrs[:, ventral_idxs][:, :, ventral_idxs]
-    # M_ventral = np.nanmean(corrs_ventral, axis=(1, 2))
-    # corrs_occ = corrs[:, occ_idxs][:, :, occ_idxs]
-    # M_occ = np.nanmean(corrs_occ, axis=(1, 2))
-
-    # print(f'Ventral: {np.nanmean(M_ventral):.3f} ({np.nanstd(M_ventral):.3f})')
-    # print(f'Occ: {np.nanmean(M_occ):.3f} ({np.nanstd(M_occ):.3f})')
-    # t, p = stats.ttest_rel(M_ventral, M_occ)
-    # N = M_ventral.shape[0]
-    # d = t / np.sqrt(N)
-    # print(f'Ventral vs. occ ({N=}): {t=:.3f}, {p=:.3f}, {d=:.3f}')
-
-
-    # IC = np.concatenate([M_ventral, M_occ])
-    # FC = M_ventral_FC + M_occ_FC
-    # try:
-    #     df = pd.DataFrame({'IC': IC, 'FC': FC,
-    #                        'location': ['Ventral'] * len(M_ventral) +
-    #                                    ['Occipital'] * len(M_occ),
-    #                        'sn': sns_FC + sns_FC})
-    #     formula = r'IC ~ sn + location + FC' # FC + FC +
-    #     mod = smf.ols(formula=formula, data=df)
-    #     res = mod.fit()
-    #     print(res.summary())
-    # except ValueError as e:
-    #     print(f'{e=}')
-
-
 def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                     rsa_feat=True):
     # semantic = False
@@ -729,7 +787,9 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
 
     # ERS = False
     ERS_nan_block = False
-
+    # ERS = True
+    # rsa_feat = False
+    # ERS = False
     cross = False
     IRAF = False
     # rsa_feat = True
@@ -740,10 +800,9 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
     trial_similarity = 'corr' # euc
     stdize_by_run = False
     second_order = 'spear'
-    atlas = get_atlas()
+    atlas = get_atlas()#combine_regions=True, combine_bilateral=True)
     ROIs = atlas['ROIs']
-    # print(f'{ROIs=}')
-    # quit()
+
     if cross and ERS:
         assert not drop_con
 
@@ -755,7 +814,11 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
            '208', '209', '210', '211', '212', '214',
            '216', '217', '218', '219', '221', '222', '224', '225', '227',
            '230', '232', '233', '234', '235', '239']
-    # sns = sns[::-1]
+    sns = sns[::-1]
+
+    # if cross:
+    #     outlier = ['205']
+    #     sns = [sn for sn in sns if sn not in outlier]
 
     four_tasks = '7'
     fps = prep_fps(four_tasks)
@@ -774,6 +837,7 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
 
     for i, sn in tqdm(enumerate(sns), desc=f'Looping IC: {cross=}'):
 
+
         kwargs['sn'] = sn
         if rsa_feat:
             kwargs['fps'] = fps
@@ -784,12 +848,26 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                                    kwargs=kwargs, verbose=-1,
                                    easy_override=False,
                                    dt_max=dt_max)
+            sn_corrs = 1 - sn_corrs
+            # print(sn_corrs)
+            # quit()
+            # print(sn_corrs.shape)
+            # quit()
+            # print(sn_corrs[0, 0, 0])
+            # print(sn_corrs[0, 0, 1])
+            # print('-')
 
-            kwargs['semantic'] = 'random'
-            sn_corrs_random = pickle_wrap(get_RSA_feat_mat,
-                                          kwargs=kwargs, verbose=-1,
-                                          easy_override=False,
-                                          dt_max=dt_max)
+            # quit()
+            # plt.imshow(sn_corrs[0])
+            # plt.colorbar()
+            # plt.show()
+            # quit()
+
+            # kwargs['semantic'] = 'random'
+            # sn_corrs_random = pickle_wrap(get_RSA_feat_mat,
+            #                               kwargs=kwargs, verbose=-1,
+            #                               easy_override=False,
+            #                               dt_max=dt_max)
             # sn_corrs = sn_corrs - sn_corrs_random
             # sn_corrs = sn_corrs_random
         elif IRAF:
@@ -802,6 +880,7 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                                    easy_override=False,
                                    dt_max=dt_max)
 
+
         elif ERS:
             kwargs['fps'] = fps
             kwargs['cross'] = cross
@@ -812,6 +891,8 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                                                easy_override=False,
                                                dt_max=dt_max)
             ERS_scores_all.append(ERS_scores)
+            # print(sn_corrs)
+            # quit()
         elif cross:
             kwargs['second_order'] = second_order
             kwargs['within_nan'] = True
@@ -819,6 +900,13 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
             kwargs['same_RSM_corr'] = same_RSM_corr
             sn_corrs = pickle_wrap(get_cross_IC_mat, kwargs=kwargs, verbose=-1,
                                    easy_override=False, dt_max=dt_max)
+
+
+            # print(f'{i}, {sn}')
+            # if i == 36:
+            #     # big outlier for temporal
+            #     sn_corrs = np.full(sn_corrs.shape, np.nan)
+
         else:
             kwargs['second_order'] = second_order
             kwargs['within_nan'] = True
@@ -836,7 +924,40 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
 
 
     corrs = np.array(corrs)
-    corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
+    diag = corrs[:, *np.diag_indices(corrs.shape[1])]
+    # diag_M = np.nanmean(diag, axis=0)
+    # diag_M[diag_M < 0.001] = np.nan
+
+    # print(diag_M)
+    # quit()
+    # corrs /= diag_M[..., None]
+    # print(corrs.shape)
+    # quit()
+    # corrs -= diag[..., None]
+    # print(diag.shape)
+    # quit()
+    # print(len(diag[0]))
+    # print(len(ROIs))
+    # quit()
+    if diag[0][0] < .99:
+        for i in range(len(diag[0])):
+            # if len(diag) == 27:
+            # t, p = stats.ttest_1samp(
+            #     np.nanmean(diag[:, atlas['tick_lows'][i]:atlas['tick_lows'][i+1]],
+            #                axis=-1), 0, nan_policy='omit')
+            # M = np.nanmean(diag[:, atlas['tick_lows'][i]:atlas['tick_lows'][i+1]])
+            t, p = stats.ttest_1samp(
+                np.nanmean(diag[:, i:i+1], axis=-1), 0, nan_policy='omit')
+            M = np.nanmean(diag[:, i:i+1])
+
+            ROI_i = ROIs[i]
+            print(f'{ROI_i}: {t=:.3f}, {M=:.5f}')
+    else:
+        corrs[:, *np.diag_indices(corrs.shape[1])] = np.nan
+    # # plt.plot(np.nanmean(diag, axis=0))
+    # # plt.show()
+    # quit()
+
     if get_M and not regress_FC:
         return corrs
 
@@ -853,7 +974,8 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
 
     atlas = get_atlas(lifu_labels=False)
 
-    plot_network_M(corrs, corrs_FC, sns_FC, fn_out)
+    if len(ROIs) > 54:
+        plot_network_M(corrs, corrs_FC, sns_FC, fn_out)
 
     if regress_FC:
         for sn_i in range(corrs.shape[0]):
@@ -883,9 +1005,17 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
         val = 60 - N[i, 0]
         if i == 0 or val == 0:
             continue
-        print(f'{i}, {ROIs[i]}: {val}')
 
     M[N <= 48] = np.nan
+
+    if len(ROIs) == 27:
+        plt.imshow(M, vmin=0)#, vmin=0, vmax=1)
+        plt.yticks(range(27), ROIs)
+        plt.xticks(range(27), ROIs, rotation=90)
+        plt.colorbar()
+        plt.show()
+        quit()
+
 
     fn_out = r'NPS' if ERS else 'RSM'
     fn_out += '_regressed' if regress_FC else ''
@@ -901,6 +1031,8 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
 
     vmax = np.nanquantile(M, .98)
     vmin = np.nanquantile(M, .02)
+    vmin = 0
+
 
     plot_connectivity(M, atlas['ticks'], atlas['tick_labels'],
                       atlas['tick_lows'], title=title, vmin=vmin, vmax=vmax,
@@ -970,13 +1102,66 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 
     return corrs, sns
 
-def plot_IC_mat_on_brain(ERS=False, regress_FC=True):
-    corr = run_IC_analysis(ERS=ERS, regress_FC=regress_FC, get_M=True)
+def plot_IC_vs_FC(ERS=True, regress_FC=False, RSA_feat=True):
+    corr = run_IC_analysis(ERS=ERS, regress_FC=regress_FC, get_M=True,
+                           rsa_feat=False)
+
+    corrs_FC, sns_FC = (
+        pickle_wrap(plot_FC_mat, None, easy_override=False))
+
     atlas = get_atlas()
+
+    region2score_IC = defaultdict(list)
+    region2score_FC = defaultdict(list)
 
     out = np.zeros(atlas['maps'].shape)
     for i, (ROI, region_i) in enumerate(zip(atlas['ROIs'],
                                             atlas['ROI_regions'])):
+        for j, (ROI_j, region_j) in enumerate(zip(atlas['ROIs'],
+                                                atlas['ROI_regions'])):
+            if region_i == region_j:
+                if i % 2 != j % 2: continue
+                region2score_IC[region_i].append(
+                    np.nanmedian(corr[:, i, j], axis=0))
+                region2score_FC[region_i].append(
+                    np.nanmedian(corrs_FC[:, i, j], axis=0))
+
+    v_IC = []
+    v_FC = []
+    for region, l_IC in region2score_IC.items():
+        IC_gm = np.nanmedian(l_IC)
+        l_FC = region2score_FC[region]
+        FC_gm = np.nanmedian(l_FC)
+        print(f'{region}, IC={IC_gm:.4f}, FC={FC_gm:.4f}')
+        v_IC.append(IC_gm / FC_gm)
+        v_FC.append(FC_gm / FC_gm)
+    plt.plot(v_IC, color='g')
+    plt.plot(v_FC, color='r')
+    plt.xticks(range(len(atlas['tick_labels'])), atlas['tick_labels'],
+               rotation=90)
+    plt.show()
+
+
+
+def plot_IC_mat_on_brain(ERS=False, regress_FC=False, RSA_feat=True):
+    # corr = run_IC_analysis(ERS=ERS, regress_FC=regress_FC, get_M=True,
+    #                        rsa_feat=RSA_feat)
+    corr = run_IC_analysis(ERS=ERS, regress_FC=regress_FC, get_M=True,
+                           rsa_feat=False)
+
+    corrs_FC, sns_FC = (
+        pickle_wrap(plot_FC_mat, None, easy_override=False))
+
+    # quit()
+    atlas = get_atlas()
+
+    out = np.zeros(atlas['maps'].shape)
+    # print(set(atlas['ROI_regions']))
+    # quit()
+    for i, (ROI, region_i) in enumerate(zip(atlas['ROIs'],
+                                            atlas['ROI_regions'])):
+        # if region_i not in ['EVC', 'LOC', 'sOcG', 'ITG', 'FuG', 'PhG', 'ATL']:
+        #     continue
         i_l = []
         for j, region_j in enumerate(atlas['ROI_regions']):
             if region_i == region_j:
@@ -984,23 +1169,27 @@ def plot_IC_mat_on_brain(ERS=False, regress_FC=True):
         ROI_i_score = np.nanmean(i_l)
         print(f'{ROI}: {ROI_i_score=:.3f}')
         out[atlas['maps'].get_fdata() == i + 1] = ROI_i_score
+    # quit()
     img = image.new_img_like(atlas['maps'], out)
     # quit()
 
-    vmin = np.nanquantile(out[out > 0], 0.001)
-    vmax = np.nanquantile(out[out > 0], 0.999)
-    print(f'{vmin=:.3f}, {vmax=:.3f}')
+    vmin = np.nanquantile(out[out != 0], 0.01)
+    vmax = np.nanquantile(out[out != 0], 0.99)
+    print(f'{vmin=:.5f}, {vmax=:.5f}')
     fig, axs = plotting.plot_img_on_surf(img,
                                          # threshold=thresh,
                                          # cmap=cmap, title=title,
                                          # vmin=0 if only_positive else -vmax,
+                                         # vmax=.005, vmin=-.005,
                                          vmax=vmax, vmin=vmin,
                                          # vmin=-10, vmax=10,
                                          inflate=False,
                                          surf_mesh='fsaverage5',
                                          avg_method='median',
                                          # hemispheres=['right' if '_R' in region else 'left'],
+                                         # cmap='turbo_r',
                                          cmap='cold_hot_r',
+                                         threshold=.00001,
                                          # threshold=2,
                                          )
     plt.show()
@@ -1014,6 +1203,44 @@ def plot_IC_mat_on_brain(ERS=False, regress_FC=True):
     quit()
 
 
+def plot_IT():
+    atlas = get_atlas(lifu_labels=False)
+    corr = run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=False,
+                           get_M=True)
+    corr = np.nanmean(corr, axis=0)
+
+    regions = ['ITG', 'FuG', 'PhG']
+    # regions = ['Cun', 'OcG']
+    # regions = ['ITG']
+
+    new2i = []
+    new_coords = []
+    for i, (ROI, region) in enumerate(
+            zip(atlas['ROIs'], atlas['ROI_regions'])):
+        if region not in regions:
+            continue
+        new2i.append(i)
+        new_coords.append(atlas['coords'][i])
+    new_corr = np.full((len(new2i), len(new2i)), np.nan)
+    for new, i in enumerate(new2i):
+        for new_j, j in enumerate(new2i):
+            if i % 2 != j % 2:
+                continue
+            new_corr[new, new_j] = corr[i, j]
+    plt.imshow(new_corr)
+    plt.show()
+
+    # new_corr[new_corr > .2] = .2
+    new_corr[new_corr > np.nanquantile(new_corr, .9)] = (
+        np.nanquantile(new_corr, .9))
+
+    view = plotting.view_connectome(new_corr, new_coords,
+                                    symmetric_cmap=False,
+                                    edge_cmap='turbo'
+                                    )
+    view.open_in_browser()
+
+
 
     # print(corr.shape)
     # quit()
@@ -1022,6 +1249,9 @@ if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     # plot_FC_mat(drop_con=False, four_tasks='7')
     # run_IC_analysis(ERS=True, regress_FC=False)
-    run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=True)
+    # run_IC_analysis(ERS=False, regress_FC=False, rsa_feat=True)
+    run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=False)
+    # plot_IT()
+
     # plot_IC_mat_on_brain()
-    # plot_FC_mat()
+    # plot_IC_vs_FC()

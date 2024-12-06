@@ -168,6 +168,8 @@ def prep_networks(network_setting=1):
     elif network_setting == 31:
         networks = {'PL': ['IPL', 'SPL'],
                     'LPFC': ['ITG', 'MTG', 'STG']}
+    elif network_setting == 32:
+        networks = {'tha_str': ['Tha', 'Str']}
     elif network_setting == -1:
         networks = {}
 

@@ -30,21 +30,21 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     if min_vox is not None:
         vox_dist2MI = vox_dist2MI[:, min_vox:]
     #
-    # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
-    #               np.nanmean(vox_dist2MI[:, 3:6], axis=-1))
+    peak_dists = (np.nanmean(vox_dist2MI[:, :5], axis=-1) -
+                  np.nanmean(vox_dist2MI[:, 5:10], axis=-1))
 
     # peak_dists = np.nanmean(vox_dist2MI[:, :], axis=-1)
     # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 3:], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
-    # peak_dists = np.nanmean(vox_dist2MI[:, 5:], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, :5], axis=-1)
 
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
     # print(vox_dist2MI.shape)
     # quit()
     # print(vox_dist2MI)
     # quit()
-    peak_dists = np.nanmean(vox_dist2MI[:, 0:15], axis=-1)
+    # peak_dists = np.nanmean(vox_dist2MI[:, 0:15], axis=-1)
     # print(peak_dists)
     # quit()
     # peak_dists -= np.nanmean(peak_dists)
@@ -153,19 +153,19 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
                   'RSM_RSM_override': True
                   }
             # kw['RSM_RSM']
-            kw['vox0_RSA'] = True
+            # kw['vox0_RSA'] = True
             print(kw)
 
             fp_out = get_default_fp(None, kw, get_dist2MI, 'cache', 0)
-            # if not os.path.exists(fp_out):
-            #     print(f'Missing: {fp_out}')
-            #     continue
-            # print('Go')
+            if not os.path.exists(fp_out):
+                print(f'Missing: {fp_out}')
+                continue
+            print('Go')
             # kw['RSM_RSM_override'] = False
 
             vox_dist2MI, _, vox_idxs, cnter = (
                 utils.pickle_wrap(get_dist2MI, None, kwargs=kw,
-                                  verbose=-1, easy_override=True))
+                                  verbose=-1, easy_override=False))
             # # vox_dist2MI[cnter[:, 1] < 10] = np.nan
             vox_dist2MI[vox_dist2MI == -999_999] = np.nan
             cnter = np.array(cnter, dtype=np.float32)
@@ -192,7 +192,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
             #                           axis=1)[..., None]
 
             # Subtracting 0 = find voxels that have the strongest effect across brain
-            vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+            # vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
+
+            vox_dist2MI = stats.zscore(vox_dist2MI, axis=0, nan_policy='omit')
 
             dist2MI = np.nanmean(vox_dist2MI, axis=0)
 
@@ -230,7 +232,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     print(f'{img_data_l.shape=}')
     print(f'{num_subj=}')
 
-    img_data = np.nanmean(img_data_l, axis=0)# / np.nanstd(img_data_l, axis=0) * np.sqrt(num_subj)
+    img_data = (np.nanmean(img_data_l, axis=0)
+                / np.nanstd(img_data_l, axis=0)
+                * np.sqrt(num_subj))
     # num_not_nan = np.sum(~np.isnan(img_data))
     # print(f'{num_not_nan=}')
     # quit()

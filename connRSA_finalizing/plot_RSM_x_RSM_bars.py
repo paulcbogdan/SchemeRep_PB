@@ -13,8 +13,11 @@ from networks.old.networks import prep_networks
 # from old.networks import prep_networks
 from org_sns import get_sns
 from Utils.pickle_wrap_funcs import pickle_wrap
-
-os.chdir(r'C:\PycharmProjects\SchemeRep')
+import pathlib
+path = pathlib.Path(__file__).parent.parent.resolve()
+# os.chdir(path)
+#
+# os.chdir(r'/')
 
 
 def get_stars(p, no_cross=True):
@@ -398,7 +401,8 @@ def strict_correlations(kwargs):
         print(f'{cond=}, {t=:.3f}, {p=:.3f}')
     return
 
-def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
+def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
+                              get_betas=False):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -417,6 +421,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
 
     fps = prep_fps(kwargs['four_tasks'])
     sns = get_sns('all')['healthy']
+
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
@@ -432,6 +437,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
     # only distributed
     # conds = [('Occipital', False), ('Occipital', True),
     #          ('IT', False), ('IT', True),]
+
     cond2betas = {}
     for cond in conds:
         cond2betas[cond] = np.full((len(sns), len(fps)), np.nan)
@@ -466,19 +472,16 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
                         # kwargs['ROI_focus'] = f'{region}_BOLD_cmb'
                     kwargs['ROIs_ctrl'] = [] # f'{region}_M'
 
-                # print(kwargs)
-                # quit()
-                # kwargs['ROI_focus'] = 'ITL_BOLD'
-                # if sn == '102' and fp == 'obj7_fMRI':
-                #     print(kwargs)
-
                 beta1, _, _ = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                                           verbose=-1, easy_override=False)
 
                 cond2betas[cond][i, j] = beta1 * 1000
+            # quit()
 
     cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
                   in cond2betas.items()}
+    if get_betas:
+        return cond2betas
 
     cond2Ms = {cond: np.nanmean(betas) for cond, betas in cond2betas.items()}
     cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
@@ -507,8 +510,12 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
     colors = ['dodgerblue' if (isinstance(cond[1], bool) or 'Local' in cond[1])
               else ('orange' if big_voxelwise else 'red')
               for cond in conds]
+    # print(Ms)
+    # quit()
     plt.bar([0, 1, 2, 3], Ms, yerr=SEs, color=colors,
             capsize=5, linewidth=1., edgecolor='k')
+    # plt.show()
+    # quit()
     plt.xticks([0, 1, 2, 3],
                ['Small', 'Large\n(Voxelwise)' if big_voxelwise else 'Large\n(Averages)',
                 'Small', 'Large\n(Voxelwise)' if big_voxelwise else 'Large\n(Averages)'
@@ -556,14 +563,16 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True):
                  fontsize=stars_fs, )
 
 
-    plt.yticks(range(0, int(height * 1.07) + 1,
-                     min(max(int(height * 1.07) // 4, 1), 5)),
-               fontsize=24)
+    if height > 0 and np.max(Ms) > 0:
+        plt.yticks(range(0, int(height * 1.07) + 1,
+                         min(max(int(height * 1.07) // 4, 1), 5)),
+                   fontsize=24)
     plt.locator_params(axis='y', nbins=6)
 
     plt.ylabel('Mean correlation', fontsize=24, labelpad=10)
     plt.gca().spines[['top', 'right']].set_visible(False)
-    plt.ylim(0, height * 1.07)
+    if height > 0 and np.max(Ms) > 0:
+        plt.ylim(0, height * 1.07)
 
     # line = plt.Line2D([0.5, 0.5], [-.003, -0.18],
     #                   transform=plt.gca().transAxes,
@@ -590,9 +599,10 @@ def plot_Figure5_bars():
     quit()
 
 def plot_FigureS1_bars():
-    # plot_FigureS1_bars_region('Occipital')
-    # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
+    plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
     # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
+    # plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
+    # plot_FigureS1_bars_region('PFC', big_voxelwise=True)
 
     # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
     # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
@@ -601,9 +611,10 @@ def plot_FigureS1_bars():
     # plot_FigureS1_bars_region('Parietal', big_voxelwise=True)
     # plot_FigureS1_bars_region('ITL', big_voxelwise=True)
     # plot_FigureS1_bars_region('Occipital', big_voxelwise=True)
-    plot_FigureS1_bars_region('OrG', big_voxelwise=False)
-    plot_FigureS1_bars_region('SFG', big_voxelwise=False)
-    plot_FigureS1_bars_region('INS', big_voxelwise=False)
+    # plot_FigureS1_bars_region('OrG', big_voxelwise=False)
+    # plot_FigureS1_bars_region('SFG', big_voxelwise=False)
+    # plot_FigureS1_bars_region('INS', big_voxelwise=False)
+    # plot_FigureS1_bars_region('ITG', big_voxelwise=False)
 
 
 
