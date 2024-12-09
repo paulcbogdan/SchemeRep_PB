@@ -1,7 +1,7 @@
 import os.path
 
 import numpy as np
-from nilearn.experimental.surface import load_fsaverage
+# from nilearn.experimental.surface import load_fsaverage
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import get_default_fp
@@ -37,7 +37,7 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 3:], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
-    peak_dists = np.nanmean(vox_dist2MI[:, :5], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, 10:20], axis=-1)
 
     # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
     # print(vox_dist2MI.shape)
@@ -310,9 +310,9 @@ def plot_map_region(region='OC_IT_L', semantic=True, layer=None,
     #     # title="3D visualization in a web browser",
     # )
 
+    vmin = -np.max(np.abs([vmin, vmax]))
+    vmax = np.max(np.abs([vmin, vmax]))
 
-
-    #
     fig, axs = plotting.plot_img_on_surf(img,
                                          # threshold=thresh,
                                          # cmap=cmap, title=title,

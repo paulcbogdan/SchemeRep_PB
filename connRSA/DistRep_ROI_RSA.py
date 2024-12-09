@@ -18,7 +18,8 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
                'cortex': 28, 'FP': 29, 'DMN': 29, 'FPT': 29,
                'Temporal': 30,
                'PL': 31, 'LPFC': 31,
-               'tha_str': 32}
+               'tha_str': 32,
+               'PFC_no_OFC': 33}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'PCL': 19, 'ATL': 19, 'STG': 19, 'MTG': 19, 'ITG': 19,
                     'FuG': 19, 'PhG': 19, 'pSTS': 19, 'SPL': 19, 'IPL': 19,
@@ -167,7 +168,7 @@ if __name__ == '__main__':
     targets = ['Ventral']
     targets = ['Occipital', 'IT', 'ITL']
     # targets = ['tha_str']
-    # targets = ['ITL']
+    targets = ['PFC_no_OFC']
     for sem_per in [True, False]:
         for target in targets:#[::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,

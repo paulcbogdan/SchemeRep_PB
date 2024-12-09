@@ -705,6 +705,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     print(f'\t{t_ROIs_all=:.3f} ({r_sqs_ROIs_all:.4f})')
     print(f'{t_avg=:.3f} ({r_sqs_bold:.4f})')
     print(f'\t{t_avg_all=:.3f} ({r_sqs_bold_all:.4f})')
+    print(f'{t_avg_strict=:.3f}')
 
     t_ROIs_all = max(0, t_ROIs_all)
     t_avg_all = max(0, t_avg_all)
@@ -776,6 +777,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                     bottom=[0, 0], label='1',
                     color=colors_strict,
                     linewidth=1., edgecolor='k')
+            # print(t_avg_strict)
+            # quit()
             max_height = max(t_ROIs, t_avg, t_avg_all, 4.)
 
         elif True:
@@ -971,7 +974,8 @@ def do_regr():
     # target_ROIs = ['tha_str']
     target_ROIs = (['IT', 'ITL', 'Occipital', 'Parietal', 'PFC', 'subcort'] +
                    target_ROIs)
-    # target_ROIs = ['Occipital']
+    target_ROIs = ['ITL']
+    # target_ROIs = ['PFC_no_OFC']
 
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []
@@ -993,10 +997,10 @@ def do_regr():
                       }
 
             voxel_small_M = fr'{target_ROI}_M_{trial_similarity}'
-            prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
-                         ERS_alt=ERS_alt, **kwargs)
-            print(f'prepped: {voxel_small_M}')
-            continue
+            # prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
+            #              ERS_alt=ERS_alt, **kwargs)
+            # print(f'prepped: {voxel_small_M}')
+            # continue
             # print('test')
             # quit()
 

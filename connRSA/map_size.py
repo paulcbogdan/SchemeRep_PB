@@ -417,6 +417,12 @@ def get_img_region(region, fp, sn):
             replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
+    # print(df_sn[fp].iloc[0])
+    # test = df_sn[fp].iloc[0]
+    # print(os.path.exists(test))
+    # quit()
+    # quit()
+
     img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp])
 
     ROIs = get_ROIs_from_region(region)

@@ -170,6 +170,8 @@ def prep_networks(network_setting=1):
                     'LPFC': ['ITG', 'MTG', 'STG']}
     elif network_setting == 32:
         networks = {'tha_str': ['Tha', 'Str']}
+    elif network_setting == 33:
+        networks = {'PFC_no_OFC': ['IFG', 'MFG', 'SFG', 'ACC']}
     elif network_setting == -1:
         networks = {}
 

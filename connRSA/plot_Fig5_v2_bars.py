@@ -64,8 +64,6 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             corr_dist, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                 verbose=-1, easy_override=easy_override)
             corrs_dist[i, j] = corr_dist
-            print(corr_dist)
-            quit()
 
     assert np.sum(np.isnan(corrs_local)) == 0
     assert np.sum(np.isnan(corrs_dist)) == 0
@@ -210,8 +208,8 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 
 def plot_Fig5_v2_bars_all(big_voxelwise=True):
-    target_ROIs = ['Occipital', 'ITL']
-    target_ROIs = ['Occipital', 'Occipital']
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+    # target_ROIs = ['Occipital', 'Occipital']
 
     # target_ROIs = ['OrG', 'SFG']
     # target_ROIs = ['Occipital']

@@ -1,6 +1,6 @@
 import utils
 from Utils.atlas_funcs import get_atlas
-from connRSA.conn_Fig6 import run_IC_analysis
+from connRSA_finalizing.conn_Fig6 import run_IC_analysis
 from scipy import spatial, stats
 import numpy as np
 from nilearn import image, plotting

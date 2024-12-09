@@ -249,6 +249,12 @@ def load_ni_w_nan_fps(fps):
         blank[:, :, :, good_idxs] = img
         img = blank
     else:
+        # print(fps)
+        fps_ = []
+        for fp in fps:
+            fp_new = fr'C:\PycharmProjects\SchemeRep\{fp}'
+            fps_.append(fp_new)
+        fps = fps_
         img = image.load_img(fps).get_fdata()
     return img, good_idxs
 

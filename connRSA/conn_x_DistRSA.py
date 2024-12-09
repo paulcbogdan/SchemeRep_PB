@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from scipy import stats
 
 from Utils.atlas_funcs import get_atlas
-from connRSA.conn_Fig6 import run_IC_analysis, plot_FC_mat
+from connRSA_finalizing.conn_Fig6 import run_IC_analysis, plot_FC_mat
 from connRSA_finalizing.plot_RSM_x_RSM_bars import plot_FigureS1_bars_region
 
 import utils

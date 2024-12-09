@@ -37,7 +37,7 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 
 import os
-os.chdir(r'C:\PycharmProjects\SchemeRep')
+os.chdir(r'/')
 
 
 @cache

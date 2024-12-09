@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from Utils.atlas_funcs import get_atlas
 
-from connRSA.conn_Fig6 import get_cross_ERS_mat, get_idxs, get_cross_IRAF_mat
+from connRSA_finalizing.conn_Fig6 import get_cross_ERS_mat, get_idxs, get_cross_IRAF_mat
 from connRSA.single_trial_conn import prep_fps
 from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np

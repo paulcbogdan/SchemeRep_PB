@@ -16,6 +16,12 @@ from time import time
 from nilearn import image, plotting
 from tqdm import tqdm
 
+import os
+import pathlib
+path = pathlib.Path(__file__).parent.parent.resolve()
+os.chdir(path)
+
+
 GLOBAL_NAN_VALUE = -999_999
 HIGH_GLOBAL = -999_998
 LOW_GLOBAL = -1_000_000
@@ -613,6 +619,8 @@ def get_dist2MI_v2_RSA(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
 def get_dist2MI_v2(region, fp, sn, ROI_size, max_dist=15, smallest_cube=6,
                    size_limit=True, spearman=False, stdize_by_run=False,
                    euc=False):
+    print(os.getcwd())
+    # quit()
     # RSM_x_RSM_map, euc_mtx, valid_voxel_idxs, ROI_sizes = (
     #     prep_RSM_x_RSM(region, fp, sn, ROI_size, max_dist, smallest_cube))
     RSM_x_RSM_map, euc_mtx, valid_voxel_idxs, ROI_sizes = (
@@ -793,6 +801,13 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
 
 if __name__ == '__main__':
+
+
+    # fps = [rf'C:/PycharmProjects/SchemeRep/fMRI_in/136/BL_rerun7/BL\BL_sub136_run1_trial1_subset1_pairID33.nii']
+    # fps = [r'C:/test.nii']
+    # image.load_img(fps)
+    # quit()
+
     # spearman makes no difference
 
     # run_RSA_map_all_sn('OC_IT_L', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
@@ -814,9 +829,14 @@ if __name__ == '__main__':
 
     # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
 
-    run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    # quit()
+
+
+    # run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
     run_RSA_map_all_sn('OC_T_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
-    run_RSA_map_all_sn('PFC_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('PFC_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
     run_RSA_map_all_sn('OC_T_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
 
     # run_RSA_map_all_sn('PFC_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)

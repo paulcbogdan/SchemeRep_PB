@@ -93,14 +93,14 @@ if __name__ == '__main__':
     # plt.show()
     # quit()
     #
-    # plot_cortex_RSA()
+    plot_cortex_RSA()
 
-    plotting.plot_img_on_surf(
-        MNI152_FILE_PATH,
-        threshold=0.01,
-        alpha=.1,
-    )
-    plt.show()
+    # plotting.plot_img_on_surf(
+    #     MNI152_FILE_PATH,
+    #     threshold=0.01,
+    #     alpha=.1,
+    # )
+    # plt.show()
 
 
 

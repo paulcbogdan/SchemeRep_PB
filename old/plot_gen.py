@@ -163,7 +163,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                          inflate=False,
                                          # views=['vent']
                                          # symmetric_cbar=False,
-                                         surf_mesh='fsaverage5',
+                                         surf_mesh='fsaverage7',
                                          avg_method='median')
     # plotting.plot_glass_brain(img, threshold=thresh,
     #                           cmap=cmap, title=title,
