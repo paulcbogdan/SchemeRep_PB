@@ -664,7 +664,7 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     # fps = ['obj7_fMRI', 'con7_fMRI',  'vis7_fMRI']
     # fps = ['con7_fMRI']
     # sns = sns[::-1]
-    # sns = sns[5:6]
+    # sns = sns[4::5]
     # sns = ['132']
     img_data_l = []
     for i, sn in tqdm(enumerate(sns)):
@@ -700,6 +700,9 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 
             vox_dist2MI -= np.nanmean(vox_dist2MI, axis=0)
             vox_dist2MI = stats.zscore(vox_dist2MI, axis=0, nan_policy='omit')
+            # plt.imshow(vox_dist2MI, aspect='auto', interpolation='none')
+            # plt.show()
+            # quit()
             # print(vox_dist2MI)
             # quit()
             # vox_dist2MI = stats.zscore(vox_dist2MI, axis=0)
@@ -739,6 +742,7 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
     # quit()
 
     vabs = np.max(np.abs([vmin, vmax]))
+    vabs = 6
 
 
     img_data[np.isnan(img_data)] = 0
@@ -803,41 +807,21 @@ def run_RSA_map_all_sn(region, ROI_size=3, max_dist=20,
 if __name__ == '__main__':
 
 
-    # fps = [rf'C:/PycharmProjects/SchemeRep/fMRI_in/136/BL_rerun7/BL\BL_sub136_run1_trial1_subset1_pairID33.nii']
-    # fps = [r'C:/test.nii']
-    # image.load_img(fps)
-    # quit()
-
-    # spearman makes no difference
-
-    # run_RSA_map_all_sn('OC_IT_L', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
-    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, RSA=True, size_limit=True)
-
-    # TODO:
-
-    # Promising:
-    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True,
-    #                    )
-
-    # 3/20
-
-    # DID OVERNIGHT 12/1/2024
-    #
-    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
-    # run_RSA_map_all_sn('cortical_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
-    # run_RSA_map_all_sn('cortical_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=True)
-
-    # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=False)
-
-    # run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
-    # run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
-    # quit()
-
-
-    # run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('cortical_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('cortical_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('PFC_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
     run_RSA_map_all_sn('OC_T_L', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
-    # run_RSA_map_all_sn('PFC_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    run_RSA_map_all_sn('PFC_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
     run_RSA_map_all_sn('OC_T_R', ROI_size=2, smallest_cube=6, size_limit=True, euc=False)
+    quit()
+
+    # run_RSA_map_all_sn('cortical_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
+    # run_RSA_map_all_sn('cortical_R', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
+    # quit()
+
+    # GOOD OKAY RESULTS BELOW. peak_dists = np.nanmean(vox_dist2MI[:, 5:20], axis=-1)
+
+
 
     # run_RSA_map_all_sn('PFC_L', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)
     # run_RSA_map_all_sn('OC_T_R', ROI_size=3, smallest_cube=20, size_limit=True, euc=False)

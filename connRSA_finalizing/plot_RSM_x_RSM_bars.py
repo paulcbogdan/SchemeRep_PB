@@ -570,11 +570,11 @@ def plot_boxen(cond2betas, big_voxelwise):
     #             line.set_linewidth(1.5)
 
 def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
-                              get_betas=False):
+                              get_betas=False, no_lines_stars=False,
+                              fp=None):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
-    four_tasks = '7'
     stdize_by_run = False
     regress_row = False
 
@@ -588,8 +588,11 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
               'regress_row': regress_row, #'four_tasks': four_tasks,
               }
 
-
-    fps = prep_fps(four_tasks)
+    if fp is None:
+        four_tasks = '7'
+        fps = prep_fps(four_tasks)
+    else:
+        fps = [fp]
     sns = get_sns('all')['healthy']
 
     bad_sns = ['116', '125', '133', '213', '215', '231']
@@ -599,6 +602,10 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
 
     conds = [(False, 'Local'), (False, 'Distributed'),
              (True, 'Local'), (True, 'Distributed')]
+
+    if fp is not None:
+        for tup in bad_tups:
+            sns = [sn for sn in sns if (sn, fp) != tup]
 
     # conds = [(False, 'Local'), (False, 'Distributed'),
     #          (True, 'Local'), (True, 'Distributed')]
@@ -658,7 +665,6 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
                                           verbose=-1, easy_override=True)
 
                 cond2betas[cond][i, j] = beta1 * 1000
-    # quit()
 
     cond2betas = {cond: np.nanmean(betas, axis=1) for cond, betas
                   in cond2betas.items()}
@@ -736,43 +742,43 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
     lower_signif_line = (height - floor + 2*pad) * .88 + floor - pad
     upper_signif_line = (height - floor + 2*pad) * .93 + floor - pad
     shift_down = (height - floor + 2*pad) * .05
+    if not no_lines_stars:
+        plt.plot([0, 1], [lower_signif_line, lower_signif_line], color='k',
+                 linewidth=0.75)
+        plt.plot([0.5, 0.5], [lower_signif_line, upper_signif_line], color='k',
+                 linewidth=0.75)
+        plt.plot([2, 3], [lower_signif_line, lower_signif_line], color='k',
+                 linewidth=0.75)
+        plt.plot([2.5, 2.5], [lower_signif_line, upper_signif_line], color='k',
+                 linewidth=0.75)
+        plt.plot([0.5, 2.5], [upper_signif_line, upper_signif_line], color='k',
+                 linewidth=0.75)
 
-    plt.plot([0, 1], [lower_signif_line, lower_signif_line], color='k',
-             linewidth=0.75)
-    plt.plot([0.5, 0.5], [lower_signif_line, upper_signif_line], color='k',
-             linewidth=0.75)
-    plt.plot([2, 3], [lower_signif_line, lower_signif_line], color='k',
-             linewidth=0.75)
-    plt.plot([2.5, 2.5], [lower_signif_line, upper_signif_line], color='k',
-             linewidth=0.75)
-    plt.plot([0.5, 2.5], [upper_signif_line, upper_signif_line], color='k',
-             linewidth=0.75)
-
-    # stars_height = height * .92 if stars != 'NS' else height * 1.02
-    itr_stars = get_stars(p)
-    itr_stars = itr_stars.replace('NS', ' ')
-    stars_fs = 28 if itr_stars not in ['NS', '†'] else 24
-    # if 'NS' not in itr_stars:
-    plt.text(1.5,
-             upper_signif_line - shift_down if itr_stars not in ['NS', '†'] else
-             upper_signif_line - shift_down,
-             itr_stars, ha='center', va='center',
-             fontsize=stars_fs, )
-
-    oc_stars = get_stars(oc_p)
-    if 'NS' not in oc_stars:
-        stars_fs = 28
-        plt.text(0.5, lower_signif_line - shift_down,
-                 oc_stars, ha='center', va='center',
-                 fontsize=stars_fs, )
-    itl_stars = get_stars(ITL_p)
-    if 'NS' not in itl_stars:
-        stars_fs = 28
-        plt.text(2.5, lower_signif_line - shift_down,
-                 itl_stars, ha='center', va='center',
+        # stars_height = height * .92 if stars != 'NS' else height * 1.02
+        itr_stars = get_stars(p)
+        itr_stars = itr_stars.replace('NS', ' ')
+        stars_fs = 28 if itr_stars not in ['NS', '†'] else 24
+        # if 'NS' not in itr_stars:
+        plt.text(1.5,
+                 upper_signif_line - shift_down if itr_stars not in ['NS', '†'] else
+                 upper_signif_line - shift_down,
+                 itr_stars, ha='center', va='center',
                  fontsize=stars_fs, )
 
+        oc_stars = get_stars(oc_p)
+        if 'NS' not in oc_stars:
+            stars_fs = 28
+            plt.text(0.5, lower_signif_line - shift_down,
+                     oc_stars, ha='center', va='center',
+                     fontsize=stars_fs, )
+        itl_stars = get_stars(ITL_p)
+        if 'NS' not in itl_stars:
+            stars_fs = 28
+            plt.text(2.5, lower_signif_line - shift_down,
+                     itl_stars, ha='center', va='center',
+                     fontsize=stars_fs, )
 
+    ax = plt.gca()
     if height > 0 and np.max(Ms) > 0:
         ytick_low = (floor // 10 * 10)
         ytick_high = (height // 10 * 10)
@@ -781,7 +787,6 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
         plt.yticks(ticks, ticks_corr,
                    fontsize=20)
 
-        ax = plt.gca()
         ax.tick_params(axis='y', which='major', pad=5, )
 
         for label in ax.get_yticklabels():
@@ -825,12 +830,21 @@ def plot_Figure5_bars():
     quit()
 
 def plot_FigureS1_bars(big_voxelwise=False):
-    plot_FigureS1_bars_region('Occipital', big_voxelwise=big_voxelwise)
-    plot_FigureS1_bars_region('ITL', big_voxelwise=big_voxelwise)
-    plot_FigureS1_bars_region('Parietal', big_voxelwise=big_voxelwise)
-    plot_FigureS1_bars_region('PFC', big_voxelwise=big_voxelwise)
+    # plot_FigureS1_bars_region('Occipital', big_voxelwise=big_voxelwise)
+    # plot_FigureS1_bars_region('ITL', big_voxelwise=big_voxelwise)
+    # plot_FigureS1_bars_region('Parietal', big_voxelwise=big_voxelwise)
+    # plot_FigureS1_bars_region('PFC', big_voxelwise=big_voxelwise)
+
+    for fp in ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']:
+        plot_FigureS1_bars_region('ITL', big_voxelwise=big_voxelwise,
+                                  fp=fp)
+
+
+
     # plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=False)
     # plot_FigureS1_bars_region('OrG', big_voxelwise=False)
+    # plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=True)
+    # plot_FigureS1_bars_region('OrG', big_voxelwise=True)
 
 
 
@@ -839,5 +853,13 @@ import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
+#     from nilearn import image
+#
+#     fps = [r'C:/test.nii', r'C:/test.nii']
+#     image.load_img(fps)
+#     quit()
+
     plot_FigureS1_bars()
+    plot_FigureS1_bars(big_voxelwise=True)
+
     # plot_Figure5_bars()

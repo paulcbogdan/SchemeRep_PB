@@ -36,11 +36,14 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
     elif setting == 'conn_RSA_cortex':
         cmap = get_split_cmap(5, 2.5, 'rainbow_r', blue_half=True,
                               black_line=0.0002)
+    elif setting == 'RSM_RSM_dif':
+        cmap = get_split_cmap(6, 0, 'turbo_r', blue_half=False,
+                              full_range=True)
     else:
         cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
     # cmap = get_split_cmap(0.3, 0, 'RdYlBu', blue_half=False)
-    cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
+    # cmap = get_split_cmap(0.3, 0, 'turbo', blue_half=False)
 
 
     from matplotlib import rcParams
@@ -76,12 +79,16 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
         cbar.ax.tick_params(axis='x', pad=15, length=10)
     elif setting == 'conn_RSA_cortex':
         cbar.ax.set_xticks([0, 0.5, 1], ['0', '2.5', '5'], fontsize=47)
+    elif setting == 'RSM_RSM_dif':
+        cbar.ax.set_xticks([0, 0.25, .5, .75, 1], ['-6', '-3', '0', '3', '6'],
+                           fontsize=60, )
+        cbar.ax.tick_params(axis='x', pad=15, length=10)
     else:
         cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
         cbar.outline.set_visible(False)
 
     # cbar.ax.set_title('t-value', fontsize=47, pad=15)
-    cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
+    # cbar.ax.set_xticks([0, 0.5, 1], ['-.3', '.0', '.3'], fontsize=47)
     # cbar.outline.set_visible(False)
     cbar.ax.xaxis.set_tick_params(width=2)
     # plt.tight_layout(rect=(0, 0.1, 1, 0.1))
@@ -89,4 +96,6 @@ def plot_just_cbar2(setting='conn_RSA_dif'):
 
 if __name__ == '__main__':
     # plot_just_cbar2()
-    plot_just_cbar2('conn_RSA_dif')
+    # plot_just_cbar2('conn_RSA_dif')
+    plot_just_cbar2('RSM_RSM_dif')
+

@@ -37,9 +37,9 @@ def idxs2img(vox_dist2MI, vox_idxs, max_vox=None, min_vox=None,
     # peak_dists = (np.nanmean(vox_dist2MI[:, :3], axis=-1) -
     #               np.nanmean(vox_dist2MI[:, 3:], axis=-1))
     # peak_dists = np.nanmean(vox_dist2MI[:, :4], axis=-1)
-    peak_dists = np.nanmean(vox_dist2MI[:, 10:20], axis=-1)
+    peak_dists = np.nanmean(vox_dist2MI[:, 5:20], axis=-1)
 
-    # peak_dists = np.nanmean(vox_dist2MI[:, 3:], axis=-1)
+    # peak_dists = np.nanmean(vox_dist2MI[:, :5], axis=-1)
     # print(vox_dist2MI.shape)
     # quit()
     # print(vox_dist2MI)
