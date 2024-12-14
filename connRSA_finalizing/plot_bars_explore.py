@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # TODO: box bar
 
 def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
-                    easy_override=True, ax=None, plot_i=0):
+                    easy_override=False, ax=None, plot_i=0):
     kw['return_dif'] = True
     # kw['cv'] = False
 
@@ -109,16 +109,18 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
         title += 'Semantic'
     elif isinstance(kw['semantic'], bool) and not kw['semantic']:
         title += 'DNN layer 2'
-    elif isinstance(kw['semantic'], tuple):
+    elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] != 'llama':
         assert not kw['semantic'][0]
         title += f'DNN layer {kw["semantic"][1]}'
+    elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] == 'llama':
+        title += f' LLAMA: {kw["semantic"][1]}/{kw["semantic"][2]}/{kw["semantic"][3]}'
     title += f'\n{region}'
     print(f'- {title} -')
-    print(f'{M_corrs_local=:.3f}')
-    print(f'{M_corrs_dist=:.3f}')
-    print(f'{M_betas_local=:.3f}')
-    print(f'{M_betas_dist=:.3f}')
-    print()
+    # print(f'{M_corrs_local=:.3f}')
+    # print(f'{M_corrs_dist=:.3f}')
+    # print(f'{M_betas_local=:.3f}')
+    # print(f'{M_betas_dist=:.3f}')
+    # print()
 
     if big_voxelwise:
         bar_names = ['Small', 'Large\n(voxelwise)']
@@ -209,37 +211,34 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 def plot_Fig5_v2_bars_all(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
-    # target_ROIs = ['Occipital', 'Occipital']
 
-    # target_ROIs = ['OrG', 'SFG']
-    # target_ROIs = ['Occipital']
-    # target_ROIs = ['ITL']
-    # target_ROIs = ['ITL']
-    # target_ROIs = ['PFC', 'Parietal']
-
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ] #
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     # fps = ['obj7_fMRI']
 
-    semantic = (False, -1)
+    semantic_tup0 = ('llama', 'input', 0, 'obj')
+    semantic_l = [semantic_tup0]
 
-    semantic = (False, 2)
+    all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
+                      'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
+                      'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
+                      'input']
+    all_llama_layers = list(range(16))
 
-    DNN_layers = list(range(15)) + [-1]
-    DNN_layers = [5, 10, -1]
-
-    semantic_l = [True, (False, 0), (False, -1)]
-
-
-    # semantic_l = [(False, -1)]
-    semantic_l = [(False, 0), True]
-    # semantic_l = [True]
+    for llama_layer in all_llama_layers:
+        for llama_cat in all_llama_cats:
+        # for llama_layer in all_llama_layers:
+            semantic_l.append(('llama', llama_cat, llama_layer, 'obj'))
+            semantic_l.append(('llama', llama_cat, llama_layer, 'scn'))
 
 
+    # semantic_l = semantic_l[::-1]
     # for DNN_layer in DNN_layers:
     for semantic in semantic_l:
-        # DNN_layer = 15
-        # semantic = (False, DNN_layer)
-        # semantic = True
+        print(f'{semantic=}')
+
+        # semantic = ('llama', 'input', 1, 'obj')
+        # semantic = ('llama', 'gate_proj_in', 0, 'obj')
 
         plt.rcParams.update({'font.size': 20})
         fig, axs = plt.subplots(1, len(target_ROIs), figsize=(5 * len(target_ROIs), 5))

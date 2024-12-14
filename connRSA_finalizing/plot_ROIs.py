@@ -143,7 +143,30 @@ def do_slicing(data):
     data *= data_
     return data
 
+# from nilearn import image
+# from pathlib import Path
+#
+# fps = [r'C:/test.nii',
+#        r'C:\test.nii',
+#        Path(r'C:/test.nii'),
+#        Path(r'C:\test.nii'),
+#        ]
+# for fp in fps:
+#     image.load_img(fp)
+
 if __name__ == '__main__':
+    # from nilearn import image
+    # from pathlib import Path
+    #
+    # fps = [r'C:/test.nii',
+    #        r'C:\test.nii',
+    #        Path(r'C:/test.nii'),
+    #        Path(r'C:\test.nii'),
+    #        ]
+    # for fp in fps:
+    #     image.load_img(fp)
+    # quit()
+
     # 'ITL', 'OC_IT'
     for target in ['Occipital']:#, 'IT', 'Parietal', 'PFC']:
         plot_large_avg_ROIs(target, voxelwise=True)

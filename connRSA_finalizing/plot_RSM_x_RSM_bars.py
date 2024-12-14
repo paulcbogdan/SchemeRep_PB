@@ -21,7 +21,9 @@ os.chdir(path)
 
 
 def get_stars(p, no_cross=True):
-    if p < .001:
+    if p < .0001:
+        stars = '****'
+    elif p < .001:
         stars = '***'
     elif p < .01:
         stars = '**'
@@ -406,6 +408,9 @@ def plot_boxen(cond2betas, big_voxelwise):
     all_betas = np.array([cond2betas[cond_other] for cond_other in cond2betas])
     height = np.quantile(all_betas, .98)
     floor = np.quantile(all_betas, .02)
+    height = np.max(all_betas)
+    floor = np.min(all_betas)
+
     sns_out = np.any(all_betas > height, axis=0) | np.any(all_betas < floor, axis=0)
     cond2betas_ = {}
     for cond, betas in cond2betas.items():
@@ -523,25 +528,25 @@ def plot_boxen(cond2betas, big_voxelwise):
     #          fontsize=22, ha='center')
     # plt.subplots_adjust(bottom=0.24)  # Increases bottom margin to accommodate text
 
-    plt.show()
+    # plt.show()
+    # # quit()
+    #
+    #
+    # g = sns.catplot(x='model', y='vals', data=df,
+    #                 hue='small_large',
+    #                 kind='boxen',
+    #                 # linecolor='k',
+    #                 palette=['dodgerblue', 'orange'],
+    #                 legend=False,
+    #                 # saturation=0.9,
+    #                 height=5, aspect=0.75,
+    #                 # flier_kws={'edgecolor': ['k'],
+    #                 #            'linewidth': 0.8,
+    #                 #            'marker': '.',
+    #                 #            },
+    #                 )
+    # plt.show()
     # quit()
-
-
-    g = sns.catplot(x='model', y='vals', data=df,
-                    hue='small_large',
-                    kind='boxen',
-                    # linecolor='k',
-                    palette=['dodgerblue', 'orange'],
-                    legend=False,
-                    # saturation=0.9,
-                    height=5, aspect=0.75,
-                    # flier_kws={'edgecolor': ['k'],
-                    #            'linewidth': 0.8,
-                    #            'marker': '.',
-                    #            },
-                    )
-    plt.show()
-    quit()
 
     # g = sns.barplot(x='model', y='vals', data=df,
     #             hue='small_large',
@@ -578,6 +583,8 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
     stdize_by_run = False
     regress_row = False
 
+    one_fp = fp is not None
+
     kwargs = {'fp': None,
               # 'fp0': None,
               # 'fp1': None,
@@ -606,14 +613,6 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
     if fp is not None:
         for tup in bad_tups:
             sns = [sn for sn in sns if (sn, fp) != tup]
-
-    # conds = [(False, 'Local'), (False, 'Distributed'),
-    #          (True, 'Local'), (True, 'Distributed')]
-
-
-    # only distributed
-    # conds = [('Occipital', False), ('Occipital', True),
-    #          ('IT', False), ('IT', True),]
 
     cond2betas = {}
     for cond in conds:
@@ -682,18 +681,24 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
            cond2betas[conds[2]] + cond2betas[conds[3]])
     t, p = stats.ttest_1samp(itr, 0)
 
-    oc_ef = cond2betas[conds[0]] - cond2betas[conds[1]]
-    oc_t, oc_p = stats.ttest_1samp(oc_ef, 0)
-    ITL_ef = cond2betas[conds[2]] - cond2betas[conds[3]]
-    ITL_t, ITL_p = stats.ttest_1samp(ITL_ef, 0)
-    print(conds)
+    per_ef = cond2betas[conds[0]] - cond2betas[conds[1]]
+    per_t, per_p = stats.ttest_1samp(per_ef, 0)
+    per_d = per_t / np.sqrt(len(per_ef))
+    sem_ef = cond2betas[conds[2]] - cond2betas[conds[3]]
+    sem_t, sem_p = stats.ttest_1samp(sem_ef, 0)
+    sem_d = sem_t / np.sqrt(len(sem_ef))
+    # print(conds)
 
-    print(f'Interaction: {t=:.3f}, {p=:.3f}')
-    print(f'\tOccipital: {oc_t=:.3f}, {oc_p=:.3f}')
-    print(f'\tITL: {ITL_t=:.3f}, {ITL_p=:.3f}')
+    print(f'Interaction: {t=:.3f}, {p=:.5f}')
+    print(f'\tPerception effect: {per_t=:.3f}, {per_p=:.5f}, {per_d=:.3f}')
+    print(f'\tSemantic effect: {sem_t=:.3f}, {sem_p=:.5f}, {sem_d=:.3f}')
 
     Ms = np.array([cond2Ms[cond] for cond in conds])
     SEs = np.array([cond2SEs[cond] for cond in conds])
+    ts = Ms / SEs
+    print(f'{ts=}')
+    # quit()
+
     max_yerr = max(Ms + SEs)
     # height = max_yerr * 1.05
 
@@ -741,7 +746,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
 
     lower_signif_line = (height - floor + 2*pad) * .88 + floor - pad
     upper_signif_line = (height - floor + 2*pad) * .93 + floor - pad
-    shift_down = (height - floor + 2*pad) * .05
+    shift_down = (height - floor + 2*pad) * .06
     if not no_lines_stars:
         plt.plot([0, 1], [lower_signif_line, lower_signif_line], color='k',
                  linewidth=0.75)
@@ -757,7 +762,7 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
         # stars_height = height * .92 if stars != 'NS' else height * 1.02
         itr_stars = get_stars(p)
         itr_stars = itr_stars.replace('NS', ' ')
-        stars_fs = 28 if itr_stars not in ['NS', '†'] else 24
+        stars_fs = 36 if itr_stars not in ['NS', '†'] else 24
         # if 'NS' not in itr_stars:
         plt.text(1.5,
                  upper_signif_line - shift_down if itr_stars not in ['NS', '†'] else
@@ -765,15 +770,13 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
                  itr_stars, ha='center', va='center',
                  fontsize=stars_fs, )
 
-        oc_stars = get_stars(oc_p)
+        oc_stars = get_stars(per_p)
         if 'NS' not in oc_stars:
-            stars_fs = 28
             plt.text(0.5, lower_signif_line - shift_down,
                      oc_stars, ha='center', va='center',
                      fontsize=stars_fs, )
-        itl_stars = get_stars(ITL_p)
+        itl_stars = get_stars(sem_p)
         if 'NS' not in itl_stars:
-            stars_fs = 28
             plt.text(2.5, lower_signif_line - shift_down,
                      itl_stars, ha='center', va='center',
                      fontsize=stars_fs, )
@@ -819,6 +822,28 @@ def plot_FigureS1_bars_region(region='Occipital', big_voxelwise=True,
 
     # plt.bar(cond2Ms.keys(), cond2Ms.values(), yerr=cond2SEs.values(),
     #         capsize=5, linewidth=1., edgecolor='k')
+
+    no_stars_str = 'no_stars_' if no_lines_stars else ''
+    one_fp_str = f'one_fp/{fp}_' if one_fp else ''
+    if one_fp:
+        fp2title = {'bl7_fMRI': 'Passive naming',
+                    'obj7_fMRI': 'Object-scene comparison',
+                    'vis7_fMRI': 'Visual recognition',
+                    'con7_fMRI': 'Conceptual recognition',}
+        plt.title(fp2title[fp], fontsize=20)
+        plt.subplots_adjust(top=.95)
+    # else:
+    #     plt.subplots_adjust(bottom=0.26, left=0.29, right=.98, top=.98)
+
+    # Path(rf'result_pics/DistRep_bars/{one_fp_str}').mkdir(exist_ok=True,
+    #                                                       parents=True)
+
+    if big_voxelwise:
+        plt.savefig(f'result_pics/DistRep_bars/{one_fp_str}'
+                    f'{no_stars_str}yellow_voxelwise_{region}.png', dpi=300)
+    else:
+        plt.savefig(f'result_pics/DistRep_bars/{one_fp_str}'
+                    f'{no_stars_str}red_averages_{region}.png', dpi=300)
     plt.show()
 
 def plot_Figure5_bars():
@@ -834,6 +859,7 @@ def plot_FigureS1_bars(big_voxelwise=False):
     # plot_FigureS1_bars_region('ITL', big_voxelwise=big_voxelwise)
     # plot_FigureS1_bars_region('Parietal', big_voxelwise=big_voxelwise)
     # plot_FigureS1_bars_region('PFC', big_voxelwise=big_voxelwise)
+    # return
 
     for fp in ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']:
         plot_FigureS1_bars_region('ITL', big_voxelwise=big_voxelwise,

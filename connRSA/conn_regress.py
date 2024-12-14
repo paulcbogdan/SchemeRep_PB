@@ -7,6 +7,7 @@ from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
+from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM
 from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
@@ -251,15 +252,32 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     # fp_stim = f'{dir_focus}/{sn}_stim_{semantic}.npy'
     # with open(fp_stim, 'rb') as f:
     #     RSM_stim = np.load(f)
+
+
+
     if isinstance(semantic, bool) and semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
     elif isinstance(semantic, bool) and not semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 0)
-    elif isinstance(semantic, tuple):
+    elif isinstance(semantic, tuple) and semantic[0] != 'llama':
         assert not semantic[0]
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
+    elif isinstance(semantic, tuple) and semantic[0] == 'llama':
+        RSM_stim = get_sn_fp_llama_RSM(sn, fp, semantic)
+        # num_nan = np.sum(np.isnan(RSM_stim))
+        # # print(f'{num_nan=}')
+        # # quit()
+        # plt.imshow(RSM_stim)
+        # plt.colorbar()
+        # plt.show()
+        # quit()
     else:
         raise ValueError
+
+    # print(RSM_stim)
+    # plt.imshow(RSM_stim)
+    # plt.show()
+    # quit()
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 
@@ -327,6 +345,11 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             flat_ctrls = flat_ctrls[:, ~nan_cols]
 
         # print(flat_ctrls.shape)
+        # print(flat_stim)
+        # num_nan = np.sum(np.isnan(flat_stim))
+        # num_non_nan = len(flat_stim) - num_nan
+        # print(f'{num_nan=}, {num_non_nan=}')
+        # quit()
         # quit()
 
         if regress_row:
@@ -350,15 +373,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 return [np.nan] * (3 if return_dif else 2)
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
             return IRAFs_focus
-            # M = np.nanmean(IRAFs_focus)
-            # return M, (M ** 2) * np.sign(M)
-        # print(f'{flat_itr.shape=}')
-        # print(f'{flat_focus.shape=}')
-        # print(f'{flat_ctrls.shape=}')
-        # quit()
-        # print(flat_itr.shape)
-        # print(flat_focus.shape)
-        # print(flat_ctrls.shape)
 
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:
@@ -378,6 +392,12 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
     X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
     flat_stim = stats.zscore(flat_stim)
+
+    assert np.sum(np.isnan(flat_stim)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
+
+    # print(flat_stim)
+    # quit()
+    # quit()
 
     solution, residuals, rank, s = np.linalg.lstsq(X, flat_stim, rcond=None)
 

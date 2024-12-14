@@ -77,23 +77,25 @@ def run_regress(region='Occipital', big_voxelwise=True,):
 
     height = np.quantile([cond1_vals, cond1_vals], .98)
     floor = np.quantile([cond1_vals, cond1_vals], .02)
+    height = 100
+    floor = -100
     sns_out1 = (cond1_vals > height) | (cond1_vals < floor)
     sns_out2 = (cond2_vals > height) | (cond2_vals < floor)
     sns_out = sns_out1 | sns_out2
 
 
     t1, p1 = stats.ttest_1samp(cond1_vals, 0)
+    d1 = t1 / np.sqrt(len(cond1_vals))
     t2, p2 = stats.ttest_1samp(cond2_vals, 0)
+    d2 = t2 / np.sqrt(len(cond2_vals))
     t12, p12 = stats.ttest_rel(cond1_vals, cond2_vals)
-    print(f'Perceptual: {t1=:.3f}, {p1=:.4f}')
-    print(f'Semantic: {t2=:.3f}, {p2=:.4f}')
-    print(f'Perceptual vs. Semantic: {t12=:.3f}, {p12=:.4f}')
+    d12 = t12 / np.sqrt(len(cond1_vals))
+    print(f'Perceptual: {t1=:.2f}, {p1=:.4f}, {d1=:.2f}')
+    print(f'Semantic: {t2=:.2f}, {p2=:.4f}, {d2=:.2f}')
+    print(f'Perceptual vs. Semantic: {t12=:.2f}, {p12=:.4f}, {d12=:.2f}')
 
     for sp, betas in sp2betas.items():
         sp2betas[sp] = np.nanmean(betas, axis=1)
-        sp2betas[sp] = sp2betas[sp][~sns_out]
-        # print(sns_out)
-        # quit()
 
     cond2Ms = {cond: np.nanmean(betas) for cond, betas in sp2betas.items()}
     cond2SEs = {cond: np.nanstd(betas) / np.sqrt(len(betas))
@@ -101,20 +103,15 @@ def run_regress(region='Occipital', big_voxelwise=True,):
 
     Ms = np.array([cond2Ms[cond] for cond in conds])
     SEs = np.array([cond2SEs[cond] for cond in conds])
-    t = Ms/SEs
-
     Ms_corr = np.array([np.nanmean(corr) for corr in sp2corrs.values()])
     SEs_corr = {cond: np.nanstd(betas) / np.sqrt(len(betas))
                 for cond, betas in sp2corrs.items()}
     SEs_corr = np.array([SEs_corr[cond] for cond in conds])
-
     ts_corr = Ms_corr / SEs_corr
 
-    # print(f'{Ms=}')
-    # print(f'{t=}')
-    # print(f'{Ms_corr=}')
-    # print(f'{ts_corr=}')
-    # quit()
+
+    for sp, betas in sp2betas.items():
+        sp2betas[sp] = sp2betas[sp][~sns_out]
 
 
     Ms_bottom = np.copy(Ms)
@@ -150,9 +147,19 @@ def run_regress(region='Occipital', big_voxelwise=True,):
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
 
-    if region in ['IT', 'ITL']:
-        plt.text(1, -0.0004, '  ***  ', fontsize=28, ha='center',
-                 color='w', va='center')
+    # if region == 'ITL':
+    #     plt.text(1, -0.0004, '  ***  ', fontsize=28, ha='center',
+    #              color='w', va='center')
+    # elif region == 'IT':
+    #     plt.text(1, -0.0009, '  ***  ', fontsize=28, ha='center',
+    #              color='w', va='center')
+
+    # if region == 'ITL':
+    #     plt.text(1, 0.0095, '  ***  ', fontsize=32, ha='center',
+    #              color='k', va='center')
+    # elif region == 'IT':
+    #     plt.text(1, 0.0095, '  ***  ', fontsize=32, ha='center',
+    #              color='k', va='center')
 
     lw = 1.5
     for x in [0, 1]:
@@ -191,6 +198,14 @@ def run_regress(region='Occipital', big_voxelwise=True,):
             plt.plot([x + width / 2, x + width / 2],
                      [0, Ms[x]], color='k', linewidth=lw, alpha=1.0)
 
+        if Ms[x] < 0:
+            plt.plot([x - width / 2, x - width / 2],
+                     [0, Ms[x]], color='k', linewidth=lw, alpha=1.0)
+            plt.plot([x + width / 2, x + width / 2],
+                     [0, Ms[x]], color='k', linewidth=lw, alpha=1.0)
+        # else:
+        #     plt.plot([x - width / 2, x + width / 2],
+        #              [0, 0], color='k', linewidth=lw, alpha=1.0)
 
 
     plt.plot([-.5, 1.5], [0, 0], linewidth=0.5, color='k')
@@ -222,9 +237,13 @@ def run_regress(region='Occipital', big_voxelwise=True,):
     plt.subplots_adjust(bottom=0.26, left=0.29, right=.98, top=.98)
 
     # plt.subplots_adjust(left=0.4, right=.9)
-
-    plt.savefig(f'result_pics/test_{region}.png', dpi=300)
-
+    # no_stars_str = 'no_stars' if
+    if big_voxelwise:
+        plt.savefig(f'result_pics/DistRep_bars/'
+                    f'all_regress_voxelwise_{region}.png', dpi=300)
+    else:
+        plt.savefig(f'result_pics/DistRep_bars/'
+                    f'all_regress_averages_{region}.png', dpi=300)
     plt.show()
 
 # from matplotlib.text import Text
@@ -276,6 +295,6 @@ if __name__ == '__main__':
 
     BIG_VOXELWISE = False
     # run_regress('Occipital', big_voxelwise=BIG_VOXELWISE)
-    run_regress('ITL', big_voxelwise=BIG_VOXELWISE)
+    run_regress('IT', big_voxelwise=BIG_VOXELWISE)
     # run_regress('Parietal', big_voxelwise=BIG_VOXELWISE)
     # run_regress('PFC', big_voxelwise=BIG_VOXELWISE)

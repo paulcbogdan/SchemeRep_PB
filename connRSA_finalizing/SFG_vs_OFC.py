@@ -46,6 +46,7 @@ def test_SFG_vs_OFG(big_voxelwise=True):
                                           get_betas=False, no_lines_stars=True)
     OFG_betas = plot_FigureS1_bars_region('OrG', big_voxelwise=big_voxelwise,
                                           get_betas=False, no_lines_stars=True)
+    # print('-*-' * 100)
 
 
 
@@ -58,5 +59,13 @@ def plot_SFG_vs_OFG(big_voxelwise=False):
     plot_FigureS1_bars_region('OrG', big_voxelwise=True)
 
 if __name__ == '__main__':
+    big_voxelwise = True
+
+    # SFG_betas = plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=big_voxelwise,
+    #                                       get_betas=False, no_lines_stars=True)
+    # OFG_betas = plot_FigureS1_bars_region('OrG', big_voxelwise=big_voxelwise,
+    #                                       get_betas=False, no_lines_stars=True)
+    # quit()
+
     test_SFG_vs_OFG()
     # plot_SFG_vs_OFG()
