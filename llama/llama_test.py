@@ -148,12 +148,9 @@ class LlamaActivationExtractor:
                         break
             if len(target_idx) == 0:
                 print(f'BAD!! Word not found: {word}')
-
-                # raise ValueError(f"No target word ({word}) found in the input sentence: {sentence}")
             target_indices.append((target_idx[0], len(word_token)))
             target_words_tokens.append(word_token)
-            # print(target_idx)
-            # print(f'{word=}, {target_idx=}')
+
         # print(target_indices)
         # quit()
         assert len(target_indices) > 0, (f"No target words ({target_words}) found in "
@@ -255,8 +252,9 @@ class LlamaActivationExtractor:
 
 def main():
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
+    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
 
     extractor._register_comprehensive_hooks()
 

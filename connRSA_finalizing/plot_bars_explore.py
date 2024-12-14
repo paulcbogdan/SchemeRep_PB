@@ -1,3 +1,4 @@
+from collections import defaultdict
 
 from Utils.atlas_funcs import get_BNA_ROIs
 import utils
@@ -44,7 +45,8 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             # easy_override = True
             beta1, beta2, dif = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                   verbose=-1,
-                                                  easy_override=easy_override)
+                                                  easy_override=easy_override,
+                                                  dir_branches=100)
             # print(beta1)
             # print(beta2)
             betas_local[i, j] = beta1
@@ -54,7 +56,8 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             kw['ROIs_ctrl'] = []
             # print(kw)
             corr_local, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
-                                                 verbose=-1, easy_override=easy_override)
+                                                 verbose=-1, easy_override=easy_override,
+                                                 dir_branches=100)
             # print(corr_local)
             # quit()
             corrs_local[i, j] = corr_local
@@ -62,13 +65,20 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             kw['ROI_focus'] = dist_key
 
             corr_dist, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
-                                                verbose=-1, easy_override=easy_override)
+                                                verbose=-1, easy_override=easy_override,
+                                                dir_branches=100)
             corrs_dist[i, j] = corr_dist
+    # return
 
     assert np.sum(np.isnan(corrs_local)) == 0
     assert np.sum(np.isnan(corrs_dist)) == 0
     assert np.sum(np.isnan(betas_local)) == 0
     assert np.sum(np.isnan(betas_dist)) == 0
+
+    corrs_local *= 1_000
+    corrs_dist *= 1_000
+    betas_local *= 1_000
+    betas_dist *= 1_000
 
     corrs_local = np.nanmean(corrs_local, axis=1)
     corrs_dist = np.nanmean(corrs_dist, axis=1)
@@ -92,10 +102,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     M_corr_beta_local = M_corrs_local - M_betas_local
     M_corr_beta_dist = M_corrs_dist - M_betas_dist
 
-    t_corr, p_corr = stats.ttest_rel(corrs_local, corrs_dist)
-    print(f'{t_corr=:.3f}, {p_corr=:.3f}')
-    t_beta, p_beta = stats.ttest_rel(betas_local, betas_dist)
-    print(f'{t_beta=:.3f}, {p_beta=:.3f}')
+
 
     max_height = max(M_corrs_local, M_corrs_dist, M_betas_local, M_betas_dist)
 
@@ -105,6 +112,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
         mapper = {'bl7_fMRI': 'Baseline task', 'obj7_fMRI': 'Encoding task',
                   'con7_fMRI': 'Conceptual retrieval', 'vis7_fMRI': 'Visual retrieval'}
         title = f'{mapper[fps[0]]}:\n'
+    title = ''
     if isinstance(kw['semantic'], bool) and kw['semantic']:
         title += 'Semantic'
     elif isinstance(kw['semantic'], bool) and not kw['semantic']:
@@ -113,14 +121,25 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
         assert not kw['semantic'][0]
         title += f'DNN layer {kw["semantic"][1]}'
     elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] == 'llama':
-        title += f' LLAMA: {kw["semantic"][1]}/{kw["semantic"][2]}/{kw["semantic"][3]}'
+        title += f'{kw["semantic"][1]}/{kw["semantic"][2]}/{kw["semantic"][3]}'
     title += f'\n{region}'
-    print(f'- {title} -')
-    # print(f'{M_corrs_local=:.3f}')
-    # print(f'{M_corrs_dist=:.3f}')
-    # print(f'{M_betas_local=:.3f}')
-    # print(f'{M_betas_dist=:.3f}')
-    # print()
+    print()
+    print(f'- {title.replace("\n", " ")} -')
+    t_corr, p_corr = stats.ttest_rel(corrs_local, corrs_dist)
+    print(f'Local vs. distributed, corr, t = {t_corr:.2f}, p = {p_corr:.3f}')
+    t_local_corr_1samp, p_local_corr_1samp = stats.ttest_1samp(corrs_local, 0)
+    print(f'\tLocal 1-samp, corr: t = {t_local_corr_1samp:.2f}, p = {p_local_corr_1samp:.3f}')
+    t_dist_corr_1samp, p_dist_corr_1samp = stats.ttest_1samp(corrs_dist, 0)
+    print(f'\tDist 1-samp, corr: t = {t_dist_corr_1samp:.2f}, p = {p_dist_corr_1samp:.3f}')
+
+    t_beta, p_beta = stats.ttest_rel(betas_local, betas_dist)
+    print(f'Local vs. distributed, beta, t = {t_beta:.2f}, p = {p_beta:.3f}')
+    t_local_beta_1samp, p_local_beta_1samp = stats.ttest_1samp(betas_local, 0)
+    print(f'\tLocal 1-samp, beta: t = {t_local_beta_1samp:.2f}, p = {p_local_beta_1samp:.3f}')
+    t_dist_beta_1samp, p_dist_beta_1samp = stats.ttest_1samp(betas_dist, 0)
+    print(f'\tDist 1-samp, beta: t = {t_dist_beta_1samp:.2f}, p = {p_dist_beta_1samp:.3f}')
+    return (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
+            t_beta, t_local_beta_1samp, t_dist_beta_1samp)
 
     if big_voxelwise:
         bar_names = ['Small', 'Large\n(voxelwise)']
@@ -143,11 +162,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             error_kw={'ecolor': 'k', 'capsize': 6,  'linewidth': 2},
             label='2', color=corr_colors,
             linewidth=1., edgecolor='k')
-    # plt.errorbar([-0.05, 0.95],
-    #             [M_corrs_local, M_corrs_dist],
-    #             yerr=[SD_corrs_local, SD_corrs_dist],
-    #             linewidth=0, elinewidth=2, color='k',
-    #             capsize=6, marker='o')
+
     plt.bar(bar_names,
             [M_betas_local, M_betas_dist],
             bottom=[0, 0],
@@ -155,16 +170,6 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             # error_kw={'ecolor': 'w', 'capsize': 6,  'linewidth': 2},
             label='2', color=beta_colors,
             linewidth=1., edgecolor='k')
-    # plt.errorbar([0.05, 1.05],
-    #             [M_betas_local, M_betas_dist],
-    #             yerr=[SD_betas_local, SD_betas_dist],
-    #             linewidth=0, elinewidth=2, color='k',
-    #             capsize=6, marker='o')
-    # plt.errorbar([0.1, 1.1],
-    #             [M_betas_local, M_betas_dist],
-    #             yerr=[SD_betas_local, SD_betas_dist],
-    #             linewidth=0, elinewidth=1, color='k',
-    #             capsize=6, marker='o')
     if M_corr_beta_dist < 0:
         plt.plot([0.6, 1.4], [M_corrs_dist, M_corrs_dist], color='k',
                  linestyle='-', linewidth=1)
@@ -191,68 +196,54 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     plt.title(title, fontsize=20)
     if plot_i == 0:
         plt.ylabel('Mean (beta | correlation)')
-    # plt.gcf().subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.2)
-
-    # plt.show()
     return
-
-    # print(M_corrs_local)
-    # quit()
-    # t_corrs_local, p_corrs_local = stats.ttest_1samp(
-    #     np.nanmean(corrs_local, axis=1), 0)
-    # t_dist_local, p_dist_local = stats.ttest_1samp(
-    #     np.nanmean(corrs_dist, axis=1), 0)
-    # t_betas_local, p_betas_local = stats.ttest_1samp(
-    #     np.nanmean(betas_local, axis=1), 0)
-    # t_betas_dist, p_betas_dist = stats.ttest_1samp(
-    #     np.nanmean(betas_dist, axis=1), 0)
 
 
 
 def plot_Fig5_v2_bars_all(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+    target_ROIs = ['ITL']
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
-    # fps = ['obj7_fMRI']
+    fps = ['obj7_fMRI']
+    fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
 
-    semantic_tup0 = ('llama', 'input', 0, 'obj')
-    semantic_l = [semantic_tup0]
 
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
+    # all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in',
+    #                   'gate_proj_out', 'up_proj_out', 'down_proj_out']
+    # all_llama_cats = ['q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',]
     all_llama_layers = list(range(16))
+    activation_model = 'meta-llama/Llama-3.2-3b'
 
+    semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
         # for llama_layer in all_llama_layers:
-            semantic_l.append(('llama', llama_cat, llama_layer, 'obj'))
-            semantic_l.append(('llama', llama_cat, llama_layer, 'scn'))
+            semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model, False))
+            semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model, False))
 
+    axs = None
+    fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 
-    # semantic_l = semantic_l[::-1]
-    # for DNN_layer in DNN_layers:
+    # semantic_l = [True]
+    semantic_l = semantic_l[4::5]
+    ALL_RESULTS = defaultdict(list)
+
     for semantic in semantic_l:
         print(f'{semantic=}')
-
-        # semantic = ('llama', 'input', 1, 'obj')
-        # semantic = ('llama', 'gate_proj_in', 0, 'obj')
-
         plt.rcParams.update({'font.size': 20})
-        fig, axs = plt.subplots(1, len(target_ROIs), figsize=(5 * len(target_ROIs), 5))
-        # fig.subplots_adjust(bottom=0.18, left=0.35, right=0.9, top=0.85)
         fig.subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.3)
 
+        llama_cat = semantic[1]
+        llama_layer = semantic[2]
+        obj_scn = semantic[3]
+
         for i, target_ROI in enumerate(target_ROIs):
-            # regions = set(prep_networks(
-            #     network_setting=ROI2NETWORK[target_ROI])[target_ROI])
-
-            # ROIs_match = [ROI for region in regions
-            #                   for ROI in get_BNA_ROIs() if region in ROI]
-            # ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
-
             kwargs = {'semantic': semantic,
                       'fp': None,
                       'trial_similarity': 'corr',
@@ -260,12 +251,42 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                       'stdize_by_run': False,
                       'regress_row': False,
                       }
-            plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
-                            ax=axs[i] , plot_i=i)
-        plt.show()
+            i_ = i // 2
+            j = i % 2
+            (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
+             t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
+                plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
+                            ax=axs[i_][j] , plot_i=i))
+            ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
+        if llama_layer % 4 == 3:
+            print_all_results(ALL_RESULTS)
+        if len(axs[0][0].lines):
+            plt.tight_layout()
+            plt.show()
+            fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     quit()
 
+def print_all_results(all_results):
+    flat_dict = all_results
+    nested_dict = {}
 
+    for (a, b, c), value in flat_dict.items():
+        # Create nested dictionaries if they don't exist
+        if a not in nested_dict:
+            nested_dict[a] = {}
+
+        if b not in nested_dict[a]:
+            nested_dict[a][b] = {}
+
+        nested_dict[a][b][c] = value
+    for a, b_dict in nested_dict.items():
+        print(f'Region: {a}')
+        for b, c_dict in b_dict.items():
+            for c, value in c_dict.items():
+                M_v = np.nanmean(value)
+                SE_v = np.nanstd(value) / np.sqrt(len(value))
+                v_ = [float(f'{v:.2f}') for v in value]
+                print(f'\t{b}, {c}: M = {M_v:.1f} [{SE_v:.2f}]. {v_=}')
 
 if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
