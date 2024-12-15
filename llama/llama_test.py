@@ -14,7 +14,6 @@ class LlamaActivationExtractor:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Specialized activation containers
-        # self.attention_outputs = {}
         self.mlp_act_in = {'gate_proj': {}, 'up_proj': {}, 'down_proj': {},
                            'act_fn': {}}
         self.mlp_act_out = {'gate_proj': {}, 'up_proj': {}, 'down_proj': {},
@@ -22,10 +21,6 @@ class LlamaActivationExtractor:
         self.attention_act = {'q_proj': {}, 'k_proj': {}, 'v_proj': {},
                               'attn_output': {}, 'attn_weights': {},
                               'input': {}}
-
-        # self.query_states = {}
-        # self.key_states = {}
-        # self.value_states = {}
 
         # Store hook handles for cleanup
         self.hooks = []
@@ -93,12 +88,10 @@ class LlamaActivationExtractor:
             name_spl = name.split('.')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'layers':
-                # print(f'Attention hook: {name}')
                 layer_num = int(name.split('.')[-1])
                 hook = module.register_forward_hook(attention_big_hook(layer_num))
                 self.hooks.append(hook)
             if name_spl[-2] == 'mlp':
-                # print(f'MLP hook: {name}')
                 layer_num = int(name.split('.')[-3])
                 hook = module.register_forward_hook(
                     activation_hook(layer_num, self.mlp_act_in[name_spl[-1]],
@@ -180,32 +173,6 @@ class LlamaActivationExtractor:
         for key, d in self.mlp_act_out.items():
             out['mlp_out'][key] = self._extract_target_activations(d, target_indices)
 
-        # for key, d in self.attention_act.items():
-        #
-        #     for layer, act in d.items():
-        #         print(f'{key} {layer}: {act.shape}')
-        #         break
-        # #
-        # print(list(self.mlp_act_in.keys()))
-        # for key, d in self.mlp_act_in.items():
-        #     for layer, act in d.items():
-        #         print(f'{key} {layer}: {act.shape}')
-        #         break
-        #
-        # print(list(self.mlp_act_out.keys()))
-        # for key, d in self.mlp_act_out.items():
-        #     for layer, act in d.items():
-        #         # print(act)
-        #         print(f'{key} {layer}: {act.shape}')
-        #         break
-        # quit()
-
-        # Prepare results
-        # results = {
-        #     'attention_activations': self._extract_target_activations(self.attention_outputs, target_indices),
-        #     'mlp_activations': self._extract_target_activations(self.mlp_activations, target_indices),
-        #     'layer_activations': self._extract_target_activations(self.layer_activations, target_indices)
-        # }
         return out
         # return results, decoded_tokens
 

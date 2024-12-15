@@ -2,9 +2,11 @@ from collections import defaultdict
 
 from Utils.atlas_funcs import get_BNA_ROIs
 import utils
+from Utils.pickle_wrap_funcs import pickle_wrap
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.conn_regress import do_regr_RSA_sn
 from connRSA.single_trial_conn import prep_fps
+from llama.color_test import print_colored_list
 from networks.old.networks import prep_networks
 from org_sns import get_sns
 import numpy as np
@@ -202,36 +204,47 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 def plot_Fig5_v2_bars_all(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
-    target_ROIs = ['ITL']
+    # target_ROIs = ['ITL']
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
-    fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
 
 
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
+
+    # Redundant: gate_proj_in & up_proj_in
+    # Redundant: act_fn_in & gate_proj_out
+
     # all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in',
     #                   'gate_proj_out', 'up_proj_out', 'down_proj_out']
     # all_llama_cats = ['q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',]
     all_llama_layers = list(range(16))
     activation_model = 'meta-llama/Llama-3.2-3b'
 
+    normalize = (0, 1)
+    normalize = 0
+    normalize = 1
+    # normalize = True
+
     semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
-        # for llama_layer in all_llama_layers:
-            semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model, False))
-            semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model, False))
+            if llama_cat in ['attn_weights', 'attn_output']:
+                semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
+                                   normalize))
+            semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                               normalize))
 
     axs = None
     fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 
     # semantic_l = [True]
-    semantic_l = semantic_l[4::5]
+    # semantic_l = semantic_l[3::4]
     ALL_RESULTS = defaultdict(list)
 
     for semantic in semantic_l:
@@ -253,18 +266,32 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                       }
             i_ = i // 2
             j = i % 2
+            # (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
+            #  t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
+            #     plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
+            #                 ax=axs[i_][j] , plot_i=i))
+
             (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
              t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
-                plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
-                            ax=axs[i_][j] , plot_i=i))
+                pickle_wrap(plot_Fig5_v2_kw, kwargs={'kw': kwargs, 'fps': fps,
+                                                     'big_voxelwise': big_voxelwise,
+                                                     'region': target_ROI,
+                                                     'std': False,
+                                                     'easy_override': False,
+                                                     'ax': axs[i_][j], 'plot_i': i},
+                            verbose=-1))
+
+
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
-        if llama_layer % 4 == 3:
-            print_all_results(ALL_RESULTS)
+        #if llama_layer % 4 == 3:
+        print_all_results(ALL_RESULTS)
         if len(axs[0][0].lines):
             plt.tight_layout()
             plt.show()
             fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     quit()
+
+
 
 def print_all_results(all_results):
     flat_dict = all_results
@@ -281,12 +308,16 @@ def print_all_results(all_results):
         nested_dict[a][b][c] = value
     for a, b_dict in nested_dict.items():
         print(f'Region: {a}')
+        header = ''.join(f'{x:^5}|' for x in range(15))
+        print(f'\t{header}')
         for b, c_dict in b_dict.items():
             for c, value in c_dict.items():
                 M_v = np.nanmean(value)
                 SE_v = np.nanstd(value) / np.sqrt(len(value))
                 v_ = [float(f'{v:.2f}') for v in value]
-                print(f'\t{b}, {c}: M = {M_v:.1f} [{SE_v:.2f}]. {v_=}')
+                v_ = [np.max([0, v]) for v in v_]
+                v_str = print_colored_list(v_, vmin=0, vmax=10)
+                print(f'\t{v_str} | {b}, {c}: M = {M_v:.1f} [{SE_v:.2f}]. ')
 
 if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
@@ -294,3 +325,6 @@ if __name__ == '__main__':
     # plot_Fig5_v2_bars_all(semantic=True,) 
     plot_Fig5_v2_bars_all(big_voxelwise=False)
 
+
+    # NOTES:
+    # Layer 0 is useless

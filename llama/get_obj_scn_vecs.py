@@ -11,6 +11,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+
 @cache
 def get_llama_extractor(model_name='meta-llama/Llama-3.2-1b'):
     from llama.llama_test import LlamaActivationExtractor
@@ -57,21 +58,17 @@ def get_llama_activations(obj, scn,
     if obj == 'oversize tire':
         obj = 'oversized tire'
 
-    # print(f'{scn=}, {obj=} | {sentence}')
-
     t = time()
     extractor = get_llama_extractor(model_name=activation_model)
     res = extractor.extract_activations(sentence, [obj, scn], )
+    extractor.cleanup()
     print(f'Time needed for activation extraction: {time() - t:.3f} s')
     print(f'\t{[obj, scn]=} | {sentence=}')
     # quit()
     return res
 
-
-
-def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
-                     activation_model='meta-llama/Llama-3.2-1b',
-                     all_possible=False, obj_scn_norm=False):
+@cache
+def process_cat_cat_inner(cat):
     cat2outer = {'gate_proj_in': 'mlp', 'up_proj_in': 'mlp',
                  'down_proj_in': 'mlp', 'act_fn_in': 'mlp',
                  'gate_proj_out': 'mlp', 'up_proj_out': 'mlp',
@@ -91,6 +88,12 @@ def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
     else:
         cat_ = cat
         inner = cat2outer[cat]
+    return cat_, inner
+
+def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
+                                activation_model='meta-llama/Llama-3.2-1b',
+                                all_possible=False):
+    cat_, inner = process_cat_cat_inner(cat)
 
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
@@ -118,37 +121,63 @@ def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
             already_done.add((obj, scn))
             scn_objs.append((scn, obj))
             obj_scns.append((obj, scn))
-            # print(f'{sn=}, {obj=}, {scn=}')
-            # obj = 'oversize tire'
-            # scn = 'inside of a car'
+            if all_possible and len(already_done) % 100 == 0:
+                num_done = len(already_done)
+                num_total = len(objs)
+                p_done = num_done / num_total
+                print('-*-*-*-')
+                print(f'all_possible progress: {p_done:.1%} ({num_done=}, {num_total=})')
+                print('-*-*-*-')
 
+            t_st = time()
             res = pickle_wrap(get_llama_activations,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
                               easy_override=False,
-                              verbose=-1)
-            # quit()
+                              verbose=-1,
+                              dir_branches=100
+                              )
 
-            for obj_scn, idx0 in zip(['obj', 'scn'], [0, 1]):
+            # for _, idx0 in zip(['obj', 'scn'], [0, 1]):
+            for idx_target in [0, 1]:
                 if cat == 'attn_weights':
-                    v = np.nanmean(res['attn']['attn_weights'][layer_name][idx0],
+                    v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
                                    axis=(0, 1))
                 else:
-                    v = np.nanmean(res[inner][cat_][layer_name][idx0],
-                                   axis=0)
+                    v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
                     if len(v.shape) > 1:
                         v = v.reshape(-1)
-                if idx0 == 0:
+                if idx_target == 0:
                     d_vecs[(scn, obj)] = v
                 else:
                     d_vecs[(obj, scn)] = v
 
-    if obj_scn_norm:
+                    # SECOND ENTRY IS THE TARGET ONE
+        if all_possible:
+            break
+    return d_vecs, scn_objs, obj_scns
+
+def extract_vector_from_res():
+    pass
+
+
+def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
+                     activation_model='meta-llama/Llama-3.2-1b',
+                     all_possible=False):
+    d_vecs, scn_objs, obj_scns = (
+        pickle_wrap(get_llama_d_vecs_non_normed,
+                    kwargs={'cat': cat, 'layer_name': layer_name,
+                            'activation_model': activation_model,
+                            'all_possible': all_possible},
+                    easy_override=False, verbose=-1, RAM_cache=True))
+
+    if not isinstance(normalize, bool):
         t_st = time()
         d_vecs = norm_by_obj(d_vecs, cat=cat, layer_name=layer_name,
-                             normalize=normalize,
+                             norm_axis=normalize,
                              activation_model=activation_model)
-        print(f'Time needed for normalize by obj & scn: {time() - t_st:.3f} s')
+        print(f'Time needed for normalize by obj and/or scn ({normalize}): '
+              f'{time() - t_st:.3f} s')
     elif normalize:
         scn_objs_vecs = [d_vecs[(scn, obj)] for scn, obj in scn_objs]
         M = np.nanmean(scn_objs_vecs, axis=0)
@@ -164,46 +193,97 @@ def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
     return d_vecs
 
 def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
-                activation_model='meta-llama/Llama-3.2-1b',):
+                activation_model='meta-llama/Llama-3.2-1b',
+                norm_axis=(0, 1)):
 
-    d_vecs_all = get_llama_d_vecs(cat=cat, layer_name=layer_name,
-                                  normalize=normalize,
-                                  activation_model=activation_model,
-                                  all_possible=True)
-    d_vecs_obj_l = defaultdict(list)
-    for obj, scn in d_vecs_all.keys():
-        d_vecs_obj_l[obj].append(d_vecs_all[(obj, scn)])
-    d_vecs_obj_M = {obj: np.nanmean(d_vecs_obj_l[obj], axis=0)
-                    for obj in d_vecs_obj_l.keys()}
-    d_vecs_obj_SD = {obj: np.nanstd(d_vecs_obj_l[obj], axis=0)
-                     for obj in d_vecs_obj_l.keys()}
-    d_vecs_all_obj_norm = {}
-    for (obj, scn), v in d_vecs_all.items():
-        d_vecs_all_obj_norm[(obj, scn)] = (v - d_vecs_obj_M[obj]) / d_vecs_obj_SD[obj]
+    # NORM AXIS = 0 means you are standardizing with respect to all other targets toward the context
+    #    so if the context is "beach" and the target (idx0 = 0) is "ball", you are taking "ball"
+    #    and substracting the mean for all targets at beach then dividing by the standard deviation
+    # NORM AXIS = 1 means you are standardizing with respect to all other contexts toward the target
+    # NORM AXIS = (0, 1) means you are doing both
 
-    d_vecs_scn_l = defaultdict(list)
-    for obj, scn in d_vecs_all.keys():
-        d_vecs_scn_l[scn].append(d_vecs_all[(obj, scn)])
-    d_vecs_scn_M = {scn: np.nanmean(d_vecs_scn_l[scn], axis=0)
-                    for scn in d_vecs_scn_l.keys()}
-    d_vecs_scn_SD = {scn: np.nanstd(d_vecs_scn_l[scn], axis=0)
-                     for scn in d_vecs_scn_l.keys()}
+    d_vecs_all = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat,
+                                                        'layer_name': layer_name,
+                                                        'normalize': False,
+                                                        'activation_model': activation_model,
+                                                        'all_possible': True},
+                                easy_override=False, verbose=-1,
+                                RAM_cache=False)
 
-    for obj, scn in d_vecs.keys():
-        v = d_vecs_all_obj_norm[(obj, scn)]
-        v = (v - d_vecs_scn_M[scn]) / d_vecs_scn_SD[scn]
-        d_vecs[(obj, scn)] = v
-    return d_vecs
+
+    assert np.all(np.abs(d_vecs[('surfing board', 'waves')] -
+                         d_vecs_all[('surfing board', 'waves')])) < 1e-6
+    if norm_axis == 0:
+        d_vecs_obj_l = defaultdict(list)
+        for obj, scn in d_vecs_all.keys():
+            d_vecs_obj_l[obj].append(d_vecs_all[(obj, scn)])
+            # Divide the second one by all others of the second one of the same first one
+        d_vecs_obj_M = {obj: np.nanmean(d_vecs_obj_l[obj], axis=0)
+                        for obj in d_vecs_obj_l.keys()}
+        d_vecs_obj_SD = {obj: np.nanstd(d_vecs_obj_l[obj], axis=0)
+                         for obj in d_vecs_obj_l.keys()}
+        for (obj, scn), v in d_vecs.items():
+            d_vecs[(obj, scn)] = (v - d_vecs_obj_M[obj]) / d_vecs_obj_SD[obj]
+        return d_vecs
+    elif norm_axis == 1:
+        d_vecs_obj_l = defaultdict(list)
+        for obj, scn in d_vecs_all.keys():
+            d_vecs_obj_l[scn].append(d_vecs_all[(obj, scn)])
+        d_vecs_obj_M = {scn: np.nanmean(d_vecs_obj_l[scn], axis=0)
+                        for scn in d_vecs_obj_l.keys()}
+        d_vecs_obj_SD = {scn: np.nanstd(d_vecs_obj_l[scn], axis=0)
+                         for scn in d_vecs_obj_l.keys()}
+        for (obj, scn), v in d_vecs.items():
+            d_vecs[(obj, scn)] = (v - d_vecs_obj_M[scn]) / d_vecs_obj_SD[scn]
+        return d_vecs
+    else:
+        d_vecs_obj_l = defaultdict(list)
+        for obj, scn in d_vecs_all.keys():
+            d_vecs_obj_l[obj].append(d_vecs_all[(obj, scn)])
+            # Divide the second one by all others of the second one of the same first one
+        d_vecs_obj_M = {obj: np.nanmean(d_vecs_obj_l[obj], axis=0)
+                        for obj in d_vecs_obj_l.keys()}
+        d_vecs_obj_SD = {obj: np.nanstd(d_vecs_obj_l[obj], axis=0)
+                         for obj in d_vecs_obj_l.keys()}
+
+        assert norm_axis == (0, 1)
+        d_vecs_all_obj_norm = {}
+        for (obj, scn), v in d_vecs_all.items():
+            d_vecs_all_obj_norm[(obj, scn)] = (v - d_vecs_obj_M[obj]) / d_vecs_obj_SD[obj]
+
+        d_vecs_scn_l = defaultdict(list)
+        for obj, scn in d_vecs_all_obj_norm.keys():
+            d_vecs_scn_l[scn].append(d_vecs_all_obj_norm[(obj, scn)])
+
+
+        d_vecs_scn_M = {scn: np.nanmean(d_vecs_scn_l[scn], axis=0)
+                        for scn in d_vecs_scn_l.keys()}
+        d_vecs_scn_SD = {scn: np.nanstd(d_vecs_scn_l[scn], axis=0)
+                         for scn in d_vecs_scn_l.keys()}
+
+        for (key0, key1) in d_vecs.keys():
+            v = d_vecs_all_obj_norm[(key0, key1)]
+            v = (v - d_vecs_scn_M[key1]) / d_vecs_scn_SD[key1]
+            d_vecs[(key0, key1)] = v
+        #     print(f'[{key0}, {key1}] { d_vecs_scn_M[key1][:20]=} | {d_vecs_scn_SD[key1][:20]=}')
+        #     print(f'\t{v[:20]=}')
+        #
+        # # print(list(d_vecs[('bench', 'bank')]))t
+        # print(list(d_vecs[('surfing board', 'waves')]))
+        # print(list(d_vecs[('waves', 'surfing board')]))
+        # quit()
+
+        return d_vecs
 
 
 @cache
 def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
-                        normalize=True, #obj_scn_norm=False,
+                        # normalize=True, #obj_scn_norm=False,
                         ):
     out = pickle_wrap(get_sn_fp_llama_RSM_, kwargs={'sn': sn, 'fp': fp,
                                                     'semantic_tup': semantic_tup,
                                                     'dist': dist, 'within_to_nan': within_to_nan,
-                                                    'normalize': normalize,
+                                                    # 'normalize': normalize,
                                                     # 'obj_scn_norm': obj_scn_norm
                                                     },
                       easy_override=False, verbose=-1)
@@ -211,25 +291,56 @@ def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
 
 # @cache
 def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
-                         normalize=True, #obj_scn_norm=False,
+                         # normalize=True, #obj_scn_norm=False,
                          ):
     activation_model = semantic_tup[4]
-    obj_scn_norm = semantic_tup[5]
+    normalize = semantic_tup[5]
+    # obj_scn_norm = semantic_tup[5]
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
             replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
+    if isinstance(semantic_tup[1], list) or isinstance(semantic_tup[1], tuple) \
+            or isinstance(semantic_tup[2], list) or isinstance(semantic_tup[2], tuple):
+        if isinstance(semantic_tup[1], str):
+            tup1 = [semantic_tup[1]]
+        else:
+            tup1 = semantic_tup[1]
+        if isinstance(semantic_tup[2], str):
+            tup2 = [semantic_tup[2]]
+        else:
+            tup2 = semantic_tup[2]
 
-    d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': semantic_tup[1],
-                                                   'layer_name': semantic_tup[2],
-                                                   'normalize': normalize or obj_scn_norm,
-                                                   'activation_model': activation_model,
-                                                   'obj_scn_norm': obj_scn_norm},
-                         easy_override=False, verbose=-1,
-                         RAM_cache=True)
+        do_tups = []
+        for val_i in tup1:
+            for val_j in tup2:
+                do_tups.append((val_i, val_j))
+
+        d_vecs = defaultdict(list)
+        for val_i, val_j in do_tups:
+            d_vecs_ = pickle_wrap(get_llama_d_vecs, kwargs={'cat': val_i,
+                                                            'layer_name': val_j,
+                                                            'normalize': normalize,
+                                                            'activation_model': activation_model,
+                                                            },
+                                 easy_override=False, verbose=-1,
+                                 RAM_cache=True)
+            for key, val in d_vecs_.items():
+                d_vecs[key].extend(val.to_list())
+        d_vecs = {key: np.array(val) for key, val in d_vecs.items()}
+    else:
+        d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': semantic_tup[1],
+                                                       'layer_name': semantic_tup[2],
+                                                       'normalize': normalize,
+                                                       'activation_model': activation_model,
+                                                       },
+                             easy_override=False, verbose=-1,
+                             RAM_cache=True)
+
 
     if semantic_tup[3] == 'obj':
+        # TODO: When I redo everything flip this
         vecs = [d_vecs[(obj, scn)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
     else:
         vecs = [d_vecs[(scn, obj)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
@@ -240,13 +351,15 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
         prop_nan = num_nan / vecs.shape[1]
         num_inf = np.sum(np.isinf(vecs[i]))
         prop_inf = num_inf / vecs.shape[1]
-        assert prop_nan + prop_inf < .01, \
+        assert prop_nan + prop_inf < .2, \
             f'High non-numbers: {prop_nan=:.2%}, {prop_inf=:.2%}'
 
         if np.any(np.isinf(vecs[i])):
             vecs[i, np.isinf(vecs[i])] = np.nan
         if np.any(np.isnan(vecs[i])):
             vecs[i, np.isnan(vecs[i])] = np.nanmean(vecs[i])
+        # print(vecs)
+        # quit()
 
     if dist == 'corr':
         RSM = np.corrcoef(vecs)
@@ -281,22 +394,31 @@ if __name__ == '__main__':
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
+    # all_llama_cats = ['attn_weights']
+    # all_llama_cats = ['attn_output']
+    all_llama_cats = ['q_proj']
     all_llama_layers = list(range(16))
+    all_llama_layers = [13]
 
-    obj_scn_norm = True
+    # obj_scn_norm = True
+    # normalize = (0, 1)
+    normalize = False
+    # MODEL = r'meta-llama/Llama-3.2-3b'
+    MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
+
     for llama_cat in all_llama_cats:
         for llama_layer in all_llama_layers:
             semantic_l.append(('llama', llama_cat, llama_layer, 'obj',
-                               r'meta-llama/Llama-3.2-3b', obj_scn_norm))
+                               MODEL, normalize))
             semantic_l.append(('llama', llama_cat, llama_layer, 'scn',
-                               r'meta-llama/Llama-3.2-3b', obj_scn_norm))
-
+                               MODEL, normalize))
 
     # get_llama_d_vecs(cat='gate_proj_in', layer_name=0)
     for semantic in semantic_l:
         get_sn_fp_llama_RSM(102, 'obj7_fMRI', semantic,
                             dist='spear', within_to_nan=True,
-                            normalize=True)
+                            # normalize=True
+                            )
     # quit()
 
     # get_sn_fp_llama_RSM(102, 'obj7_fMRI',
@@ -305,6 +427,8 @@ if __name__ == '__main__':
     #                     normalize=True)
 
 
-    get_llama_activations('ATM', 'waves')
+    # get_llama_activations('ATM', 'waves')
 
     # TODO: Need to delete and rerun all except: get_llama_activations
+
+    # Up to: - attn_output/6/obj PFC -
