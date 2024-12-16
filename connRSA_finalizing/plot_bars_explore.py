@@ -41,36 +41,27 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M_corr'
             dist_key = f'{region}_BOLD_cmb' if big_voxelwise else f'{region}_BOLD'
-            # dist_key = f'{region}_BOLD_ctrl_cmb'
             kw['ROIs_ctrl'] = [dist_key]
             kw['return_dif'] = True
-            # easy_override = True
             beta1, beta2, dif = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                   verbose=-1,
                                                   easy_override=easy_override,
                                                   dir_branches=100)
-            # print(beta1)
-            # print(beta2)
             betas_local[i, j] = beta1
             betas_dist[i, j] = beta2
             betas_dif[i, j] = dif
 
             kw['ROIs_ctrl'] = []
-            # print(kw)
             corr_local, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                  verbose=-1, easy_override=easy_override,
                                                  dir_branches=100)
-            # print(corr_local)
-            # quit()
+
             corrs_local[i, j] = corr_local
-
             kw['ROI_focus'] = dist_key
-
             corr_dist, _, _ = utils.pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                                                 verbose=-1, easy_override=easy_override,
                                                 dir_branches=100)
             corrs_dist[i, j] = corr_dist
-    # return
 
     assert np.sum(np.isnan(corrs_local)) == 0
     assert np.sum(np.isnan(corrs_dist)) == 0
@@ -124,6 +115,8 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
         title += f'DNN layer {kw["semantic"][1]}'
     elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] == 'llama':
         title += f'{kw["semantic"][1]}/{kw["semantic"][2]}/{kw["semantic"][3]}'
+    elif isinstance(kw['semantic'], list):
+        title += ' super list'
     title += f'\n{region}'
     print()
     print(f'- {title.replace("\n", " ")} -')
@@ -207,12 +200,17 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     # target_ROIs = ['ITL']
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
     # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
 
 
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
+                      'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
+                      'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
+                      'input']
+    all_llama_cats = ['attn_weights']
+
+    all_llama_cats = ['gate_proj_in', 'down_proj_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
@@ -223,13 +221,16 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     # all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in',
     #                   'gate_proj_out', 'up_proj_out', 'down_proj_out']
     # all_llama_cats = ['q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',]
-    all_llama_layers = list(range(16))
-    activation_model = 'meta-llama/Llama-3.2-3b'
+    all_llama_layers = list(range(28, 32))
+    # all_llama_layers = list(range(80))
+    # all_llama_layers =
+    # activation_model = 'meta-llama/Llama-3.2-3b'
+    activation_model = 'meta-llama/Llama-3.1-70b'
 
     normalize = (0, 1)
-    normalize = 0
-    normalize = 1
-    # normalize = True
+    # normalize = 0
+    # normalize = 1
+    normalize = True
 
     semantic_l = []
     for llama_layer in all_llama_layers:
@@ -244,9 +245,11 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 
     # semantic_l = [True]
-    # semantic_l = semantic_l[3::4]
+    # semantic_l = semantic_l[5::6]
+    # semantic_l = semantic_l[::-1]
     ALL_RESULTS = defaultdict(list)
 
+    target_roi2baddies = defaultdict(list)
     for semantic in semantic_l:
         print(f'{semantic=}')
         plt.rcParams.update({'font.size': 20})
@@ -255,7 +258,6 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
         llama_cat = semantic[1]
         llama_layer = semantic[2]
         obj_scn = semantic[3]
-
         for i, target_ROI in enumerate(target_ROIs):
             kwargs = {'semantic': semantic,
                       'fp': None,
@@ -281,6 +283,9 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                                                      'ax': axs[i_][j], 'plot_i': i},
                             verbose=-1))
 
+            if t_dist_corr_1samp < 2:
+                target_roi2baddies[target_ROI].append(
+                    semantic)
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
         #if llama_layer % 4 == 3:
@@ -289,6 +294,8 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
             plt.tight_layout()
             plt.show()
             fig, axs = plt.subplots(2, 2, figsize=(10, 7))
+    target_roi2baddies = dict(target_roi2baddies)
+    print(f'{target_roi2baddies=}')
     quit()
 
 

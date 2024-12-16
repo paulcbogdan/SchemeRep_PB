@@ -11,6 +11,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
+RAM_CACHE_LLAMA = False
 
 @cache
 def get_llama_extractor(model_name='meta-llama/Llama-3.2-1b'):
@@ -61,7 +62,6 @@ def get_llama_activations(obj, scn,
     t = time()
     extractor = get_llama_extractor(model_name=activation_model)
     res = extractor.extract_activations(sentence, [obj, scn], )
-    extractor.cleanup()
     print(f'Time needed for activation extraction: {time() - t:.3f} s')
     print(f'\t{[obj, scn]=} | {sentence=}')
     # quit()
@@ -94,10 +94,12 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                                 activation_model='meta-llama/Llama-3.2-1b',
                                 all_possible=False):
     cat_, inner = process_cat_cat_inner(cat)
+    print('getting llama d_vecs no norming...')
 
-    sns = get_sns('all')['healthy']
-    bad_sns = ['116', '125', '133', '213', '215', '231']
-    sns = [sn for sn in sns if sn not in bad_sns]
+    # sns = get_sns('all')['healthy']
+    # bad_sns = ['116', '125', '133', '213', '215', '231']
+    # sns = [sn for sn in sns if sn not in bad_sns]
+    sns = ['102', '103', '104'] # everyone else is a duplicate
     already_done = set()
     scn_objs = []
     obj_scns = []
@@ -135,11 +137,15 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                                       'activation_model': activation_model},
                               easy_override=False,
                               verbose=-1,
-                              dir_branches=100
+                              dir_branches=100,
+                              RAM_cache=RAM_CACHE_LLAMA
                               )
+            # print(f'result acquired for: {obj}, {scn}')
 
-            # for _, idx0 in zip(['obj', 'scn'], [0, 1]):
             for idx_target in [0, 1]:
+                # ... = extractor.extract_activations(sentence, [obj, scn], )
+                # idx0 is the object passed
+                # idx1 is the scene passed
                 if cat == 'attn_weights':
                     v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
                                    axis=(0, 1))
@@ -151,10 +157,12 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                     d_vecs[(scn, obj)] = v
                 else:
                     d_vecs[(obj, scn)] = v
-
                     # SECOND ENTRY IS THE TARGET ONE
         if all_possible:
             break
+    # print(f'{len(already_done)=}')
+    # quit()
+
     return d_vecs, scn_objs, obj_scns
 
 def extract_vector_from_res():
@@ -265,26 +273,24 @@ def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
             v = d_vecs_all_obj_norm[(key0, key1)]
             v = (v - d_vecs_scn_M[key1]) / d_vecs_scn_SD[key1]
             d_vecs[(key0, key1)] = v
-        #     print(f'[{key0}, {key1}] { d_vecs_scn_M[key1][:20]=} | {d_vecs_scn_SD[key1][:20]=}')
-        #     print(f'\t{v[:20]=}')
-        #
-        # # print(list(d_vecs[('bench', 'bank')]))t
-        # print(list(d_vecs[('surfing board', 'waves')]))
-        # print(list(d_vecs[('waves', 'surfing board')]))
-        # quit()
-
         return d_vecs
+
+def get_sn_fp_llama_RSM_l(sn, fp, semantic_tup_l, dist='spear', within_to_nan=True,
+                          ):
+    all_RSM = []
+    for semantic_tup in semantic_tup_l:
+        RSM = get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist=dist, within_to_nan=within_to_nan)
+        all_RSM.append(RSM)
+    out = np.nanmean(all_RSM, axis=0)
+    return out
 
 
 @cache
 def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
-                        # normalize=True, #obj_scn_norm=False,
                         ):
     out = pickle_wrap(get_sn_fp_llama_RSM_, kwargs={'sn': sn, 'fp': fp,
                                                     'semantic_tup': semantic_tup,
                                                     'dist': dist, 'within_to_nan': within_to_nan,
-                                                    # 'normalize': normalize,
-                                                    # 'obj_scn_norm': obj_scn_norm
                                                     },
                       easy_override=False, verbose=-1)
     return out
@@ -340,26 +346,39 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
 
 
     if semantic_tup[3] == 'obj':
+        # for non-attn_weights, to get the object representation, you specify (_, obj)
+        # for non-attn_weights, to get the scene representation, you specify (scn, _)
+        # for attn_weights, to get the effect of the object on the scene, you specify (scn, obj)
+        # for attn_weights, to get the effect of the scene on the object, you specify (obj, scn)
+
         # TODO: When I redo everything flip this
         vecs = [d_vecs[(obj, scn)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
     else:
         vecs = [d_vecs[(scn, obj)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
     vecs = np.array(vecs)
 
+    # thresholds_met = {0.1: False, 0.2: False, 0.3: False, 0.4: False, 0.5: False}
+    M_nans = []
+    M_infs = []
     for i in range(vecs.shape[0]):
         num_nan = np.sum(np.isnan(vecs[i]))
         prop_nan = num_nan / vecs.shape[1]
         num_inf = np.sum(np.isinf(vecs[i]))
         prop_inf = num_inf / vecs.shape[1]
-        assert prop_nan + prop_inf < .2, \
-            f'High non-numbers: {prop_nan=:.2%}, {prop_inf=:.2%}'
+        # if prop_nan + prop_inf > .6:
+        #     f'High non-numbers: {prop_nan=:.2%}, {prop_inf=:.2%}'
+        M_nans.append(prop_nan)
+        M_infs.append(prop_inf)
 
         if np.any(np.isinf(vecs[i])):
             vecs[i, np.isinf(vecs[i])] = np.nan
         if np.any(np.isnan(vecs[i])):
             vecs[i, np.isnan(vecs[i])] = np.nanmean(vecs[i])
-        # print(vecs)
-        # quit()
+
+    M_nan_overall = np.mean(M_nans)
+    M_inf_overall = np.mean(M_infs)
+    if sn == 102 and fp == 'obj7_fMRI':
+        print(f'Overall NaN: {M_nan_overall:.2%}, Inf: {M_inf_overall=:.2%} | {semantic_tup}')
 
     if dist == 'corr':
         RSM = np.corrcoef(vecs)
@@ -386,49 +405,35 @@ def within_run_to_nan3(RDM):
     return RDM_
 
 if __name__ == '__main__':
+    SEMANTIC_L = []
 
-    # norm_by_obj(None)
-
-    semantic_l = []
-    all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
+    # redundant: act_fn_in, up_proj_in
+    all_llama_cats = ['gate_proj_in', 'down_proj_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
-    # all_llama_cats = ['attn_weights']
-    # all_llama_cats = ['attn_output']
-    all_llama_cats = ['q_proj']
-    all_llama_layers = list(range(16))
-    all_llama_layers = [13]
 
-    # obj_scn_norm = True
-    # normalize = (0, 1)
-    normalize = False
-    # MODEL = r'meta-llama/Llama-3.2-3b'
+    # all_llama_layers = list(range(16, 80))
+    all_llama_layers = list(range(16, 28))
+
+    NORMALIZE = False
+    # MODEL = r'meta-llama/Llama-3.1-3b' # 16 layers, 2k vectors
+    # MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
     MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
 
-    for llama_cat in all_llama_cats:
-        for llama_layer in all_llama_layers:
-            semantic_l.append(('llama', llama_cat, llama_layer, 'obj',
-                               MODEL, normalize))
-            semantic_l.append(('llama', llama_cat, llama_layer, 'scn',
-                               MODEL, normalize))
+    for LLAMA_CAT in all_llama_cats:
+        for LLAMA_LAYER in all_llama_layers:
+            if LLAMA_CAT in ['attn_weights', 'attn_output']:
+                SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
+                                   NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
+                               NORMALIZE))
 
-    # get_llama_d_vecs(cat='gate_proj_in', layer_name=0)
-    for semantic in semantic_l:
-        get_sn_fp_llama_RSM(102, 'obj7_fMRI', semantic,
+    RAM_CACHE_LLAMA = True
+
+    for SEMANTIC in SEMANTIC_L:
+        t_st_setting = time()
+        get_sn_fp_llama_RSM(102, 'obj7_fMRI', SEMANTIC,
                             dist='spear', within_to_nan=True,
-                            # normalize=True
                             )
-    # quit()
-
-    # get_sn_fp_llama_RSM(102, 'obj7_fMRI',
-    #                     ('llama', 'act_fn_in', 14, 'obj'),
-    #                     dist='spear', within_to_nan=True,
-    #                     normalize=True)
-
-
-    # get_llama_activations('ATM', 'waves')
-
-    # TODO: Need to delete and rerun all except: get_llama_activations
-
-    # Up to: - attn_output/6/obj PFC -
+        print(f'Time needed to execute setting: {time() - t_st_setting:.3f} s')
