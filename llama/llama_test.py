@@ -74,6 +74,8 @@ class LlamaActivationExtractor:
                 self.attention_act['v_proj'][layer_name] = value_states
                 self.attention_act['attn_output'][layer_name] = output[0] if isinstance(output, tuple) else output
                 self.attention_act['attn_weights'][layer_name] = attn_weights
+                # print(attn_weights.size())
+                # quit()
             return attention_big_hook_
 
         def activation_hook(layer_name, dict_to_store_in, dict_to_store_out):
@@ -86,8 +88,8 @@ class LlamaActivationExtractor:
         for name, module in self.model.named_modules():
             # print(vars(module))
             print('------------------------')
-            print(module)
-            print(f'{name=}')
+            # print(module)
+            # print(f'{name=}')
             name_spl = name.split('.')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'layers':
@@ -100,7 +102,7 @@ class LlamaActivationExtractor:
                     activation_hook(layer_num, self.mlp_act_in[name_spl[-1]],
                                     self.mlp_act_out[name_spl[-1]]))
                 self.hooks.append(hook)
-        quit()
+        # quit()
         return self
 
     def extract_activations(self, sentence, target_words):
@@ -214,9 +216,9 @@ class LlamaActivationExtractor:
 def main():
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
-    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
+    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
 
     extractor._register_comprehensive_hooks()

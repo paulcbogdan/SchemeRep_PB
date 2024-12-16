@@ -73,6 +73,7 @@ def process_cat_cat_inner(cat):
                  'down_proj_in': 'mlp', 'act_fn_in': 'mlp',
                  'gate_proj_out': 'mlp', 'up_proj_out': 'mlp',
                  'down_proj_out': 'mlp', 'act_fn_out': 'mlp',
+                 # 'gate_proj_delta': 'mlp',
 
                  'q_proj': 'attn', 'k_proj': 'attn', 'v_proj': 'attn',
                  'attn_weights': 'attn', 'attn_output': 'attn',
@@ -140,7 +141,6 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                               dir_branches=100,
                               RAM_cache=RAM_CACHE_LLAMA
                               )
-            # print(f'result acquired for: {obj}, {scn}')
 
             for idx_target in [0, 1]:
                 # ... = extractor.extract_activations(sentence, [obj, scn], )
@@ -211,13 +211,12 @@ def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
     # NORM AXIS = (0, 1) means you are doing both
 
     d_vecs_all = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat,
-                                                        'layer_name': layer_name,
-                                                        'normalize': False,
-                                                        'activation_model': activation_model,
-                                                        'all_possible': True},
+                                                       'layer_name': layer_name,
+                                                       'normalize': False,
+                                                       'activation_model': activation_model,
+                                                       'all_possible': True},
                                 easy_override=False, verbose=-1,
                                 RAM_cache=False)
-
 
     assert np.all(np.abs(d_vecs[('surfing board', 'waves')] -
                          d_vecs_all[('surfing board', 'waves')])) < 1e-6
@@ -290,15 +289,20 @@ def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                         ):
     out = pickle_wrap(get_sn_fp_llama_RSM_, kwargs={'sn': sn, 'fp': fp,
                                                     'semantic_tup': semantic_tup,
-                                                    'dist': dist, 'within_to_nan': within_to_nan,
+                                                    'dist': dist,
+                                                    'within_to_nan': within_to_nan,
                                                     },
-                      easy_override=False, verbose=-1)
+                      easy_override=True, verbose=-1)
+    # plt.imshow(out)
+    # plt.show()
     return out
 
 # @cache
 def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                          # normalize=True, #obj_scn_norm=False,
                          ):
+    # print('test')
+    # quit()
     activation_model = semantic_tup[4]
     normalize = semantic_tup[5]
     # obj_scn_norm = semantic_tup[5]
@@ -333,7 +337,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                  easy_override=False, verbose=-1,
                                  RAM_cache=True)
             for key, val in d_vecs_.items():
-                d_vecs[key].extend(val.to_list())
+                d_vecs[key].extend(val.tolist())
         d_vecs = {key: np.array(val) for key, val in d_vecs.items()}
     else:
         d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': semantic_tup[1],
@@ -413,13 +417,18 @@ if __name__ == '__main__':
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
 
-    # all_llama_layers = list(range(16, 80))
-    all_llama_layers = list(range(16, 28))
+    all_llama_layers = list(range(0, 80))
+    # all_llama_layers = list(range(28))
+    # all_llama_layers = list(range(16, 28))
 
-    NORMALIZE = False
+    # NORMALIZE = False
     # MODEL = r'meta-llama/Llama-3.1-3b' # 16 layers, 2k vectors
-    # MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
-    MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
+    MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
+    # MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
+    MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
+    # NORMALIZE = (0, 1)
+    # NORMALIZE = 1
+    NORMALIZE = True
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
@@ -429,6 +438,8 @@ if __name__ == '__main__':
             SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
                                NORMALIZE))
 
+    # SEMANTIC_L = [('llama', 'gate_proj_in', 13, 'scn', MODEL, NORMALIZE),]
+    #
     RAM_CACHE_LLAMA = True
 
     for SEMANTIC in SEMANTIC_L:

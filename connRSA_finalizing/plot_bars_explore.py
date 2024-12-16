@@ -34,9 +34,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     corrs_local = np.full((len(sns), len(fps)), np.nan)
     corrs_dist = np.full((len(sns), len(fps)), np.nan)
     for i, sn in enumerate(sns):
-        # if sn in ['132', '138', '224', '234']: continue
         for j, fp in enumerate(fps):
-            # print(f'{sn}, {fp}')
             kw['sn'] = sn
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M_corr'
@@ -201,7 +199,9 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
-    # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    # fps = ['bl7_fMRI', 'obj7_fMRI',]
+    # fps = ['con7_fMRI', 'vis7_fMRI',]
 
 
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
@@ -215,22 +215,29 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
 
+    # TODO: maybe peak at the change in an RSM between layers
+
+    all_llama_cats = ['gate_proj_in']
+
+
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
 
     # all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in',
     #                   'gate_proj_out', 'up_proj_out', 'down_proj_out']
     # all_llama_cats = ['q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',]
-    all_llama_layers = list(range(28, 32))
-    # all_llama_layers = list(range(80))
-    # all_llama_layers =
-    # activation_model = 'meta-llama/Llama-3.2-3b'
-    activation_model = 'meta-llama/Llama-3.1-70b'
+    # all_llama_layers = list(range(28, 32))
+    all_llama_layers = list(range(0, 80))
+    # all_llama_layers = [4, 5, 6, 7]
+
+    # all_llama_layers = [13, 14]
+    activation_model = 'meta-llama/Llama-3.2-3b'
+    # activation_model = 'meta-llama/Llama-3.1-70b'
 
     normalize = (0, 1)
     # normalize = 0
     # normalize = 1
-    normalize = True
+    # normalize = False
 
     semantic_l = []
     for llama_layer in all_llama_layers:
@@ -245,9 +252,11 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 
     # semantic_l = [True]
-    # semantic_l = semantic_l[5::6]
-    # semantic_l = semantic_l[::-1]
+    # semantic_l = semantic_l[3::4]
+    # semantic_l = semantic_l[::
     ALL_RESULTS = defaultdict(list)
+
+    # semantic_l = [('llama', 'gate_proj_in', 13, 'scn', r'meta-llama/Llama-3.1-70b', True)]
 
     target_roi2baddies = defaultdict(list)
     for semantic in semantic_l:
@@ -262,48 +271,69 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
             kwargs = {'semantic': semantic,
                       'fp': None,
                       'trial_similarity': 'corr',
-                      'second_order': 'spear', 'RDM_method': 'within_nan',
+                      'second_order': 'spear',
+                      'RDM_method': 'within_nan',
                       'stdize_by_run': False,
                       'regress_row': False,
                       }
             i_ = i // 2
             j = i % 2
-            # (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
-            #  t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
-            #     plot_Fig5_v2_kw(kwargs, fps, big_voxelwise, target_ROI,
-            #                 ax=axs[i_][j] , plot_i=i))
+
+            kw = {'kw': kwargs, 'fps': fps, 'big_voxelwise': big_voxelwise,
+                  'region': target_ROI, 'std': False,
+                  'easy_override': False, 'ax': axs[i_][j], 'plot_i': i}
 
             (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
              t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
-                pickle_wrap(plot_Fig5_v2_kw, kwargs={'kw': kwargs, 'fps': fps,
-                                                     'big_voxelwise': big_voxelwise,
-                                                     'region': target_ROI,
-                                                     'std': False,
-                                                     'easy_override': False,
-                                                     'ax': axs[i_][j], 'plot_i': i},
-                            verbose=-1))
+                pickle_wrap(plot_Fig5_v2_kw, kwargs=kw,
+                            verbose=-1, easy_override=False))
 
             if t_dist_corr_1samp < 2:
                 target_roi2baddies[target_ROI].append(
                     semantic)
+            print(f'{target_ROI}: {t_dist_corr_1samp=:.2f}')
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
         #if llama_layer % 4 == 3:
-        print_all_results(ALL_RESULTS)
+        # print_all_results(ALL_RESULTS)
         if len(axs[0][0].lines):
             plt.tight_layout()
             plt.show()
             fig, axs = plt.subplots(2, 2, figsize=(10, 7))
     target_roi2baddies = dict(target_roi2baddies)
     print(f'{target_roi2baddies=}')
+    plot_all_results(ALL_RESULTS)
     quit()
 
+def plot_all_results(all_results):
+    nested_dict = flat_dict_to_nested(all_results)
+
+    fig, axs = plt.subplots(len(nested_dict), 1, figsize=(10, 5 * len(nested_dict)))
+    for j, (region, b_dict) in enumerate(nested_dict.items()):
+        print(f'Region: {region}')
+        num_types = len(b_dict)
+        plt.sca(axs[j])
+        plt.title(region)
+        # print(list(b_dict))
+        # quit()
+        for i, (module_type, c_dict) in enumerate(b_dict.items()):
+            if 'scn' not in c_dict: continue
+            values = c_dict['scn']
+            layer_nums = list(range(len(values)))
+            plt.plot(layer_nums, values, label=module_type if j == 0 else None)
+        plt.ylim(0, 10)
+        plt.ylabel('t-value')
+    # plt.legend(ncol=3)
+    fig.legend(loc='lower center',  ncol=3)
+    plt.tight_layout()
+    plt.show()
+
+    # plt.suptitle(region)
 
 
-def print_all_results(all_results):
-    flat_dict = all_results
+
+def flat_dict_to_nested(flat_dict):
     nested_dict = {}
-
     for (a, b, c), value in flat_dict.items():
         # Create nested dictionaries if they don't exist
         if a not in nested_dict:
@@ -313,6 +343,11 @@ def print_all_results(all_results):
             nested_dict[a][b] = {}
 
         nested_dict[a][b][c] = value
+    return nested_dict
+
+def print_all_results(all_results):
+    nested_dict = flat_dict_to_nested(all_results)
+
     for a, b_dict in nested_dict.items():
         print(f'Region: {a}')
         header = ''.join(f'{x:^5}|' for x in range(15))

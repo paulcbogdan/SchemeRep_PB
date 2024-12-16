@@ -246,7 +246,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
 
-
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 
     # fp_stim = f'{dir_focus}/{sn}_stim_{semantic}.npy'
@@ -278,39 +277,33 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_ctrl_l = []
         n_skip_cols = 0
         for ROI_ctrl in ROIs_ctrl:
-            fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
-            if not os.path.isfile(fp_ctrl):
-                n_skip_cols += 1
-                print(f'Missing ctrl ({sn}): {fp_ctrl=}')
-                continue
-            with open(fp_ctrl, 'rb') as f:
-                RSM_ctrl = np.load(f)
-
-                # print(f'{fp_ctrl=}')
-
-                # print(RSM_ctrl.shape)
-                # plt.imshow(RSM_ctrl)
-                # plt.show()
-                # quit()
-                # print(RSM_ctrl.shape)
-
-                RSM_ctrl_l.append(RSM_ctrl)
+            if isinstance(ROI_ctrl, tuple):
+                assert ROI_ctrl[0] == 'llama'
+                RSM_ctrl = get_sn_fp_llama_RSM(sn, fp, ROI_ctrl)
+            elif isinstance(ROI_ctrl, list):
+                assert ROI_ctrl[0][0] == 'llama'
+                RSM_ctrl = get_sn_fp_llama_RSM_l(sn, fp, ROI_ctrl)
+            else:
+                fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
+                if not os.path.isfile(fp_ctrl):
+                    n_skip_cols += 1
+                    print(f'Missing ctrl ({sn}): {fp_ctrl=}')
+                    continue
+                with open(fp_ctrl, 'rb') as f:
+                    RSM_ctrl = np.load(f)
+            RSM_ctrl_l.append(RSM_ctrl)
             flat_ctrls = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
             flat_ctrl_l.append(flat_ctrls)
         flat_ctrls = np.array(flat_ctrl_l).T
+        nan_cols = (np.isnan(flat_ctrls) &
+                    ~np.isnan(flat_focus)[:, None]).any(axis=0)
 
-
-
-        nan_cols = np.isnan(flat_ctrls).any(axis=0)
-
-
-        # print(f'{nan_cols=}')
-        # quit()
         n_nans_cols = np.sum(nan_cols)
         n_bad_cols = n_nans_cols + n_skip_cols
         n_good_cols = len(ROIs_ctrl) - n_bad_cols
         n_ctrls = len(ROIs_ctrl)
-
+        # print(flat_ctrls.shape)
+        # quit()
         bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
                     ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
         if (sn, fp) in bad_tups: # Missing one run from these scans
@@ -319,14 +312,13 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             print(f'No good columns ({sn}, {fp})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
             good_rows = ~np.isnan(flat_ctrls).any(axis=1)
+            good_rows = good_rows | np.isnan(flat_focus)
             print(f'\t{np.sum(good_rows)=}')
             flat_ctrls = flat_ctrls[good_rows, :]
             flat_stim = flat_stim[good_rows]
             nan_cols = np.isnan(flat_ctrls).any(axis=0)
             n_good_cols = np.sum(~nan_cols)
             print(f'\tAfter dropping rows: {n_good_cols=}')
-            # print(flat_ctrls.shape)
-            # quit()
             flat_ctrls = flat_ctrls[:, ~nan_cols]
         elif n_bad_cols > 10:
             print(f'Lots of bad columns ({sn})! {n_ctrls=}, {n_nans_cols=}, '
@@ -335,16 +327,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         else:
             flat_ctrls = flat_ctrls[:, ~nan_cols]
 
-        # print(flat_ctrls.shape)
-        # print(flat_stim)
-        # num_nan = np.sum(np.isnan(flat_stim))
-        # num_non_nan = len(flat_stim) - num_nan
-        # print(f'{num_nan=}, {num_non_nan=}')
-        # quit()
-        # quit()
 
         if regress_row:
-
             IRAFs_ctrl = []
             for RSM_ctrl in RSM_ctrl_l:
                 IRAFs = get_IRAFs(RSM_stim, RSM_ctrl, None,
@@ -364,7 +348,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                 return [np.nan] * (3 if return_dif else 2)
             IRAFs_focus -= np.dot(np.array(IRAFs_ctrl).T, solution[1:])
             return IRAFs_focus
-
+        # print(flat_itr.shape)
+        # print(flat_focus.shape)
+        # print(flat_ctrls.shape)
+        # quit()
         X = np.hstack([flat_itr[:, None], flat_focus[:, None], flat_ctrls])
     else:
         if regress_row:

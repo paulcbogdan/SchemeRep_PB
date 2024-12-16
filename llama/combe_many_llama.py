@@ -1,3 +1,4 @@
+from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 from connRSA_finalizing.plot_bars_explore import plot_Fig5_v2_kw
 
@@ -157,24 +158,33 @@ def get_semantic_l(target_ROI):
     activation_model = 'meta-llama/Llama-3.2-3b'
     # activation_model = 'meta-llama/Llama-3.1-70b'
     normalize = True
-    all_llama_layers = list(range(16, 28))
+    # all_llama_layers = list(range(8, 80))
     all_llama_cats = ['gate_proj_in', 'down_proj_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
     all_llama_cats = ['gate_proj_in', 'down_proj_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
-                      'q_proj', 'k_proj', 'v_proj', #'attn_weights',
+                      # 'q_proj', 'k_proj', 'v_proj', #'attn_weights',
                       'attn_output',
                       'input']
-    # all_llama_cats = ['gate_proj_in']
+    all_llama_cats = ['attn_weights', 'gate_proj_in']
+
+    # all_llama_layers = [12, 45, 65]
+    # all_llama_layers = [all_llama_layers[0]]
+    all_llama_layers = [12]
+    all_llama_layers = list(range(8, 28))
+    normalize = (0, 1)
+    normalize = 0
+
+    all_llama_cats = ['gate_proj_in']
+    # all_llama_cats = ['attn_weights']
 
     target_roi2baddies = get_target_roi2baddies()
     semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
             if llama_cat in ['attn_weights', 'attn_output']:
-                continue
                 semantic = ('llama', llama_cat, llama_layer, 'obj', activation_model,
                             normalize)
                 if semantic in target_roi2baddies[target_ROI]:
@@ -182,23 +192,34 @@ def get_semantic_l(target_ROI):
                 semantic_l.append(semantic)
             semantic = ('llama', llama_cat, llama_layer, 'scn', activation_model,
                         normalize)
-            if semantic in target_roi2baddies[target_ROI]:
-                continue
+            # if semantic in target_roi2baddies[target_ROI]:
+            #     continue
             semantic_l.append(semantic)
-    print(semantic_l)
-    # quit()
+    # semantic_l = ('llama', 'gate_proj_in', (12, 45, 65), 'scn',
+    #               'meta-llama/Llama-3.1-70b', True)
     return semantic_l
 
-def test_llama_combined(big_voxelwise=True):
+def test_llama_combined(big_voxelwise=False):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+
+    # target_ROIs = get_atlas(combine_regions=True,
+    #                         combine_bilateral=True)['tick_labels']
+
+    # target_ROIs = ['Occipital', 'ITL']
+
+    target_ROIs = [ROI for ROI in target_ROIs if ROI not in ['CG', 'Cun']]
+    # print(target_ROIs)
+    # quit()
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
+    # fps = ['bl7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
 
+    print(f'{fps=}')
 
     for i, target_ROI in enumerate(target_ROIs):
         semantic_l = get_semantic_l(target_ROI)
-
+        # semantic = ('llama', 'gate_proj_in', 13, 'scn', r'meta-llama/Llama-3.1-70b', True)
 
         kwargs = {'semantic': semantic_l,
                   'fp': None,
@@ -208,15 +229,18 @@ def test_llama_combined(big_voxelwise=True):
                   'stdize_by_run': False,
                   'regress_row': False,
                   }
+        i_ = i // 2
+        j = i % 2
+
+        kw = {'kw': kwargs, 'fps': fps, 'big_voxelwise': big_voxelwise,
+              'region': target_ROI, 'std': False,
+              'easy_override': False, 'plot_i': i}
+        print(kw)
+
         (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
          t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
-            pickle_wrap(plot_Fig5_v2_kw, kwargs={'kw': kwargs, 'fps': fps,
-                                                 'big_voxelwise': big_voxelwise,
-                                                 'region': target_ROI,
-                                                 'std': False,
-                                                 'easy_override': False,
-                                                 'plot_i': i},
-                        verbose=-1))
+            pickle_wrap(plot_Fig5_v2_kw, kwargs=kw,
+                        verbose=-1, easy_override=False))
 
 
         print(f'\n-+- {target_ROI} -+-')
@@ -226,6 +250,7 @@ def test_llama_combined(big_voxelwise=True):
         print(f'Local vs. distributed, beta, t = {t_beta:.2f}')
         print(f'\tLocal 1-samp, beta: t = {t_local_beta_1samp:.2f}')
         print(f'\tDist 1-samp, beta: t = {t_dist_beta_1samp:.2f}')
+        # quit()
 
 if __name__ == '__main__':
     test_llama_combined()

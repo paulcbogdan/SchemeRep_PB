@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 import numpy as np
-from pygments.unistring import combine
 
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from Study1A.load_Study1A_funcs import get_ROI_vecs
