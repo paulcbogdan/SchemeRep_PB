@@ -11,6 +11,10 @@ result_pics/.DS_Store
 *.nii.gz
 *.lnk
 *.mat
+*.xml
+*.ai
+*.txt
+*.m
 /result_pics/ttest_modules/*
 /result_pics/ttest_modules/flipFalse_thr0.95_healthy_regr_n66_FINAL/*
 /result_pics/ttest_modules/flipTrue_thr0.95_healthy_regr_n66_FINAL/*
@@ -25,3 +29,4 @@ result_pics/.DS_Store
 /old/mass_M/*
 /result_pics/vendor_OLD/*
 *.png
+/behavFiles/
