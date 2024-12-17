@@ -204,14 +204,19 @@ def get_explore_llama():
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
     all_llama_cats = ['attn_weights']
+    all_llama_cats = ['gate_proj_in']
 
     # all_llama_layers = list(range(28, 32))
-    all_llama_layers = list(range(0, 28))
+
     # all_llama_layers = [4, 5, 6, 7]
 
     activation_model = 'meta-llama/Llama-3.2-3b'
     # activation_model = 'meta-llama/Llama-3.1-70b'
-    # activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
+    activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
+    if activation_model == 'meta-llama/Llama-3.2-3b':
+        all_llama_layers = list(range(0, 28))
+    else:
+        all_llama_layers = list(range(0, 80))
 
     normalize = True
 
@@ -230,7 +235,7 @@ def get_explore_BERT():
     semantic_l = []
     normalize = True
     for layer in layers:
-        semantic = ('BERT', None, layer, 'obj', None, normalize)
+        semantic = ('BERT', 'BERT', layer, 'obj', None, normalize)
         semantic_l.append(semantic)
     return semantic_l
 
@@ -248,8 +253,9 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     ALL_RESULTS = defaultdict(list)
 
     target_roi2baddies = defaultdict(list)
+    # semantic_l = get_explore_BERT()
     # semantic_l = [True]
-    semantic_l = get_explore_BERT()
+    semantic_l = get_explore_llama()
 
     for semantic in semantic_l:
 
@@ -300,6 +306,8 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     quit()
 
 def plot_all_results(all_results):
+    # print(all_results)
+    # quit()
     nested_dict = flat_dict_to_nested(all_results)
 
     fig, axs = plt.subplots(len(nested_dict), 1, figsize=(10, 5 * len(nested_dict)))
@@ -311,8 +319,11 @@ def plot_all_results(all_results):
         # print(list(b_dict))
         # quit()
         for i, (module_type, c_dict) in enumerate(b_dict.items()):
-            if 'scn' not in c_dict: continue
-            values = c_dict['scn']
+            if 'scn' not in c_dict and 'BERT' not in module_type: continue
+            if 'scn' in c_dict:
+                values = c_dict['scn']
+            elif 'BERT' in module_type:
+                values = c_dict['obj']
             layer_nums = list(range(len(values)))
             plt.plot(layer_nums, values, label=module_type if j == 0 else None)
         plt.ylim(0, 10)
