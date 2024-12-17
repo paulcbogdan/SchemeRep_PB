@@ -12,6 +12,7 @@ from org_sns import get_sns
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # TODO: box bar
 
@@ -33,8 +34,9 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     betas_dif = np.full((len(sns), len(fps)), np.nan)
     corrs_local = np.full((len(sns), len(fps)), np.nan)
     corrs_dist = np.full((len(sns), len(fps)), np.nan)
-    for i, sn in enumerate(sns):
+    for i, sn in enumerate(tqdm(sns, desc='looping through subjects')):
         for j, fp in enumerate(fps):
+            # print(f'{sn} | {fp}')
             kw['sn'] = sn
             kw['fp'] = fp
             kw['ROI_focus'] = f'{region}_M_corr'
@@ -199,45 +201,33 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
-    fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+    # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
     # fps = ['bl7_fMRI', 'obj7_fMRI',]
     # fps = ['con7_fMRI', 'vis7_fMRI',]
 
-
+    # Redundant: gate_proj_in & up_proj_in
+    # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
     all_llama_cats = ['attn_weights']
 
-    all_llama_cats = ['gate_proj_in', 'down_proj_in',
-                      'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
-                      'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
-                      'input']
-
     # TODO: maybe peak at the change in an RSM between layers
 
-    all_llama_cats = ['gate_proj_in']
+    # all_llama_cats = ['gate_proj_in']
 
 
-    # Redundant: gate_proj_in & up_proj_in
-    # Redundant: act_fn_in & gate_proj_out
 
-    # all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in',
-    #                   'gate_proj_out', 'up_proj_out', 'down_proj_out']
-    # all_llama_cats = ['q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',]
     # all_llama_layers = list(range(28, 32))
-    all_llama_layers = list(range(0, 80))
+    all_llama_layers = list(range(0, 28))
     # all_llama_layers = [4, 5, 6, 7]
 
-    # all_llama_layers = [13, 14]
     activation_model = 'meta-llama/Llama-3.2-3b'
     # activation_model = 'meta-llama/Llama-3.1-70b'
+    # activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
 
-    normalize = (0, 1)
-    # normalize = 0
-    # normalize = 1
-    # normalize = False
+    normalize = True
 
     semantic_l = []
     for llama_layer in all_llama_layers:
@@ -253,20 +243,25 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
 
     # semantic_l = [True]
     # semantic_l = semantic_l[3::4]
-    # semantic_l = semantic_l[::
+    # semantic_l = semantic_l[1::2]
     ALL_RESULTS = defaultdict(list)
 
     # semantic_l = [('llama', 'gate_proj_in', 13, 'scn', r'meta-llama/Llama-3.1-70b', True)]
 
     target_roi2baddies = defaultdict(list)
+    semantic_l = [True]
     for semantic in semantic_l:
-        print(f'{semantic=}')
+
+        print(f'\n{semantic=}')
         plt.rcParams.update({'font.size': 20})
         fig.subplots_adjust(bottom=0.18, left=0.15, right=0.95, top=0.85, wspace=0.3)
 
-        llama_cat = semantic[1]
-        llama_layer = semantic[2]
-        obj_scn = semantic[3]
+        if isinstance(semantic, bool) and semantic:
+            llama_cat, llama_layer, obj_scn = None, None, None
+        else:
+            llama_cat = semantic[1]
+            llama_layer = semantic[2]
+            obj_scn = semantic[3]
         for i, target_ROI in enumerate(target_ROIs):
             kwargs = {'semantic': semantic,
                       'fp': None,
@@ -292,6 +287,7 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                 target_roi2baddies[target_ROI].append(
                     semantic)
             print(f'{target_ROI}: {t_dist_corr_1samp=:.2f}')
+
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
         #if llama_layer % 4 == 3:
@@ -365,7 +361,7 @@ if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
     # plot_Fig5_v2_bars_all(semantic=True,) 
-    plot_Fig5_v2_bars_all(big_voxelwise=False)
+    plot_Fig5_v2_bars_all(big_voxelwise=True)
 
 
     # NOTES:

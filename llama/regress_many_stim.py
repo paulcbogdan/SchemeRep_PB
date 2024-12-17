@@ -82,7 +82,9 @@ def regr_fMRI_on_many_stim_all_sn(region, stim_l, separate=False,
                 for k in range(len(stim_l)):
                     if regr_M:
                         kw['stim_l'] = [stim_l[k],
-                                        [x for x in stim_l if x != stim_l[k]]]
+                                        stim_l]
+
+                                        # [x for x in stim_l if x != stim_l[k]]]
                     else:
                         kw['stim_l'] = [stim_l[k]]
                     betas[i, j, k] = pickle_wrap(regr_fMRI_on_many_stim, kwargs=kw,
@@ -115,7 +117,7 @@ def regr_fMRI_on_many_stim_all_sn(region, stim_l, separate=False,
 def run_all_sn():
     stim_base = ('llama', 'gate_proj_in',
                  None, 'scn',
-                 'meta-llama/Llama-3.1-70b',
+                 'meta-llama/Llama-3.3-70b-Instruct',
                  True)
 
     # stim_base = ('llama', 'attn_weights',
@@ -127,7 +129,7 @@ def run_all_sn():
     layers = [8, 16, 24, 40, 58, 78]
     layers = [16, 32, 48, 64]
     # layers = [16, 64]
-    # layers = list(range(80))
+    layers = list(range(80))
 
     for layer in layers:
         stim = (stim_base[0], stim_base[1], layer, stim_base[3],
@@ -137,7 +139,7 @@ def run_all_sn():
     target_ROIs = get_atlas(combine_regions=True,
                             combine_bilateral=True)['tick_labels']
     # target_ROIs = target_ROIs[4::5]
-    target_ROIs = ['ITL', 'PFC', 'Parietal']
+    target_ROIs = ['ITL', 'PFC', 'Parietal', 'Occipital']
 
     for region in target_ROIs:
         regr_fMRI_on_many_stim_all_sn(region, stim_l, separate=True)

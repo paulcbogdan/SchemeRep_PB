@@ -245,6 +245,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_focus = np.load(f)
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
+        # print(RSM_focus.shape)
+        # plt.imshow(RSM_focus)
+        # plt.show()
+        # quit()
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
 

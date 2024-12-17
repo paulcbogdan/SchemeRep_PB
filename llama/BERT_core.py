@@ -1,6 +1,6 @@
 import torch
 from transformers import BertModel, BertTokenizer
-
+import numpy as np
 
 class BERTLayerActivationExtractor:
     def __init__(self, model_name='bert-base-uncased'):
@@ -62,46 +62,24 @@ class BERTLayerActivationExtractor:
 
             # Get all hidden states (layers)
         hidden_states = outputs.hidden_states
-        # for layer in range(13):
-        #     print(hidden_states[layer].shape)
 
-        activations = [hidden_states[i][0][word_index] for i in range(len(hidden_states))]
+        activations = np.array([hidden_states[i][0][word_index] for i in range(len(hidden_states))])
         return activations
 
-
-    def print_layer_info(self, sentence, target_word):
-        """
-        Print detailed information about the layer activations
-
-        Args:
-            sentence (str): Full input sentence
-            target_word (str): Word to extract activations for
-        """
-        activations = self.extract_word_activation(sentence, target_word)
-
-        if activations is not None:
-            print(f"Activations for '{target_word}' at layer {self.target_layer}:")
-            print(f"Shape: {activations.shape}")
-            print(f"First 10 values: {activations[:10]}")
-            print(f"Mean activation: {activations.mean().item()}")
-            print(f"Standard deviation: {activations.std().item()}")
 
 
 # Example usage
 def main():
     # Create extractor for a specific layer (e.g., last layer)
-    extractor = BERTLayerActivationExtractor(target_layer=-1)
+    extractor = BERTLayerActivationExtractor()
 
     # Example sentence
     sentence = "The quick brown fox jumps over the lazy dog"
     target_word = "fox"
 
-    # Extract and print layer activations
-    extractor.print_layer_info(sentence, target_word)
-
     # If you want to get the raw activations for further processing
     activations = extractor.extract_word_activation(sentence, target_word)
-
+    print(f'{activations.shape=}')
 
 if __name__ == "__main__":
     main()

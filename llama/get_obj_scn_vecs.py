@@ -227,6 +227,8 @@ def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
             # Divide the second one by all others of the second one of the same first one
         d_vecs_obj_M = {obj: np.nanmean(d_vecs_obj_l[obj], axis=0)
                         for obj in d_vecs_obj_l.keys()}
+        # print(d_vecs_obj_M.shape)
+        # quit()
         d_vecs_obj_SD = {obj: np.nanstd(d_vecs_obj_l[obj], axis=0)
                          for obj in d_vecs_obj_l.keys()}
         for (obj, scn), v in d_vecs.items():
@@ -277,9 +279,40 @@ def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
 def get_sn_fp_llama_RSM_l(sn, fp, semantic_tup_l, dist='spear', within_to_nan=True,
                           ):
     all_RSM = []
+    do_PCA = False
     for semantic_tup in semantic_tup_l:
+        if semantic_tup[1] == 'PCA':
+            do_PCA = True
+            continue
+
         RSM = get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist=dist, within_to_nan=within_to_nan)
         all_RSM.append(RSM)
+
+    if do_PCA:
+        all_RSMS_flat = []
+        trils = np.tril_indices(114, k=-1)
+        for RSM in all_RSM:
+            all_RSMS_flat.append(RSM[trils])
+        all_RSMS_flat = np.array(all_RSMS_flat)
+        nan_cols = np.any(np.isnan(all_RSMS_flat), axis=0)
+        all_RSMS_flat = all_RSMS_flat[:, ~nan_cols]
+        from sklearn.decomposition import PCA
+        all_RSMS_flat = stats.zscore(all_RSMS_flat, axis=1, nan_policy='omit')
+
+
+        pca = PCA()
+        # pca_result = pca.fit(all_RSMS_flat.T)
+        out = pca.fit_transform(all_RSMS_flat.T)
+        trils = np.array(trils)
+        trils = trils[:, ~nan_cols]
+        PCA_RSMs = []
+        for i in range(semantic_tup_l[0][2]):
+            PCA_RSM = np.full((114, 114), np.nan)
+            PCA_RSM[trils[0], trils[1]] = out[:, i]
+            PCA_RSMs.append(PCA_RSM)
+        all_RSM = PCA_RSMs
+        print(f'{np.array(PCA_RSMs).shape=}')
+
     out = np.nanmean(all_RSM, axis=0)
     return out
 
@@ -292,17 +325,13 @@ def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                     'dist': dist,
                                                     'within_to_nan': within_to_nan,
                                                     },
-                      easy_override=True, verbose=-1)
-    # plt.imshow(out)
-    # plt.show()
+                      easy_override=False, verbose=-1)
     return out
 
 # @cache
 def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                          # normalize=True, #obj_scn_norm=False,
                          ):
-    # print('test')
-    # quit()
     activation_model = semantic_tup[4]
     normalize = semantic_tup[5]
     # obj_scn_norm = semantic_tup[5]
@@ -417,15 +446,15 @@ if __name__ == '__main__':
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
 
-    all_llama_layers = list(range(0, 80))
-    # all_llama_layers = list(range(28))
+    # all_llama_layers = list(range(0, 80))
+    all_llama_layers = list(range(28))
     # all_llama_layers = list(range(16, 28))
 
     # NORMALIZE = False
     # MODEL = r'meta-llama/Llama-3.1-3b' # 16 layers, 2k vectors
     MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
     # MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
-    MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
+    # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
     # NORMALIZE = (0, 1)
     # NORMALIZE = 1
     NORMALIZE = True

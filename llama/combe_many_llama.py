@@ -1,6 +1,8 @@
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 from connRSA_finalizing.plot_bars_explore import plot_Fig5_v2_kw
+from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM_l
+
 
 def get_target_roi2baddies():
     target_roi2baddies = {'Parietal': [('llama', 'gate_proj_in', 0, 'scn', 'meta-llama/Llama-3.2-3b', True),
@@ -157,6 +159,8 @@ def get_target_roi2baddies():
 def get_semantic_l(target_ROI):
     activation_model = 'meta-llama/Llama-3.2-3b'
     # activation_model = 'meta-llama/Llama-3.1-70b'
+    activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
+
     normalize = True
     # all_llama_layers = list(range(8, 80))
     all_llama_cats = ['gate_proj_in', 'down_proj_in',
@@ -173,9 +177,11 @@ def get_semantic_l(target_ROI):
     # all_llama_layers = [12, 45, 65]
     # all_llama_layers = [all_llama_layers[0]]
     all_llama_layers = [12]
-    all_llama_layers = list(range(8, 28))
+    # all_llama_layers = list(range(8, 28))
+    # all_llama_layers = list(range(8, 80))
+
     normalize = (0, 1)
-    normalize = 0
+    normalize = True
 
     all_llama_cats = ['gate_proj_in']
     # all_llama_cats = ['attn_weights']
@@ -199,7 +205,7 @@ def get_semantic_l(target_ROI):
     #               'meta-llama/Llama-3.1-70b', True)
     return semantic_l
 
-def test_llama_combined(big_voxelwise=False):
+def test_llama_combined(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
 
     # target_ROIs = get_atlas(combine_regions=True,
@@ -214,12 +220,13 @@ def test_llama_combined(big_voxelwise=False):
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
     fps = ['obj7_fMRI']
     # fps = ['bl7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
+    # target_ROIs = target_ROIs[2::4]
 
     print(f'{fps=}')
 
     for i, target_ROI in enumerate(target_ROIs):
         semantic_l = get_semantic_l(target_ROI)
-        # semantic = ('llama', 'gate_proj_in', 13, 'scn', r'meta-llama/Llama-3.1-70b', True)
+        # semantic_l = [('llama', 'PCA', 6)] + semantic_l
 
         kwargs = {'semantic': semantic_l,
                   'fp': None,
@@ -235,7 +242,7 @@ def test_llama_combined(big_voxelwise=False):
         kw = {'kw': kwargs, 'fps': fps, 'big_voxelwise': big_voxelwise,
               'region': target_ROI, 'std': False,
               'easy_override': False, 'plot_i': i}
-        print(kw)
+        # print(kw)
 
         (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
          t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (
@@ -253,6 +260,13 @@ def test_llama_combined(big_voxelwise=False):
         # quit()
 
 if __name__ == '__main__':
+    # semantic_l = get_semantic_l('Occipital')
+    # semantic_l = [('PCA', 6)] + semantic_l
+    # get_sn_fp_llama_RSM_l(104, 'obj7_fMRI',
+    #                       semantic_l, dist='spear',
+    #                       within_to_nan=True,)
+    # quit()
+
     test_llama_combined()
 
 
