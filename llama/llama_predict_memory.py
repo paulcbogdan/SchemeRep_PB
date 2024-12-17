@@ -31,7 +31,11 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     kwargs['fp'] = fps[0]
 
     kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
-    kwargs['ROI_focus'] = f'PFC_M_corr'
+    kwargs['ROI_focus'] = f'PFC_M_corr' # MAYBE for obj7_fMRI
+    # kwargs['ROI_focus'] = f'cortical_BOLD_cmb'
+    kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
+    # kwargs['ROI_focus'] = f'ITL_M_corr'
+
     kwargs['ROIs_ctrl'] = []
     kwargs['regress_row'] = True
 
@@ -44,9 +48,13 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     df_sn['IRAFs'] = IRAFs
+    # print(df_sn['con_resp'].value_counts(dropna=True))
 
     # df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
     df_sn['mem_key'] = df_sn['vis_hit']
+    # df_sn['mem_key'] = df_sn['con_resp']
+
+
     df_sn.dropna(subset=['IRAFs', 'mem_key'], inplace=True)
     assert len(df_sn) > 10, f'{len(df_sn)=}'
 

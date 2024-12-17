@@ -32,8 +32,7 @@ def get_scn2grammar():
     scn2override = {scn: override for scn, override in zip(df['scene'], df['override'])}
     return scn2grammar, scn2override
 
-def get_llama_activations(obj, scn,
-                          activation_model='meta-llama/Llama-3.2-1b',):
+def get_sentence_obj_scn_in(obj, scn):
     obj2grammar, obj2override = get_obj2grammar()
     scn2grammar, scn2override = get_scn2grammar()
 
@@ -59,6 +58,12 @@ def get_llama_activations(obj, scn,
     if obj == 'oversize tire':
         obj = 'oversized tire'
 
+    return sentence, obj, scn
+
+def get_llama_activations(obj, scn,
+                          activation_model='meta-llama/Llama-3.2-1b',):
+
+    sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
     t = time()
     extractor = get_llama_extractor(model_name=activation_model)
     res = extractor.extract_activations(sentence, [obj, scn], )

@@ -110,11 +110,13 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
         title += 'Semantic'
     elif isinstance(kw['semantic'], bool) and not kw['semantic']:
         title += 'DNN layer 2'
-    elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] != 'llama':
+    elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] != 'llama' and kw['semantic'][0] != 'BERT':
         assert not kw['semantic'][0]
         title += f'DNN layer {kw["semantic"][1]}'
     elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] == 'llama':
         title += f'{kw["semantic"][1]}/{kw["semantic"][2]}/{kw["semantic"][3]}'
+    elif isinstance(kw['semantic'], tuple) and kw['semantic'][0] == 'BERT':
+        title += f'BERT layer {kw["semantic"][2]}'
     elif isinstance(kw['semantic'], list):
         title += ' super list'
     title += f'\n{region}'
@@ -194,17 +196,7 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     return
 
 
-
-def plot_Fig5_v2_bars_all(big_voxelwise=True):
-    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
-    # target_ROIs = ['ITL']
-
-    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
-    fps = ['obj7_fMRI']
-    # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
-    # fps = ['bl7_fMRI', 'obj7_fMRI',]
-    # fps = ['con7_fMRI', 'vis7_fMRI',]
-
+def get_explore_llama():
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
@@ -212,12 +204,6 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
     all_llama_cats = ['attn_weights']
-
-    # TODO: maybe peak at the change in an RSM between layers
-
-    # all_llama_cats = ['gate_proj_in']
-
-
 
     # all_llama_layers = list(range(28, 32))
     all_llama_layers = list(range(0, 28))
@@ -237,8 +223,23 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                                    normalize))
             semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
                                normalize))
+    return semantic_l
 
-    axs = None
+def get_explore_BERT():
+    layers = list(range(0, 13))
+    semantic_l = []
+    normalize = True
+    for layer in layers:
+        semantic = ('BERT', None, layer, 'obj', None, normalize)
+        semantic_l.append(semantic)
+    return semantic_l
+
+def plot_Fig5_v2_bars_all(big_voxelwise=True):
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
+
+    fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
+    # fps = ['obj7_fMRI']
+
     fig, axs = plt.subplots(2, 2, figsize=(10, 7))
 
     # semantic_l = [True]
@@ -246,10 +247,10 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     # semantic_l = semantic_l[1::2]
     ALL_RESULTS = defaultdict(list)
 
-    # semantic_l = [('llama', 'gate_proj_in', 13, 'scn', r'meta-llama/Llama-3.1-70b', True)]
-
     target_roi2baddies = defaultdict(list)
-    semantic_l = [True]
+    # semantic_l = [True]
+    semantic_l = get_explore_BERT()
+
     for semantic in semantic_l:
 
         print(f'\n{semantic=}')
@@ -287,11 +288,8 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
                 target_roi2baddies[target_ROI].append(
                     semantic)
             print(f'{target_ROI}: {t_dist_corr_1samp=:.2f}')
-
-
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t_dist_corr_1samp)
-        #if llama_layer % 4 == 3:
-        # print_all_results(ALL_RESULTS)
+        print_all_results(ALL_RESULTS)
         if len(axs[0][0].lines):
             plt.tight_layout()
             plt.show()

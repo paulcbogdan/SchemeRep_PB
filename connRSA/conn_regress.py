@@ -7,6 +7,7 @@ from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
+from llama.BERT_vecs import get_sn_fp_BERT_RSM, get_sn_fp_BERT_RSM_l
 from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM, get_sn_fp_llama_RSM_l
 from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
@@ -262,14 +263,19 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
     elif isinstance(semantic, bool) and not semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 0)
-    elif isinstance(semantic, tuple) and semantic[0] != 'llama':
+    elif (isinstance(semantic, tuple) and semantic[0] != 'llama' and
+          semantic[0] != 'BERT'):
         assert not semantic[0]
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
     elif isinstance(semantic, tuple) and semantic[0] == 'llama':
         RSM_stim = get_sn_fp_llama_RSM(sn, fp, semantic)
-    elif isinstance(semantic, list):
-        assert semantic[0][0] == 'llama'
+    elif isinstance(semantic, tuple) and semantic[0] == 'BERT':
+        RSM_stim = get_sn_fp_BERT_RSM(sn, fp, semantic)
+    elif isinstance(semantic, list) and semantic[0][0] == 'llama':
+        # assert semantic[0][0] == 'llama'
         RSM_stim = get_sn_fp_llama_RSM_l(sn, fp, semantic)
+    elif isinstance(semantic, list) and semantic[0][0] == 'BERT':
+        RSM_stim = get_sn_fp_BERT_RSM_l(sn, fp, semantic)
     else:
         raise ValueError
 

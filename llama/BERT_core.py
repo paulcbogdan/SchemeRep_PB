@@ -2,6 +2,14 @@ import torch
 from transformers import BertModel, BertTokenizer
 import numpy as np
 
+
+def find_word_indices(input_ids, word_tokens):
+    indices = []
+    for i in range(len(input_ids) - len(word_tokens) + 1):
+        if input_ids[i:i + len(word_tokens)].tolist() == word_tokens:
+            indices.append(i)
+    return indices
+
 class BERTLayerActivationExtractor:
     def __init__(self, model_name='bert-base-uncased'):
         """
@@ -22,13 +30,13 @@ class BERTLayerActivationExtractor:
         # Validate and set target layer
         # self.target_layer = target_layer
 
-    def extract_word_activation(self, sentence, target_word):
+    def extract_word_activation(self, sentence, target_words):
         """
         Extract layer activations for a specific word in a sentence
 
         Args:
             sentence (str): Full input sentence
-            target_word (str): Word to extract activations for
+            target_words (str): Word to extract activations for
 
         Returns:
             torch.Tensor: Activation vector for the target word
@@ -38,23 +46,18 @@ class BERTLayerActivationExtractor:
 
         # Get token ids and convert to list
         tokens = self.tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
+        print(f'{sentence=}')
+        print(f'\t{inputs=}')
+        print(f'\t{tokens=}')
 
-        # Find the index of the target word (accounting for special tokens)
-        try:
-            # Find all occurrences of the target word
-            word_indices = [
-                i for i, token in enumerate(tokens)
-                if token.lower().replace('##', '') == target_word.lower()
-            ]
-
-            if not word_indices:
-                raise ValueError(f"Target word '{target_word}' not found in sentence")
-
-            # If multiple occurrences, use the first one
-            word_index = word_indices[0]
-        except Exception as e:
-            print(f"Error finding target word: {e}")
-            return None
+        word_idxs_all = []
+        for word in target_words:
+            word_token = self.tokenizer.encode(word, add_special_tokens=False)
+            word_idxs = find_word_indices(inputs.input_ids[0], word_token)
+            if len(word_idxs) < 1:
+                raise ValueError(f"Target word '{word}' not found in sentence ({target_words=})")
+            num_words = max(word_idxs) - min(word_idxs) + 1
+            word_idxs_all.append((min(word_idxs), num_words))
 
         # Forward pass to get hidden states
         with torch.no_grad():
@@ -62,9 +65,15 @@ class BERTLayerActivationExtractor:
 
             # Get all hidden states (layers)
         hidden_states = outputs.hidden_states
-
-        activations = np.array([hidden_states[i][0][word_index] for i in range(len(hidden_states))])
-        return activations
+        activations_all = []
+        for (word_idx, num_words) in word_idxs_all:
+            idx_st = word_idx
+            idx_end = word_idx + num_words
+            activations = np.array([hidden_states[i][0][idx_st:idx_end] for i in range(len(hidden_states))])
+            activations = np.nanmean(activations, axis=1)
+            activations_all.append(activations)
+        activations_all = np.array(activations_all)
+        return activations_all
 
 
 
