@@ -3,14 +3,10 @@ from transformers import AutoModel, AutoTokenizer
 import numpy as np
 
 
-class SimCSEEmbedder:
+class DetailedSimCSEEmbedder:
     def __init__(self, model_name='princeton-nlp/sup-simcse-bert-base-uncased'):
         """
-        Initialize SimCSE embedder with a pre-trained model.
-
-        Args:
-            model_name (str): Hugging Face model path for SimCSE embeddings.
-                Default is the supervised SimCSE BERT base model.
+        Initialize detailed SimCSE embedder with full layer access.
         """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -18,41 +14,19 @@ class SimCSEEmbedder:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
 
-        # Set model to evaluation mode
-        self.model.eval()
+        # Extract configuration details
+        self.num_hidden_layers = self.model.config.num_hidden_layers
+        self.hidden_size = self.model.config.hidden_size
 
-    def mean_pooling(self, model_output, attention_mask):
+    def get_detailed_embeddings(self, sentence, words):
         """
-        Perform mean pooling on model output.
-
-        Args:
-            model_output (torch.Tensor): Model's last hidden state
-            attention_mask (torch.Tensor): Attention mask for the input
+        Extract detailed embeddings across all layers for specific words.
 
         Returns:
-            torch.Tensor: Pooled sentence embedding
-        """
-        # Extract last hidden states
-        token_embeddings = model_output.last_hidden_state
-
-        # Create mask to ignore padding tokens
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-
-        # Sum masked embeddings and divide by number of tokens
-        sum_embeddings = torch.sum(token_embeddings * input_mask_expanded, 1)
-        sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-        return sum_embeddings / sum_mask
-
-    def get_sentence_embedding(self, sentence):
-        """
-        Get embedding for an entire sentence.
-
-        Args:
-            sentence (str): Input sentence
-
-        Returns:
-            numpy.ndarray: Sentence embedding
+        - Detailed embedding dictionary with:
+          * token-level embeddings for each layer
+          * contextual representations
+          * raw hidden states
         """
         # Tokenize sentence
         encoded_input = self.tokenizer(
@@ -63,76 +37,77 @@ class SimCSEEmbedder:
             return_tensors='pt'
         ).to(self.device)
 
-        # Get model output
+        # Get full model output with all hidden states
         with torch.no_grad():
-            model_output = self.model(**encoded_input)
+            outputs = self.model(
+                **encoded_input,
+                output_hidden_states=True  # Crucial for accessing all layer embeddings
+            )
 
-        # Mean pooling
-        sentence_embedding = self.mean_pooling(model_output, encoded_input['attention_mask'])
+        # Extract all hidden states
+        all_hidden_states = outputs.hidden_states
 
-        return sentence_embedding.cpu().numpy().flatten()
-
-    def get_word_embeddings(self, sentence, words):
-        """
-        Get embeddings for specific words in a sentence.
-
-        Args:
-            sentence (str): Input sentence
-            words (list): List of words to extract embeddings for
-
-        Returns:
-            dict: Mapping of words to their embeddings
-        """
-        # Tokenize sentence
-        encoded_input = self.tokenizer(
-            sentence,
-            padding=True,
-            truncation=True,
-            max_length=128,
-            return_tensors='pt'
-        ).to(self.device)
-
-        # Get model output
-        with torch.no_grad():
-            model_output = self.model(**encoded_input)
-
-        # Get token-level embeddings
-        token_embeddings = model_output.last_hidden_state.squeeze()
-
-        # Get tokenized words
+        # Detailed embedding extraction
+        detailed_embeddings = {}
         tokens = self.tokenizer.tokenize(sentence)
 
-        # Find word embeddings
-        word_embeddings = {}
         for target_word in words:
-            # Find all indices of the word (handling subword tokenization)
+            # Find token indices for the word
             word_token_indices = [
                 i for i, token in enumerate(tokens)
                 if target_word.lower() in token.lower()
             ]
 
             if word_token_indices:
-                # Average embeddings for all matching token indices
-                avg_embedding = token_embeddings[word_token_indices].mean(dim=0).cpu().numpy()
-                word_embeddings[target_word] = avg_embedding
+                word_details = {
+                    'layer_embeddings': [],  # Embeddings for each layer
+                    'layer_details': []  # Additional layer-wise information
+                }
 
-        return word_embeddings
+                # Extract embeddings for each layer
+                for layer_idx, layer_hidden_states in enumerate(all_hidden_states):
+                    # Get embeddings for this layer
+                    layer_embeddings = layer_hidden_states.squeeze()
+                    word_layer_emb = layer_embeddings[word_token_indices].mean(dim=0)
+
+                    word_details['layer_embeddings'].append(word_layer_emb.cpu().numpy())
+
+                    # Optional: Add some layer-wise statistics
+                    word_details['layer_details'].append({
+                        'layer': layer_idx,
+                        'embedding_mean': word_layer_emb.mean().item(),
+                        'embedding_std': word_layer_emb.std().item(),
+                    })
+
+                detailed_embeddings[target_word] = word_details
+
+        return {
+            'embeddings': detailed_embeddings,
+            'num_layers': self.num_hidden_layers,
+            'hidden_size': self.hidden_size
+        }
 
 
 # Example usage
 if __name__ == "__main__":
-    # Initialize embedder
-    embedder = SimCSEEmbedder()
+    embedder = DetailedSimCSEEmbedder()
 
-    # Example sentence and words
     sentence = "The quick brown fox jumps over the lazy dog."
-    words_to_embed = ["fox", "dog", "quick"]
+    words_to_embed = ["fox", "dog"]
 
-    # Get sentence embedding
-    sentence_emb = embedder.get_sentence_embedding(sentence)
-    print("Sentence Embedding Shape:", sentence_emb.shape)
+    detailed_embs = embedder.get_detailed_embeddings(sentence, words_to_embed)
 
-    # Get word embeddings
-    word_embs = embedder.get_word_embeddings(sentence, words_to_embed)
-    for word, emb in word_embs.items():
-        print(f"{word} Embedding Shape: {emb.shape}")
+
+    # Demonstrate layer-wise information
+    for word, word_details in detailed_embs['embeddings'].items():
+        print(f"\nWord: {word}")
+        print(f"Number of layers: {len(word_details['layer_embeddings'])}")
+        print(np.array(word_details['layer_embeddings']).shape)
+        print(f"Embedding size per layer: {word_details['layer_embeddings'][0].shape}")
+
+        # # Print some layer details
+        # print("\nLayer-wise Statistics:")
+        # for layer_detail in word_details['layer_details']:
+        #     print(f"Layer {layer_detail['layer']}:")
+        #     print(f"  Mean: {layer_detail['embedding_mean']}")
+        #     print(f"  Std Dev: {layer_detail['embedding_std']}")

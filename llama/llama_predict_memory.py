@@ -32,9 +32,9 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
 
     kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     kwargs['ROI_focus'] = f'PFC_M_corr' # MAYBE for obj7_fMRI
-    # kwargs['ROI_focus'] = f'cortical_BOLD_cmb'
     kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     # kwargs['ROI_focus'] = f'ITL_M_corr'
+    # kwargs['ROI_focus'] = f'cortical_BOLD'
 
     kwargs['ROIs_ctrl'] = []
     kwargs['regress_row'] = True
