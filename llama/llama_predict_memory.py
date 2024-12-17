@@ -13,10 +13,12 @@ from organize_bhv import get_trial_info
 def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     # model = get_explore_llama('meta-llama/Llama-3.3-70b-Instruct',
     #                           attn=True)
-    model = get_explore_llama('meta-llama/Llama-3.2-3b',
-                              attn=True, normalize=1)
-    model_item = get_explore_llama('meta-llama/Llama-3.2-3b',
-                                   attn=False, normalize=1)
+    activation_model = 'meta-llama/Llama-3.2-3b'
+    activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
+    model = get_explore_llama(activation_model,
+                              attn=True, normalize=True)
+    model_item = get_explore_llama(activation_model,
+                                   attn=False, normalize=True)
     # model = get_explore_BERT('BERT')
     # model = get_explore_BERT('simCSE')
 
@@ -43,13 +45,12 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
 
     if (kwargs['regress_row'] and len(kwargs['ROIs_ctrl']) > 0 and
             sn in ['132', '224', '234']):
-        # errors
         return None
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                         verbose=-1,
-                        easy_override=True, dir_branches=100)
-    print(IRAFs.shape)
-    # quit()
+                        easy_override=False, dir_branches=100)
+    if len(kwargs['ROIs_ctrl']):
+        IRAFs = IRAFs[:, 0]
 
     df_sn = get_trial_info(sn)
     sess = (kwargs['fp'].split('_')[0].replace('7', '').replace('8', ''))
