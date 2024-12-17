@@ -1,3 +1,5 @@
+from numba.cuda.libdevice import atan2
+
 from connRSA.conn_regress import do_regr_RSA_sn
 from connRSA_finalizing.plot_bars_explore import get_explore_llama, get_explore_BERT
 from org_sns import get_sns
@@ -9,12 +11,12 @@ from organize_bhv import get_trial_info
 
 
 def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
-    # activation_model = 'meta-llama/Llama-3.2-3b'
-    # activation_model = 'meta-llama/Llama-3.1-70b'
-    activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-
-    model = get_explore_llama(activation_model)
-    # model = get_explore_llama('meta-llama/Llama-3.2-3b')
+    # model = get_explore_llama('meta-llama/Llama-3.3-70b-Instruct',
+    #                           attn=True)
+    model = get_explore_llama('meta-llama/Llama-3.2-3b',
+                              attn=True, normalize=1)
+    model_item = get_explore_llama('meta-llama/Llama-3.2-3b',
+                                   attn=False, normalize=1)
     # model = get_explore_BERT('BERT')
     # model = get_explore_BERT('simCSE')
 
@@ -31,16 +33,23 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
 
     kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     kwargs['ROI_focus'] = f'PFC_M_corr' # MAYBE for obj7_fMRI
-    kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
+    # kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     # kwargs['ROI_focus'] = f'ITL_M_corr'
-    kwargs['ROI_focus'] = f'cortical_M_corr'
+    # kwargs['ROI_focus'] = f'cortical_M_corr'
 
     kwargs['ROIs_ctrl'] = []
+    kwargs['ROIs_ctrl'] = [model_item]
     kwargs['regress_row'] = True
 
+    if (kwargs['regress_row'] and len(kwargs['ROIs_ctrl']) > 0 and
+            sn in ['132', '224', '234']):
+        # errors
+        return None
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                         verbose=-1,
-                        easy_override=False, dir_branches=100)
+                        easy_override=True, dir_branches=100)
+    print(IRAFs.shape)
+    # quit()
 
     df_sn = get_trial_info(sn)
     sess = (kwargs['fp'].split('_')[0].replace('7', '').replace('8', ''))
@@ -51,10 +60,15 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
 
     # df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
     df_sn['mem_key'] = df_sn['vis_hit'].astype(float)
-    # print(df_sn['vis_hit'])
-    # print(IRAFs)
-    # print(type(IRAFs))
-    # df_sn['mem_key'] = df_sn['con_resp']
+
+    # function that maps 1-3 to 1-4
+    df_sn['inc'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
+    df_sn['enc_accuracy'] = (df_sn['inc'] - df_sn['per_inc']).abs()
+    df_sn['mem_key'] = df_sn['enc_accuracy'].astype(float)
+
+    # df_sn['per_inc'] = df_sn['per_inc'].map({1: 1, 2: 2, 3: 2, 4: 3})
+    # df_sn['enc_accuracy'] = (df_sn['inc'] - df_sn['per_inc']).abs()
+    # df_sn['mem_key'] = df_sn['enc_accuracy'].astype(float)
 
 
     df_sn.dropna(subset=['IRAFs', 'mem_key'], inplace=True)
@@ -74,6 +88,7 @@ def test_sn_llama_mem():
     efs = []
     for sn in sns:
         ef = get_sn_llama_mem(sn, fps)
+        if ef is None: continue
         efs.append(ef)
     t, p = stats.ttest_1samp(efs, 0, axis=0)
     N = np.sum(~np.isnan(efs), axis=0)

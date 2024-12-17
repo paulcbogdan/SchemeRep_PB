@@ -198,15 +198,19 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
 
 
 @cache
-def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct'):
+def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                      attn=False, normalize=True):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
-    all_llama_cats = ['attn_weights']
-    all_llama_cats = ['gate_proj_in']
+    if attn:
+        all_llama_cats = ['attn_weights']
+        all_llama_cats = ['v_proj']
+    else:
+        all_llama_cats = ['gate_proj_in']
 
     # all_llama_layers = list(range(28, 32))
 
@@ -219,7 +223,6 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct'):
 
     # all_llama_layers = list(range(0, 10))
 
-    normalize = True
 
     semantic_l = []
     for llama_layer in all_llama_layers:

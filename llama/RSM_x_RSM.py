@@ -39,11 +39,6 @@ def run_RSM_x_RSM():
         tick_lows.append(cnt)
         ticks.append(llama_layer)
         for llama_cat in all_llama_cats:
-
-    # for llama_cat in all_llama_cats:
-    #     ticks.append(llama_cat)
-    #     tick_lows.append(cnt)
-    #     for llama_layer in all_llama_layers:
             semantic = ('llama', llama_cat, llama_layer, 'scn', activation_model,
                         normalize)
             print(f'{semantic=}')
