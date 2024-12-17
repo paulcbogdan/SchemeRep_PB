@@ -983,6 +983,7 @@ def do_regr():
     target_ROIs = (['IT', 'ITL', 'Occipital', 'Parietal', 'PFC', 'subcort'] +
                    target_ROIs)
     target_ROIs = ['ITL']
+    target_ROIs = ['cortical']
     # target_ROIs = ['PFC_no_OFC']
 
 
@@ -1005,8 +1006,9 @@ def do_regr():
                       }
 
             voxel_small_M = fr'{target_ROI}_M_{trial_similarity}'
-            # prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
-            #              ERS_alt=ERS_alt, **kwargs)
+            prep_ROI_avg(voxel_small_M, ROI_lvl_control, RSA=RSA, ISPC=ISPC,
+                         ERS_alt=ERS_alt, **kwargs)
+            continue
             # print(f'prepped: {voxel_small_M}')
             # continue
             # print('test')

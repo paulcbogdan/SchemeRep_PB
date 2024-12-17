@@ -1,4 +1,5 @@
 from connRSA.conn_regress import do_regr_RSA_sn
+from connRSA_finalizing.plot_bars_explore import get_explore_llama, get_explore_BERT
 from org_sns import get_sns
 from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
@@ -12,12 +13,10 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     # activation_model = 'meta-llama/Llama-3.1-70b'
     activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
 
-    model_l = []
-    for llama_layer in range(1, 80):
-        model = ('llama', 'gate_proj_in', llama_layer,
-                 'scn', activation_model, True)
-        model_l.append(model)
-    model = model_l
+    model = get_explore_llama(activation_model)
+    # model = get_explore_llama('meta-llama/Llama-3.2-3b')
+    # model = get_explore_BERT('BERT')
+    # model = get_explore_BERT('simCSE')
 
     # model = True
     kwargs = {'semantic': model,
@@ -34,14 +33,14 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     kwargs['ROI_focus'] = f'PFC_M_corr' # MAYBE for obj7_fMRI
     kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     # kwargs['ROI_focus'] = f'ITL_M_corr'
-    # kwargs['ROI_focus'] = f'cortical_BOLD'
+    kwargs['ROI_focus'] = f'cortical_M_corr'
 
     kwargs['ROIs_ctrl'] = []
     kwargs['regress_row'] = True
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                         verbose=-1,
-                        easy_override=True, dir_branches=100)
+                        easy_override=False, dir_branches=100)
 
     df_sn = get_trial_info(sn)
     sess = (kwargs['fp'].split('_')[0].replace('7', '').replace('8', ''))
@@ -51,7 +50,10 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     # print(df_sn['con_resp'].value_counts(dropna=True))
 
     # df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
-    df_sn['mem_key'] = df_sn['vis_hit']
+    df_sn['mem_key'] = df_sn['vis_hit'].astype(float)
+    # print(df_sn['vis_hit'])
+    # print(IRAFs)
+    # print(type(IRAFs))
     # df_sn['mem_key'] = df_sn['con_resp']
 
 

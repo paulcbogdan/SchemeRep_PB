@@ -2,6 +2,7 @@
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.BERT_core import BERTLayerActivationExtractor
 from llama.get_obj_scn_vecs import get_sentence_obj_scn_in, within_run_to_nan3
+from llama.simCSE_core import DetailedSimCSEEmbedder
 from organize_bhv import get_trial_info
 from functools import cache
 import numpy as np
@@ -16,16 +17,22 @@ def get_BERT_extractor():
 def get_BERT_activations(obj, scn):
     extractor = get_BERT_extractor()
     sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
-
     activations = extractor.extract_word_activation(sentence, [obj, scn])
-    # print(activations.shape)
     return activations[0], activations[1]
 
-def get_BERT_d_vecs_non_normed(layer_name=1):
+@cache
+def get_simCSE_extractor():
+    extractor = DetailedSimCSEEmbedder()
+    return extractor
+
+def get_simCSE_activations(obj, scn):
+    extractor = get_simCSE_extractor()
+    sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
+    activations = extractor.get_detailed_embeddings(sentence, [obj, scn])
+    return activations[0], activations[1]
+
+def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT'):
     sns = ['102', '103', '104'] # everyone else is a duplicate
-    already_done = set()
-    scn_objs = []
-    obj_scns = []
     d_vecs_obj = {}
     d_vecs_scn = {}
     already_done = set()
@@ -36,7 +43,13 @@ def get_BERT_d_vecs_non_normed(layer_name=1):
         for obj, scn in zip(objs, scns):
             if (obj, scn) in already_done: continue
             already_done.add((obj, scn))
-            obj_act, scn_act = pickle_wrap(get_BERT_activations,
+            if code == 'BERT':
+                func = get_BERT_activations
+            elif code == 'simCSE':
+                func = get_simCSE_activations
+            else:
+                raise ValueError(f'Invalid BERT_d_vecs code: {code=}')
+            obj_act, scn_act = pickle_wrap(func,
                                            kwargs={'obj': obj,
                                                    'scn': scn},)
             obj_vec = obj_act[layer_name]
@@ -45,9 +58,10 @@ def get_BERT_d_vecs_non_normed(layer_name=1):
             d_vecs_scn[(obj, scn)] = scn_vec
     return d_vecs_obj, d_vecs_scn
 
-def get_BERT_d_vecs(layer_name=1, normalize=True):
+def get_BERT_d_vecs(layer_name=1, normalize=True, code='BERT'):
     d_vecs_obj, d_vecs_scn = pickle_wrap(get_BERT_d_vecs_non_normed,
-                                         kwargs={'layer_name': layer_name})
+                                         kwargs={'layer_name': layer_name,
+                                                 'code': code})
     if normalize:
         obj_vecs = np.array([list(d_vecs_obj.values())])[0]
         M = np.nanmean(obj_vecs, axis=0)
@@ -64,10 +78,12 @@ def get_BERT_d_vecs(layer_name=1, normalize=True):
 
 def get_sn_fp_BERT_RSM_(sn, fp, scn_obj='obj',
                        layer_name=1, dist='spear', within_to_nan=True,
-                       normalize=True):
+                       normalize=True, code='BERT'):
     d_vecs_obj, d_vecs_scn = pickle_wrap(get_BERT_d_vecs,
                                          kwargs={'layer_name': layer_name,
-                                                 'normalize': normalize})
+                                                 'normalize': normalize,
+                                                 'code': code},
+                                         verbose=-1)
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
             replace('7', '').replace('8', ''))
@@ -104,6 +120,7 @@ def get_sn_fp_BERT_RSM_l(sn, fp, semantic_tup_l, dist='spear', within_to_nan=Tru
     return out
 
 def get_sn_fp_BERT_RSM(sn, fp, semantic, dist='spear', within_to_nan=True,):
+    code = semantic[1]
     layer_name = semantic[2]
     scn_obj = semantic[3]
     normalize = semantic[5]
@@ -111,7 +128,8 @@ def get_sn_fp_BERT_RSM(sn, fp, semantic, dist='spear', within_to_nan=True,):
                        kwargs={'sn': sn, 'fp': fp, 'scn_obj': scn_obj,
                                'layer_name': layer_name, 'dist': dist,
                                'within_to_nan': within_to_nan,
-                               'normalize': normalize},
+                               'normalize': normalize,
+                               'code': code},
                        verbose=-1)
 
 if __name__ == '__main__':

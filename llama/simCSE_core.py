@@ -2,6 +2,8 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 import numpy as np
 
+from llama.BERT_core import find_word_indices
+
 
 class DetailedSimCSEEmbedder:
     def __init__(self, model_name='princeton-nlp/sup-simcse-bert-base-uncased'):
@@ -18,7 +20,7 @@ class DetailedSimCSEEmbedder:
         self.num_hidden_layers = self.model.config.num_hidden_layers
         self.hidden_size = self.model.config.hidden_size
 
-    def get_detailed_embeddings(self, sentence, words):
+    def get_detailed_embeddings(self, sentence, target_words):
         """
         Extract detailed embeddings across all layers for specific words.
 
@@ -45,47 +47,37 @@ class DetailedSimCSEEmbedder:
             )
 
         # Extract all hidden states
-        all_hidden_states = outputs.hidden_states
+        hidden_states = outputs.hidden_states
+        # print(len(all_hidden_states))
+        # print(all_hidden_states[0].shape)
+        # quit()
 
         # Detailed embedding extraction
         detailed_embeddings = {}
         tokens = self.tokenizer.tokenize(sentence)
 
-        for target_word in words:
-            # Find token indices for the word
-            word_token_indices = [
-                i for i, token in enumerate(tokens)
-                if target_word.lower() in token.lower()
-            ]
+        word_idxs_all = []
+        for word in target_words:
+            word_token = self.tokenizer.encode(word, add_special_tokens=False)
+            word_idxs = find_word_indices(encoded_input.input_ids[0], word_token)
+            if len(word_idxs) < 1:
+                raise ValueError(f"Target word '{word}' not found in sentence ({target_words=})")
+            num_words = max(word_idxs) - min(word_idxs) + 1
+            word_idxs_all.append((min(word_idxs), num_words))
+            # print(word_idxs_all)
+            # quit()
 
-            if word_token_indices:
-                word_details = {
-                    'layer_embeddings': [],  # Embeddings for each layer
-                    'layer_details': []  # Additional layer-wise information
-                }
-
-                # Extract embeddings for each layer
-                for layer_idx, layer_hidden_states in enumerate(all_hidden_states):
-                    # Get embeddings for this layer
-                    layer_embeddings = layer_hidden_states.squeeze()
-                    word_layer_emb = layer_embeddings[word_token_indices].mean(dim=0)
-
-                    word_details['layer_embeddings'].append(word_layer_emb.cpu().numpy())
-
-                    # Optional: Add some layer-wise statistics
-                    word_details['layer_details'].append({
-                        'layer': layer_idx,
-                        'embedding_mean': word_layer_emb.mean().item(),
-                        'embedding_std': word_layer_emb.std().item(),
-                    })
-
-                detailed_embeddings[target_word] = word_details
-
-        return {
-            'embeddings': detailed_embeddings,
-            'num_layers': self.num_hidden_layers,
-            'hidden_size': self.hidden_size
-        }
+        activations_all = []
+        for (word_idx, num_words) in word_idxs_all:
+            idx_st = word_idx
+            idx_end = word_idx + num_words
+            activations = np.array([hidden_states[i].cpu().numpy()[0, idx_st:idx_end, :]
+                                    for i in range(len(hidden_states))])
+            activations = np.nanmean(activations, axis=1) # average across idxs of a given word
+            # print(activations.shape)
+            activations_all.append(activations)
+        activations_all = np.array(activations_all)
+        return activations_all
 
 
 # Example usage

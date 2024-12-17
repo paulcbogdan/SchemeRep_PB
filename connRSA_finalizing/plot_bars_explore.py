@@ -13,6 +13,7 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from functools import cache
 
 # TODO: box bar
 
@@ -196,7 +197,8 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     return
 
 
-def get_explore_llama():
+@cache
+def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct'):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
@@ -210,13 +212,12 @@ def get_explore_llama():
 
     # all_llama_layers = [4, 5, 6, 7]
 
-    activation_model = 'meta-llama/Llama-3.2-3b'
-    # activation_model = 'meta-llama/Llama-3.1-70b'
-    activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
     if activation_model == 'meta-llama/Llama-3.2-3b':
         all_llama_layers = list(range(0, 28))
     else:
         all_llama_layers = list(range(0, 80))
+
+    # all_llama_layers = list(range(0, 10))
 
     normalize = True
 
@@ -230,12 +231,14 @@ def get_explore_llama():
                                normalize))
     return semantic_l
 
-def get_explore_BERT():
+def get_explore_BERT(bert_type='BERT'):
     layers = list(range(0, 13))
     semantic_l = []
     normalize = True
     for layer in layers:
-        semantic = ('BERT', 'BERT', layer, 'obj', None, normalize)
+        semantic = ('BERT', bert_type, layer, 'obj', None, normalize)
+        # semantic = ('BERT', 'simCSE', layer, 'obj', None, normalize)
+
         semantic_l.append(semantic)
     return semantic_l
 
@@ -253,9 +256,9 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     ALL_RESULTS = defaultdict(list)
 
     target_roi2baddies = defaultdict(list)
-    # semantic_l = get_explore_BERT()
-    # semantic_l = [True]
-    semantic_l = get_explore_llama()
+    semantic_l = get_explore_BERT()
+    semantic_l = [True]
+    # semantic_l = get_explore_llama()
 
     for semantic in semantic_l:
 
