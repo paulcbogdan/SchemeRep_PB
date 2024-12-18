@@ -170,17 +170,17 @@ class LlamaActivationExtractor:
             out['mlp_out'][key] = self._extract_target_activations(d, target_indices)
 
         # if r'meta-llama/Llama-2-7b' in self.model_name:
-        for outer, d_outer in out.items():
-            if outer not in ['attn', 'mlp_in', 'mlp_out']: continue
-            for inner, d_inner in d_outer.items():
-                for key, val in d_inner.items():
-                    print(f'{outer}, {inner}, {key}')
-                    try:
-                        d_outer[inner][0] = val[0].cpu().numpy()
-                        d_outer[inner][1] = val[1].cpu().numpy()
-                        print(f'{type(val[0])=}')
-                    except:
-                        pass
+        # for outer, d_outer in out.items():
+        #     if outer not in ['attn', 'mlp_in', 'mlp_out']: continue
+        #     for inner, d_inner in d_outer.items():
+        #         for key, val in d_inner.items():
+        #             print(f'{outer}, {inner}, {key}')
+        #             try:
+        #                 d_outer[inner][0] = val[0].cpu().numpy()
+        #                 d_outer[inner][1] = val[1].cpu().numpy()
+        #                 print(f'{type(val[0])=}')
+        #             except:
+        #                 pass
 
 
         return out
@@ -199,7 +199,8 @@ class LlamaActivationExtractor:
             module_activations = []
             for (idx, num) in target_indices:
                 try:
-                    module_activations.append(activation[0, idx:idx + num].numpy(force=True))
+                    module_activations.append(activation[0, idx:idx + num].
+                                              numpy(force=True))
                 except Exception as e:
                     print(f"Extraction error: {e}")
             result[layer] = module_activations # can't numpy array because the number of idxs in each word may differ
@@ -228,9 +229,11 @@ class LlamaActivationExtractor:
 
 
 def main():
+    extractor = LlamaActivationExtractor(r'baffo32/decapoda-research-llama-7B-hf')
+
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')

@@ -1,3 +1,4 @@
+
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 from connRSA_finalizing.plot_bars_explore import plot_Fig5_v2_kw
@@ -205,6 +206,26 @@ def get_semantic_l(target_ROI):
     #               'meta-llama/Llama-3.1-70b', True)
     return semantic_l
 
+def get_base_kw(region, model, fps='obj', big_voxelwise=True,):
+    kw_inner = {'trial_similarity': 'corr',
+                'second_order': 'spear',
+                'RDM_method': 'within_nan',
+                'stdize_by_run': False,
+                'regress_row': False,
+                'semantic': model
+                }
+    if isinstance(fps, str):
+        if fps == 'obj':
+            fps = ['obj7_fMRI']
+        elif fps == 'all':
+            fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+        else:
+            raise ValueError
+
+    kwargs = {'kw': kw_inner, 'fps': fps, 'big_voxelwise': big_voxelwise,
+              'region': region, 'std': False, 'easy_override': False}
+    return kwargs
+
 def test_llama_combined(big_voxelwise=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']
 
@@ -228,21 +249,8 @@ def test_llama_combined(big_voxelwise=True):
         semantic_l = get_semantic_l(target_ROI)
         # semantic_l = [('llama', 'PCA', 6)] + semantic_l
 
-        kwargs = {'semantic': semantic_l,
-                  'fp': None,
-                  'trial_similarity': 'corr',
-                  'second_order': 'spear',
-                  'RDM_method': 'within_nan',
-                  'stdize_by_run': False,
-                  'regress_row': False,
-                  }
-        i_ = i // 2
-        j = i % 2
-
-        kw = {'kw': kwargs, 'fps': fps, 'big_voxelwise': big_voxelwise,
-              'region': target_ROI, 'std': False,
-              'easy_override': False, 'plot_i': i}
-        # print(kw)
+        kw = get_base_kw(target_ROI, model=semantic_l,
+                         fps='obj', big_voxelwise=big_voxelwise)
 
         (t_corr, t_local_corr_1samp, t_dist_corr_1samp,
          t_beta, t_local_beta_1samp, t_dist_beta_1samp) = (

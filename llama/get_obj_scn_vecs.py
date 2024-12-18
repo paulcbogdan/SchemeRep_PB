@@ -69,7 +69,6 @@ def get_llama_activations(obj, scn,
     res = extractor.extract_activations(sentence, [obj, scn], )
     print(f'Time needed for activation extraction: {time() - t:.3f} s')
     print(f'\t{[obj, scn]=} | {sentence=}')
-    # quit()
     return res
 
 @cache
@@ -78,8 +77,6 @@ def process_cat_cat_inner(cat):
                  'down_proj_in': 'mlp', 'act_fn_in': 'mlp',
                  'gate_proj_out': 'mlp', 'up_proj_out': 'mlp',
                  'down_proj_out': 'mlp', 'act_fn_out': 'mlp',
-                 # 'gate_proj_delta': 'mlp',
-
                  'q_proj': 'attn', 'k_proj': 'attn', 'v_proj': 'attn',
                  'attn_weights': 'attn', 'attn_output': 'attn',
                  'input': 'attn'}
@@ -141,7 +138,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
             res = pickle_wrap(get_llama_activations,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
-                              easy_override=True,
+                              easy_override=False,
                               verbose=-1,
                               dir_branches=100,
                               RAM_cache=RAM_CACHE_LLAMA
@@ -164,7 +161,6 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                 else:
                     d_vecs[(obj, scn)] = v
                     # SECOND ENTRY IS THE TARGET ONE
-            quit()
         if all_possible:
             break
     # print(f'{len(already_done)=}')
@@ -332,7 +328,7 @@ def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                     'dist': dist,
                                                     'within_to_nan': within_to_nan,
                                                     },
-                      easy_override=True, verbose=-1)
+                      easy_override=False, verbose=-1)
     return out
 
 # @cache
@@ -384,9 +380,9 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                              easy_override=False, verbose=-1,
                              RAM_cache=True)
     first_d_vec = list(d_vecs.keys())[0]
-    print(len(d_vecs))
-    print(d_vecs[first_d_vec].shape)
-    quit()
+    # print(len(d_vecs))
+    # print(d_vecs[first_d_vec].shape)
+    # quit()
     if semantic_tup[3] == 'obj':
         # for non-attn_weights, to get the object representation, you specify (_, obj)
         # for non-attn_weights, to get the scene representation, you specify (scn, _)

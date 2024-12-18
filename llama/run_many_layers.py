@@ -377,7 +377,7 @@ def print_all_results(all_results):
 if __name__ == '__main__':
     # plot_Fig5_v2_bars_all()
     # plot_Fig5_v2_bars_all(big_voxelwise=False, semantic=True)
-    # plot_Fig5_v2_bars_all(semantic=True,) 
+    # plot_Fig5_v2_bars_all(semantic=True,)
     plot_Fig5_v2_bars_all(big_voxelwise=True)
 
     # NOTES:
