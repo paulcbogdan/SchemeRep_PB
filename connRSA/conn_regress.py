@@ -35,6 +35,9 @@ def do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim):
         nan_rows = np.isnan(X).any(axis=1)
         X = X[~nan_rows, :]
         row_stim = row_stim[~nan_rows]
+        if X.shape[0] == 0:
+            solutions.append(np.array([np.nan] * 2 + [np.nan] * len(RSM_ctrl_l)))
+            continue
         assert X.shape[0]
         solution, residuals, rank, s = np.linalg.lstsq(X, row_stim, rcond=None)
         solutions.append(solution)
@@ -91,11 +94,17 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         n_skip_cols = 0
         for ROI_ctrl in ROIs_ctrl:
             if isinstance(ROI_ctrl, tuple):
-                assert ROI_ctrl[0] == 'llama'
-                RSM_ctrl = get_sn_fp_llama_RSM(sn, fp, ROI_ctrl)
+                assert ROI_ctrl[0] in ['llama', 'BERT']
+                if ROI_ctrl[0] == 'BERT':
+                    RSM_ctrl = get_sn_fp_BERT_RSM(sn, fp, ROI_ctrl)
+                else:
+                    RSM_ctrl = get_sn_fp_llama_RSM(sn, fp, ROI_ctrl)
             elif isinstance(ROI_ctrl, list):
-                assert ROI_ctrl[0][0] == 'llama'
-                RSM_ctrl = get_sn_fp_llama_RSM_l(sn, fp, ROI_ctrl)
+                assert ROI_ctrl[0][0] in ['llama', 'BERT']
+                if ROI_ctrl[0][0] == 'BERT':
+                    RSM_ctrl = get_sn_fp_BERT_RSM_l(sn, fp, ROI_ctrl)
+                else:
+                    RSM_ctrl = get_sn_fp_llama_RSM_l(sn, fp, ROI_ctrl)
             else:
                 fp_ctrl = f'{dir_focus}/{sn}_{ROI_ctrl}.npy'
                 if not os.path.isfile(fp_ctrl):

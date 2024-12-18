@@ -141,7 +141,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
             res = pickle_wrap(get_llama_activations,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
-                              easy_override=False,
+                              easy_override=True,
                               verbose=-1,
                               dir_branches=100,
                               RAM_cache=RAM_CACHE_LLAMA
@@ -157,12 +157,14 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                 else:
                     v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
                     if len(v.shape) > 1:
-                        v = v.reshape(-1)
+                        v = v.reshape(-1) # reshapes q_proj, k_proj, v_proj
+                                          # which are (attn_heads, vector)
                 if idx_target == 0:
                     d_vecs[(scn, obj)] = v
                 else:
                     d_vecs[(obj, scn)] = v
                     # SECOND ENTRY IS THE TARGET ONE
+            quit()
         if all_possible:
             break
     # print(f'{len(already_done)=}')
@@ -330,7 +332,7 @@ def get_sn_fp_llama_RSM(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                     'dist': dist,
                                                     'within_to_nan': within_to_nan,
                                                     },
-                      easy_override=False, verbose=-1)
+                      easy_override=True, verbose=-1)
     return out
 
 # @cache
@@ -381,8 +383,10 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                        },
                              easy_override=False, verbose=-1,
                              RAM_cache=True)
-
-
+    first_d_vec = list(d_vecs.keys())[0]
+    print(len(d_vecs))
+    print(d_vecs[first_d_vec].shape)
+    quit()
     if semantic_tup[3] == 'obj':
         # for non-attn_weights, to get the object representation, you specify (_, obj)
         # for non-attn_weights, to get the scene representation, you specify (scn, _)
@@ -462,6 +466,8 @@ if __name__ == '__main__':
     # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
     # NORMALIZE = (0, 1)
     # NORMALIZE = 1
+    MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
+
     NORMALIZE = True
 
     for LLAMA_CAT in all_llama_cats:
@@ -475,6 +481,7 @@ if __name__ == '__main__':
     # SEMANTIC_L = [('llama', 'gate_proj_in', 13, 'scn', MODEL, NORMALIZE),]
     #
     RAM_CACHE_LLAMA = True
+    # SEMANTIC_L = [('llama', 'q_proj', 1, 'scn', MODEL, NORMALIZE)]
 
     for SEMANTIC in SEMANTIC_L:
         t_st_setting = time()

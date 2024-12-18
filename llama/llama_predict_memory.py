@@ -19,7 +19,7 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
                               attn=True, normalize=True)
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True)
-    # model = get_explore_BERT('BERT')
+    model = get_explore_BERT('BERT')
     # model = get_explore_BERT('simCSE')
 
     # model = True
@@ -37,15 +37,12 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     kwargs['ROI_focus'] = f'PFC_M_corr' # MAYBE for obj7_fMRI
     # kwargs['ROI_focus'] = f'ITL_BOLD_cmb'
     # kwargs['ROI_focus'] = f'ITL_M_corr'
-    # kwargs['ROI_focus'] = f'cortical_M_corr'
+    kwargs['ROI_focus'] = f'cortical_M_corr'
 
     kwargs['ROIs_ctrl'] = []
     kwargs['ROIs_ctrl'] = [model_item]
     kwargs['regress_row'] = True
 
-    if (kwargs['regress_row'] and len(kwargs['ROIs_ctrl']) > 0 and
-            sn in ['132', '224', '234']):
-        return None
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
                         verbose=-1,
                         easy_override=False, dir_branches=100)
@@ -57,12 +54,10 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
     df_sn['IRAFs'] = IRAFs
-    # print(df_sn['con_resp'].value_counts(dropna=True))
 
     # df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
-    df_sn['mem_key'] = df_sn['vis_hit'].astype(float)
+    # df_sn['mem_key'] = df_sn['vis_hit'].astype(float)
 
-    # function that maps 1-3 to 1-4
     df_sn['inc'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
     df_sn['enc_accuracy'] = (df_sn['inc'] - df_sn['per_inc']).abs()
     df_sn['mem_key'] = df_sn['enc_accuracy'].astype(float)

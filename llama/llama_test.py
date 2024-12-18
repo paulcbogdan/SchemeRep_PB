@@ -12,6 +12,7 @@ class LlamaActivationExtractor:
             device_map='auto'
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model_name = model_name
 
         # Specialized activation containers
         self.mlp_act_in = {'gate_proj': {}, 'up_proj': {}, 'down_proj': {},
@@ -86,10 +87,6 @@ class LlamaActivationExtractor:
 
         self.hooks = []
         for name, module in self.model.named_modules():
-            # print(vars(module))
-            print('------------------------')
-            # print(module)
-            # print(f'{name=}')
             name_spl = name.split('.')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'layers':
@@ -102,7 +99,7 @@ class LlamaActivationExtractor:
                     activation_hook(layer_num, self.mlp_act_in[name_spl[-1]],
                                     self.mlp_act_out[name_spl[-1]]))
                 self.hooks.append(hook)
-        # quit()
+
         return self
 
     def extract_activations(self, sentence, target_words):
@@ -126,9 +123,13 @@ class LlamaActivationExtractor:
         target_words_tokens = []
         target_indices = []
         for word in target_words:
-            word_token = self.tokenizer.encode(f' {word}', add_special_tokens=False)
+            if r'meta-llama/Llama-2-7b' in self.model_name:
+                word_token = self.tokenizer.encode(word, add_special_tokens=False)
+            else:
+                word_token = self.tokenizer.encode(f' {word}', add_special_tokens=False)
             print(f'{word}, {word_token}')
             target_idx = self._find_word_indices(inputs.input_ids[0], word_token)
+
             if len(target_idx) == 0:
                 variants = [f'{word.capitalize()}', f'{word.capitalize()}s', f'{word.capitalize()}es',
                             f' {word}s', f' {word}es']
@@ -145,7 +146,6 @@ class LlamaActivationExtractor:
 
         assert len(target_indices) > 0, (f"No target words ({target_words}) found in "
                                          f"the input sentence: {sentence}")
-
         # Forward pass
         with torch.no_grad():
             _ = self.model(**inputs)
@@ -169,6 +169,20 @@ class LlamaActivationExtractor:
         for key, d in self.mlp_act_out.items():
             out['mlp_out'][key] = self._extract_target_activations(d, target_indices)
 
+        # if r'meta-llama/Llama-2-7b' in self.model_name:
+        for outer, d_outer in out.items():
+            if outer not in ['attn', 'mlp_in', 'mlp_out']: continue
+            for inner, d_inner in d_outer.items():
+                for key, val in d_inner.items():
+                    print(f'{outer}, {inner}, {key}')
+                    try:
+                        d_outer[inner][0] = val[0].cpu().numpy()
+                        d_outer[inner][1] = val[1].cpu().numpy()
+                        print(f'{type(val[0])=}')
+                    except:
+                        pass
+
+
         return out
 
     def _find_word_indices(self, input_ids, word_tokens):
@@ -182,11 +196,10 @@ class LlamaActivationExtractor:
     def _extract_target_activations(self, activations_dict, target_indices):
         result = {}
         for i, (layer, activation) in enumerate(activations_dict.items()):
-            activation = activation.numpy(force=True)
             module_activations = []
             for (idx, num) in target_indices:
                 try:
-                    module_activations.append(activation[0, idx:idx + num])
+                    module_activations.append(activation[0, idx:idx + num].numpy(force=True))
                 except Exception as e:
                     print(f"Extraction error: {e}")
             result[layer] = module_activations # can't numpy array because the number of idxs in each word may differ
@@ -202,6 +215,7 @@ class LlamaActivationExtractor:
             result[layer] = []
             # res = extractor.extract_activations(sentence, [obj, scn], )
             #   thus obj is idx0, scn is idx1
+
             result[layer].append(activation[0, :, st0:end0, st1:end1].numpy(
                 force=True).transpose(1, 2, 0)) # idx0 -> idx1
             result[layer].append(activation[0, :, st1:end1, st0:end0].numpy(
@@ -216,27 +230,28 @@ class LlamaActivationExtractor:
 def main():
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
-    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
+    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
 
     extractor._register_comprehensive_hooks()
 
     sentence = "The quick brown fox jumps over the lazy dog."
+    # sentence = "At the bank, a bench"
     target_word = "fox"
+
 
     try:
         # activations, tokens = extractor.extract_activations(sentence, target_word)
+        # results = extractor.extract_activations(sentence, ['bank', 'bench'])
         results = extractor.extract_activations(sentence, ['fox', 'over'])
+
         # print(results)
 
 
     finally:
-        print(extractor.hooks)
         extractor.cleanup()
-        print('--------')
-        print(extractor.hooks)
 
 
 
