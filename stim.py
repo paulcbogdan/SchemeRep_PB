@@ -3,9 +3,9 @@ from pathlib import Path
 # import gensim
 import numpy as np
 import pandas as pd
-from PIL import Image
+
 from Utils.pickle_wrap_funcs import pickle_wrap
-from sklearn import decomposition
+
 
 # from connRSA.stim_v2 import VGGActivationExtractor
 
@@ -236,34 +236,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False,
             scene = 1
         else:
             scene = 0
-        # if v2:
-        #     extractor = get_extractor()
-        #     x = extractor.get_layer_activation(fp, DNN_layer)
-        #     x = x.detach().numpy().flatten()
-        #     print(DNN_layer)
-        #     print(x.shape)
-        #     print(f'{np.sum(x)=}')
-        #     # x2 = stats.zscore(x)
-        #     plt.plot(x)
-        #     img = Image.open(fp)
-        #     img = np.array(img, dtype=np.uint8)
-        #     x = data_transforms(img).unsqueeze(0)
-        #     if DNN_layer == -1:
-        #         x = model.forward(x)
-        #     else:
-        #         for j in range(DNN_layer):
-        #             x = model.features[j](x)
-        #     x = x.detach().numpy().flatten()
-        #     # x = stats.zscore(x)
-        #     print(f'{np.sum(x)=}')
-        #     plt.plot(x, label='v0')
-        #     plt.legend()
-        #     # r, p = stats.spearmanr(x, x2)
-        #     # plt.title(f'{r=:.3f}')
-        #     plt.show()
-        #     print(x.shape)
-        #     quit()
-        # else:
+        from PIL import Image
         img = Image.open(fp)
         img = np.array(img, dtype=np.uint8)
         x = data_transforms(img).unsqueeze(0)
@@ -290,6 +263,7 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False,
     obj_vecs = np.array(obj_vecs)
 
     if PCA:
+        from sklearn import decomposition
         pca = decomposition.PCA()
         if PCA_obj:
             pca.fit(obj_vecs)

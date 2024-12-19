@@ -1,15 +1,19 @@
 from collections import defaultdict
 from functools import cache
-
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-
 from Utils.pickle_wrap_funcs import pickle_wrap
+import pandas as pd
 from llama.devereux_llama import get_standard_items_list, get_deve_llama_RSM, prep_all_llama_d_vecs_deve, \
-    get_dev_explore_BERT, get_w2v_deve_RSM
-from llama.model_settings import get_explore_llama
-from scipy import stats
+    get_dev_explore_BERT, ITEM_STANDARD
+
+try:
+    import matplotlib.pyplot as plt
+
+
+    from llama.model_settings import get_explore_llama
+    from scipy import stats
+except ModuleNotFoundError:
+    pass
 
 import warnings
 warnings.filterwarnings('ignore', message='Mean of empty slice')
@@ -60,7 +64,7 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
     for feat_type, feat_list in type2feat_list.items():
         type2feat_matrix[feat_type] = np.zeros((num_items, len(feat_list)))
 
-    standard_item_list = get_standard_items_list(pf_thresh=pf_thresh)
+    standard_item_list, _ = get_standard_items_list(pf_thresh=pf_thresh)
     df_items = df['concept'].unique()
     assert set(standard_item_list) == set(df_items)
     df_grp = df.groupby('concept')
@@ -108,13 +112,20 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
     return type2RSM
 
 def get_devereux_RSM_by_type_(pf_thresh=250, attn=False):
-    fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
-    df = pd.read_csv(fp)
-    pd.set_option('display.max_rows', None)
-    df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
-    item2pf = df.groupby('concept')['pf'].sum()
-    items = item2pf[item2pf > pf_thresh].index
-    df = df[df['concept'].isin(items)]
+    # if ITEM_STANDARD == 'deve':
+    #     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
+    # elif ITEM_STANDARD == 'mariam':
+    #     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict.csv'
+    # else:
+    #     raise ValueError(f'Invalid ITEM_STANDARD: {ITEM_STANDARD=}')
+    # # fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
+    # df = pd.read_csv(fp)
+    # pd.set_option('display.max_rows', None)
+    # df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
+    # item2pf = df.groupby('concept')['pf'].sum()
+    # items = item2pf[item2pf > pf_thresh].index
+    # df = df[df['concept'].isin(items)]
+    items, df = get_standard_items_list(pf_thresh=pf_thresh)
     df = fix_feature_type_classification(df)
     type2RSM = get_type2RSM_(df, attn=attn, pf_thresh=pf_thresh)
     return type2RSM
@@ -140,26 +151,30 @@ def get_item_sum_RSM(model):
             idx1 = item2keys[item1]
             RSM[i, j] = RSM[idx0, idx1]
 
-def do_llama_x_dev(attn=True, activation_model='meta-llama/Llama-3.2-3b'):
-    attn = 'v_proj'
+def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
+                   pf_thresh=100):
+    # attn = 'v_proj'
     models = get_explore_llama(activation_model=activation_model,
                                attn=attn, st=0)
-    models = get_dev_explore_BERT(bert_type='simCSE', st=0)
+    # models = get_dev_explore_BERT(bert_type='simCSE', st=0)
 
     type2list = defaultdict(list)
-    for layer in range(0, 13):
+    for layer in range(0, 28):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
         # model = (model[0], ('gate_proj_in', 'item_prod'), model[2], model[3],
         #          model[4], model[5])
         # print(f'{model=}')
 
-        RSM = get_deve_llama_RSM(model)
+        RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh)
         # print(f'{RSM.shape=}')
+        # quit()
 
         trils = np.tril_indices_from(RSM, k=-1)
         RSM_flat = RSM[trils]
-        type2RSM = get_devereux_RSM_by_type(attn=isinstance(attn, bool) and attn)
+        type2RSM = get_devereux_RSM_by_type(pf_thresh=pf_thresh,
+            attn=isinstance(attn, bool) and attn, )
+
 
         for feature_type, RSM_feat in type2RSM.items():
             assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
@@ -214,35 +229,14 @@ def examine_deve_dino_overlap():
     print(f'{len(dino_std)=}')
     quit()
 
-def test_w2v_dev():
-    RSM = get_w2v_deve_RSM(pf_thresh=250)
-    trils = np.tril_indices_from(RSM, k=-1)
-    RSM_flat = RSM[trils]
-
-    type2RSM = get_devereux_RSM_by_type(attn=False)
-    for feature_type, RSM_feat in type2RSM.items():
-        assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
-        RSM_feat_flat = RSM_feat[trils]
-        RSM_feat_nans = np.isnan(RSM_feat_flat)
-        num_nans = np.sum(RSM_feat_nans)
-        RSM_flat_ = RSM_flat[~RSM_feat_nans]
-        RSM_feat_flat_ = RSM_feat_flat[~RSM_feat_nans]
-        r, p = stats.spearmanr(RSM_flat_, RSM_feat_flat_,
-                               nan_policy='omit' if num_nans > 0 else 'raise')
-
-        prop_nan = num_nans / len(RSM_feat_flat)
-        if prop_nan > 0:
-            print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f} ({prop_nan=:.1%})')
-        else:
-            print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f}')
 
 
 if __name__ == '__main__':
-    test_w2v_dev()
+    # test_w2v_dev()
     # examine_deve_dino_overlap()
     # type2RSM = get_devereux_RSM_by_type(attn=True)
     # quit()
 
-    # do_llama_x_dev()
+    do_llama_x_dev()
     # prep_all_llama_d_vecs_deve()
     # prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-1b')
