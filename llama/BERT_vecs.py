@@ -17,7 +17,7 @@ def get_BERT_extractor():
 def get_BERT_activations(obj, scn):
     extractor = get_BERT_extractor()
     sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
-    activations = extractor.extract_word_activation(sentence, [obj, scn])
+    activations = extractor.extract_activations(sentence, [obj, scn])
     return activations[0], activations[1]
 
 @cache
@@ -28,7 +28,7 @@ def get_simCSE_extractor():
 def get_simCSE_activations(obj, scn):
     extractor = get_simCSE_extractor()
     sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
-    activations = extractor.get_detailed_embeddings(sentence, [obj, scn])
+    activations = extractor.extract_activations(sentence, [obj, scn])
     return activations[0], activations[1]
 
 def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT'):

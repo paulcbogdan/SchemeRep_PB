@@ -125,7 +125,7 @@ def prune_RSM_outliers(RSM, z=3):
             prune_outliers = False
     return RSM
 
-def get_vec(stim, w2v):
+def get_w2v_vec(stim, w2v):
     parts = stim.split(' ')
     vecs = []
     for part in parts:
@@ -148,8 +148,8 @@ def get_semantic_vectors_(normalize=False, norm_by_type=True):
     for obj, scene, obj_rename, scene_rename in tqdm(zip(df['obj'], df['scene'],
                           df['obj_rename'], df['scene_rename']),
                           desc='Getting semantic vectors'):
-        d_all[obj] = get_vec(obj_rename, w2vectors)
-        d_all[scene] = get_vec(scene_rename, w2vectors)
+        d_all[obj] = get_w2v_vec(obj_rename, w2vectors)
+        d_all[scene] = get_w2v_vec(scene_rename, w2vectors)
         vecs_obj.append(d_all[obj])
         vecs_scn.append(d_all[scene])
         # vecs_all.append(d_all[obj])

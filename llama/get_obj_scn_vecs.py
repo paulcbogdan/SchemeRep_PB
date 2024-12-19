@@ -147,6 +147,8 @@ def get_llama_activations(obj, scn,
 
 @cache
 def process_cat_cat_inner(cat):
+    if cat in ['BERT', 'simCSE']:
+        return cat, cat
     cat2outer = {'gate_proj_in': 'mlp', 'up_proj_in': 'mlp',
                  'down_proj_in': 'mlp', 'act_fn_in': 'mlp',
                  'gate_proj_out': 'mlp', 'up_proj_out': 'mlp',
@@ -427,7 +429,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
             tup2 = [semantic_tup[2]]
         else:
             tup2 = semantic_tup[2]
-
+        # print(semantic_tup)
         do_tups = []
         for val_i in tup1:
             for val_j in tup2:
@@ -435,6 +437,8 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
 
         d_vecs = defaultdict(list)
         for val_i, val_j in do_tups:
+            # if isinstance(val_i, tuple):
+            #     val_i = val_i[0]
             d_vecs_ = pickle_wrap(get_llama_d_vecs, kwargs={'cat': val_i,
                                                             'layer_name': val_j,
                                                             'normalize': normalize,
@@ -446,7 +450,12 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                 d_vecs[key].extend(val.tolist())
         d_vecs = {key: np.array(val) for key, val in d_vecs.items()}
     else:
-        d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': semantic_tup[1],
+        # if isinstance(semantic_tup[1], tuple):
+        #     cat_ = semantic_tup[1][0]
+        # else:
+        #     cat_ = semantic_tup[1]
+        cat_ = semantic_tup[1]
+        d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat_,
                                                        'layer_name': semantic_tup[2],
                                                        'normalize': normalize,
                                                        'activation_model': activation_model,
@@ -457,7 +466,13 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
     # print(len(d_vecs))
     # print(d_vecs[first_d_vec].shape)
     # quit()
-    if semantic_tup[3] == 'obj':
+    if semantic_tup[3] == 'prod':
+        vecs = [d_vecs[(obj, scn)] * d_vecs[(scn, obj)]
+                for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
+    elif semantic_tup[3] == 'sum':
+        vecs = [d_vecs[(obj, scn)] + d_vecs[(scn, obj)]
+                for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
+    elif semantic_tup[3] == 'obj':
         # for non-attn_weights, to get the object representation, you specify (_, obj)
         # for non-attn_weights, to get the scene representation, you specify (scn, _)
         # for attn_weights, to get the effect of the object on the scene, you specify (scn, obj)
@@ -492,6 +507,9 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
     if sn == 102 and fp == 'obj7_fMRI':
         print(f'Overall NaN: {M_nan_overall:.2%}, Inf: {M_inf_overall=:.2%} | {semantic_tup}')
 
+    # if isinstance(semantic_tup[1], tuple):
+    #     vecs_ = []
+    # else:
     if dist == 'corr':
         RSM = np.corrcoef(vecs)
     elif dist == 'spear':
@@ -538,15 +556,18 @@ if __name__ == '__main__':
     # NORMALIZE = 1
     # MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
 
-    MODEL = (MODEL, 'grok_first')
+    all_llama_cats = ['gate_proj_in']
+    # MODEL = (MODEL, 'grok_first')
     NORMALIZE = True
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
-            if LLAMA_CAT in ['attn_weights', 'attn_output']:
-                SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
-                                   NORMALIZE))
-            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
+            # if LLAMA_CAT in ['attn_weights', 'attn_output']:
+            #     SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
+            #                        NORMALIZE))
+            # SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
+            #                    NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'prod', MODEL,
                                NORMALIZE))
 
     # SEMANTIC_L = [('llama', 'gate_proj_in', 13, 'scn', MODEL, NORMALIZE),]

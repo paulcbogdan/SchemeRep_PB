@@ -1,17 +1,21 @@
 from collections import defaultdict
 from functools import cache
-from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner
+from llama.devereux_llama import get_standard_items_list, get_deve_llama_RSM, prep_all_llama_d_vecs_deve, \
+    get_dev_explore_BERT, get_w2v_deve_RSM
 from llama.model_settings import get_explore_llama
+from scipy import stats
 
-RAM_CACHE_LLAMA_DEV = False
+import warnings
+warnings.filterwarnings('ignore', message='Mean of empty slice')
 
+# suppress RuntimeWarning: invalid value encountered in divide
+np.seterr(divide='ignore', invalid='ignore')
 
 def fix_feature_type_classification(df):
     type2features = {}
@@ -47,14 +51,8 @@ def get_type2feat_list(df):
     return type2feat_list, type2feat_map
 
 
-def norm_pf():
-    # for each feature type, normalize the pf values based on
-    #   how rare a given feature is across all items.
-    #   I worry this may induce negative correlations but we'll see
-    pass
 
-
-def get_type2RSM_(df, plot=False):
+def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
     feat2total = df.groupby('feature')['pf'].sum()
     type2feat_list, type2feat_map = get_type2feat_list(df)
     type2feat_matrix = {}
@@ -62,18 +60,44 @@ def get_type2RSM_(df, plot=False):
     for feat_type, feat_list in type2feat_list.items():
         type2feat_matrix[feat_type] = np.zeros((num_items, len(feat_list)))
 
-    for i, (item, df_item) in enumerate(df.groupby('concept')):
+    standard_item_list = get_standard_items_list(pf_thresh=pf_thresh)
+    df_items = df['concept'].unique()
+    assert set(standard_item_list) == set(df_items)
+    df_grp = df.groupby('concept')
+    for i, item in enumerate(standard_item_list):
+        df_item = df_grp.get_group(item)
         for feature_type, feat_list in type2feat_list.items():
             vec = [0] * len(feat_list)
             feat_map = type2feat_map[feature_type]
+            # for each feature type, normalize the pf values based on
+            #   how rare a given feature is across all items.
+            #   I worry this may induce negative correlations but we'll see
             for feat, pf in zip(df_item['feature'], df_item['pf']):
                 if feat in feat_map:
                     vec[feat_map[feat]] = pf / feat2total[feat]
             type2feat_matrix[feature_type][i, :] = vec
 
+    print(f'Making devereux: {list(type2feat_matrix)}')
     type2RSM = {}
     for feat_type, mat in type2feat_matrix.items():
+        if attn:
+            mat_bool = mat > 0
+            # weird af but at least this produces a symmetric histogram
+            mat = stats.rankdata(mat_bool, axis=1, method='ordinal') # TODO: redo with just mat
+            mat = stats.rankdata(mat, axis=0, method='ordinal')
+            mat_std = stats.zscore(mat, axis=0, nan_policy='omit')
+            mat_attn = []
+            for i, item0 in enumerate(standard_item_list):
+                for j, item1 in enumerate(standard_item_list):
+                    if item0 >= item1:
+                        continue
+                    mat_vec = mat_std[i] * mat_std[j]
+                    mat_attn.append(mat_vec)
+            mat = np.array(mat_attn, dtype=np.int8)
+        else:
+            pass
         RSM = np.corrcoef(mat)
+        print(f'Cooked dev {feat_type}: {RSM.shape=}')
         RSM[np.diag_indices_from(RSM)] = np.nan
         type2RSM[feat_type] = RSM
         if plot:
@@ -83,10 +107,7 @@ def get_type2RSM_(df, plot=False):
             plt.show()
     return type2RSM
 
-
-def get_devereux_RSM_by_type(pf_thresh=250):
-    # TODO: drop any items with a parnethesis
-
+def get_devereux_RSM_by_type_(pf_thresh=250, attn=False):
     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     df = pd.read_csv(fp)
     pd.set_option('display.max_rows', None)
@@ -95,244 +116,133 @@ def get_devereux_RSM_by_type(pf_thresh=250):
     items = item2pf[item2pf > pf_thresh].index
     df = df[df['concept'].isin(items)]
     df = fix_feature_type_classification(df)
-    type2RSM = get_type2RSM_(df)
+    type2RSM = get_type2RSM_(df, attn=attn, pf_thresh=pf_thresh)
     return type2RSM
 
-    print(df.groupby('concept')['pf'].sum().sort_values())
-    quit()
-
-    feature_types = df['feature type'].unique()
-    type2RSM = {}
-    items = df['concept'].unique()
-
-
-    # df = fix_feature_type_classification(df)
-
-    type2features = {}
-    type2feature_cnt = {}
-    for feat_type, df_feat_type in df.groupby('feature type'):
-        type2features[feat_type] = df_feat_type['feature'].unique()
-        type2feature_cnt[feat_type] = df_feat_type['feature'].value_counts().to_dict()
-
-    for type0 in type2features:
-        for type1 in type2features:
-            if type0 >= type1:
-                continue
-            set0 = set(type2features[type0])
-            set1 = set(type2features[type1])
-
-            # intersect = set0.intersection(set1)
-            # print(f'{type0=}, {type1=}, {intersect=}')
-            assert len(set0.intersection(set1)) == 0
-    quit()
-
-    for item, df_item in df.groupby('concept'):
-        pass
-
-    for feature_type in feature_types:
-        df_type = df[df['feature type'] == feature_type]
-
-        # RSM = df_type.pivot(index='concept', columns='concept')
-        # type2RSM[feature_type] = RSM
-        # print(RSM)
-        # quit()
-
-
-def get_llama_activations_deve(item0, item1, activation_model):
-    item0 = item0.replace('_', ' ')
-    item1 = item1.replace('_', ' ')
-    sentence = f'A {item0} and {item1}'
-    t = time()
-    extractor = get_llama_extractor(model_name=activation_model)
-    res = extractor.extract_activations(sentence, [item0, item1], )
-    print(f'Time needed for activation extraction: {time() - t:.3f} s')
-    print(f'\t{[item0, item1]=} | {sentence=}')
-    return res
-
-
-def get_llama_d_vecs_non_normed_deve_(items, symmetric=True,
-                                      cat='input', layer_name=1,
-                                      activation_model='meta-llama/Llama-3.2-1b',
-                                      ):
-    d_vecs = {}
-    cat_, inner = process_cat_cat_inner(cat)
-    cnt = 0
-    for i0_idx, item0 in enumerate(items):
-        for i1_idx, item1 in enumerate(items):
-            if item1 == item0:
-                continue
-            if symmetric:
-                if item0 > item1:
-                    continue
-
-            res = pickle_wrap(get_llama_activations_deve,
-                              kwargs={'item0': item0, 'item1': item1,
-                                      'activation_model': activation_model},
-                              easy_override=False, verbose=-1, dir_branches=100,
-                              RAM_cache=RAM_CACHE_LLAMA_DEV)
-            for idx_target in [0, 1]:
-                if cat == 'attn_weights':
-                    v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
-                                   axis=(0, 1))
-                else:
-                    v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
-                    if len(v.shape) > 1:
-                        v = v.reshape(-1)
-                if idx_target == 0:
-                    # sentence f'{item 0} and {item 1}'. focus on embedding: item0
-                    d_vecs[(item0, item1, item0)] = v
-                    if symmetric:
-                        d_vecs[(item1, item0, item0)] = v
-                else:
-                    d_vecs[(item0, item1, item1)] = v
-                    if symmetric:
-                        d_vecs[(item1, item0, item1)] = v
-                cnt += 1
-                if cnt % 100 == 0:
-                    total = len(items) * (len(items) - 1)
-                    total = total // 2 if symmetric else total
-                    print(f'{cnt=} / {total=}')
-    return d_vecs
-
-
 @cache
-def get_standard_items_list(pf_thresh):
+def get_devereux_RSM_by_type(pf_thresh=250, attn=False):
+    type2RSM = pickle_wrap(get_devereux_RSM_by_type_,
+                           kwargs={'pf_thresh': pf_thresh, 'attn': attn},
+                           easy_override=False, verbose=-1)
+    print('Got devereux RSMs')
+    return type2RSM
+
+
+def get_item_sum_RSM(model):
+    RSM = get_deve_llama_RSM(model)
+    items = get_standard_items_list(pf_thresh=250)
+    item2keys = {item: i for i, item in enumerate(items)}
+    for i, item0 in enumerate(items):
+        for j, item1 in enumerate(items):
+            if item0 >= item1:
+                continue
+            idx0 = item2keys[item0]
+            idx1 = item2keys[item1]
+            RSM[i, j] = RSM[idx0, idx1]
+
+def do_llama_x_dev(attn=True, activation_model='meta-llama/Llama-3.2-3b'):
+    attn = 'v_proj'
+    models = get_explore_llama(activation_model=activation_model,
+                               attn=attn, st=0)
+    models = get_dev_explore_BERT(bert_type='simCSE', st=0)
+
+    type2list = defaultdict(list)
+    for layer in range(0, 13):
+        model = models[layer]
+        print(f'Layer ({model[1]}): {layer}')
+        # model = (model[0], ('gate_proj_in', 'item_prod'), model[2], model[3],
+        #          model[4], model[5])
+        # print(f'{model=}')
+
+        RSM = get_deve_llama_RSM(model)
+        # print(f'{RSM.shape=}')
+
+        trils = np.tril_indices_from(RSM, k=-1)
+        RSM_flat = RSM[trils]
+        type2RSM = get_devereux_RSM_by_type(attn=isinstance(attn, bool) and attn)
+
+        for feature_type, RSM_feat in type2RSM.items():
+            assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
+            RSM_feat_flat = RSM_feat[trils]
+            RSM_feat_nans = np.isnan(RSM_feat_flat)
+            num_nans = np.sum(RSM_feat_nans)
+            RSM_flat_ = RSM_flat[~RSM_feat_nans]
+            RSM_feat_flat_ = RSM_feat_flat[~RSM_feat_nans]
+            r, p = stats.spearmanr(RSM_flat_, RSM_feat_flat_,
+                                   nan_policy='omit' if num_nans > 0 else 'raise')
+
+            prop_nan = num_nans / len(RSM_feat_flat)
+            if prop_nan > 0:
+                print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f} ({prop_nan=:.1%})')
+            else:
+                print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f}')
+            type2list[feature_type].append(r)
+
+    for feat_type, l in type2list.items():
+        plt.plot(l, label=feat_type)
+    cat = models[0][1]
+    plt.title(f'Llama: {cat=}')
+    plt.legend()
+    plt.show()
+
+
+
+
+def examine_deve_dino_overlap():
+    # test = get_standard_items_list(0)
+    # print(len(test))
+    # quit()
+
+    concepts_std = get_standard_items_list(pf_thresh=250)
+
     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     df = pd.read_csv(fp)
-    pd.set_option('display.max_rows', None)
-    df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
-    items = df['concept'].unique()
-    if pf_thresh is not None:
-        pf_cnt = df.groupby('concept')['pf'].sum()
-        items = pf_cnt[pf_cnt > pf_thresh].index
-    return items
+    concepts = df['concept'].unique()
 
+    fp = r'C:\PycharmProjects\SchemeRep\llama\features\ElectroDino_feature_matrix.csv'
+    df_dino = pd.read_csv(fp)
+    concepts_dino = df_dino['concept'].unique()
+    print(f'{len(concepts)=}')
+    print(f'{len(concepts_dino)=}')
 
-def get_llama_d_vecs_non_normed_deve(pf_thresh=250, cat='input', layer_name=1,
-                                     activation_model='meta-llama/Llama-3.2-1b',
-                                     ):
-    items = get_standard_items_list(pf_thresh)
-    d_vecs = pickle_wrap(get_llama_d_vecs_non_normed_deve_,
-                         kwargs={'items': items, 'symmetric': True,
-                                 'cat': cat, 'layer_name': layer_name,
-                                 'activation_model': activation_model},
-                         easy_override=False, verbose=-1)
-    return d_vecs
+    overlap = set(concepts).intersection(set(concepts_dino))
+    not_dino = set(concepts) - set(concepts_dino)
+    dino_only = set(concepts_dino) - set(concepts)
+    print(f'{len(overlap)=}, {len(not_dino)=}, {len(dino_only)=}')
 
+    dino_std = set(concepts_dino).intersection(set(concepts_std))
+    print(f'{len(dino_std)=}')
+    quit()
 
-def get_llama_d_vecs_deve(pf_thresh=250, cat='input', layer_name=1,
-                          activation_model='meta-llama/Llama-3.2-1b',
-                          normalize=True):
-    d_vecs = get_llama_d_vecs_non_normed_deve(pf_thresh, cat, layer_name, activation_model)
-    if isinstance(normalize, bool) and normalize:
-        vecs_ar = np.array([v for v in d_vecs.values()])
-        M = np.nanmean(vecs_ar, axis=0)
-        SD = np.nanstd(vecs_ar, axis=0)
-        d_vecs = {k: (v - M) / SD for k, v in d_vecs.items()}
-    elif not isinstance(normalize, bool):
-        raise ValueError
-    else:
-        pass
-    return d_vecs
+def test_w2v_dev():
+    RSM = get_w2v_deve_RSM(pf_thresh=250)
+    trils = np.tril_indices_from(RSM, k=-1)
+    RSM_flat = RSM[trils]
 
+    type2RSM = get_devereux_RSM_by_type(attn=False)
+    for feature_type, RSM_feat in type2RSM.items():
+        assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
+        RSM_feat_flat = RSM_feat[trils]
+        RSM_feat_nans = np.isnan(RSM_feat_flat)
+        num_nans = np.sum(RSM_feat_nans)
+        RSM_flat_ = RSM_flat[~RSM_feat_nans]
+        RSM_feat_flat_ = RSM_feat_flat[~RSM_feat_nans]
+        r, p = stats.spearmanr(RSM_flat_, RSM_feat_flat_,
+                               nan_policy='omit' if num_nans > 0 else 'raise')
 
-def get_deve_llama_RSM_l(semantic_l, pf_thresh=250):
-    all_RSM = []
-    for semantic in semantic_l:
-        RSM = pickle_wrap(get_deve_llama_RSM,
-                          kwargs={'semantic': semantic, 'pf_thresh': pf_thresh},
-                          easy_override=False, verbose=-1)
-        all_RSM.append(RSM)
-    RSM = np.nanmean(all_RSM, axis=0)
-    return RSM
-
-
-def get_deve_llama_RSM(semantic, pf_thresh=250):
-    if isinstance(semantic, list):
-        RSM = pickle_wrap(get_deve_llama_RSM_l,
-                          kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh},
-                          easy_override=False, verbose=-1)
-    elif isinstance(semantic, tuple):
-        cat = semantic[1]
-        layer_name = semantic[2]
-        activation_model = semantic[4]
-        normalize = semantic[5]
-        RSM = pickle_wrap(get_deve_llama_RSM_,
-                          kwargs={'pf_thresh': pf_thresh, 'cat': cat,
-                                  'layer_name': layer_name,
-                                  'activation_model': activation_model,
-                                  'normalize': normalize},
-                          easy_override=False, verbose=-1)
-    else:
-        raise ValueError
-    return RSM
-
-
-def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
-                        activation_model='meta-llama/Llama-3.2-1b',
-                        normalize=True, symmetric=True):
-    d_vecs = pickle_wrap(get_llama_d_vecs_deve,
-                         kwargs={'pf_thresh': pf_thresh, 'cat': cat,
-                                 'layer_name': layer_name,
-                                 'activation_model': activation_model,
-                                 'normalize': normalize},
-                         easy_override=False, verbose=-1)
-    items = get_standard_items_list(pf_thresh)
-
-    if cat != 'attn_weights':
-        item2keys = defaultdict(list)
-        for (order0, order1, item), v in d_vecs.items():
-            item2keys[item].append((order0, order1, item))
-        items_M_vecs = []
-        for item in items:
-            item_vecs = np.array([d_vecs[key] for key in item2keys[item]])
-            M_vec = np.nanmean(item_vecs, axis=0)
-            items_M_vecs.append(M_vec)
-        RSM = np.corrcoef(items_M_vecs)
-    else:
-        assert len(items) < 300
-        pair_item_vs = []
-        for item0 in items:
-            for item1 in items:
-                if item0 >= item1:
-                    continue
-                v = (d_vecs[(item0, item1, item0)] + d_vecs[(item0, item1, item1)]) / 2
-                pair_item_vs.append(v)
-        RSM = np.corrcoef(pair_item_vs)
-    return RSM
-
-
-def prep_all_llama_d_vecs_deve():
-    global RAM_CACHE_LLAMA_DEV
-    RAM_CACHE_LLAMA_DEV = True
-    llama31_3b = get_explore_llama(activation_model='meta-llama/Llama-3.2-3b',
-                                   attn=False, st=0)
-    llama31_3b_attn = get_explore_llama(activation_model='meta-llama/Llama-3.2-3b',
-                                        attn=False, st=0)
-    models = [llama31_3b, llama31_3b_attn]
-    for model in models:
-        get_deve_llama_RSM(model)
-    get_deve_llama_RSM(models)
-
-
-def do_llama_x_dev(attn=False):
-    models = get_explore_llama(activation_model='meta-llama/Llama-3.2-3b',
-                               attn=attn, st=0)
-    RSM = get_deve_llama_RSM(models)
-
+        prop_nan = num_nans / len(RSM_feat_flat)
+        if prop_nan > 0:
+            print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f} ({prop_nan=:.1%})')
+        else:
+            print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f}')
 
 
 if __name__ == '__main__':
+    test_w2v_dev()
+    # examine_deve_dino_overlap()
+    # type2RSM = get_devereux_RSM_by_type(attn=True)
+    # quit()
+
+    # do_llama_x_dev()
     # prep_all_llama_d_vecs_deve()
-    get_devereux_RSM_by_type()
-    # get_llama_d_vecs_deve()
-    # get_llama_d_vecs_non_normed_deve()
-    # fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
-    # df = pd.read_csv(fp)
-    # pd.set_option('display.max_rows', None)
-    # # print(df['feature'].value_counts())
-    #
-    # unique_items = df['concept'].nunique()
-    # print(f'{unique_items=}')
-    #
-    # print(df['feature type'].value_counts())
+    # prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-1b')

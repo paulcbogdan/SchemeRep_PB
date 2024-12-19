@@ -3,21 +3,25 @@ from functools import cache
 
 @cache
 def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                      attn=False, normalize=True, st=0):
+                      attn=False, normalize=True, st=0, do_prod=False):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
-    if attn:
+    if not isinstance(attn, bool):
+        all_llama_cats = [attn]
+    elif attn:
         all_llama_cats = ['attn_weights']
-        # all_llama_cats = ['v_proj']
     else:
         all_llama_cats = ['gate_proj_in']
     print(activation_model)
     # if activation_model == 'meta-llama/Llama-3.2-3b':
-    if ('-3b' in activation_model or
+    if ('-1b' in activation_model or
+            (isinstance(activation_model, tuple) and '-1b' in activation_model[0])):
+        all_llama_layers = list(range(st, 16))
+    elif ('-3b' in activation_model or
             (isinstance(activation_model, tuple) and '-3b' in activation_model[0])):
         all_llama_layers = list(range(st, 28))
     elif ('-7b' in activation_model or
@@ -31,11 +35,16 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
-            if llama_cat in ['attn_weights', 'attn_output']:
-                semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
+            if do_prod:
+                semantic_l.append(('llama', llama_cat, llama_layer, 'prod', activation_model,
                                    normalize))
-            semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
-                               normalize))
+            else:
+                if llama_cat in ['attn_weights', 'attn_output']:
+                    semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
+                                       normalize))
+                semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                                   normalize))
+
     return semantic_l
 
 

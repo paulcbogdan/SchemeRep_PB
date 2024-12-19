@@ -30,7 +30,7 @@ class BERTLayerActivationExtractor:
         # Validate and set target layer
         # self.target_layer = target_layer
 
-    def extract_word_activation(self, sentence, target_words):
+    def extract_activations(self, sentence, target_words):
         """
         Extract layer activations for a specific word in a sentence
 
@@ -87,7 +87,7 @@ def main():
     target_word = "fox"
 
     # If you want to get the raw activations for further processing
-    activations = extractor.extract_word_activation(sentence, target_word)
+    activations = extractor.extract_activations(sentence, target_word)
     print(f'{activations.shape=}')
 
 if __name__ == "__main__":

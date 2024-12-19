@@ -20,7 +20,7 @@ class DetailedSimCSEEmbedder:
         self.num_hidden_layers = self.model.config.num_hidden_layers
         self.hidden_size = self.model.config.hidden_size
 
-    def get_detailed_embeddings(self, sentence, target_words):
+    def extract_activations(self, sentence, target_words):
         """
         Extract detailed embeddings across all layers for specific words.
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     sentence = "The quick brown fox jumps over the lazy dog."
     words_to_embed = ["fox", "dog"]
 
-    detailed_embs = embedder.get_detailed_embeddings(sentence, words_to_embed)
+    detailed_embs = embedder.extract_activations(sentence, words_to_embed)
 
 
     # Demonstrate layer-wise information
