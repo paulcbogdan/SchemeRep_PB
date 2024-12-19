@@ -192,50 +192,13 @@ def plot_Fig5_v2_kw(kw, fps, big_voxelwise, region, std=False,
     return
 
 
-@cache
-def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                      attn=False, normalize=True, st=0):
-    # Redundant: gate_proj_in & up_proj_in
-    # Redundant: act_fn_in & gate_proj_out
-    all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
-                      'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
-                      'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
-                      'input']
-    if attn:
-        all_llama_cats = ['attn_weights']
-        # all_llama_cats = ['v_proj']
-    else:
-        all_llama_cats = ['gate_proj_in']
 
-    # if activation_model == 'meta-llama/Llama-3.2-3b':
-    if '-3b' in activation_model:
-        all_llama_layers = list(range(st, 28))
-    elif '-7b' in activation_model:
-        all_llama_layers = list(range(st, 32))
-    else:
-        all_llama_layers = list(range(st, 80))
-
-    # all_llama_layers = list(range(0, 10))
-
-    semantic_l = []
-    for llama_layer in all_llama_layers:
-        for llama_cat in all_llama_cats:
-            if llama_cat in ['attn_weights', 'attn_output']:
-                semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
-                                   normalize))
-            semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
-                               normalize))
-    return semantic_l
-
-
-def get_explore_BERT(bert_type='BERT'):
-    layers = list(range(0, 13))
+def get_explore_BERT(bert_type='BERT', st=0):
+    layers = list(range(st, 13))
     semantic_l = []
     normalize = True
     for layer in layers:
         semantic = ('BERT', bert_type, layer, 'obj', None, normalize)
-        # semantic = ('BERT', 'simCSE', layer, 'obj', None, normalize)
-
         semantic_l.append(semantic)
     return semantic_l
 

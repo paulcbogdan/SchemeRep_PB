@@ -132,7 +132,8 @@ class LlamaActivationExtractor:
 
             if len(target_idx) == 0:
                 variants = [f'{word.capitalize()}', f'{word.capitalize()}s', f'{word.capitalize()}es',
-                            f' {word}s', f' {word}es']
+                            f' {word}s', f' {word}es', f' {word}\'s', f' {word.capitalize()}',
+                            f'{word}', ' ' + word.replace('us', 'i')]
                 for v in variants:
                     word_token = self.tokenizer.encode(f'{v}', add_special_tokens=False)
                     target_idx = self._find_word_indices(inputs.input_ids[0], word_token)

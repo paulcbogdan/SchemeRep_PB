@@ -140,18 +140,8 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     # print(f'{vabs=}')
     if cmap not in ['RdPu', 'BuPu']:
         cmap = get_split_cmap(vabs, thresh, 'rainbow_r', )
-    # cmap = 'RdPu'
-    # quit()
-    # cmap = 'rainbow_r'
-    # if strict_thresh:
-    #     img_data[np.abs(img_data) < thresh] = 0
-    # else:
-    #     img_data[np.abs(img_data) < thresh] = thresh - .1
-    # cmap = 'Purples'
-    img_data[img_data < 0] = 0
-    # print(img_data.shape)
-    # quit()
-
+    if only_positive:
+        img_data[img_data < 0] = 0
     img = image.new_img_like(atlas['maps'], img_data)
     print(f'{thresh=}')
     print(f'{vmax=}')
@@ -163,7 +153,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                                          inflate=False,
                                          # views=['vent']
                                          # symmetric_cbar=False,
-                                         surf_mesh='fsaverage7',
+                                         surf_mesh='fsaverage5',
                                          avg_method='median')
     # plotting.plot_glass_brain(img, threshold=thresh,
     #                           cmap=cmap, title=title,

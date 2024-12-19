@@ -41,6 +41,8 @@ def plot_cortex_RSA(semantic=False, RSA=True, control_network=False):
                 kwargs_['ROIs_ctrl'] = [f'{network}_BOLD', ]
             else:
                 kwargs_['ROIs_ctrl'] = []
+            # print(target_ROI)
+            # quit()
 
             # t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
             #                                         easy_override=False,
@@ -76,33 +78,8 @@ def plot_cortex_RSA(semantic=False, RSA=True, control_network=False):
                      cmap='RdPu' if semantic else 'BuPu')
 
 
-
-
 if __name__ == '__main__':
-    from nilearn.datasets import MNI152_FILE_PATH
-    from nilearn import datasets, plotting, image
-
-    # img_data = np.random.normal(size=(97, 115, 97))
-    # img_3d_mni = image.new_img_like(get_atlas()['maps'], img_data)
-
-    # data = datasets.fetch_abide_pcp(n_subjects=1)
-    # img_3d_mni = image.index_img(data['func_preproc'][0], 0)
-    # fig, axs = plotting.plot_img_on_surf(
-    #     image.index_img(data['func_preproc'][0], 0),
-    #     threshold=2, alpha=.7, )
-    # plt.show()
-    # quit()
-    #
     plot_cortex_RSA()
-
-    # plotting.plot_img_on_surf(
-    #     MNI152_FILE_PATH,
-    #     threshold=0.01,
-    #     alpha=.1,
-    # )
-    # plt.show()
-
-
 
 
 

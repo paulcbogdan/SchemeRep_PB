@@ -4,6 +4,7 @@ from functools import cache
 from time import time
 
 from Utils.pickle_wrap_funcs import pickle_wrap
+from llama.gen_sentence import generate_sentences_API
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 import numpy as np
@@ -20,12 +21,14 @@ def get_llama_extractor(model_name='meta-llama/Llama-3.2-1b'):
     extractor._register_comprehensive_hooks()
     return extractor
 
+@cache
 def get_obj2grammar():
     df = pd.read_csv(r'C:\PycharmProjects\SchemeRep\llama\obj_w_grammar.csv')
     obj2grammar = {obj: grammar for obj, grammar in zip(df['obj'], df['grammar'])}
     obj2override = {obj: override for obj, override in zip(df['obj'], df['override'])}
     return obj2grammar, obj2override
 
+@cache
 def get_scn2grammar():
     df = pd.read_csv(r'C:\PycharmProjects\SchemeRep\llama\scn_w_grammar.csv')
     scn2grammar = {scn: grammar for scn, grammar in zip(df['scene'], df['grammar'])}
@@ -63,13 +66,84 @@ def get_sentence_obj_scn_in(obj, scn):
 def get_llama_activations(obj, scn,
                           activation_model='meta-llama/Llama-3.2-1b',):
 
-    sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
-    t = time()
-    extractor = get_llama_extractor(model_name=activation_model)
-    res = extractor.extract_activations(sentence, [obj, scn], )
-    print(f'Time needed for activation extraction: {time() - t:.3f} s')
-    print(f'\t{[obj, scn]=} | {sentence=}')
+    if isinstance(activation_model, tuple):
+        if activation_model[1] == 'grok_first':
+            activation_model = activation_model[0]
+            sentences = pickle_wrap(generate_sentences_API,
+                                    kwargs={'words': [scn, obj]},
+                                    )
+            # sentences_ = []
+            reses = []
+            print(f'Sentences set: [{scn}, {obj}]')
+            for sentence in sentences:
+                print(f'DO: {sentence=}')
+                if 'bartender' in sentence:
+                    idx_scn1 = sentence.lower().index(f'{scn} '.lower())
+                else:
+                    idx_scn1 = sentence.lower().index(scn.lower())
+                if obj == 'dragonfly' and 'dragonflies' in sentence.lower():
+                    obj = 'dragonflies'
+                if obj == 'dragonflies' and 'dragonfly' in sentence.lower():
+                    obj = 'dragonfly'
+                if obj == 'cactus' and 'cacti' in sentence.lower():
+                    obj = 'cacti'
+                if obj == 'cacti' and 'cactus' in sentence.lower():
+                    obj = 'cactus'
+                # if obj not in sentence: print(f'MISSING OBJ: {obj=}, {sentence=}')
+                idx_obj0 = sentence.lower().index(obj.lower())
+                if (obj == 'football') and (scn == 'football field'):
+                    sentence_chopped = sentence
+                elif idx_obj0 < idx_scn1:
+                    sentence_chopped = sentence[:idx_scn1 + len(scn)]
+                else:
+                    sentence_chopped = sentence[:idx_obj0 + len(obj)]
+                t_st = time()
+                extractor = get_llama_extractor(model_name=activation_model)
+                res_ = pickle_wrap(extractor.extract_activations,
+                                   kwargs={'sentence': sentence_chopped,
+                                           'target_words': [obj, scn]},
+                                   easy_override=False,
+                                   verbose=-1,
+                                   )
+                # res_ = extractor.extract_activations(sentence_chopped, [obj, scn], )
+                print(f'\tTime needed for activation extraction: {time() - t_st:.3f} s |'
+                      f'{[obj, scn]} | {sentence=}')
+                reses.append(res_)
+
+            res = {}
+            for outer in ['attn', 'mlp_out', 'mlp_in']:
+                res[outer] = {}
+                for inner in reses[0][outer].keys():
+                    res[outer][inner] = {}
+                    for layer_num in reses[0][outer][inner].keys():
+                        res[outer][inner][layer_num] = []
+                        for idx in range(2):
+                            reses_val = []
+                            for res_ in reses:
+                                # print(f'- {outer}/{inner} -')
+                                # print(f'{res_[outer][inner][layer_num][idx].shape=}')
+                                if inner == 'attn_weights':
+                                    reses_val.append(np.nanmean(res_[outer][inner][layer_num][idx],
+                                                                axis=(0, 1), keepdims=True))
+                                else:
+                                    reses_val.append(np.nanmean(res_[outer][inner][layer_num][idx],
+                                                                axis=0, keepdims=True))
+                                # print(f'{reses_val[-1].shape=}')
+                                # print(f'{res_[outer][inner][layer_num][idx].shape=}')
+                            # reses_val = [res_[outer][inner][layer_num][idx] for res_ in reses]
+                            # print(f'{np.array(reses_val).shape=}')
+                            res[outer][inner][layer_num].append(np.nanmean(reses_val, axis=0))
+        else:
+            raise ValueError
+    else:
+        sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
+        t = time()
+        extractor = get_llama_extractor(model_name=activation_model)
+        res = extractor.extract_activations(sentence, [obj, scn], )
+        print(f'Time needed for activation extraction: {time() - t:.3f} s')
+        print(f'\t{[obj, scn]=} | {sentence=}')
     return res
+
 
 @cache
 def process_cat_cat_inner(cat):
@@ -139,7 +213,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
                               easy_override=False,
-                              verbose=-1,
+                              verbose=0,
                               dir_branches=100,
                               RAM_cache=RAM_CACHE_LLAMA
                               )
@@ -462,8 +536,9 @@ if __name__ == '__main__':
     # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
     # NORMALIZE = (0, 1)
     # NORMALIZE = 1
-    MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
+    # MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
 
+    MODEL = (MODEL, 'grok_first')
     NORMALIZE = True
 
     for LLAMA_CAT in all_llama_cats:
