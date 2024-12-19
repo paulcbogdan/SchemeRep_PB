@@ -111,7 +111,7 @@ def get_llama_activations(obj, scn,
                 reses.append(res_)
 
             res = {}
-            for outer in ['attn', 'mlp_out', 'mlp_in']:
+            for outer in ['attn', 'mlp_out', 'mlp_in']: # this averages across the 8 sentences
                 res[outer] = {}
                 for inner in reses[0][outer].keys():
                     res[outer][inner] = {}
