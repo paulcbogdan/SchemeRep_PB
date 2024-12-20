@@ -1,10 +1,10 @@
-import anthropic
 
 from llama.API_key import XAI_API_KEY
 from functools import cache
 
 @cache
 def get_grok_client():
+    import anthropic
     client = anthropic.Anthropic(
         api_key=XAI_API_KEY,
         base_url="https://api.x.ai",

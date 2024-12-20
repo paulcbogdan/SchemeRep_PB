@@ -7,7 +7,10 @@ import scipy.stats as stats
 
 
 def get_w2v_vec_deve(stim, w2v):
-    parts = stim.split(' ')
+    if '_' in stim:
+        parts = stim.split('_')
+    else:
+        parts = stim.split(' ')
     vecs = []
     for part in parts:
         try:
@@ -19,22 +22,22 @@ def get_w2v_vec_deve(stim, w2v):
 
 
 def get_d_vecs_w2v_deve(pf_thresh=250, normalize=True):
-    items = get_standard_items_list(pf_thresh)
+    items, _ = get_standard_items_list(pf_thresh)
     from gensim import downloader
     w2vectors = downloader.load('word2vec-google-news-300')
     d_vecs = {}
     item_remap = {'doughnut': 'donut',
                   'land_rover': 'landrover', # 'car' is already in the dataset
-                  'range_rover': 'SUV'
+                  'range_rover': 'SUV',
+                  'axe': 'ax'
                   }
     for item in items:
         if item in item_remap:
             item_ = item_remap[item]
         else:
             item_ = item
+        print(f'{item_=}')
         vec = get_w2v_vec_deve(item_, w2vectors)
-        # print(f'| {vec.shape=}')
-        # d_vecs[(item, item, item)] = vec
         d_vecs[item] = vec
     if normalize:
         # idt this does anything to correlations because it averages within-vec
@@ -48,7 +51,7 @@ def get_d_vecs_w2v_deve(pf_thresh=250, normalize=True):
 
 
 def get_w2v_deve_RSM(pf_thresh=250):
-    items = get_standard_items_list(pf_thresh)
+    items, _ = get_standard_items_list(pf_thresh)
     d_vecs = pickle_wrap(get_d_vecs_w2v_deve,
                          kwargs={'pf_thresh': pf_thresh})
     items_M_vecs = []
@@ -59,12 +62,13 @@ def get_w2v_deve_RSM(pf_thresh=250):
     return RSM
 
 
-def test_w2v_dev():
-    RSM = get_w2v_deve_RSM(pf_thresh=250)
+def test_w2v_dev(pf_thresh=300):
+    RSM = get_w2v_deve_RSM(pf_thresh=pf_thresh)
+    print(RSM.shape)
     trils = np.tril_indices_from(RSM, k=-1)
     RSM_flat = RSM[trils]
 
-    type2RSM = get_devereux_RSM_by_type(attn=False)
+    type2RSM = get_devereux_RSM_by_type(attn=False, pf_thresh=pf_thresh)
     for feature_type, RSM_feat in type2RSM.items():
         assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
         RSM_feat_flat = RSM_feat[trils]

@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModel, AutoTokenizer
+
 import numpy as np
 
 from llama.BERT_core import find_word_indices
@@ -7,6 +7,7 @@ from llama.BERT_core import find_word_indices
 
 class DetailedSimCSEEmbedder:
     def __init__(self, model_name='princeton-nlp/sup-simcse-bert-base-uncased'):
+        from transformers import AutoModel, AutoTokenizer
         """
         Initialize detailed SimCSE embedder with full layer access.
         """

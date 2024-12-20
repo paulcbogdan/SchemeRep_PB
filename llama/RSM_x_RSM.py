@@ -7,26 +7,13 @@ from scipy import stats
 import pandas as pd
 
 def run_RSM_x_RSM():
-    activation_model = 'meta-llama/Llama-3.2-3b'
-    activation_model = 'meta-llama/Llama-3.1-70b'
+    # activation_model = 'meta-llama/Llama-3.2-3b'
+    # activation_model = 'meta-llama/Llama-3.1-70b'
     activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
 
     normalize = True
-    all_llama_layers = list(range(0, 80))
-
-    all_llama_cats = ['gate_proj_in', 'down_proj_in',
-                      'gate_proj_out', 'up_proj_out',
-                      # 'down_proj_out', # bit of an outlier in heterogeneity
-                      'act_fn_out',
-                      #'q_proj', #'k_proj',
-                      #'v_proj',
-                      'attn_weights',
-                      # 'attn_output',
-                      'input'
-                      ]
-
+    all_llama_layers = list(range(0, 80 if '70b' in activation_model else 28))
     all_llama_cats = ['gate_proj_in']#, 'attn_weights']
-    # all_llama_cats = ['gate_proj_out']
     # all_llama_cats = ['attn_weights']
     semantic_l = []
     cnt = 0
@@ -39,7 +26,7 @@ def run_RSM_x_RSM():
         tick_lows.append(cnt)
         ticks.append(llama_layer)
         for llama_cat in all_llama_cats:
-            semantic = ('llama', llama_cat, llama_layer, 'scn', activation_model,
+            semantic = ('llama', llama_cat, llama_layer, 'obj', activation_model,
                         normalize)
             print(f'{semantic=}')
             RSM_stim = get_sn_fp_llama_RSM(104, 'obj7_fMRI', semantic)
@@ -55,14 +42,10 @@ def run_RSM_x_RSM():
     RSM_stims_all = np.array(RSM_stims_all)
     nan_cols = np.isnan(RSM_stims_all).all(axis=0)
     RSM_stims_all_no_nan = RSM_stims_all[:, ~nan_cols]
-    # print(f'{np.mean(nan_cols)=}')
-    # print(RSM_stims_all.shape)
 
     plt.figure(figsize=(12, 12))
     # set default font size to 16
     plt.rcParams.update({'font.size': 18})
-    # print(RSM_stims_all.shape)
-    # quit()
     RSM_stims_all_r = stats.rankdata(RSM_stims_all_no_nan, axis=1)
     corr = spatial.distance.pdist(RSM_stims_all_r, 'correlation')
     corr = spatial.distance.squareform(corr)
@@ -84,9 +67,7 @@ def run_RSM_x_RSM():
     plt.title('RSM x RSM between layers\' MLP outputs')
     # plt.tight_layout()
     plt.show()
-
-    # do_PCA(RSM_stims_all_no_nan)
-    # quit()
+    quit()
 
     cluster_RSMs(RSM_stims_all_no_nan, RSM_stims_all_no_nan)
     cluster_RSMs2(RSM_stims_all_no_nan)
@@ -215,13 +196,6 @@ def cluster_RSMs2(data, max_clusters=10):
 
     # Prepare distance for clustering
     condensed_dist = squareform(distance_matrix)
-    # print(condensed_dist.shape)
-    # quit()
-
-    # plt.imshow(condensed_dist, cmap='turbo', interpolation='none')
-    # plt.show()
-    # quit()
-
 
     # Methods for determining optimal clusters
     methods = {

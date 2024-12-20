@@ -4,13 +4,12 @@ from functools import cache
 from time import time
 
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.gen_sentence import generate_sentences_API
-from org_sns import get_sns
+from llama.old.gen_sentence import generate_sentences_API
 from organize_bhv import get_trial_info
 import numpy as np
 from scipy import stats
-import matplotlib.pyplot as plt
 from collections import defaultdict
+import pickle
 
 RAM_CACHE_LLAMA = False
 
@@ -102,8 +101,7 @@ def get_llama_activations(obj, scn,
                 res_ = pickle_wrap(extractor.extract_activations,
                                    kwargs={'sentence': sentence_chopped,
                                            'target_words': [obj, scn]},
-                                   easy_override=False,
-                                   verbose=-1,
+                                   easy_override=False, verbose=-1,
                                    )
                 # res_ = extractor.extract_activations(sentence_chopped, [obj, scn], )
                 print(f'\tTime needed for activation extraction: {time() - t_st:.3f} s |'
@@ -208,17 +206,25 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                 p_done = num_done / num_total
                 print('-*-*-*-')
                 print(f'all_possible progress: {p_done:.1%} ({num_done=}, {num_total=})')
-                print('-*-*-*-')
+                # print('-*-*-*-')
 
             t_st = time()
-            res = pickle_wrap(get_llama_activations,
+            res, fp_pkl = pickle_wrap(get_llama_activations,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
-                              easy_override=False,
-                              verbose=0,
-                              dir_branches=100,
-                              RAM_cache=RAM_CACHE_LLAMA
+                              easy_override=False, verbose=-1, dir_branches=100,
+                              RAM_cache=RAM_CACHE_LLAMA, get_fp=True
                               )
+            if 'mlp_out' in res and 'down_proj' in res['mlp_out']:
+                del res['mlp_out']['down_proj']
+                del res['mlp_out']['up_proj']
+                del res['mlp_out']['gate_proj']
+                del res['mlp_in']['down_proj']
+                del res['mlp_in']['up_proj']
+                del res['attn']['q_proj']
+                del res['attn']['k_proj']
+                with open(fp_pkl, 'wb') as f:
+                    pickle.dump(res, f)
 
             for idx_target in [0, 1]:
                 # ... = extractor.extract_activations(sentence, [obj, scn], )
@@ -443,6 +449,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                             'layer_name': val_j,
                                                             'normalize': normalize,
                                                             'activation_model': activation_model,
+                                                            'all_possible': semantic_tup[3] == 'obj_M',
                                                             },
                                  easy_override=False, verbose=-1,
                                  RAM_cache=True)
@@ -459,6 +466,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                        'layer_name': semantic_tup[2],
                                                        'normalize': normalize,
                                                        'activation_model': activation_model,
+                                                       'all_possible': semantic_tup[3] == 'obj_M',
                                                        },
                              easy_override=False, verbose=-1,
                              RAM_cache=True)
@@ -466,7 +474,26 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
     # print(len(d_vecs))
     # print(d_vecs[first_d_vec].shape)
     # quit()
-    if semantic_tup[3] == 'prod':
+    if semantic_tup[3] == 'obj_M':
+        scns = df_sn['scene'].to_list()
+        vecs = []
+        # objs = df_sn['obj'].to_list()
+        # scns = df_sn['scene'].to_list()
+        # for obj in objs:
+        #     for
+        for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
+            vecs_obj = []
+            for scn2 in scns:
+                vecs_obj.append(d_vecs[(scn2, obj)])
+            vecs.append(np.nanmean(vecs_obj, axis=0))
+            # print(len(vecs_obj))
+            # plt.imshow(vecs_obj, aspect='auto', interpolation='none')
+            # plt.colorbar()
+            # plt.show()
+            # quit()
+            # print(vecs[-1])
+            # quit()
+    elif semantic_tup[3] == 'prod':
         vecs = [d_vecs[(obj, scn)] * d_vecs[(scn, obj)]
                 for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
     elif semantic_tup[3] == 'sum':
@@ -479,10 +506,14 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
         # for attn_weights, to get the effect of the scene on the object, you specify (obj, scn)
 
         # TODO: When I redo everything flip this
-        vecs = [d_vecs[(obj, scn)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
-    else:
         vecs = [d_vecs[(scn, obj)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
+        # vecs = [d_vecs[(obj, scn)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
+    else:
+        vecs = [d_vecs[(obj, scn)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
+        # vecs = [d_vecs[(scn, obj)] for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]
     vecs = np.array(vecs)
+    # print(vecs)
+    # quit()
 
     # thresholds_met = {0.1: False, 0.2: False, 0.3: False, 0.4: False, 0.5: False}
     M_nans = []
@@ -543,8 +574,7 @@ if __name__ == '__main__':
                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
                       'input']
 
-    # all_llama_layers = list(range(0, 80))
-    all_llama_layers = list(range(28))
+    # all_llama_layers = list(range(28))
     # all_llama_layers = list(range(16, 28))
 
     # NORMALIZE = False
@@ -552,32 +582,31 @@ if __name__ == '__main__':
     MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
     # MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
     # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
-    # NORMALIZE = (0, 1)
-    # NORMALIZE = 1
     # MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
+    all_llama_layers = list(range(0, 80 if '70b' in MODEL else 28))
 
     all_llama_cats = ['gate_proj_in']
+    all_llama_cats = ['attn_weights']
+
+    # all_llama_cats = ['gate_proj_in', 'attn_weights']
+
     # MODEL = (MODEL, 'grok_first')
     NORMALIZE = True
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
-            # if LLAMA_CAT in ['attn_weights', 'attn_output']:
-            #     SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
-            #                        NORMALIZE))
-            # SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
-            #                    NORMALIZE))
-            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'prod', MODEL,
+            if LLAMA_CAT in ['attn_weights', 'attn_output']:
+                SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
+                                   NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
                                NORMALIZE))
-
-    # SEMANTIC_L = [('llama', 'gate_proj_in', 13, 'scn', MODEL, NORMALIZE),]
-    #
+            # SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
+            #                    NORMALIZE))
     RAM_CACHE_LLAMA = True
-    # SEMANTIC_L = [('llama', 'q_proj', 1, 'scn', MODEL, NORMALIZE)]
 
     for SEMANTIC in SEMANTIC_L:
         t_st_setting = time()
-        get_sn_fp_llama_RSM(102, 'obj7_fMRI', SEMANTIC,
+        get_sn_fp_llama_RSM(104, 'obj7_fMRI', SEMANTIC,
                             dist='spear', within_to_nan=True,
                             )
         print(f'Time needed to execute setting: {time() - t_st_setting:.3f} s')

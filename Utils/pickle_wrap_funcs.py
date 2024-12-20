@@ -116,7 +116,8 @@ def pickle_wrap(callback: object, filepath: object = None,
                 easy_override: object = False,
                 verbose: object = 0, cache_dir: object = 'cache',
                 dt_max: object = None, RAM_cache: object = False,
-                get_name=False, dir_branches=0):
+                get_name=False, dir_branches=0,
+                get_fp=False):
     '''
     :param filepath: File to which the callback output should be loaded (if already created)
                      or where the callback output should be saved
@@ -147,7 +148,10 @@ def pickle_wrap(callback: object, filepath: object = None,
         # print(f'Get name: {time() - t_st:.3f} s | {filepath=}')
         # quit()
     if RAM_cache and filepath in PICKLE_CACHE:
-        return PICKLE_CACHE[filepath]
+        if get_fp:
+            return PICKLE_CACHE[filepath], filepath
+        else:
+            return PICKLE_CACHE[filepath]
 
     if verbose > 0:
         print(f'pickle_wrap: {filepath=}')
@@ -179,8 +183,10 @@ def pickle_wrap(callback: object, filepath: object = None,
                                        f'({time() - start:.3f} s; overall: {time() - t_st:.3f}): '
                                        f'{filepath=}')
                 if RAM_cache: PICKLE_CACHE[filepath] = pk
-
-                return pk
+                if get_fp:
+                    return pk, filepath
+                else:
+                    return pk
         except (UnpicklingError, MemoryError, EOFError) as e:
             print(f'{Fore.RED}{e=}')
             print(f'\t{Fore.YELLOW}{callback=}')
@@ -214,5 +220,7 @@ def pickle_wrap(callback: object, filepath: object = None,
             pickle.dump(output, new_file)
     if verbose > 0: print(f'\tDump time: {time()-start:.3f} s')
     if RAM_cache: PICKLE_CACHE[filepath] = output
-
-    return output
+    if get_fp:
+        return output, filepath
+    else:
+        return output

@@ -3,7 +3,9 @@ from functools import cache
 
 @cache
 def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                      attn=False, normalize=True, st=0, do_prod=False):
+                      attn=False, normalize=True, st=0, end=None,
+                      do_prod=False,
+                      do_M=False):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
@@ -16,33 +18,38 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
         all_llama_cats = ['attn_weights']
     else:
         all_llama_cats = ['gate_proj_in']
-    print(activation_model)
+    if attn:
+        assert not do_M
+    # print(activation_model)
     # if activation_model == 'meta-llama/Llama-3.2-3b':
     if ('-1b' in activation_model or
             (isinstance(activation_model, tuple) and '-1b' in activation_model[0])):
-        all_llama_layers = list(range(st, 16))
+        all_llama_layers = list(range(st, 16 if end is None else end))
     elif ('-3b' in activation_model or
             (isinstance(activation_model, tuple) and '-3b' in activation_model[0])):
-        all_llama_layers = list(range(st, 28))
+        all_llama_layers = list(range(st, 28 if end is None else end))
     elif ('-7b' in activation_model or
           (isinstance(activation_model, tuple) and '-7b' in activation_model[0])):
-        all_llama_layers = list(range(st, 32))
+        all_llama_layers = list(range(st, 32 if end is None else end))
     else:
-        all_llama_layers = list(range(st, 80))
+        all_llama_layers = list(range(st, 80 if end is None else end))
 
     # all_llama_layers = list(range(0, 10))
 
     semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
-            if do_prod:
+            if do_M:
+                semantic_l.append(('llama', llama_cat, llama_layer, 'obj_M', activation_model,
+                                   normalize))
+            elif do_prod:
                 semantic_l.append(('llama', llama_cat, llama_layer, 'prod', activation_model,
                                    normalize))
             else:
                 if llama_cat in ['attn_weights', 'attn_output']:
-                    semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
+                    semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
                                        normalize))
-                semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
                                    normalize))
 
     return semantic_l
@@ -81,7 +88,9 @@ def get_base_kw(region, model, fps='obj', big_voxelwise=True, local=False):
                 'semantic': model,
                 }
     if isinstance(fps, str):
-        if fps.lower() == 'obj':
+        if fps.lower() == 'non_obj':
+            fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
+        elif fps.lower() == 'obj':
             fps = ['obj7_fMRI']
         elif fps.lower() == 'all':
             fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI', 'vis7_fMRI']

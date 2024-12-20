@@ -112,19 +112,6 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
     return type2RSM
 
 def get_devereux_RSM_by_type_(pf_thresh=250, attn=False):
-    # if ITEM_STANDARD == 'deve':
-    #     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
-    # elif ITEM_STANDARD == 'mariam':
-    #     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict.csv'
-    # else:
-    #     raise ValueError(f'Invalid ITEM_STANDARD: {ITEM_STANDARD=}')
-    # # fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
-    # df = pd.read_csv(fp)
-    # pd.set_option('display.max_rows', None)
-    # df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
-    # item2pf = df.groupby('concept')['pf'].sum()
-    # items = item2pf[item2pf > pf_thresh].index
-    # df = df[df['concept'].isin(items)]
     items, df = get_standard_items_list(pf_thresh=pf_thresh)
     df = fix_feature_type_classification(df)
     type2RSM = get_type2RSM_(df, attn=attn, pf_thresh=pf_thresh)
@@ -134,14 +121,14 @@ def get_devereux_RSM_by_type_(pf_thresh=250, attn=False):
 def get_devereux_RSM_by_type(pf_thresh=250, attn=False):
     type2RSM = pickle_wrap(get_devereux_RSM_by_type_,
                            kwargs={'pf_thresh': pf_thresh, 'attn': attn},
-                           easy_override=False, verbose=-1)
+                           easy_override=True, verbose=-1)
     print('Got devereux RSMs')
     return type2RSM
 
 
 def get_item_sum_RSM(model):
     RSM = get_deve_llama_RSM(model)
-    items = get_standard_items_list(pf_thresh=250)
+    items, _ = get_standard_items_list(pf_thresh=250)
     item2keys = {item: i for i, item in enumerate(items)}
     for i, item0 in enumerate(items):
         for j, item1 in enumerate(items):
@@ -151,24 +138,34 @@ def get_item_sum_RSM(model):
             idx1 = item2keys[item1]
             RSM[i, j] = RSM[idx0, idx1]
 
-def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
-                   pf_thresh=100):
+def do_llama_x_dev(attn=True, activation_model='meta-llama/Llama-3.2-3b',
+                   pf_thresh=300, quick=None, item_standard='deve'):
     # attn = 'v_proj'
     models = get_explore_llama(activation_model=activation_model,
                                attn=attn, st=0)
+    # print(models[0])
+    # quit()
     # models = get_dev_explore_BERT(bert_type='simCSE', st=0)
+    if 'llama' in models[0]:
+        layers = 28
+    else:
+        layers = 13
+
+    plt.rcParams.update({'font.size': 14})
+    fig, axs = plt.subplots(1, 1, figsize=(6, 5.5))
 
     type2list = defaultdict(list)
-    for layer in range(0, 28):
+
+    for layer in range(0, layers):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
         # model = (model[0], ('gate_proj_in', 'item_prod'), model[2], model[3],
         #          model[4], model[5])
         # print(f'{model=}')
 
-        RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh)
-        # print(f'{RSM.shape=}')
-        # quit()
+        RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
+                                 quick=quick, item_standard=item_standard)
+        print(f'{RSM.shape=}')
 
         trils = np.tril_indices_from(RSM, k=-1)
         RSM_flat = RSM[trils]
@@ -193,12 +190,30 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                 print(f'\t{feature_type=}: {r=:.3f}, {p=:.3f}')
             type2list[feature_type].append(r)
 
+    print(type2list)
     for feat_type, l in type2list.items():
-        plt.plot(l, label=feat_type)
+        plt.plot(l, label=feat_type, marker='.')
+    # plt.xlim(0, 28)
+    plt.ylim(0, .3)
     cat = models[0][1]
-    plt.title(f'Llama: {cat=}')
-    plt.legend()
+    quick = pf_thresh if quick is None else quick
+
+    if 'llama' in models[0]:
+        model_name = activation_model.split('/')[-1]
+    else:
+        model_name = models[0][1]
+
+    title = (f'{model_name}\n'
+             f'{pf_thresh} items, averaging across {quick} contexts')
+
+    plt.title(title)
+    fig.legend(ncol=2, frameon=False, loc='lower center')
+    plt.xlabel('Layer')
+    plt.ylabel('Spearman correlation (r)')
+    plt.gca().spines[['right', 'top']].set_visible(False)
+    plt.subplots_adjust(bottom=0.32, left=.15, right=.95, top=.85)
     plt.show()
+
 
 
 
@@ -208,7 +223,7 @@ def examine_deve_dino_overlap():
     # print(len(test))
     # quit()
 
-    concepts_std = get_standard_items_list(pf_thresh=250)
+    concepts_std, _ = get_standard_items_list(pf_thresh=250)
 
     fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     df = pd.read_csv(fp)
@@ -232,6 +247,8 @@ def examine_deve_dino_overlap():
 
 
 if __name__ == '__main__':
+    # plt.show()
+    # quit()
     # test_w2v_dev()
     # examine_deve_dino_overlap()
     # type2RSM = get_devereux_RSM_by_type(attn=True)

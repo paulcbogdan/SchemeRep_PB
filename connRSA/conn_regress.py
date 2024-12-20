@@ -49,11 +49,10 @@ def do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim):
 
 def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
-                   cv=None,
-                   fp0=None, fp1=None, four_tasks=None,
-                   regress_row=True, return_dif=False):
-    # print('test')
-    # quit()
+                   regress_row=True, return_dif=False,
+                   pickle_wrap_key=None
+                   ):
+
     dir_in = fr'C:/PycharmProjects/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
@@ -64,7 +63,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             RSM_focus = within_run_to_nan(RSM_focus)
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
-
     if isinstance(semantic, bool) and semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
     elif isinstance(semantic, bool) and not semantic:
@@ -84,6 +82,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_stim = get_sn_fp_BERT_RSM_l(sn, fp, semantic)
     else:
         raise ValueError
+
+    # plt.imshow(RSM_stim)
+    # plt.show()
+    # quit()
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 

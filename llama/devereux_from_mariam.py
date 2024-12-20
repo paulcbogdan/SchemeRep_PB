@@ -32,15 +32,22 @@ def convert_mariam2deve():
                  'feature type': feature_type}
             df_as_l.append(d)
     df_out = pd.DataFrame(df_as_l)
+    # print(list(df_out['concept'].unique()))
 
     fp_deve = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     df_deve = pd.read_csv(fp_deve)
+    # df_deve = df_deve[df_deve['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
+
     items_dev = set(df_deve['concept'])
     df_out['in_both'] = df_out['concept'].apply(lambda x: x in items_dev)
 
     items_mariam = set(df_out['concept'])
     df_deve['in_both'] = df_deve['concept'].apply(lambda x: x in items_mariam)
     df_deve.to_csv(fp_deve, index=False)
+
+    # items_in_both = items_dev.intersection(items_mariam)
+    # print(f'{len(items_in_both)=}')
+    # quit()
 
     fp_out = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict.csv'
     df_out.to_csv(fp_out, index=False)
@@ -52,5 +59,31 @@ def convert_mariam2deve():
     pd.set_option('display.max_rows', None)
     print(item2pf.sort_values())
 
+def match_mariam():
+    fp_in = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict.csv'
+    df = pd.read_csv(fp_in)
+    remap = {'visual-form_and_surface': r'visual perceptual',
+             'encyclopedic': 'encyclopedic',
+             'function': 'functional',
+             'taxonomic': 'taxonomic',
+             'tactile': 'other perceptual',
+             'visual-color': 'visual perceptual',
+             'taste': 'other perceptual',
+             'visual-motion': 'visual perceptual',
+             'sound': 'other perceptual',
+             'smell': 'other perceptual',
+             }
+    df['feature type'] = df['feature type'].map(remap)
+    # print(df['feature type'].value_counts())
+    # quit()
+    fp_out = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict_matched.csv'
+    df.to_csv(fp_out, index=False)
+    print(df['feature type'].value_counts())
+
+    fp_deve = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
+    df_deve = pd.read_csv(fp_deve)
+    print(df_deve['feature type'].value_counts())
+
 if __name__ == '__main__':
-    convert_mariam2deve()
+    # convert_mariam2deve()
+    match_mariam()

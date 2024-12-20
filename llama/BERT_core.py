@@ -1,5 +1,4 @@
 import torch
-from transformers import BertModel, BertTokenizer
 import numpy as np
 
 
@@ -12,6 +11,7 @@ def find_word_indices(input_ids, word_tokens):
 
 class BERTLayerActivationExtractor:
     def __init__(self, model_name='bert-base-uncased'):
+        from transformers import BertModel, BertTokenizer
         """
         Initialize BERT model and tokenizer
 
