@@ -39,11 +39,15 @@ def get_llama_activations_deve(item0, item1, activation_model):
     print(f'\t{[item0, item1]=} | {sentence=}')
     return res
 
-def get_quick_items(items, quick):
+def get_quick_items(items, quick, flip=False):
     print('Getting quick items...')
     np.random.seed(0)
-    items0 = items[::2]
-    items1 = items[1::2]
+    if flip:
+        items0 = items[1::2]
+        items1 = items[::2]
+    else:
+        items0 = items[::2]
+        items1 = items[1::2]
     items1 = list(items1) * quick
     np.random.shuffle(items1)
     if len(items[::2]) > len(items[1::2]):
@@ -84,9 +88,14 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
     cnt = 0
     if quick is not None:
         items0, items_mat = get_quick_items(items, quick)
+        items0_alt, items_mat_alt = get_quick_items(items, quick, flip=True)
+        items0 += items0_alt
+        items_mat += items_mat_alt
     else:
         items0 = items
         items1 = items
+
+    # TODO: get this symmetric with quick working
 
     already_did = set()  #???
     for i0_idx, item0 in enumerate(tqdm(items0, desc='outer loop get llama')):
@@ -154,7 +163,7 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
     if item_standard == 'deve':
         fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     elif item_standard == 'mariam':
-        fp = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict.csv'
+        fp = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict_matched.csv'
     else:
         raise ValueError(f'Invalid item_standard: {item_standard}')
 
@@ -166,12 +175,18 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
     if in_both and not pf_thresh > 315:
         fp_deve = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
         df_deve = pd.read_csv(fp_deve)
+        # print(len(df_deve))
+        # print(df_deve['concept'].nunique())
         df_deve = df_deve[df_deve['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
         df_deve['feature type'] = df_deve['feature type'].apply(
             lambda x: 'encyclopedic' if x == 'encyclopaedic' else x)
         df_deve['which'] = 'deve'
         fp_mariam = r'C:\PycharmProjects\SchemeRep\llama\features\Mariam_norm_dict_matched.csv'
         df_mariam = pd.read_csv(fp_mariam)
+        # print(len(df_mariam))
+        # quit()
+        # print(df_mariam['concept'].nunique())
+        # quit()
         df_deve = df_deve[df_deve['in_both']]
         deve_pf_per_concept = df_deve['pf'].sum() / len(df_deve['concept'].unique())
         df_deve['pf'] = df_deve['pf'] / deve_pf_per_concept
@@ -197,7 +212,8 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
         items = pf_cnt[pf_cnt > pf_thresh].index
         items = sorted(items.to_list())
         df = df[df['concept'].isin(items)]
-
+    # print(len(df))
+    # quit()
     items = df['concept'].unique()
     # print(len(items))
     # quit()
@@ -250,7 +266,9 @@ def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve
 
 
 def get_deve_llama_RSM(semantic, pf_thresh=100,
-                       quick=5, item_standard='deve'):
+                       quick=5, item_standard='deve',
+                       # only_second=True
+                       ):
     if isinstance(semantic, list):
         RSM = pickle_wrap(get_deve_llama_RSM_l,
                           kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh,
@@ -267,7 +285,9 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                                   'activation_model': activation_model,
                                   'normalize': normalize,
                                   'quick': quick,
-                                  'item_standard': item_standard},
+                                  'item_standard': item_standard,
+                                  # 'only_second': only_second
+                                  },
                           easy_override=False, verbose=-1)
     else:
         raise ValueError
@@ -277,7 +297,9 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
 def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
                         activation_model='meta-llama/Llama-3.2-3b',
                         normalize=True,
-                        quick=5, item_standard='deve'):
+                        quick=5, item_standard='deve',
+                        # only_second=True
+                        ):
     print('Making dev-llama RSM')
     cat_ = cat if isinstance(cat, str) else cat[0]
     d_vecs = pickle_wrap(get_llama_d_vecs_deve,
@@ -293,6 +315,9 @@ def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
     if cat != 'attn_weights':
         item2keys = defaultdict(list)
         for (order0, order1, item), v in d_vecs.items():
+            # if only_second: # This doesn't help the 300 avg 300
+            #     if item != order1:
+            #         continue
             item2keys[item].append((order0, order1, item))
 
         items_M_vecs = []
@@ -352,7 +377,7 @@ def get_dev_explore_BERT(bert_type='BERT', st=0):
 
 def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                # activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                               pf_thresh=300, quick=1, item_standard='deve'):
+                               pf_thresh=300, quick=None, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
     # llama31_3b = get_explore_llama(activation_model=activation_model,

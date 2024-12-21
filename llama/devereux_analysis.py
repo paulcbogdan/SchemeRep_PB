@@ -138,7 +138,7 @@ def get_item_sum_RSM(model):
             idx1 = item2keys[item1]
             RSM[i, j] = RSM[idx0, idx1]
 
-def do_llama_x_dev(attn=True, activation_model='meta-llama/Llama-3.2-3b',
+def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                    pf_thresh=300, quick=None, item_standard='deve'):
     # attn = 'v_proj'
     models = get_explore_llama(activation_model=activation_model,
