@@ -115,7 +115,7 @@ if __name__ == "__main__":
     total_to_assign = num_to_adjust * 0.25
 
     for layer in range(t_vals.shape[0]):
-        for neuron in range(t_vals.shape[1]):
+        for neuron in range(t_vals.shape[1] - 4):
             if t_vals[layer, neuron] > cutoff:
                 adjustments[layer].append((neuron, total_to_assign / num_to_adjust)) # .3
                 num_mods += 1
