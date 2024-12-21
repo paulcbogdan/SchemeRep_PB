@@ -41,12 +41,14 @@ def getVariableName(variable, globalVariables):
 
 def obj2str(val):
     kwargs_str = ''
+
     if isinstance(val, np.ndarray):
-        return ''
+        for val_ in val:
+            kwargs_str += obj2str(val_)
+        return kwargs_str
     elif isinstance(val, dict):
         for key2 in sorted(val.keys()):
             kwargs_str += obj2str(val[key2])
-
     elif isinstance(val, list):
         for val_ in val:
             kwargs_str += obj2str(val_)
@@ -75,8 +77,10 @@ def f2str(callback, kwargs=None):
         kwargs_str = ''
         for key in sorted(kwargs.keys()):
             val = kwargs[key]
+            print(f'{key}: {val=}')
             kwargs_str += obj2str(val)
         kwargs_str = kwargs_str[:-1]
+
     return kwargs_str
 
 
@@ -87,8 +91,8 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0, dir_branches=0)
     else:
         args_str = ''
     kwargs_str = f2str(callback, kwargs)
-
-
+    # print(f'{args=}')
+    # print(f'{kwargs=}')
 
     if isinstance(callback, functools.partial):
         name = callback.func.__name__
@@ -132,6 +136,8 @@ def pickle_wrap(callback: object, filepath: object = None,
     '''
     kwargs = copy(kwargs) # don't want to modify outside
     t_st = time()
+    # print(kwargs)
+    # quit()
     if filepath is None:
         # if get_name:
             # print('Within')

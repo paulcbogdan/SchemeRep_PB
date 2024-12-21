@@ -49,11 +49,6 @@ class DetailedSimCSEEmbedder:
 
         # Extract all hidden states
         hidden_states = outputs.hidden_states
-        # print(len(all_hidden_states))
-        # print(all_hidden_states[0].shape)
-        # quit()
-
-        # Detailed embedding extraction
         detailed_embeddings = {}
         tokens = self.tokenizer.tokenize(sentence)
 
@@ -65,8 +60,7 @@ class DetailedSimCSEEmbedder:
                 raise ValueError(f"Target word '{word}' not found in sentence ({target_words=})")
             num_words = max(word_idxs) - min(word_idxs) + 1
             word_idxs_all.append((min(word_idxs), num_words))
-            # print(word_idxs_all)
-            # quit()
+
 
         activations_all = []
         for (word_idx, num_words) in word_idxs_all:

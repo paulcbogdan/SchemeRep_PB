@@ -38,7 +38,10 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     semantic_l = []
     for llama_layer in all_llama_layers:
         for llama_cat in all_llama_cats:
-            if do_M:
+            if isinstance(do_M, str):
+                semantic_l.append(('llama', llama_cat, llama_layer, do_M, activation_model,
+                                   normalize))
+            elif do_M:
                 semantic_l.append(('llama', llama_cat, llama_layer, 'obj_M', activation_model,
                                    normalize))
             elif do_prod:
@@ -54,12 +57,13 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     return semantic_l
 
 
-def get_explore_BERT(bert_type='BERT', st=0):
+def get_explore_BERT(bert_type='BERT', st=0, do_M=False):
     layers = list(range(st, 13))
     semantic_l = []
     normalize = True
     for layer in layers:
-        semantic = ('BERT', bert_type, layer, 'obj', None, normalize)
+        obj_str = 'obj_M' if do_M else 'obj'
+        semantic = ('BERT', bert_type, layer, obj_str, None, normalize)
         semantic_l.append(semantic)
     return semantic_l
 

@@ -427,6 +427,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
 
     if isinstance(semantic_tup[1], list) or isinstance(semantic_tup[1], tuple) \
             or isinstance(semantic_tup[2], list) or isinstance(semantic_tup[2], tuple):
+        raise ValueError
         if isinstance(semantic_tup[1], str):
             tup1 = [semantic_tup[1]]
         else:
@@ -445,11 +446,12 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
         for val_i, val_j in do_tups:
             # if isinstance(val_i, tuple):
             #     val_i = val_i[0]
+
             d_vecs_ = pickle_wrap(get_llama_d_vecs, kwargs={'cat': val_i,
                                                             'layer_name': val_j,
                                                             'normalize': normalize,
                                                             'activation_model': activation_model,
-                                                            'all_possible': semantic_tup[3] == 'obj_M',
+                                                            'all_possible': all_possible,
                                                             },
                                  easy_override=False, verbose=-1,
                                  RAM_cache=True)
@@ -462,11 +464,13 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
         # else:
         #     cat_ = semantic_tup[1]
         cat_ = semantic_tup[1]
+        all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif'] else False
+
         d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat_,
                                                        'layer_name': semantic_tup[2],
                                                        'normalize': normalize,
                                                        'activation_model': activation_model,
-                                                       'all_possible': semantic_tup[3] == 'obj_M',
+                                                       'all_possible': all_possible,
                                                        },
                              easy_override=False, verbose=-1,
                              RAM_cache=True)
@@ -477,22 +481,29 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
     if semantic_tup[3] == 'obj_M':
         scns = df_sn['scene'].to_list()
         vecs = []
-        # objs = df_sn['obj'].to_list()
-        # scns = df_sn['scene'].to_list()
-        # for obj in objs:
-        #     for
         for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
             vecs_obj = []
             for scn2 in scns:
                 vecs_obj.append(d_vecs[(scn2, obj)])
             vecs.append(np.nanmean(vecs_obj, axis=0))
-            # print(len(vecs_obj))
-            # plt.imshow(vecs_obj, aspect='auto', interpolation='none')
-            # plt.colorbar()
-            # plt.show()
-            # quit()
-            # print(vecs[-1])
-            # quit()
+    elif semantic_tup[3] == 'obj_dif':
+        scns = df_sn['scene'].to_list()
+        vecs = []
+        for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
+            vecs_obj = []
+            for scn2 in scns:
+                vecs_obj.append(d_vecs[(scn2, obj)])
+            assert len(vecs_obj) > 2
+            vec_obj_M = np.nanmean(vecs_obj, axis=0)
+            vec_obj = d_vecs[(scn, obj)]
+            vecs.append(vec_obj - vec_obj_M)
+            num_nans_obj = np.sum(np.isnan(vec_obj))
+            num_nans_obj_M = np.sum(np.isnan(vec_obj_M))
+            if num_nans_obj > 10 or num_nans_obj_M > 10: # producing reduce warning
+                print(f'When preparing obj_dif ({scn}, {obj}):')
+                print(f'\tnum_nans_obj: {num_nans_obj}')
+                print(f'\tnum_nans_obj_M: {num_nans_obj_M}')
+                # raise ValueError
     elif semantic_tup[3] == 'prod':
         vecs = [d_vecs[(obj, scn)] * d_vecs[(scn, obj)]
                 for (obj, scn) in zip(df_sn['obj'], df_sn['scene'])]

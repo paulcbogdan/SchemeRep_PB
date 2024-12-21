@@ -8,6 +8,8 @@ from functools import cache
 import numpy as np
 from scipy import stats
 
+RAM_CACHE_BERT = False
+
 @cache
 def get_BERT_extractor():
     extractor = BERTLayerActivationExtractor()
@@ -31,7 +33,8 @@ def get_simCSE_activations(obj, scn):
     activations = extractor.extract_activations(sentence, [obj, scn])
     return activations[0], activations[1]
 
-def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT'):
+def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT',
+                               all_possible=False):
     sns = ['102', '103', '104'] # everyone else is a duplicate
     d_vecs_obj = {}
     d_vecs_scn = {}
@@ -40,9 +43,27 @@ def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT'):
         df_sn = get_trial_info(sn)
         objs = df_sn['obj'].to_list()
         scns = df_sn['scene'].to_list()
+
+        if all_possible:
+            objs_ = []
+            scns_ = []
+            for obj in objs:
+                for scn in scns:
+                    objs_.append(obj)
+                    scns_.append(scn)
+            objs = objs_
+            scns = scns_
+
         for obj, scn in zip(objs, scns):
             if (obj, scn) in already_done: continue
             already_done.add((obj, scn))
+            if all_possible and len(already_done) % 100 == 0:
+                num_done = len(already_done)
+                num_total = len(objs)
+                p_done = num_done / num_total
+                print('-*-*-*-')
+                print(f'all_possible progress: {p_done:.1%} ({num_done=}, {num_total=})')
+
             if code == 'BERT':
                 func = get_BERT_activations
             elif code == 'simCSE':
@@ -51,17 +72,20 @@ def get_BERT_d_vecs_non_normed(layer_name=1, code='BERT'):
                 raise ValueError(f'Invalid BERT_d_vecs code: {code=}')
             obj_act, scn_act = pickle_wrap(func,
                                            kwargs={'obj': obj,
-                                                   'scn': scn},)
+                                                   'scn': scn},
+                                           RAM_cache=True,)
             obj_vec = obj_act[layer_name]
             scn_vec = scn_act[layer_name]
             d_vecs_obj[(scn, obj)] = obj_vec
             d_vecs_scn[(obj, scn)] = scn_vec
     return d_vecs_obj, d_vecs_scn
 
-def get_BERT_d_vecs(layer_name=1, normalize=True, code='BERT'):
+def get_BERT_d_vecs(layer_name=1, normalize=True, code='BERT',
+                    all_possible=False):
     d_vecs_obj, d_vecs_scn = pickle_wrap(get_BERT_d_vecs_non_normed,
                                          kwargs={'layer_name': layer_name,
-                                                 'code': code})
+                                                 'code': code,
+                                                 'all_possible': all_possible},)
     if normalize:
         obj_vecs = np.array([list(d_vecs_obj.values())])[0]
         M = np.nanmean(obj_vecs, axis=0)
@@ -82,7 +106,9 @@ def get_sn_fp_BERT_RSM_(sn, fp, scn_obj='obj',
     d_vecs_obj, d_vecs_scn = pickle_wrap(get_BERT_d_vecs,
                                          kwargs={'layer_name': layer_name,
                                                  'normalize': normalize,
-                                                 'code': code},
+                                                 'code': code,
+                                                 'all_possible': scn_obj == 'obj_M'
+                                                 },
                                          verbose=-1)
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
@@ -92,6 +118,24 @@ def get_sn_fp_BERT_RSM_(sn, fp, scn_obj='obj',
     if scn_obj == 'obj':
         ar = np.array([d_vecs_obj[(scn, obj)] for scn, obj in
                        zip(df_sn['scene'], df_sn['obj'])])
+    elif scn_obj == 'obj_M':
+        scns = df_sn['scene'].to_list()
+        ar = []
+        for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
+            vecs_obj = []
+            for scn2 in scns:
+                vecs_obj.append(d_vecs_obj[(scn2, obj)])
+            ar.append(np.nanmean(vecs_obj, axis=0))
+    elif scn_obj == 'obj_dif':
+        scns = df_sn['scene'].to_list()
+        vecs = []
+        for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
+            vecs_obj = []
+            for scn2 in scns:
+                vecs_obj.append(d_vecs_obj[(scn2, obj)])
+            vec_obj_M = np.nanmean(vecs_obj, axis=0)
+            vec_obj = d_vecs_obj[(scn, obj)]
+            vecs.append(vec_obj - vec_obj_M)
     else:
         ar = np.array([d_vecs_scn[(obj, scn)] for scn, obj in
                        zip(df_sn['scene'], df_sn['obj'])])
@@ -133,4 +177,5 @@ def get_sn_fp_BERT_RSM(sn, fp, semantic, dist='spear', within_to_nan=True,):
                        verbose=-1)
 
 if __name__ == '__main__':
+    RAM_CACHE_BERT = True
     get_BERT_d_vecs_non_normed()

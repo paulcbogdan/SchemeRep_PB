@@ -42,8 +42,6 @@ def regr_fMRI_on_many_stim(sn, region, stim_l, fp, trial_similarity='corr',
         flat_ctrl = RSM_ctrl[np.tril_indices_from(RSM_ctrl, k=-1)]
         flat_ctrl_l.append(flat_ctrl)
         flat_itr = np.array([1] * len(flat_ctrl))
-    # print(f'{len(flat_ctrl_l)=}')
-    # quit()
 
     flat_ctrls = np.array(flat_ctrl_l).T
     nan_cols = (np.isnan(flat_ctrls) &

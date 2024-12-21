@@ -16,7 +16,7 @@ from org_sns import get_sns
 def run_layer(kw, fps, big_voxelwise, region,
               easy_override=False, local=True,
               do_tqdm=False, allow_misses=None,
-              ):
+              ctrl=None):
     if local:
         assert not big_voxelwise, 'Cannot be local and big_voxelwise'
     sns = get_sns('all')['healthy']
@@ -42,6 +42,8 @@ def run_layer(kw, fps, big_voxelwise, region,
             else:
                 kw['ROI_focus'] = f'{region}_BOLD'
             kw['ROIs_ctrl'] = []
+            if ctrl is not None:
+                kw['ROIs_ctrl'] = [ctrl]
             kw['return_dif'] = True
             if allow_misses is not None and (sn in allow_misses or allow_misses == 'all'):
                 try:
@@ -59,7 +61,6 @@ def run_layer(kw, fps, big_voxelwise, region,
                                                verbose=-1,
                                                easy_override=easy_override,
                                                dir_branches=100, get_fp=True)
-                # print(f'{fp_pkl=}')
             vals[i, j] = corr
 
     if allow_misses is not None:
@@ -98,7 +99,8 @@ def run_layer(kw, fps, big_voxelwise, region,
     return t, vals
 
 
-def run_many_layers(big_voxelwise=True, attn=False):
+def run_many_layers(big_voxelwise=True, attn=False,
+                    ctrl_contex=False):
     target_ROIs = ['Occipital', 'ITL', 'PFC'] # 'Parietal',
 
     ALL_RESULTS = defaultdict(list)
@@ -115,20 +117,23 @@ def run_many_layers(big_voxelwise=True, attn=False):
     # semantic_l = get_explore_llama(activation_model=(r'meta-llama/Llama-3.2-3b', 'grok_first'),
     #                                attn=False)
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=attn, do_M=False)
-    if not attn:
-        semantic_l_ = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                       attn=attn, do_M=True)
+                                   attn=attn, do_M='obj_dif')
+    # if not attn:
+    #     semantic_l_ = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+    #                                    attn=attn, do_M=True)
     # semantic_l += semantic_l_
-    # semantic_l += get_explore_BERT('BERT') + get_explore_BERT('simCSE')
-    # semantic_l = get_explore_BERT('simCSE')
+    # semantic_l = get_explore_BERT('BERT')
+    # semantic_l = get_explore_BERT('simCSE', do_M=True)
 
-    # semantic_l = semantic_l[3::4]
+    # semantic_l = semantic_l[5::6]
     # semantic_l = semantic_l[::-1]
     fps_do = 'non_obj'
     # fps_do = 'obj'
+    # fps_do = 'all'
 
     for semantic in semantic_l:
+        # print(f'{semantic=}')
+        # quit()
         if isinstance(semantic, bool) and semantic:
             llama_cat, llama_layer, obj_scn = None, None, None
         else:
@@ -137,23 +142,34 @@ def run_many_layers(big_voxelwise=True, attn=False):
             obj_scn = semantic[3]
         for i, target_ROI in enumerate(target_ROIs):
             kw = get_base_kw(target_ROI, model=semantic,
-                             fps=fps_do, big_voxelwise=big_voxelwise)
-            # print(kw)
-            # quit()
+                             fps=fps_do, big_voxelwise=False,
+                             local=True)
             # THERE IS SOME FUNKINESS SOMETIMES WITH RANDOM LOW
             # THERE MUST BE RUN_LAYER GETTING OVERRIDDEN SOMEHOW
-            # kw['easy_override'] = True
-            # kw['model'] = semantic
+            if ctrl_contex:
+                if isinstance(semantic, list):
+                    raise ValueError
+                else:
+                    if semantic[3] == 'obj':
+                        ctrl = (semantic[0], semantic[1], semantic[2],
+                                'obj_M', semantic[4], semantic[5])
+                    else:
+                        ctrl = (semantic[0], semantic[1], semantic[2],
+                                'obj', semantic[4], semantic[5])
+            else:
+                ctrl = None
+            kw['ctrl'] = ctrl
+
             import zlib
             kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
             t, _ = pickle_wrap(run_layer, kwargs=kw,
-                            verbose=-1, easy_override=True,
-                            dir_branches=100, )
-            # print((target_ROI, llama_cat, obj_scn))
+                               verbose=-1, easy_override=True,
+                               dir_branches=100, )
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
     print_all_results(ALL_RESULTS)
-    fps_do2title = {'obj': 'Task: Only encoding', 'non_obj': 'Task: All but encoding',
+    fps_do2title = {'obj': 'Task: Only encoding',
+                    'non_obj': 'Task: All but encoding',
                     'all': 'Task: All tasks'}
     plot_all_results(ALL_RESULTS, fps_do2title[fps_do])
 
@@ -173,14 +189,17 @@ def plot_all_results(all_results, subtitle=''):
         for i, (module_type, c_dict) in enumerate(b_dict.items()):
             if 'simCSE' in module_type or 'BERT' in module_type:
                 label = module_type
-                values = c_dict['obj']
+                if 'obj' in c_dict:
+                    values = c_dict['obj']
+                else:
+                    values = c_dict['obj_M']
                 layer_nums = np.array(list(range(len(values)))) * 2
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color='olive' if module_type == 'BERT' else 'limegreen',
                          linewidth=3)
                 high = np.max([high, np.max(values)])
 
-            elif 'obj' in c_dict:
+            elif 'obj' in c_dict or 'obj_dif' in c_dict:
                 print('TOAST')
                 if module_type == 'attn_weights':
                     label = 'Attention weights'
@@ -188,14 +207,18 @@ def plot_all_results(all_results, subtitle=''):
                     label = 'Item embedding\n(scene → object)'
                 else:
                     raise ValueError
-                values = c_dict['obj']
+                if 'obj' in c_dict:
+                    values = c_dict['obj']
+                else:
+                    values = c_dict['obj_dif']
                 layer_nums = np.array(list(range(len(values))))
                 color = 'purple' if 'attn' in module_type else 'dodgerblue'
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color=color, linewidth=3)
                 high = np.max([high, np.max(values)])
 
-            if 'obj_M' in c_dict:
+            if ('obj_M' in c_dict and not
+                ('simCSE' in module_type or 'BERT' in module_type)):
                 label = 'Item embedding\n(object; scene averages)'
                 values = c_dict['obj_M']
                 layer_nums = np.array(list(range(len(values))))
@@ -205,10 +228,10 @@ def plot_all_results(all_results, subtitle=''):
 
         plt.yticks([0, 2, 4, 6, 8, 10, 12])
         plt.ylabel('t-value')
-        plt.ylim(0, high * 1.1)
-        plt.ylim(0, 7)
-        # if j == 0:
-        #     plt.legend(frameon=False, ncol=2)
+        if high > 7:
+            plt.ylim(0, high * 1.1)
+        else:
+            plt.ylim(0, 7)
         if j == len(nested_dict) - 1:
             plt.xlabel('Layer')
         plt.gca().spines[['top', 'right', ]].set_visible(False)

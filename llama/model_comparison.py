@@ -65,7 +65,7 @@ def compare_llamas(region='Str',
     t_mat = cross_t(model_vals)
     plot_heatmap(t_mat, model_strs, region, attn)
 
-def compare_models(region='PFC', big_voxelwise=True, local=False,
+def compare_models(region='PFC', big_voxelwise=False, local=True,
                    # attn='all_minus_attn'
                    attn=False
                    ):
@@ -158,6 +158,6 @@ def plot_heatmap(corr_t, region_labels, region=None, attn=None,
 
 
 if __name__ == '__main__':
-    # compare_models()
+    compare_models()
     # compare_llamas()
-    compare_depths()
+    # compare_depths()

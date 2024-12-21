@@ -140,12 +140,9 @@ def get_item_sum_RSM(model):
 
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                    pf_thresh=300, quick=None, item_standard='deve'):
-    # attn = 'v_proj'
     models = get_explore_llama(activation_model=activation_model,
                                attn=attn, st=0)
-    # print(models[0])
-    # quit()
-    # models = get_dev_explore_BERT(bert_type='simCSE', st=0)
+
     if 'llama' in models[0]:
         layers = 28
     else:
@@ -159,13 +156,14 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
     for layer in range(0, layers):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
-        # model = (model[0], ('gate_proj_in', 'item_prod'), model[2], model[3],
-        #          model[4], model[5])
-        # print(f'{model=}')
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-                                 quick=quick, item_standard=item_standard)
-        print(f'{RSM.shape=}')
+                                 quick=(quick, 1),
+                                 item_standard=item_standard,
+                                 position=0)
+        # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
+        #                                     quick=1, item_standard=item_standard)
+        # RSM = RSM - RSM_no_context
 
         trils = np.tril_indices_from(RSM, k=-1)
         RSM_flat = RSM[trils]
@@ -247,13 +245,5 @@ def examine_deve_dino_overlap():
 
 
 if __name__ == '__main__':
-    # plt.show()
-    # quit()
-    # test_w2v_dev()
-    # examine_deve_dino_overlap()
-    # type2RSM = get_devereux_RSM_by_type(attn=True)
-    # quit()
-
     do_llama_x_dev()
-    # prep_all_llama_d_vecs_deve()
-    # prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-1b')
+
