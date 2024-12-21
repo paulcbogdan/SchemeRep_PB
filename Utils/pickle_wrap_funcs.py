@@ -11,7 +11,8 @@ from time import time
 
 import numpy as np
 from colorama import Fore
-
+import warnings
+import hashlib
 
 PICKLE_CACHE = {}
 DIR_EXIST_CACHE = set()
@@ -38,13 +39,53 @@ def getVariableName(variable, globalVariables):
         if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
             return globalVariable # Return its name from the Globals() dict
 
+class PickleWrapWarning(UserWarning):
+    pass
+
+
+def hash_array(arr):
+    """
+    Function written by Claude 3.5 Sonnet
+
+    Create a stable hash for a numpy array.
+
+    Parameters:
+        arr (np.ndarray): Input numpy array
+
+    Returns:
+        str: Hexadecimal hash string
+
+    Note: This method ensures consistent hashing across sessions by:
+        1. Converting the array to bytes in a consistent manner
+        2. Using array flags to handle non-contiguous arrays
+        3. Including array shape and dtype in the hash
+    """
+    # Ensure array is contiguous in memory
+    if not arr.flags['C_CONTIGUOUS']:
+        arr = np.ascontiguousarray(arr)
+
+    # Create a bytestring containing array metadata and content
+    metadata = f"{arr.shape}_{arr.dtype}".encode('utf-8')
+    content = arr.tobytes()
+
+    # Combine metadata and content
+    array_bytes = metadata + content
+
+    # Create hash using SHA-256
+    return hashlib.sha256(array_bytes).hexdigest()
+
+
 
 def obj2str(val):
     kwargs_str = ''
-
     if isinstance(val, np.ndarray):
-        for val_ in val:
-            kwargs_str += obj2str(val_)
+        print(val.size)
+        if val.size > 9_999_999:
+            print('test')
+            warnings.warn(f'Hashing a large array ({val.shape}) to make the filepath, '
+                          f'may add considerable time to filepath generation.',
+                          PickleWrapWarning, stacklevel=2)
+            kwargs_str += hash_array(val)
         return kwargs_str
     elif isinstance(val, dict):
         for key2 in sorted(val.keys()):
@@ -55,16 +96,25 @@ def obj2str(val):
     elif callable(val):
         kwargs_str += val.__name__
     else:
+        if not isinstance(val, (str, int, float, bool, tuple)):
+            val_type = type(val)
+            print(f'{val=}')
+            warnings.warn(f'Including a {val_type} in the filepath, may create collisions '
+                          f'if not distinct: {str(val)}.',
+                          PickleWrapWarning, stacklevel=2)
         kwargs_str += f'{val}_'
 
     if len(kwargs_str) > 20:
-        # pre_kwargs_str = kwargs_str
         kwargs_str = str(zlib.adler32(kwargs_str.encode()))
-
-        # print(f'Hash ({val}): {kwargs_str} | Pre: {pre_kwargs_str}')
-
     return kwargs_str
 
+# class test():
+#     pass
+#
+# obj2str(np.random.normal(size=(1000, 1000, 10)))
+#
+# obj2str(test())
+# quit()
 
 def f2str(callback, kwargs=None):
     if kwargs is None:
