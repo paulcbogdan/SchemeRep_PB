@@ -31,7 +31,8 @@ def sn_attn_encoding(sn, region='PFC', local=True,
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
                                    attn=True, normalize=True,
-                                   do_prod=False, do_M=False)
+                                   do_prod=False, do_M=False,
+                                   st=12, end=20)
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
@@ -43,9 +44,6 @@ def sn_attn_encoding(sn, region='PFC', local=True,
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                         easy_override=False, dir_branches=100)
 
-
-
-
     df_sn = get_trial_info(sn)
     df_sn.sort_values(by=f'obj_trial', inplace=True)
     if len(kw['ROIs_ctrl']):
@@ -56,11 +54,12 @@ def sn_attn_encoding(sn, region='PFC', local=True,
     df_sn['enc_acc'] = (df_sn['inc'] - df_sn['per_inc']).abs()
 
     if str_interaction:
-        kw = get_base_kw_predicting(sn, 'subcort', local, big_voxelwise)
+        kw = get_base_kw_predicting(sn, 'Tha', local, big_voxelwise)
         kw['semantic'] = model_attn
         kw['ROIs_ctrl'] = []
         IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                                 easy_override=False, dir_branches=100)
+
         y = np.array(df_sn['enc_acc'].to_list())
 
         df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
@@ -73,7 +72,6 @@ def sn_attn_encoding(sn, region='PFC', local=True,
         y = y[~nans]
         X = X[~nans]
         X = stats.zscore(X, axis=0)
-
         t = pairwise_interaction_t_values_proper(y, X)
         return t[0, 1]
 
