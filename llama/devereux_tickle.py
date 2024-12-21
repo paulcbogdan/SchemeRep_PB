@@ -6,6 +6,7 @@ import torch
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_neuron import do_deve_neuron
 import matplotlib.pyplot as plt
+import numpy as np
 
 class ActivationModifier:
     def __init__(self, model_name,
@@ -57,7 +58,7 @@ class ActivationModifier:
         for name, module in self.model.named_modules():
             # print(module)
             # Adjust this pattern based on your specific model architecture
-            print(name)
+            # print(name)
 
             if "layers" in name and any(f".{num}." in name for num in self.layer_nums):
                 # print('test')
@@ -81,7 +82,7 @@ class ActivationModifier:
             inputs.input_ids,
             max_length=max_length,
             pad_token_id=self.tokenizer.eos_token_id,
-            temperature=0.001,
+            # temperature=0.001,
             **kwargs
         )
 
@@ -95,45 +96,48 @@ class ActivationModifier:
             hook.remove()
 
 def get_deve_neuron_t_signif():
-    t_vals = pickle_wrap(do_deve_neuron, easy_override=True)
+    t_vals = pickle_wrap(do_deve_neuron,
+                         easy_override=False,
+                         kwargs={'activation_model':
+                                     'meta-llama/Llama-3.2-3b',}
+                         )
     return t_vals
 
 # Example usage
 if __name__ == "__main__":
-    # Example: Modify activations in layers 5 and 8
-    # adjustments = {
-    #     5: [(100, 5000), (200, -0.3)],  # Adjust neurons 100 and 200 in layer 5
-    #     8: [(150, 10000.7)],  # Adjust neuron 150 in layer 8
-    #     15: [(150, 10000.7)]  # Adjust neuron 150 in layer 8
-    # }
-
-
     adjustments = defaultdict(list)
 
-
     num_mods = 0
+    cutoff = 1.5
     t_vals = get_deve_neuron_t_signif()
+    num_to_adjust = np.sum(np.abs(t_vals) > cutoff)
+    total_to_assign = 3000
+    total_to_assign = num_to_adjust * 0.25
+
     for layer in range(t_vals.shape[0]):
         for neuron in range(t_vals.shape[1]):
-            if t_vals[layer, neuron] > 2:
-                adjustments[layer].append((neuron, 0.3))
+            if t_vals[layer, neuron] > cutoff:
+                adjustments[layer].append((neuron, total_to_assign / num_to_adjust)) # .3
                 num_mods += 1
-            elif t_vals[layer, neuron] < -2:
-                adjustments[layer].append((neuron, -0.3))
+            elif t_vals[layer, neuron] < -cutoff:
+                adjustments[layer].append((neuron, -total_to_assign / num_to_adjust))
                 num_mods += 1
     print(f'Modified {num_mods} neurons')
 
+    # adjustments = {}
     # -Instruct
     modifier = ActivationModifier(
-        model_name="meta-llama/Llama-3.2-1b",
+        model_name="meta-llama/Llama-3.2-3b",
         # layer_nums=[15],
         activation_adjustments=adjustments
     )
 
     # Generate text with modified activations
-    prompt = "This circle is colored"
-    output = modifier.generate(prompt, max_length=20)
-    print(output)
+    # prompt = "This circle is colored"
+    prompt = 'I decided to eat'
+    for i in range(10):
+        output = modifier.generate(prompt, max_length=20)
+        print(f'{i}: {output=}')
 
     # Clean up hooks when done
     modifier.cleanup()

@@ -104,33 +104,20 @@ def get_quick_items_non_sym(items):
 
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       cat='input', layer_name=1,
-                                      activation_model='meta-llama/Llama-3.2-1b',
+                                      activation_model='meta-llama/Llama-3.2-3b-Instruct',
                                       quick=5):
     print(f'Getting llama d vecs for {cat}/{layer_name}')
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
-    # if quick is not None:
-    #     items0, items_mat = get_quick_items(items, quick)
-    #
-    #     # items0_alt, items_mat_alt = get_quick_items(items, quick, flip=True)
-    #     # items0 += items0_alt
-    #     # items_mat += items_mat_alt
-    # else:
-    #     items0 = items
-    #     items1 = items
-
-    # print(items_mat)
-    # print(len(items0))
-    # pairs_all = []
-    item2pair = defaultdict(list)
-    for _ in range(quick):
-        pairs = get_quick_items_non_sym(items)
-        for pair in pairs:
-            item2pair[pair[0]].append(pair[1])
-            item2pair[pair[1]].append(pair[0])
+    if quick:
+        item2pair = defaultdict(list)
+        for _ in range(quick):
+            pairs = get_quick_items_non_sym(items)
+            for pair in pairs:
+                item2pair[pair[0]].append(pair[1])
+                item2pair[pair[1]].append(pair[0])
     already_did = set()  # ???
-    # quit()
     for i0_idx, item0 in enumerate(tqdm(items, desc='outer loop get llama')):
         if quick:
             items1 = item2pair[item0]
@@ -458,19 +445,19 @@ def get_dev_explore_BERT(bert_type='BERT', st=0):
 
 def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                # activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                               pf_thresh=300, quick=5, item_standard='deve'):
+                               pf_thresh=300, quick=None, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
     # llama31_3b = get_explore_llama(activation_model=activation_model,
     #                                attn='v_proj', st=0)
     llama31_3b = get_explore_llama(activation_model=activation_model,
-                                   attn=False, st=0)
+                                   attn=True, st=0)
     models = llama31_3b
 
-    models_ = get_dev_explore_BERT('BERT')
-    models = models + models_
-    models_ = get_dev_explore_BERT('simCSE')
-    models = models + models_
+    # models_ = get_dev_explore_BERT('BERT')
+    # models = models + models_
+    # models_ = get_dev_explore_BERT('simCSE')
+    # models = models + models_
     # models = models + models_simCSE
     # llama31_3b_attn = get_explore_llama(activation_model=activation_model,
     #                                     attn=True, st=0)

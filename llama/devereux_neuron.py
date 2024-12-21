@@ -27,12 +27,12 @@ def get_matrix(item0, item1,
     mat = np.nanmean(np.array(mat), axis=1) # average across item split across idxs
     return mat
 
-def get_mat_M(item1, items0, #activation_model
+def get_mat_M(item1, items0, activation_model
               ):
     mats = []
     # print(f'{len(items0)=}')
     for item0 in items0:
-        mat = get_matrix(item0, item1)
+        mat = get_matrix(item0, item1, activation_model=activation_model)
         # mat = pickle_wrap(get_matrix,
         #                   kwargs={'item0': item0,
         #                           'item1': item1}, )
@@ -84,8 +84,9 @@ def test_interaction(t, mats_all):
     quit()
 
 #pf_thresh=900, quick=50
-def do_deve_neuron(pf_thresh=900, quick=50, item_std='mariam',
-                   activation_model='meta-llama/Llama-3.2-3b'):
+def do_deve_neuron(pf_thresh=900, quick=5, item_std='mariam',
+                   activation_model='meta-llama/Llama-3.2-3b'
+                   ):
     items, df = get_standard_items_list(pf_thresh, item_std)
     feat2onehot = pickle_wrap(get_binary_feat_matrix,
                               kwargs={'items': items,
@@ -117,15 +118,15 @@ def do_deve_neuron(pf_thresh=900, quick=50, item_std='mariam',
         mat = pickle_wrap(get_mat_M,
                           kwargs={'item1': item1,
                                   'items0': items0,
-                                  # 'activation_model': activation_model
+                                  'activation_model': activation_model
                                   },
                           verbose=-1, dir_branches=100)
         mats_all.append(mat)
     mats_all = np.array(mats_all)
 
     # for feat, onehot in feat2onehot.items():
-    # for feat in ['is_black']:
-    for feat in ['is_made_of_wood']:
+    for feat in ['is_green']:
+    # for feat in ['is_red']:
         onehot = feat2onehot[feat]
         mat_feat0 = mats_all[onehot == 0, :, :]
         mat_feat1 = mats_all[onehot == 1, :, :]
