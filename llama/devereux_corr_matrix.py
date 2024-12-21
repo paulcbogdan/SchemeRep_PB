@@ -27,7 +27,8 @@ def make_corr_matrix(pf_thresh=300, quick=None):
     model_RSMs = [llama_RSM, simCSE_RSM, BERT_RSM, w2v_RSM]
     labels = ['Llama', 'simCSE', 'BERT', 'word2vec']
 
-    type2RSM = get_devereux_RSM_by_type(pf_thresh=pf_thresh, attn=False)
+    type2RSM = get_devereux_RSM_by_type(pf_thresh=pf_thresh, attn=False,
+                                        odd_even=None)
 
     feature_types = ['visual perceptual', 'encyclopedic',
                      'functional', 'taxonomic',
@@ -83,7 +84,52 @@ def make_corr_matrix_llama(pf_thresh=300, quick=None):
     plt.title('RSM x RSM between Llama layers', pad=15)
     plt.show()
 
+def make_feature_x_feature_matrix(pf_thresh=300,):
+    type2RSM = get_devereux_RSM_by_type(pf_thresh=pf_thresh, attn=False,
+                                        odd_even=0)
+    type2RSM1 = get_devereux_RSM_by_type(pf_thresh=pf_thresh, attn=False,
+                                        odd_even=1)
+    feature_types = ['visual perceptual', 'encyclopedic',
+                     'functional', 'taxonomic',
+                     'other perceptual']
+    labels0 = [f'{feature_type}_0' for feature_type in feature_types]
+    labels1 = [f'{feature_type}_1' for feature_type in feature_types]
+
+    RSMs0 = np.array([type2RSM[feature_type] for feature_type in feature_types])
+    RSMs1 = np.array([type2RSM1[feature_type] for feature_type in feature_types])
+    RSMs = list(RSMs0) + list(RSMs1)
+    RSMs_flats = np.array([RSM[np.tril_indices_from(RSM)] for RSM in RSMs])
+
+    labels = labels0 + labels1
+    corrs = np.full((len(RSMs_flats), len(RSMs_flats)), np.nan)
+    for i in range(len(RSMs_flats)):
+        for j in range(len(RSMs_flats)):
+            if i >= j:
+                continue
+            label0 = labels[i]
+            label1 = labels[j]
+            # if label0 == label1:
+
+            # if label0[:-1] == label1[:-1]:
+            #     continue
+            RSMs_flats_i = RSMs_flats[i]
+            RSMs_flats_j = RSMs_flats[j]
+            nan_idxs = np.isnan(RSMs_flats_i) | np.isnan(RSMs_flats_j)
+            RSMs_flats_i = RSMs_flats_i[~nan_idxs]
+            RSMs_flats_j = RSMs_flats_j[~nan_idxs]
+            corrs[i, j] = stats.spearmanr(RSMs_flats_i, RSMs_flats_j).correlation
+            corrs[j, i] = corrs[i, j]
+    # corrs[np.isnan(corrs)] = 0
+    # corr = stats.spearmanr(RSMs_flats, nan_policy='omit').correlation
+    # print(f'Time needed for correlation: {time() - t_st=:.2f} s')
+    plot_heatmap(corrs, labels, vmin=0, vmax=0.25, cmap='viridis',
+                 title='RSM x RSM between different models')
+
 
 if __name__ == '__main__':
+    # type2RSM = get_devereux_RSM_by_type(pf_thresh=300, attn=False,
+    #                                     odd_even=0)
+    # quit()
     # make_corr_matrix()
-    make_corr_matrix_llama()
+    # make_corr_matrix_llama()
+    make_feature_x_feature_matrix()

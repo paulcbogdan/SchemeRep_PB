@@ -79,13 +79,11 @@ def hash_array(arr):
 def obj2str(val):
     kwargs_str = ''
     if isinstance(val, np.ndarray):
-        print(val.size)
         if val.size > 9_999_999:
-            print('test')
             warnings.warn(f'Hashing a large array ({val.shape}) to make the filepath, '
                           f'may add considerable time to filepath generation.',
                           PickleWrapWarning, stacklevel=2)
-            kwargs_str += hash_array(val)
+        kwargs_str += hash_array(val)
         return kwargs_str
     elif isinstance(val, dict):
         for key2 in sorted(val.keys()):
@@ -96,9 +94,8 @@ def obj2str(val):
     elif callable(val):
         kwargs_str += val.__name__
     else:
-        if not isinstance(val, (str, int, float, bool, tuple)):
+        if not isinstance(val, (str, int, float, bool, tuple, type(None))):
             val_type = type(val)
-            print(f'{val=}')
             warnings.warn(f'Including a {val_type} in the filepath, may create collisions '
                           f'if not distinct: {str(val)}.',
                           PickleWrapWarning, stacklevel=2)
@@ -108,13 +105,6 @@ def obj2str(val):
         kwargs_str = str(zlib.adler32(kwargs_str.encode()))
     return kwargs_str
 
-# class test():
-#     pass
-#
-# obj2str(np.random.normal(size=(1000, 1000, 10)))
-#
-# obj2str(test())
-# quit()
 
 def f2str(callback, kwargs=None):
     if kwargs is None:
@@ -127,7 +117,6 @@ def f2str(callback, kwargs=None):
         kwargs_str = ''
         for key in sorted(kwargs.keys()):
             val = kwargs[key]
-            print(f'{key}: {val=}')
             kwargs_str += obj2str(val)
         kwargs_str = kwargs_str[:-1]
 

@@ -77,6 +77,30 @@ def get_quick_items(items, quick, flip=False):
     items_mat = items_mat_
     return items, items_mat
 
+def get_quick_items_non_sym(items):
+    def pop_random(lst):
+        import random
+        idx = random.randrange(0, len(lst))
+        return lst.pop(idx)
+
+    # items0 = sorted(items)
+    # items1 = set(items)
+    # item2pair = defaultdict(list)
+    lst = list(items)
+    if len(lst) % 2 != 0:
+        lst += [lst[0]]
+    pairs = []
+    while len(lst):
+        rand1 = pop_random(lst)
+        rand2 = pop_random(lst)
+        pair = rand1, rand2
+        pairs.append(pair)
+
+    # pairs_rev = []
+    # for pair in pairs:
+    #     pair_rev = pair[1], pair[0]
+    #     pairs_rev.append(pair_rev)
+    return pairs# + pairs_rev
 
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       cat='input', layer_name=1,
@@ -86,21 +110,32 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
-    if quick is not None:
-        items0, items_mat = get_quick_items(items, quick)
-        items0_alt, items_mat_alt = get_quick_items(items, quick, flip=True)
-        items0 += items0_alt
-        items_mat += items_mat_alt
-    else:
-        items0 = items
-        items1 = items
+    # if quick is not None:
+    #     items0, items_mat = get_quick_items(items, quick)
+    #
+    #     # items0_alt, items_mat_alt = get_quick_items(items, quick, flip=True)
+    #     # items0 += items0_alt
+    #     # items_mat += items_mat_alt
+    # else:
+    #     items0 = items
+    #     items1 = items
 
-    # TODO: get this symmetric with quick working
-
+    # print(items_mat)
+    # print(len(items0))
+    # pairs_all = []
+    item2pair = defaultdict(list)
+    for _ in range(quick):
+        pairs = get_quick_items_non_sym(items)
+        for pair in pairs:
+            item2pair[pair[0]].append(pair[1])
+            item2pair[pair[1]].append(pair[0])
     already_did = set()  # ???
-    for i0_idx, item0 in enumerate(tqdm(items0, desc='outer loop get llama')):
+    # quit()
+    for i0_idx, item0 in enumerate(tqdm(items, desc='outer loop get llama')):
         if quick:
-            items1 = items_mat[i0_idx]
+            items1 = item2pair[item0]
+        else:
+            items1 = items
         for i1_idx, item1 in enumerate(items1):
             if item1 == item0:
                 if quick:
@@ -119,15 +154,29 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                   easy_override=False, verbose=-1, dir_branches=100,
                                   RAM_cache=True, get_fp=True)
 
-            if 'mlp_out' in res:
+            if 'mlp_out' in res:# or 'attn_output' in res['attn']:
+                # if 'mlp_out' in res:
                 del res['mlp_out']
                 del res['mlp_in']['down_proj']
                 del res['mlp_in']['up_proj']
                 del res['mlp_in']['act_fn']
                 del res['attn']['q_proj']
                 del res['attn']['k_proj']
+                # del res['attn']['attn_output']
+
                 with open(fp, 'wb') as f:
                     pickle.dump(res, f)
+
+            # clean up the res dict. BERT/simCSE won't have dicts here
+            if isinstance(res, dict):
+                for inner_, d in res.items():
+                    if inner_ in ['mlp_out', 'mlp_in', 'attn']:
+                        del_keys = []
+                        for outer in d.keys():
+                            if outer != cat_:
+                                del_keys.append(outer)
+                        for outer in del_keys:
+                            del res[inner_][outer]
 
             for idx_target in [0, 1]:
                 if activation_model in ['BERT', 'simCSE']:
@@ -184,10 +233,10 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
         df_mariam['which'] = 'mariam'
         mariam_pf_per_concept = df_mariam['pf'].sum() / len(df_mariam['concept'].unique())
         df_mariam['pf'] = df_mariam['pf'] / mariam_pf_per_concept
-
         # dividing as so makes it so a larger participant sample in deve/mariam won't bias
 
         df = pd.concat([df_deve, df_mariam])
+        df['feature'] = df['feature'].apply(lambda x: x.replace(' ', '_'))
 
     else:
         df = pd.read_csv(fp)
@@ -210,20 +259,15 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
 def get_llama_d_vecs_non_normed_deve(pf_thresh=250, cat='input', layer_name=1,
                                      activation_model='meta-llama/Llama-3.2-3b',
                                      quick=5, item_standard='deve'):
-    pf_thresh = 300
     items, _ = get_standard_items_list(pf_thresh, item_standard=item_standard)
-    # print(items)
-    print('GOOOOOOOOOO')
     d_vecs, fp = pickle_wrap(get_llama_d_vecs_non_normed_deve_,
                          kwargs={'items': items, 'symmetric': False,
                                  'cat': cat, 'layer_name': layer_name,
                                  'activation_model': activation_model,
                                  'quick': quick,},
-                         easy_override=False, verbose=-1,
+                         easy_override=True, verbose=-1,
                          get_fp=True)
-    print(fp)
-    # print(list(d_vecs))
-    quit()
+
     return d_vecs
 
 
@@ -271,7 +315,6 @@ def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve
 def get_deve_llama_RSM(semantic, pf_thresh=100,
                        quick=5, item_standard='deve',
                        position=None
-                       # only_second=True
                        ):
     if isinstance(semantic, list):
         RSM = pickle_wrap(get_deve_llama_RSM_l,
@@ -293,7 +336,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                                   'position': position
                                   # 'only_second': only_second
                                   },
-                          easy_override=False, verbose=-1)
+                          easy_override=True, verbose=-1)
     else:
         raise ValueError
     return RSM
@@ -315,8 +358,9 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                       activation_model='meta-llama/Llama-3.2-3b',
                       normalize=True, quick=5, item_standard='deve',
                       position=None):
+    # if position is not None:
+    #     assert quick is None
     cat_ = cat if isinstance(cat, str) else cat[0]
-    pf_thresh = 5
     d_vecs = pickle_wrap(get_llama_d_vecs_deve,
                          kwargs={'pf_thresh': pf_thresh, 'cat': cat_,
                                  'layer_name': layer_name,
@@ -325,8 +369,6 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                                  'quick': quick,
                                  'item_standard': item_standard},
                          easy_override=True, verbose=-1)
-    print(list(d_vecs))
-    quit()
     print(f'\tGathered d_vecs ({quick=})')
     items, _ = get_standard_items_list(pf_thresh)
     if cat != 'attn_weights':
@@ -340,6 +382,14 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
             elif position == 1:
                 if order1 == item:
                     item2keys[item].append((order0, order1, item))
+            elif position == 'flip':
+                if order1 == item:
+                    item2keys[order0].append((order0, order1, item))
+            elif position == 'flip_sanity':
+                if order0 == item:
+                    item2keys[order1].append((order0, order1, item))
+            else:
+                raise ValueError
 
         items_M_vecs = []
         for item in items:
@@ -408,7 +458,7 @@ def get_dev_explore_BERT(bert_type='BERT', st=0):
 
 def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                # activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                               pf_thresh=300, quick=None, item_standard='deve'):
+                               pf_thresh=300, quick=5, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
     # llama31_3b = get_explore_llama(activation_model=activation_model,
@@ -417,8 +467,10 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                    attn=False, st=0)
     models = llama31_3b
 
-    # models = get_dev_explore_BERT('BERT')
-    # models = get_dev_explore_BERT('simCSE')
+    models_ = get_dev_explore_BERT('BERT')
+    models = models + models_
+    models_ = get_dev_explore_BERT('simCSE')
+    models = models + models_
     # models = models + models_simCSE
     # llama31_3b_attn = get_explore_llama(activation_model=activation_model,
     #                                     attn=True, st=0)

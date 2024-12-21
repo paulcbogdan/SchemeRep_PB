@@ -111,16 +111,27 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
             plt.show()
     return type2RSM
 
-def get_devereux_RSM_by_type_(pf_thresh=250, attn=False):
+def get_devereux_RSM_by_type_(pf_thresh=250, attn=False, odd_even=None):
     items, df = get_standard_items_list(pf_thresh=pf_thresh)
+    if odd_even is not None:
+        assert odd_even in [0, 1]
+        all_keep_features = []
+        for feature_type, df_feat_type in df.groupby('feature type'):
+            features = df_feat_type['feature'].value_counts()
+            features_odd = features.index.to_list()[odd_even::2]
+            all_keep_features.extend(features_odd)
+        all_keep_features = set(all_keep_features)
+        df = df[df['feature'].isin(all_keep_features)]
+
     df = fix_feature_type_classification(df)
     type2RSM = get_type2RSM_(df, attn=attn, pf_thresh=pf_thresh)
     return type2RSM
 
 @cache
-def get_devereux_RSM_by_type(pf_thresh=250, attn=False):
+def get_devereux_RSM_by_type(pf_thresh=250, attn=False, odd_even=None):
     type2RSM = pickle_wrap(get_devereux_RSM_by_type_,
-                           kwargs={'pf_thresh': pf_thresh, 'attn': attn},
+                           kwargs={'pf_thresh': pf_thresh, 'attn': attn,
+                                   'odd_even': odd_even},
                            easy_override=True, verbose=-1)
     print('Got devereux RSMs')
     return type2RSM
@@ -139,7 +150,7 @@ def get_item_sum_RSM(model):
             RSM[i, j] = RSM[idx0, idx1]
 
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
-                   pf_thresh=300, quick=None, item_standard='deve'):
+                   pf_thresh=300, quick=1, item_standard='deve'):
     models = get_explore_llama(activation_model=activation_model,
                                attn=attn, st=0)
 
@@ -156,11 +167,12 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
     for layer in range(0, layers):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
+        pf_thresh = 300
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-                                 quick=(quick, 1),
-                                 item_standard=item_standard,
-                                 position=0)
+                                 quick=quick, item_standard=item_standard,
+                                 position='flip_sanity'
+                                 )
         # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
         #                                     quick=1, item_standard=item_standard)
         # RSM = RSM - RSM_no_context

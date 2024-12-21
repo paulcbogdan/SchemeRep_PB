@@ -26,28 +26,9 @@ class LlamaActivationExtractor:
 
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
-            # r'C:\Users\paulc\.cache\huggingface\hub\models--meta-llama--Llama-3.3-70b-Instruct\snapshots\5825c9120fc701a0b7d9a30d61005f2a09466b74',
             torch_dtype=torch.float16,
             device_map='auto',
-            # local_files_only=True,
-            # low_cpu_mem_usage=True,
-            # offload_folder=r'C:\PycharmProjects\SchemeRep\llama\offload'
         )
-
-        # if '70b' or '7b' in model_name:
-        #     bnb_config = BitsAndBytesConfig(
-        #         load_in_4bit=True,
-        #         bnb_4bit_quant_type="nf4",
-        #         bnb_4bit_compute_dtype="float16"
-        #     )
-
-            # self.model = load_checkpoint_and_dispatch(
-            #     self.model,
-            #     model_name.split(r'/')[-1],
-            #     device_map="auto",
-            #     offload_folder=r'C:\PycharmProjects\SchemeRep\llama\offload',  # Directory where weights will be stored
-            #     offload_state_dict=True  # Enable disk offloading
-            # )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model_name = model_name
@@ -268,13 +249,13 @@ class LlamaActivationExtractor:
 
 
 def main():
-    extractor = LlamaActivationExtractor(r'baffo32/decapoda-research-llama-7B-hf')
+    # extractor = LlamaActivationExtractor(r'baffo32/decapoda-research-llama-7B-hf')
 
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
-    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-1b')
+    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
 
     extractor._register_comprehensive_hooks()
