@@ -4,8 +4,7 @@ from functools import cache
 @cache
 def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                       attn=False, normalize=True, st=0, end=None,
-                      do_prod=False,
-                      do_M=False):
+                      do_prod=False, do_M=False):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',

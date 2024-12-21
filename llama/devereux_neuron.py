@@ -8,6 +8,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from numba import njit
 from time import time
+from tqdm import tqdm
 
 def get_matrix(item0, item1,
                activation_model='meta-llama/Llama-3.2-1b',
@@ -52,108 +53,43 @@ def get_binary_feat_matrix(items, item_std,
         feat2onehot[feature] = np.array(l)
     return feat2onehot
 
-@njit
-def extract_diagonal(arr):
-    return np.diag(arr)
-
-@njit(fastmath=True, cache=True)
-def test_interaction_effect(onehot, X):
-    x_col = X.shape[1]
-    n_samples = X.shape[0]
-    # onehot = onehot[:, 0]
-    intercept = np.ones(n_samples)
-    out = np.zeros((x_col, x_col))
-    # out = np.empty(x_col * (x_col - 1) // 2)
-    cnt = 0
-    for i in range(x_col):
-        for j in range(i):
-            X_i = X[:, i]
-            X_j = X[:, j]
-            X_ij = X_i * X_j
-            X_aug = np.vstack((intercept, X_i, X_j, X_ij)).T
-
-            # X_aug = np.hstack((intercept.reshape(-1, 1),
-            #                    X_i[:, None], X_j[:, None],
-            #                    X_ij[:, None]))
-
-            XTX = np.dot(X_aug.T, X_aug)
-            XTy = np.dot(X_aug.T, onehot)
-            beta = np.linalg.solve(XTX, XTy)[:, 0]
-
-            # Calculate residuals and residual variance
-            y_pred = np.dot(X_aug, beta)
-            residuals = onehot - y_pred
-            sse = np.sum(residuals ** 2)
-            # print(X_aug.shape)
-            sigma_squared = sse / (n_samples - X_aug.shape[1])
-
-            # Compute diagonal of (X^T X)^(-1) without full inversion
-            # XT_X_inv_diag = np.linalg.inv(XTX).diagonal()
-            # XT_X_inv_diag = extract_diagonal(np.linalg.inv(XTX))
-
-            XT_X_inv_diag = extract_diagonal(np.linalg.pinv(XTX))
-
-            # Compute standard errors of beta coefficients
-            se_betas = np.sqrt(XT_X_inv_diag * sigma_squared)
-
-            # Compute t-values for coefficients
-            t_values = beta / se_betas
-
-            # Calculate residuals and residual variance
-            # y_pred = np.dot(X_aug, beta)
-            # residuals = onehot - y_pred
-            # sse = np.sum(residuals ** 2)
-            # sigma_squared = sse / (n_samples - 3 - 1)
-            #
-            # # Compute standard errors of beta coefficients
-            # XT_X_inv = np.linalg.inv(XTX)
-            # se_betas = np.sqrt(np.diag(XT_X_inv) * sigma_squared)
-            # t_values = beta / se_betas
-            # # out[i, j] = beta[3]
-            out[i, j] = t_values[1]
-            out[j, i] = t_values[1]
-    return out
-
-
 def do_deve_neuron(pf_thresh=900, quick=50, item_std='mariam'):
     items, df = get_standard_items_list(pf_thresh, item_std)
-    # feat2onehot = get_binary_feat_matrix(items, item_std,
-    #                                      pf_thresh=pf_thresh,
-    #                                      threshold=100)
     feat2onehot = pickle_wrap(get_binary_feat_matrix,
                               kwargs={'items': items,
                                       'item_std': item_std,
                                       'pf_thresh': pf_thresh,
                                       'threshold': 100})
-    # print(list(feat2onehot))
-    # quit()
-    # feat_sums = [np.sum(onehot) for onehot in feat2onehot.values()]
-    # plt.hist(feat_sums, bins=100)
-    # plt.show()
-    # quit()
     np.random.seed(0)
+
     mats_all = []
-    for item1 in items:
+    for i, item1 in tqdm(enumerate(items), desc='Preparing item matrix'):
         items0 = set()
         while len(items0) < quick:
             item0 = items[np.random.randint(len(items))]
             if item0 == item1 or item0 in items0:
                 continue
             items0.add(item0)
+        items0 = sorted(list(items0))
         mat = pickle_wrap(get_mat_M,
                           kwargs={'item1': item1,
                                   'items0': items0},
-                          verbose=-1)
+                          verbose=-1, dir_branches=100)
         mats_all.append(mat)
     mats_all = np.array(mats_all)
-    print(mats_all.shape)
+    # print(mats_all.shape)
+    # quit()
 
     for feat, onehot in feat2onehot.items():
-        # TODO: study interaction effects
-
         mat_feat0 = mats_all[onehot == 0, :, :]
         mat_feat1 = mats_all[onehot == 1, :, :]
         t, _ = stats.ttest_ind(mat_feat0, mat_feat1, axis=0)
+        for layer in range(4, t.shape[0]):
+            t_vals = t[layer]
+            num_signif = np.sum(t_vals > 3)
+            print(f'{feat=}, {layer=}, {num_signif=}')
+        quit()
+
         t_flat = t.flatten()
 
         n, _, _ = plt.hist(t_flat, bins=100, range=(-10, 10))

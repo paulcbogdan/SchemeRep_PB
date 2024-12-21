@@ -1,6 +1,7 @@
 
 from connRSA.conn_regress import do_regr_RSA_sn
 from llama.model_settings import get_explore_llama, get_base_kw
+from llama.numba_regr_test import pairwise_interaction_t_values_proper
 from org_sns import get_sns
 from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
@@ -24,21 +25,26 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
     kw['stdize_by_run'] = False
     return kw
 
-def sn_attn_encoding(sn, region='PFC', local=True, big_voxelwise=False):
+def sn_attn_encoding(sn, region='PFC', local=True,
+                     big_voxelwise=False,
+                     str_interaction=True):
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
-                                   attn=False, normalize=True,
-                                   do_prod=False)
+                                   attn=True, normalize=True,
+                                   do_prod=False, do_M=False)
 
     model_item = get_explore_llama(activation_model,
-                                   attn=True, normalize=True,
+                                   attn=False, normalize=True,
                                    do_prod=False)
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
     kw['semantic'] = model_attn
-    kw['ROIs_ctrl'] = [model_item]
+    kw['ROIs_ctrl'] = []
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                         easy_override=False, dir_branches=100)
+
+
+
 
     df_sn = get_trial_info(sn)
     df_sn.sort_values(by=f'obj_trial', inplace=True)
@@ -49,14 +55,34 @@ def sn_attn_encoding(sn, region='PFC', local=True, big_voxelwise=False):
     df_sn['inc'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
     df_sn['enc_acc'] = (df_sn['inc'] - df_sn['per_inc']).abs()
 
-    df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
-    assert len(df_sn) > 10, f'{len(df_sn)=}'
+    if str_interaction:
+        kw = get_base_kw_predicting(sn, 'subcort', local, big_voxelwise)
+        kw['semantic'] = model_attn
+        kw['ROIs_ctrl'] = []
+        IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
+                                easy_override=False, dir_branches=100)
+        y = np.array(df_sn['enc_acc'].to_list())
 
+        df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
+        assert len(df_sn) > 10, f'{len(df_sn)=}'
+
+        X = np.array([IRAFs, IRAFs_str]).T
+        nan_y = np.isnan(y)
+        nan_X = np.any(np.isnan(X), axis=1)
+        nans = nan_y | nan_X
+        y = y[~nans]
+        X = X[~nans]
+        X = stats.zscore(X, axis=0)
+
+        t = pairwise_interaction_t_values_proper(y, X)
+        return t[0, 1]
+
+    df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['enc_acc'])
     print(f'{r=:.3f}')
     return r
 
-def sn_item_dm(sn, region='ITL', local=False, big_voxelwise=True):
+def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     activation_model = 'meta-llama/Llama-3.2-3b'
     model = get_explore_llama(activation_model,
                               attn=False, normalize=True)
@@ -66,8 +92,8 @@ def sn_item_dm(sn, region='ITL', local=False, big_voxelwise=True):
     kw['ROIs_ctrl'] = []
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw,
-                        verbose=-1,
-                        easy_override=False, dir_branches=100)
+                        verbose=-1, easy_override=False,
+                        dir_branches=100)
     if len(kw['ROIs_ctrl']):
         IRAFs = IRAFs[:, 0]
 
@@ -166,8 +192,8 @@ def test_sn_llama_mem():
 
     efs = []
     for sn in sns:
-        # ef = sn_attn_encoding(sn)
-        ef = sn_item_dm(sn)
+        ef = sn_attn_encoding(sn)
+        # ef = sn_item_dm(sn)
         if ef is None: continue
         efs.append(ef)
     t, p = stats.ttest_1samp(efs, 0, axis=0)

@@ -30,3 +30,4 @@ result_pics/.DS_Store
 /result_pics/vendor_OLD/*
 *.png
 /behavFiles/
+/llama/API_key.py

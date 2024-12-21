@@ -13,7 +13,7 @@ def retrieve_name(v):
     callers_local_vars = inspect.currentframe().f_back.f_locals.items()
     return [var_name for var_name, var_val in callers_local_vars if var_val is v]
 
-def compare_depths(region='PFC',
+def compare_depths(region='Str',
                    # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                    activation_model='meta-llama/Llama-3.2-3b',
                    big_voxelwise=False, local=True,
@@ -32,12 +32,19 @@ def compare_depths(region='PFC',
                                 do_M=True)
               for x in range(low, high, tick)]
     model_strs = [f'depth {x}-{x+tick}' for x in range(low, high, tick)]
-    model_vals = run_models(models, model_strs, region, big_voxelwise, local)
+    model_vals = run_models(models, model_strs, region, big_voxelwise, local,
+                            fps='non_obj')
+    # model_vals_Tha = run_models(models, model_strs, 'Tha', big_voxelwise, local)
+    # model_vals = np.array(model_vals) - np.array(model_vals_Tha)
+    # for i, model_str in enumerate(model_strs):
+    #     t, p = stats.ttest_1samp(model_vals[i], 0)
+    #     print(f'{model_str}: {t=:.3f}, {p=:.4f}')
+
     t_mat = cross_t(model_vals)
     plot_heatmap(t_mat, model_strs, region, attn)
 
 
-def compare_llamas(region='PFC',
+def compare_llamas(region='Str',
                    # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                    activation_model='meta-llama/Llama-3.2-3b',
                    big_voxelwise=False, local=True):
@@ -85,17 +92,19 @@ def compare_models(region='PFC', big_voxelwise=True, local=False,
     t_mat = cross_t(model_vals)
     plot_heatmap(t_mat, model_strs, region, attn)
 
-def run_models(models, model_strs, region, big_voxelwise, local):
+def run_models(models, model_strs, region, big_voxelwise, local,
+               fps='non_obj'):
     model_vals = []
     for model, model_str in zip(models, model_strs):
         kw = get_base_kw(region, model=model,
-                         fps='non_obj', big_voxelwise=big_voxelwise,
+                         fps=fps, big_voxelwise=big_voxelwise,
                          local=local)
         t, vals = pickle_wrap(run_layer, kwargs=kw,
                               verbose=-1, easy_override=False,
                               dir_branches=100)
+        p = stats.t.sf(t, 60)
         d = t / np.sqrt(60)
-        print(f'{model_str}: {t=:.3f}, {d=:.3f}')
+        print(f'{model_str}: {t=:.3f}, {d=:.3f}, {p=:.4f}')
         model_vals.append(vals)
     return model_vals
 

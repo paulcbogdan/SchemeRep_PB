@@ -123,8 +123,6 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     num_above_thresh = np.sum(np.abs(Ms) > thresh)
     for i, val in enumerate(Ms):
         img_data[atlas_data == (i + 1)] = val
-        # if val > 1:
-        #     print(f'{i} | {val}')
         if i == 102:
             # fix bad part of mesh, FuG appears in Hipp or PhG or w/e
             idxs = np.indices(img_data.shape)
@@ -137,47 +135,40 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
             img_data[(atlas_data == (i + 1)) & slicer] = 0
 
     vabs = np.nanmax(np.abs(Ms))
-    # print(f'{vabs=}')
-    if cmap not in ['RdPu', 'BuPu']:
+    if cmap == 'rainbow_r':
         cmap = get_split_cmap(vabs, thresh, 'rainbow_r', )
+    else:
+        cmap = cmap
+        # cmap = get_split_cmap(vabs, thresh, cmap, inferno_half=only_positive)
+
     if only_positive:
         img_data[img_data < 0] = 0
     img = image.new_img_like(atlas['maps'], img_data)
-    print(f'{thresh=}')
-    print(f'{vmax=}')
+    # print(f'{thresh=}')
+    # print(f'{vmax=}')
+
     fig, axs = plotting.plot_img_on_surf(img, threshold=thresh,
                                          cmap=cmap, title=title,
                                          vmin=0 if only_positive else -vmax,
                                          vmax=vmax,
-                                         alpha=.03,
+                                         # alpha=.03,
                                          inflate=False,
-                                         # views=['vent']
-                                         # symmetric_cbar=False,
                                          surf_mesh='fsaverage5',
                                          avg_method='median')
-    # plotting.plot_glass_brain(img, threshold=thresh,
-    #                           cmap=cmap, title=title,
-    #                           vmin=0 if only_positive else -vmax,
-    #                           vmax=vmax,)
 
-    # plt.show()
-    # quit()
+    if only_positive:
+        max_ticks = 5
+        tick_jump = (int(vmax) + 1) // max_ticks
+        tick_jump += 1
+        ticks = list(range(0, int(vmax) + 1, tick_jump))
+        axs[4].set_xticks(ticks, ticks, fontsize=11)
+    else:
+        max_ticks = 6
+        vabs = np.max([np.abs(np.min(Ms)), np.abs(np.max(Ms))])
+        tick_jump = (int(vabs) + 1)  // (max_ticks * 2)
+        ticks = list(range(-int(vmax), int(vmax) + 1, tick_jump))
+        axs[4].set_xticks(ticks, ticks, fontsize=11)
 
-
-
-    if vmax == 6 and thresh == 2:
-        axs[4].set_xticks([0, 2, 4, 6], [0, 2, 4, 6],
-                          fontsize=11)
-
-    # if thresh > 5 or True:
-    #     axs[4].set_xticks([-vmax, -thresh, thresh, vmax],
-    #                       [-vmax, -thresh, thresh, vmax],
-    #                       fontsize=8)
-    # elif neg:
-    #     axs[4].set_xticks([-vmax, -2, 2, vmax],
-    #                       [f'({neg})',
-    #                        '-2', '2',
-    #                        f'({pos})'], fontsize=8)
     if fp_out is None:
         plotting.show()
     else:
@@ -185,19 +176,36 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         print(f'Saving fig: {fp_out=}')
         plotting.show()
 
-        plt.clf()
+    # plt.show()
     return
+
     view = plotting.view_img(img, threshold=thresh, cmap=cmap, colorbar=True,
                         vmax=vmax)
     view.open_in_browser()
     return
+    # quit()
 
-    plotting.plot_stat_map(img,
-                           vmin=-vmax, vmax=vmax,
-                           threshold=thresh, draw_cross=False,
-                           display_mode='x',)
-                           # cut_coords=[-22, -24, -26, -28])
-    plt.show()
+    # if vmax == 6 and thresh == 2:
+    #     axs[4].set_xticks([0, 2, 4, 6], [0, 2, 4, 6],
+    #                       fontsize=11)
+    #
+    # if fp_out is None:
+    #     plotting.show()
+    # else:
+    #     fig.savefig(fp_out, dpi=300)
+    #     print(f'Saving fig: {fp_out=}')
+    #     plotting.show()
+    #
+    #     plt.clf()
+    # return
+    #
+    #
+    # plotting.plot_stat_map(img,
+    #                        vmin=-vmax, vmax=vmax,
+    #                        threshold=thresh, draw_cross=False,
+    #                        display_mode='x',)
+    #                        # cut_coords=[-22, -24, -26, -28])
+    # plt.show()
 
 
 if __name__ == '__main__':

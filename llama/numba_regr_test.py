@@ -77,7 +77,7 @@ def pairwise_interaction_t_values(y, X):
 
 
 @jit(nopython=True)
-def compute_t_value_(y, X1, X2):
+def compute_t_value_proper(y, X1, X2):
     """
     Helper function to compute t-value for regression
     y ~ 1 + X1 + X2 + X1*X2
@@ -108,7 +108,7 @@ def compute_t_value_(y, X1, X2):
 
 
 @jit(nopython=True)
-def pairwise_interaction_t_values_(y, X):
+def pairwise_interaction_t_values_proper(y, X):
     """
     Compute t-values for all pairwise interaction regressions
     y ~ 1 + X1 + X2 + X1*X2 for all pairs of columns in X
@@ -133,41 +133,24 @@ def pairwise_interaction_t_values_(y, X):
         for j in range(i, n_features):
             if i == j: continue
             # Compute t-value with both main effects and interaction
-            t_values[i, j] = compute_t_value_(y, X[:, i], X[:, j])
+            t_values[i, j] = compute_t_value_proper(y, X[:, i], X[:, j])
             t_values[j, i] = t_values[i, j]  # Matrix is symmetric
 
     return t_values
 
-
-if __name__ == '__main__':
-    # Y = np.random.randint(0, 2, (100))
+def test_two_variants():
     Y = np.random.normal(size=(1000))
     Y = np.array(Y, dtype=np.float64)
     Y = stats.zscore(Y, axis=0, nan_policy='omit')
     X = np.random.normal(size=(1000, 300))
-    # print(X)
-    # quit()
     X = stats.zscore(X, axis=0, nan_policy='omit')
     t_st = time()
-    out = pairwise_interaction_t_values_(Y, X)
-    # print(out[0, 1])
-    #
-    # df_test = pd.DataFrame({'Y': Y, 'X1': X[:, 0], 'X2': X[:, 1]})
-    # # do regression with smf
-    # import statsmodels.formula.api as smf
-    #
-    # mod = smf.ols(formula='Y ~ X1 * X2', data=df_test)
-    # print(mod.fit().summary())
-    # quit()
-
-
-    # print(out.flatten())
-    print(f'Time needed for interaction testing: {time() - t_st:.3f} s')
+    out = pairwise_interaction_t_values_proper(Y, X)
+    print(f'Time needed for interaction testing proper: {time() - t_st:.3f} s')
 
     out[np.diag_indices_from(out)] = np.nan
     n, _, _ = plt.hist(out.flatten(), bins=100)
     sd = np.nanstd(out.flatten())
-
     x = np.linspace(-sd*3, sd*3, 1000)
     y = stats.norm.pdf(x, loc=0, scale=sd)
     y *= np.max(n) / np.max(y)
@@ -175,16 +158,17 @@ if __name__ == '__main__':
     plt.show()
 
     t_st = time()
-    out = pairwise_interaction_t_values_(Y, X)
-    print(out.flatten())
-    print(f'Time needed for interaction testing #2: {time() - t_st:.3f} s')
+    out = pairwise_interaction_t_values_proper(Y, X)
+    print(f'Time needed for interaction testing proper #2: {time() - t_st:.3f} s')
+    print('-')
+    t_st = time()
+    out = pairwise_interaction_t_values(Y, X)
+    print(f'Time needed for interaction testing quick: {time() - t_st:.3f} s')
+
+    t_st = time()
+    out = pairwise_interaction_t_values(Y, X)
+    print(f'Time needed for interaction testing quick #2: {time() - t_st:.3f} s')
 
 
-
-    quit()
-
-    #
-    # t_st = time()
-    # out = test_interaction_effect(Y, X)
-    # print(f'Time needed for interaction testing: {time() - t_st:.3f} s')
-    # quit()
+if __name__ == '__main__':
+    test_two_variants()
