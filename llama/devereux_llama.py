@@ -5,6 +5,7 @@ from time import time
 
 import numpy as np
 import pandas as pd
+from nltk.misc.sort import quick
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
@@ -88,8 +89,8 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
-    # if quick == 1:
     if quick:
+        print(f'Grabbing pairs for: {len(items)=}, {quick=}')
         item2item1s = generate_comparison_pairs_d(tuple(items), quick)
         print(f'\t{item2item1s[items[0]]=}')
     already_did = set()  # ???
@@ -172,7 +173,8 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
 
 
 @cache
-def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
+def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
+                            norm_per_concept=True):
     if item_standard == 'deve':
         fp = r'C:\PycharmProjects\SchemeRep\llama\features\Devereux_norm_dict.csv'
     elif item_standard == 'mariam':
@@ -191,14 +193,15 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
         df_mariam = pd.read_csv(fp_mariam)
         df_deve = df_deve[df_deve['in_both']]
         deve_pf_per_concept = df_deve['pf'].sum() / len(df_deve['concept'].unique())
-        df_deve['pf'] = df_deve['pf'] / deve_pf_per_concept
+        if norm_per_concept:
+            df_deve['pf'] = df_deve['pf'] / deve_pf_per_concept
 
         df_mariam = df_mariam[df_mariam['in_both']]
         df_mariam['which'] = 'mariam'
         mariam_pf_per_concept = df_mariam['pf'].sum() / len(df_mariam['concept'].unique())
-        df_mariam['pf'] = df_mariam['pf'] / mariam_pf_per_concept
+        if norm_per_concept:
+            df_mariam['pf'] = df_mariam['pf'] / mariam_pf_per_concept
         # dividing as so makes it so a larger participant sample in deve/mariam won't bias
-
         df = pd.concat([df_deve, df_mariam])
         df['feature'] = df['feature'].apply(lambda x: x.replace(' ', '_'))
 
@@ -206,8 +209,11 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
         df = pd.read_csv(fp)
         pd.set_option('display.max_rows', None)
         df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
+        df['feature'] = df['feature'].apply(lambda x: x.replace(' ', '_'))
 
-    if pf_thresh is not None:
+    if pf_thresh > len(df['concept'].unique()):
+        pass
+    elif pf_thresh is not None :
         pf_cnt = df.groupby('concept')['pf'].sum()
         pf_cnt = pf_cnt.sort_values(ascending=False)
         pf_thresh = pf_cnt.iloc[pf_thresh] - .0000001
@@ -231,9 +237,8 @@ def get_llama_d_vecs_non_normed_deve(pf_thresh=250, cat='input', layer_name=1,
                                  'cat': cat, 'layer_name': layer_name,
                                  'activation_model': activation_model,
                                  'quick': quick,},
-                         easy_override=True, verbose=-1,
+                         easy_override=False, verbose=-1,
                          get_fp=True)
-
     return d_vecs
 
 
@@ -272,7 +277,7 @@ def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve
         RSM = pickle_wrap(get_deve_llama_RSM,
                           kwargs={'semantic': semantic, 'pf_thresh': pf_thresh,
                                   'quick': quick, 'item_standard': item_standard},
-                          easy_override=False, verbose=-1)
+                          easy_override=True, verbose=-1)
         all_RSM.append(RSM)
     RSM = np.nanmean(all_RSM, axis=0)
     return RSM
@@ -282,6 +287,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                        quick=5, item_standard='deve',
                        position=None
                        ):
+
     if isinstance(semantic, list):
         RSM = pickle_wrap(get_deve_llama_RSM_l,
                           kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh,
@@ -302,7 +308,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                                   'position': position
                                   # 'only_second': only_second
                                   },
-                          easy_override=True, verbose=1)
+                          easy_override=False, verbose=1)
     else:
         raise ValueError
     return RSM
@@ -334,9 +340,10 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                                  'normalize': normalize,
                                  'quick': quick,
                                  'item_standard': item_standard},
-                         easy_override=True, verbose=-1)
+                         easy_override=False, verbose=-1)
     print(f'\tGathered d_vecs ({quick=})')
     items, _ = get_standard_items_list(pf_thresh)
+    print(f'\t{len(items)=}')
     if cat != 'attn_weights' or True:
         item2keys = defaultdict(list)
         for (order0, order1, item), v in d_vecs.items():
@@ -429,11 +436,12 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
     # llama31_3b = get_explore_llama(activation_model=activation_model,
-    #                                attn='v_proj', st=0)
+    #                                attn='attn_output', st=0)
     llama31_3b = get_explore_llama(activation_model=activation_model,
-                                   attn=True, st=0)
+                                   attn=False, st=0)
     models = llama31_3b
 
+    # TODO: attn_outpuut
     # llama31_3b_output = get_explore_llama(activation_model=activation_model,
     #                                       attn='attn_output', st=0)
     # models += llama31_3b_output
@@ -444,7 +452,7 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
 
     # models = get_dev_explore_BERT('BERT')
     # models = models + models_
-    models = get_dev_explore_BERT('simCSE')
+    # models = get_dev_explore_BERT('simCSE')
     # models = models + models_
     # models = models + models_simCSE
     # llama31_3b_attn = get_explore_llama(activation_model=activation_model,
@@ -458,9 +466,11 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
 
 
 if __name__ == '__main__':
+    prep_all_llama_d_vecs_deve(quick=1)
+
     # prep_all_llama_d_vecs_deve()
-    prep_all_llama_d_vecs_deve(quick=4)
-    prep_all_llama_d_vecs_deve(quick=50)
+    # prep_all_llama_d_vecs_deve(quick=4)
+    # prep_all_llama_d_vecs_deve(quick=50)
 
     # TODO: Try Llama-3.2-1b
 

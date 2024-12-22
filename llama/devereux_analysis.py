@@ -39,9 +39,11 @@ def fix_feature_type_classification(df):
                 cnt0 = type2feature_cnt[type0][feature]
                 cnt1 = type2feature_cnt[type1][feature]
                 if cnt0 > cnt1:
-                    df.loc[(df['feature'] == feature) & (df['feature type'] == type1), 'feature type'] = type0
+                    df.loc[(df['feature'] == feature) &
+                           (df['feature type'] == type1), 'feature type'] = type0
                 else:
-                    df.loc[(df['feature'] == feature) & (df['feature type'] == type0), 'feature type'] = type1
+                    df.loc[(df['feature'] == feature) &
+                           (df['feature type'] == type0), 'feature type'] = type1
     return df
 
 
@@ -152,9 +154,10 @@ def get_item_sum_RSM(model):
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                    pf_thresh=300, quick=None, item_standard='deve'):
     models = get_explore_llama(activation_model=activation_model,
-                               attn=False, st=0)
-    # print(models)
-    # quit()
+                               # attn='attn_output',
+                               attn=False,
+                               st=0)
+    models = get_dev_explore_BERT('BERT')
 
     if 'llama' in models[0]:
         layers = 28
@@ -172,8 +175,9 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
         # pf_thresh = 300
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-                                 quick=quick, item_standard=item_standard,
-                                 # position=None,
+                                 quick=quick,
+                                 item_standard=item_standard,
+                                 position=1,
                                  )
         # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
         #                                     quick=1, item_standard=item_standard)

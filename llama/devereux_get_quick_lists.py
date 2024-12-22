@@ -31,7 +31,12 @@ def generate_comparison_pairs(num_items, comparisons_per_item, random_seed=0):
     items = list(range(num_items))
 
     # Keep trying until all items have enough comparisons
-    while min(comparison_counts.get(i, 0) for i in items) < comparisons_per_item:
+    max_attempts = num_items * comparisons_per_item * 10  # Prevent infinite loops
+    attempts = 0
+
+    while attempts < max_attempts:
+        attempts += 1
+
         # Find items that need more comparisons
         needed_items = [i for i in items if comparison_counts[i] < comparisons_per_item]
 
@@ -58,6 +63,16 @@ def generate_comparison_pairs(num_items, comparisons_per_item, random_seed=0):
         comparisons.add((min(item1, item2), max(item1, item2)))
         comparison_counts[item1] += 1
         comparison_counts[item2] += 1
+
+    stats = {
+        'min_comparisons': min(comparison_counts.values()) if comparison_counts else 0,
+        'max_comparisons': max(comparison_counts.values()) if comparison_counts else 0,
+        'total_pairs': len(comparisons),
+        'items_with_target_comparisons': sum(1 for count in comparison_counts.values() if count == comparisons_per_item),
+        'items_with_fewer_comparisons': sum(1 for count in comparison_counts.values() if count < comparisons_per_item)
+    }
+    print(f'Quick pairing: {stats=}')
+
 
     return sorted(list(comparisons))
 
@@ -106,10 +121,6 @@ def generate_comparison_pairs_d(items, comparisons_per_item=5):
         item2item1s[item0].append(item1)
         item2item1s[item1].append(item0)
     return item2item1s
-    # for item0, l in item2item1s.items():
-    #     print(f'{item0}: {l=}')
-    #     assert len(l) == comparisons_per_item
-    # quit()
 
 # Verify the results
 def verify_comparisons(df, num_items, target_comparisons):
@@ -134,13 +145,14 @@ def verify_comparisons(df, num_items, target_comparisons):
 
 if __name__ == "__main__":
     num_items = 300
-    comparisons_per_item = 1
+    comparisons_per_item = 50
+    print('Testing')
 
-    comparison_pairs = generate_comparison_pairs_d(tuple(range(30)), comparisons_per_item)
+    comparison_pairs = generate_comparison_pairs_d(tuple(range(300)), comparisons_per_item)
     # for item, l in comparison_pairs.items():
     #     print(f'{item}: {len(l)=}')
     # print(comparison_pairs)
-    # quit()
+    quit()
     # print(comparison_pairs[:10])
     # quit()
 
