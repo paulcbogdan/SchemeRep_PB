@@ -464,7 +464,8 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
         # else:
         #     cat_ = semantic_tup[1]
         cat_ = semantic_tup[1]
-        all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif'] else False
+        all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif',
+                                                   'scn_M'] else False
 
         d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat_,
                                                        'layer_name': semantic_tup[2],
@@ -476,6 +477,7 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                              RAM_cache=True)
     first_d_vec = list(d_vecs.keys())[0]
     # print(len(d_vecs))
+    # print(list(d_vecs))
     # print(d_vecs[first_d_vec].shape)
     # quit()
     if semantic_tup[3] == 'obj_M':
@@ -486,6 +488,14 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
             for scn2 in scns:
                 vecs_obj.append(d_vecs[(scn2, obj)])
             vecs.append(np.nanmean(vecs_obj, axis=0))
+    elif semantic_tup[3] == 'scn_M':
+        objs = df_sn['obj'].to_list()
+        vecs = []
+        for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
+            vecs_scn = []
+            for obj2 in objs:
+                vecs_scn.append(d_vecs[(obj2, scn)])
+            vecs.append(np.nanmean(vecs_scn, axis=0))
     elif semantic_tup[3] == 'obj_dif':
         scns = df_sn['scene'].to_list()
         vecs = []
@@ -598,6 +608,7 @@ if __name__ == '__main__':
 
     all_llama_cats = ['gate_proj_in']
     all_llama_cats = ['attn_weights']
+    all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
 
@@ -606,13 +617,13 @@ if __name__ == '__main__':
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
-            if LLAMA_CAT in ['attn_weights', 'attn_output']:
-                SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
-                                   NORMALIZE))
-            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
+            # if LLAMA_CAT in ['attn_weights', 'attn_output']:
+            #     SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
+            #                        NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj_M', MODEL,
                                NORMALIZE))
-            # SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj', MODEL,
-            #                    NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn_M', MODEL,
+                               NORMALIZE))
     RAM_CACHE_LLAMA = True
 
     for SEMANTIC in SEMANTIC_L:

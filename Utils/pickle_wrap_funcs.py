@@ -14,30 +14,24 @@ from colorama import Fore
 import warnings
 import hashlib
 
+# unique_id = hashlib.md5('TEST TEST TEST'.encode()).hexdigest()
+# print(unique_id)
+# quit()
+
 PICKLE_CACHE = {}
 DIR_EXIST_CACHE = set()
 
-# from tqdm import tqdm
-# from collections import defaultdict
-# cnt = defaultdict(int)
-# for _ in tqdm(range(100_000)):
-#     test = (zlib.adler32(str(np.random.randint(0, 100_00_000)).encode()) // 10) % 10
-#     cnt[test] += 1
-#     # print(zlib.adler32(str(np.random.randint(0, 100_00_000)).encode()))
-# print(cnt)
-# quit()
-
-def getVariableName(variable, globalVariables):
-    # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string
-    """ Get Variable Name as String by comparing its ID to globals() Variables' IDs
-        args:
-            variable(var): Variable to find name for (Obviously this variable has to exist)
-        kwargs:
-            globalVariables(dict): Copy of the globals() dict (Adding to Kwargs allows this function to work properly when imported from another .py)
-    """
-    for globalVariable in globalVariables:
-        if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
-            return globalVariable # Return its name from the Globals() dict
+# def getVariableName(variable, globalVariables):
+#     # from: https://stackoverflow.com/questions/18425225/getting-the-name-of-a-variable-as-a-string
+#     """ Get Variable Name as String by comparing its ID to globals() Variables' IDs
+#         args:
+#             variable(var): Variable to find name for (Obviously this variable has to exist)
+#         kwargs:
+#             globalVariables(dict): Copy of the globals() dict (Adding to Kwargs allows this function to work properly when imported from another .py)
+#     """
+#     for globalVariable in globalVariables:
+#         if id(variable) == id(globalVariables[globalVariable]): # If our Variable's ID matches this Global Variable's ID...
+#             return globalVariable # Return its name from the Globals() dict
 
 class PickleWrapWarning(UserWarning):
     pass
@@ -126,7 +120,8 @@ def f2str(callback, kwargs=None):
 def get_default_fp(args, kwargs, callback, cache_dir, verbose=0, dir_branches=0):
     if verbose > 0: print(f'Making default filepath: {kwargs=}')
     if args is not None:
-        args_str = '_'.join(args)
+        args_str = obj2str(args)
+        # args_str = '_'.join(args)
     else:
         args_str = ''
     kwargs_str = f2str(callback, kwargs)
@@ -182,16 +177,6 @@ def pickle_wrap(callback: object, filepath: object = None,
             # print('Within')
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose,
                                   dir_branches=dir_branches)
-        # else:
-        #     # print('Wrap')
-        #     filepath = utils.pickle_wrap(get_default_fp,
-        #                                  kwargs={'args': args, 'kwargs': kwargs,
-        #                                          'callback': callback, 'cache_dir': cache_dir,
-        #                                          'verbose': verbose},
-        #                                  get_name=True, verbose=-1)
-        # filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose)
-        # print(f'Get name: {time() - t_st:.3f} s | {filepath=}')
-        # quit()
     if RAM_cache and filepath in PICKLE_CACHE:
         if get_fp:
             return PICKLE_CACHE[filepath], filepath
@@ -200,8 +185,8 @@ def pickle_wrap(callback: object, filepath: object = None,
 
     if verbose > 0:
         print(f'pickle_wrap: {filepath=}')
-        print('\tFunction:', getVariableName(callback,
-                                             globalVariables=globals().copy()))
+        # print('\tFunction:', getVariableName(callback,
+        #                                      globalVariables=globals().copy()))
 
 
     if os.path.isfile(filepath):
@@ -238,9 +223,9 @@ def pickle_wrap(callback: object, filepath: object = None,
             print(f'\t{Fore.YELLOW}{filepath=}{Fore.RESET}')
 
 
-    if verbose > 0:
-        print('Callback:',
-              getVariableName(callback, globalVariables=globals().copy()))
+    # if verbose > 0:
+    #     print('Callback:',
+    #           getVariableName(callback, globalVariables=globals().copy()))
     start = time()
     if args:
         output = callback(*args)
@@ -253,8 +238,6 @@ def pickle_wrap(callback: object, filepath: object = None,
         # print('\tDumping to file name:', filepath)
     start = time()
     try:
-        # print(f'{filepath=}')
-
         with open(filepath, "wb") as new_file:
             pickle.dump(output, new_file)
         if verbose == 0: print(f'Pickle wrapped ({time()-start:.3f} s): '

@@ -94,8 +94,7 @@ class LlamaActivationExtractor:
                 self.attention_act['v_proj'][layer_name] = value_states
                 self.attention_act['attn_output'][layer_name] = output[0] if isinstance(output, tuple) else output
                 self.attention_act['attn_weights'][layer_name] = attn_weights
-                # print(attn_weights.size())
-                # quit()
+
             return attention_big_hook_
 
         def activation_hook(layer_name, dict_to_store_in, dict_to_store_out):

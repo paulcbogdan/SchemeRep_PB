@@ -108,14 +108,19 @@ if __name__ == "__main__":
     adjustments = defaultdict(list)
 
     num_mods = 0
-    cutoff = 1.5
+    cutoff = 1.65
+    # cutoff = 1
+    # cutoff = 2
     t_vals = get_deve_neuron_t_signif()
     num_to_adjust = np.sum(np.abs(t_vals) > cutoff)
     total_to_assign = 3000
-    total_to_assign = num_to_adjust * 0.25
+    total_to_assign = num_to_adjust * 0.3
+    # total_to_assign = num_to_adjust * 0.2
+
+    # total_to_assign = num_to_adjust * 0.5
 
     for layer in range(t_vals.shape[0]):
-        for neuron in range(t_vals.shape[1] - 4):
+        for neuron in range(20, t_vals.shape[1] - 1):
             if t_vals[layer, neuron] > cutoff:
                 adjustments[layer].append((neuron, total_to_assign / num_to_adjust)) # .3
                 num_mods += 1
@@ -135,9 +140,10 @@ if __name__ == "__main__":
     # Generate text with modified activations
     # prompt = "This circle is colored"
     prompt = 'I decided to eat'
+    prompt = 'I was walking'
     for i in range(10):
         output = modifier.generate(prompt, max_length=20)
         print(f'{i}: {output=}')
 
-    # Clean up hooks when done
+        # Clean up hooks when done
     modifier.cleanup()

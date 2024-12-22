@@ -30,12 +30,9 @@ def get_matrix(item0, item1,
 def get_mat_M(item1, items0, activation_model
               ):
     mats = []
-    # print(f'{len(items0)=}')
     for item0 in items0:
-        mat = get_matrix(item0, item1, activation_model=activation_model)
-        # mat = pickle_wrap(get_matrix,
-        #                   kwargs={'item0': item0,
-        #                           'item1': item1}, )
+        mat = get_matrix(item0, item1,
+                         activation_model=activation_model)
         mats.append(mat)
     mat = np.nanmean(np.array(mats), axis=0)
     return mat
@@ -94,8 +91,7 @@ def do_deve_neuron(pf_thresh=900, quick=5, item_std='mariam',
                                       'pf_thresh': pf_thresh,
                                       'threshold': 100
                                       })
-    # print(list(feat2onehot))
-    # quit()
+
     np.random.seed(0)
     feat2onehot = {
                    'is_brown': feat2onehot['is_brown'],

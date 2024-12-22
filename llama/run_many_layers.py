@@ -116,8 +116,13 @@ def run_many_layers(big_voxelwise=True, attn=False,
     #                                attn=False)
     # semantic_l = get_explore_llama(activation_model=(r'meta-llama/Llama-3.2-3b', 'grok_first'),
     #                                attn=False)
+    # semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+    #                                attn=attn,
+    #                                do_M='obj_dif'
+    #                                )
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=attn, do_M='obj_dif')
+                                   attn='attn_output', do_M=False,
+                                   )
     # if not attn:
     #     semantic_l_ = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
     #                                    attn=attn, do_M=True)
@@ -126,9 +131,9 @@ def run_many_layers(big_voxelwise=True, attn=False,
     # semantic_l = get_explore_BERT('simCSE', do_M=True)
 
     # semantic_l = semantic_l[5::6]
-    # semantic_l = semantic_l[::-1]
-    fps_do = 'non_obj'
-    # fps_do = 'obj'
+    semantic_l = semantic_l[::-1]
+    # fps_do = 'non_obj'
+    fps_do = 'obj'
     # fps_do = 'all'
 
     for semantic in semantic_l:
@@ -163,7 +168,7 @@ def run_many_layers(big_voxelwise=True, attn=False,
             import zlib
             kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
             t, _ = pickle_wrap(run_layer, kwargs=kw,
-                               verbose=-1, easy_override=True,
+                               verbose=1, easy_override=False,
                                dir_branches=100, )
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
@@ -215,6 +220,23 @@ def plot_all_results(all_results, subtitle=''):
                 color = 'purple' if 'attn' in module_type else 'dodgerblue'
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color=color, linewidth=3)
+                high = np.max([high, np.max(values)])
+            elif 'scn' in c_dict:
+                print('TOAST')
+                if module_type == 'attn_weights':
+                    label = 'Attention weights (scene)'
+                elif module_type == 'gate_proj_in':
+                    label = 'Scene embedding\n(object → scene)'
+                else:
+                    raise ValueError
+                # if 'obj' in c_dict:
+                #     values = c_dict['obj']
+                # else:
+                values = c_dict['scn']
+                layer_nums = np.array(list(range(len(values))))
+                # color = 'purple' if 'attn' in module_type else 'dodgerblue'
+                plt.plot(layer_nums, values, label=label if j == 0 else None,
+                         color='orange', linewidth=3)
                 high = np.max([high, np.max(values)])
 
             if ('obj_M' in c_dict and not

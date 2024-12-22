@@ -150,9 +150,11 @@ def get_item_sum_RSM(model):
             RSM[i, j] = RSM[idx0, idx1]
 
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
-                   pf_thresh=300, quick=1, item_standard='deve'):
+                   pf_thresh=300, quick=None, item_standard='deve'):
     models = get_explore_llama(activation_model=activation_model,
-                               attn=attn, st=0)
+                               attn=False, st=0)
+    # print(models)
+    # quit()
 
     if 'llama' in models[0]:
         layers = 28
@@ -167,11 +169,11 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
     for layer in range(0, layers):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
-        pf_thresh = 300
+        # pf_thresh = 300
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
                                  quick=quick, item_standard=item_standard,
-                                 position='flip_sanity'
+                                 # position=None,
                                  )
         # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
         #                                     quick=1, item_standard=item_standard)

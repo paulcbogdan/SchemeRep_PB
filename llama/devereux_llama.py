@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.BERT_vecs import get_BERT_extractor, get_simCSE_extractor
+from llama.devereux_get_quick_lists import generate_comparison_pairs_d
 from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner
 from llama.model_settings import get_explore_llama
 
@@ -77,30 +78,7 @@ def get_quick_items(items, quick, flip=False):
     items_mat = items_mat_
     return items, items_mat
 
-def get_quick_items_non_sym(items):
-    def pop_random(lst):
-        import random
-        idx = random.randrange(0, len(lst))
-        return lst.pop(idx)
 
-    # items0 = sorted(items)
-    # items1 = set(items)
-    # item2pair = defaultdict(list)
-    lst = list(items)
-    if len(lst) % 2 != 0:
-        lst += [lst[0]]
-    pairs = []
-    while len(lst):
-        rand1 = pop_random(lst)
-        rand2 = pop_random(lst)
-        pair = rand1, rand2
-        pairs.append(pair)
-
-    # pairs_rev = []
-    # for pair in pairs:
-    #     pair_rev = pair[1], pair[0]
-    #     pairs_rev.append(pair_rev)
-    return pairs# + pairs_rev
 
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       cat='input', layer_name=1,
@@ -110,17 +88,14 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
+    # if quick == 1:
     if quick:
-        item2pair = defaultdict(list)
-        for _ in range(quick):
-            pairs = get_quick_items_non_sym(items)
-            for pair in pairs:
-                item2pair[pair[0]].append(pair[1])
-                item2pair[pair[1]].append(pair[0])
+        item2item1s = generate_comparison_pairs_d(tuple(items), quick)
+        print(f'\t{item2item1s[items[0]]=}')
     already_did = set()  # ???
     for i0_idx, item0 in enumerate(tqdm(items, desc='outer loop get llama')):
         if quick:
-            items1 = item2pair[item0]
+            items1 = item2item1s[item0]
         else:
             items1 = items
         for i1_idx, item1 in enumerate(items1):
@@ -140,6 +115,9 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                           'activation_model': activation_model},
                                   easy_override=False, verbose=-1, dir_branches=100,
                                   RAM_cache=True, get_fp=True)
+            # print(list(res['attn']))
+            # if cat_ == ''
+
 
             if 'mlp_out' in res:# or 'attn_output' in res['attn']:
                 # if 'mlp_out' in res:
@@ -149,7 +127,6 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                 del res['mlp_in']['act_fn']
                 del res['attn']['q_proj']
                 del res['attn']['k_proj']
-                # del res['attn']['attn_output']
 
                 with open(fp, 'wb') as f:
                     pickle.dump(res, f)
@@ -168,7 +145,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             for idx_target in [0, 1]:
                 if activation_model in ['BERT', 'simCSE']:
                     v = res[idx_target][layer_name]
-                elif cat == 'attn_weights':
+                elif cat in 'attn_weights':
                     v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
                                    axis=(0, 1))
                 else:
@@ -236,6 +213,8 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True):
         pf_thresh = pf_cnt.iloc[pf_thresh] - .0000001
         items = pf_cnt[pf_cnt > pf_thresh].index
         items = sorted(items.to_list())
+        if len(items) % 2 == 1:
+            items = items[:-1]
         df = df[df['concept'].isin(items)]
 
     items = df['concept'].unique()
@@ -307,7 +286,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
         RSM = pickle_wrap(get_deve_llama_RSM_l,
                           kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh,
                                   'quick': quick, 'item_standard': item_standard},
-                          easy_override=False, verbose=-1)
+                          easy_override=False, verbose=1)
     elif isinstance(semantic, tuple):
         cat = semantic[1]
         layer_name = semantic[2]
@@ -323,7 +302,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                                   'position': position
                                   # 'only_second': only_second
                                   },
-                          easy_override=True, verbose=-1)
+                          easy_override=True, verbose=1)
     else:
         raise ValueError
     return RSM
@@ -358,7 +337,7 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                          easy_override=True, verbose=-1)
     print(f'\tGathered d_vecs ({quick=})')
     items, _ = get_standard_items_list(pf_thresh)
-    if cat != 'attn_weights':
+    if cat != 'attn_weights' or True:
         item2keys = defaultdict(list)
         for (order0, order1, item), v in d_vecs.items():
             if position is None:
@@ -398,6 +377,7 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
         else:
             vecs = items_M_vecs
     else:
+        raise ValueError
         assert len(items) < 300, 'Too many items for attn_weights. RAM danger maybe'
         vecs = []
         for item0 in items:
@@ -454,9 +434,17 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                    attn=True, st=0)
     models = llama31_3b
 
-    # models_ = get_dev_explore_BERT('BERT')
+    # llama31_3b_output = get_explore_llama(activation_model=activation_model,
+    #                                       attn='attn_output', st=0)
+    # models += llama31_3b_output
+    #
+    # llama31_3b = get_explore_llama(activation_model=activation_model,
+    #                                attn=False, st=0)
+    # models += llama31_3b
+
+    # models = get_dev_explore_BERT('BERT')
     # models = models + models_
-    # models_ = get_dev_explore_BERT('simCSE')
+    models = get_dev_explore_BERT('simCSE')
     # models = models + models_
     # models = models + models_simCSE
     # llama31_3b_attn = get_explore_llama(activation_model=activation_model,
@@ -465,10 +453,15 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
     for model in models:
         get_deve_llama_RSM(model, pf_thresh=pf_thresh,
                            quick=quick, item_standard=item_standard)
-    get_deve_llama_RSM(models, pf_thresh=pf_thresh,
-                       quick=quick, item_standard=item_standard)
+    # get_deve_llama_RSM(models, pf_thresh=pf_thresh,
+    #                    quick=quick, item_standard=item_standard)
 
 
 if __name__ == '__main__':
-    prep_all_llama_d_vecs_deve()
+    # prep_all_llama_d_vecs_deve()
+    prep_all_llama_d_vecs_deve(quick=4)
+    prep_all_llama_d_vecs_deve(quick=50)
+
+    # TODO: Try Llama-3.2-1b
+
     # TODO: turn off symmetry
