@@ -146,7 +146,7 @@ def features_benefiting_from_context(st=4, end=14, pf_thresh=300,
     # harp: IRAF=462.9
     # scissors: IRAF=441.5
 
-def get_vecs_alt_context(items, d_vecs, vecs_all_M):
+def get_vecs_alt_context(items, d_vecs, vecs_all_M, zscore=True):
     vecs_alt = []
     for context in items:
         if context == 'cigar':
@@ -167,6 +167,10 @@ def get_vecs_alt_context(items, d_vecs, vecs_all_M):
             vecs_alt_context.append(vec1)
         vecs_alt.append(vecs_alt_context)
     vecs_alt = np.array(vecs_alt)
+    if zscore:
+        for i in range(vecs_alt.shape[0]):
+            vecs_alt[i] = stats.rankdata(vecs_alt[i], axis=0, nan_policy='omit')
+            vecs_alt[i] = stats.zscore(vecs_alt[i], axis=0, nan_policy='omit')
     return vecs_alt
 
 
@@ -175,7 +179,7 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                         activation_model='meta-llama/Llama-3.2-3b',
                         normalize=True, quick=None,
                         feature_type='functional',
-                        context_specific=False):
+                        context_specific=True):
     # vecs_all_M = get_llama_vecs_ar(pf_thresh, cat, layer_name,
     #                                activation_model, normalize,
     #                                quick=None)
@@ -190,7 +194,6 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                                      },
                              easy_override=False, verbose=-1)
     idx_target = list(items).index(target_item)
-    print(f'{vecs_all_M.shape=}')
 
     d_vecs = pickle_wrap(get_llama_d_vecs_deve,
                          kwargs={'pf_thresh': pf_thresh, 'cat': cat,
@@ -221,21 +224,20 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
         vecs_target_c.append(vec)
     vecs_target_c = np.array(vecs_target_c)
 
-    print('Getting vecs alt')
-    t_st = time()
+
+    # t_st = time()
     if context_specific:
+        print('Getting vecs alt')
         vecs_all_M = pickle_wrap(get_vecs_alt_context,
                                  kwargs={'items': items, 'd_vecs': d_vecs,
-                                         'vecs_all_M': vecs_all_M},
+                                         'vecs_all_M': vecs_all_M,
+                                         'zscore': True},
                                  easy_override=False, verbose=-1)
-
+        print('Got vecs alt z-scored')
     vecs_target_c = stats.rankdata(vecs_target_c, axis=0, nan_policy='omit')
     vecs_target_c = stats.zscore(vecs_target_c, axis=0, nan_policy='omit')
     if len(vecs_all_M.shape) == 3:
-        for i in range(vecs_all_M.shape[0]):
-            vecs_all_M[i] = stats.rankdata(vecs_all_M[i], axis=0, nan_policy='omit')
-            vecs_all_M[i] = stats.zscore(vecs_all_M[i], axis=0, nan_policy='omit')
-        print(vecs_all_M)
+        # print('Z-scored')
         corr = numba_corr_by_context(vecs_target_c, vecs_all_M, )#, nan_mask)
     else:
         vecs_all_M = stats.rankdata(vecs_all_M, axis=0, nan_policy='omit')
@@ -341,27 +343,42 @@ def numba_corr(a_mat, b_mat):
 
 
 if __name__ == '__main__':
-    # it seems like functions emerge from being paired with similar other items
+    # it seems like functions emerge from pairing with alike (MR = .25) sometimes dissimilar
+    #   perceptual has that much less (MR = .1) as does encyclopedic
+    #   taxonomic is very dependent on alike (MR = .4) but never has dissimilar
 
     #   this doesn't apply to perceptual
 
     ITEMS = ['cow', 'giraffe', 'lobster', 'peach', 'pineapple', 'rabbit', 'raspberry',
              'salmon', 'shrimp', 'strawberry', 'tiger', 'tomato']
+    # ITEMS = []
+
+    ITEMS, _ = get_standard_items_list(pf_thresh=300)
+    ITEMS = ITEMS[1:] # ambulence errors
+
     RS_ALL = []
-    FEATURE_TYPE = 'functional'
+    RS_ALL_ABS = []
+    # FEATURE_TYPE = 'functional'
     # FEATURE_TYPE = 'encyclopedic'
     # FEATURE_TYPE = 'taxonomic'
     FEATURE_TYPE = 'visual perceptual'
 
     # ITEMS = ['lobster']
+    # ITEMS = ['helicopter', 'dove', 'armor']
 
     for ITEM in ITEMS:
         RS = find_context_helper(target_item=ITEM, feature_type=FEATURE_TYPE)
+        RS_ABS = np.abs(np.array(RS))
         M_R = np.nanmean(RS)
+        M_R_ABS = np.nanmean(RS_ABS)
         print(f'{ITEM} ({FEATURE_TYPE}): {M_R=:.3f}')
         RS_ALL.append(M_R)
+        RS_ALL_ABS.append(M_R_ABS)
         if len(RS_ALL) > 2:
             RS_M_ALL = np.nanmean(RS_ALL)
             RS_SE_ALL = stats.sem(RS_ALL, nan_policy='omit')
-            print(f'{FEATURE_TYPE}: M = {RS_M_ALL:.2f} [{RS_SE_ALL:.3f}]')
+            print(f'\t{FEATURE_TYPE}: M = {RS_M_ALL:.2f} [{RS_SE_ALL:.3f}]')
+            RS_M_ALL = np.nanmean(RS_ALL_ABS)
+            RS_SE_ALL = stats.sem(RS_ALL_ABS, nan_policy='omit')
+            print(f'\t{FEATURE_TYPE}: M ABS = {RS_M_ALL:.2f} [{RS_SE_ALL:.3f}]')
 

@@ -121,12 +121,10 @@ def get_default_fp(args, kwargs, callback, cache_dir, verbose=0, dir_branches=0)
     if verbose > 0: print(f'Making default filepath: {kwargs=}')
     if args is not None:
         args_str = obj2str(args)
-        # args_str = '_'.join(args)
     else:
         args_str = ''
     kwargs_str = f2str(callback, kwargs)
-    # print(f'{args=}')
-    # print(f'{kwargs=}')
+
 
     if isinstance(callback, functools.partial):
         name = callback.func.__name__
@@ -170,11 +168,9 @@ def pickle_wrap(callback: object, filepath: object = None,
     '''
     kwargs = copy(kwargs) # don't want to modify outside
     t_st = time()
-    # print(kwargs)
-    # quit()
+
     if filepath is None:
-        # if get_name:
-            # print('Within')
+
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose,
                                   dir_branches=dir_branches)
     if RAM_cache and filepath in PICKLE_CACHE:
@@ -185,8 +181,6 @@ def pickle_wrap(callback: object, filepath: object = None,
 
     if verbose > 0:
         print(f'pickle_wrap: {filepath=}')
-        # print('\tFunction:', getVariableName(callback,
-        #                                      globalVariables=globals().copy()))
 
 
     if os.path.isfile(filepath):
