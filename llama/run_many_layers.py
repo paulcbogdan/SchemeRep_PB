@@ -105,20 +105,20 @@ def run_many_layers(big_voxelwise=True, attn=False,
 
     ALL_RESULTS = defaultdict(list)
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M=False, last_only=False,
+                                   attn=False, do_M='obj_solo', last_only=False,
                                    )
     semantic_l_M = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M=True, last_only=False
+                                   attn=False, do_M=False, last_only=False
                                    )
     semantic_l += semantic_l_M
+    #
+    # semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
+    # semantic_l += semantic_l_BERT
+    # semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
+    # semantic_l += semantic_l_BERT
 
-    semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
-    semantic_l += semantic_l_BERT
-    semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
-    semantic_l += semantic_l_BERT
-
-    # fps_do = 'obj'
-    fps_do = 'non_obj'
+    fps_do = 'obj'
+    # fps_do = 'non_obj'
 
     for semantic in semantic_l:
         # print(f'{semantic=}')
@@ -157,7 +157,7 @@ def run_many_layers(big_voxelwise=True, attn=False,
             import zlib
             kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
             t, _ = pickle_wrap(run_layer, kwargs=kw,
-                               verbose=1, easy_override=False,
+                               verbose=1, easy_override=True,
                                dir_branches=100, )
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
@@ -212,7 +212,6 @@ def plot_all_results(all_results, subtitle=''):
                              # color='olive' if module_type == 'BERT' else 'limegreen',
                              linewidth=3)
                     high = np.max([high, np.max(values)])
-
             elif 'obj' in c_dict or 'obj_dif' in c_dict:
                 print('TOAST')
                 if module_type == 'attn_weights':
@@ -255,6 +254,13 @@ def plot_all_results(all_results, subtitle=''):
                 layer_nums = np.array(list(range(len(values))))
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color='red', linewidth=3, marker='o')
+                high = np.max([high, np.max(values)])
+            if 'obj_solo' in c_dict:
+                label = 'Item embedding\n(object solo)'
+                values = c_dict['obj_solo']
+                layer_nums = np.array(list(range(len(values))))
+                plt.plot(layer_nums, values, label=label if j == 0 else None,
+                         color='orange', linewidth=3, marker='o')
                 high = np.max([high, np.max(values)])
 
         plt.yticks([0, 2, 4, 6, 8, 10, 12])

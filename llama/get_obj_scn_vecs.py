@@ -37,13 +37,6 @@ def get_scn2grammar():
 def get_sentence_obj_scn_in(obj, scn):
     obj2grammar, obj2override = get_obj2grammar()
     scn2grammar, scn2override = get_scn2grammar()
-
-    if not pd.isna(scn2override[scn]):
-        scene_part = scn2override[scn]
-        scene_part = f'{scene_part},'
-    else:
-        scene_part = f'{scn2grammar[scn]} {scn},'
-
     schemerep_objs = get_schemerep_objs()
     deve = obj not in schemerep_objs
     if deve:
@@ -55,6 +48,21 @@ def get_sentence_obj_scn_in(obj, scn):
         object_part = obj2override[obj]
     else:
         object_part = f'{obj2grammar[obj]} {obj}'
+
+    if scn is None:
+        if obj == 'oversize tire':
+            obj = 'oversized tire'
+        if object_part[:3] == 'an ':
+            object_part = 'An ' + object_part[3:]
+        elif object_part[:2] == 'a ':
+            object_part = 'A ' + object_part[2:]
+        return object_part, obj, None
+
+    if not pd.isna(scn2override[scn]):
+        scene_part = scn2override[scn]
+        scene_part = f'{scene_part},'
+    else:
+        scene_part = f'{scn2grammar[scn]} {scn},'
 
     sentence = f'{scene_part} {object_part}'
     if scn == 'inside of a car':
@@ -143,7 +151,11 @@ def get_llama_activations(obj, scn,
         sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
         t = time()
         extractor = get_llama_extractor(model_name=activation_model)
-        res = extractor.extract_activations(sentence, [obj, scn], )
+        if scn is None:
+            print(f'Object solo sentence: {sentence=}')
+            res = extractor.extract_activations(sentence, [obj], )
+        else:
+            res = extractor.extract_activations(sentence, [obj, scn], )
         print(f'Time needed for activation extraction: {time() - t:.3f} s')
         print(f'\t{[obj, scn]=} | {sentence=}')
     return res
@@ -176,9 +188,17 @@ def process_cat_cat_inner(cat):
 def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                                 activation_model='meta-llama/Llama-3.2-1b',
                                 all_possible=False):
+    last_only = False
     if isinstance(layer_name, tuple):
         last_only = layer_name[1]
         layer_name = layer_name[0]
+    if isinstance(activation_model, tuple) and activation_model[1] != 'grok_first':
+        assert activation_model[1] == 'obj_solo'
+        obj_solo = True
+        activation_model = activation_model[0]
+        assert not all_possible
+    else:
+        obj_solo = False
     cat_, inner = process_cat_cat_inner(cat)
     print('getting llama d_vecs no norming...')
 
@@ -200,8 +220,9 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                     scns_.append(scn)
             objs = objs_
             scns = scns_
-
         for obj, scn in zip(objs, scns):
+            if obj_solo: scn = None
+
             if (obj, scn) in already_done: continue
             already_done.add((obj, scn))
             scn_objs.append((scn, obj))
@@ -215,6 +236,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                 # print('-*-*-*-')
 
             t_st = time()
+
             res, fp_pkl = pickle_wrap(get_llama_activations,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
@@ -233,6 +255,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                     pickle.dump(res, f)
 
             for idx_target in [0, 1]:
+                if obj_solo and idx_target == 1: continue
                 # ... = extractor.extract_activations(sentence, [obj, scn], )
                 # idx0 is the object passed
                 # idx1 is the scene passed
@@ -257,13 +280,10 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                     # SECOND ENTRY IS THE TARGET ONE
         if all_possible:
             break
-    # print(f'{len(already_done)=}')
-    # quit()
+
 
     return d_vecs, scn_objs, obj_scns
 
-def extract_vector_from_res():
-    pass
 
 
 def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
@@ -289,11 +309,14 @@ def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
         SD = np.nanstd(scn_objs_vecs, axis=0)
         for (scn, obj) in scn_objs:
             d_vecs[(scn, obj)] = (d_vecs[(scn, obj)] - M) / SD
-        obj_scns_vecs = [d_vecs[(obj, scn)] for obj, scn in obj_scns]
-        M = np.nanmean(obj_scns_vecs, axis=0)
-        SD = np.nanstd(obj_scns_vecs, axis=0)
-        for (obj, scn) in obj_scns:
-            d_vecs[(obj, scn)] = (d_vecs[(obj, scn)] - M) / SD
+        if isinstance(activation_model, tuple) and activation_model[1] == 'obj_solo':
+            pass
+        else:
+            obj_scns_vecs = [d_vecs[(obj, scn)] for obj, scn in obj_scns]
+            M = np.nanmean(obj_scns_vecs, axis=0)
+            SD = np.nanstd(obj_scns_vecs, axis=0)
+            for (obj, scn) in obj_scns:
+                d_vecs[(obj, scn)] = (d_vecs[(obj, scn)] - M) / SD
 
     return d_vecs
 
@@ -430,6 +453,8 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                          # normalize=True, #obj_scn_norm=False,
                          ):
     activation_model = semantic_tup[4]
+    if semantic_tup[3] == 'obj_solo':
+        activation_model = (activation_model, 'obj_solo')
     normalize = semantic_tup[5]
     # obj_scn_norm = semantic_tup[5]
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
@@ -437,10 +462,6 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
             replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
-    # if isinstance(semantic_tup[1], tuple):
-    #     cat_ = semantic_tup[1][0]
-    # else:
-    #     cat_ = semantic_tup[1]
     cat_ = semantic_tup[1]
     all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif',
                                                'scn_M'] else False
@@ -453,12 +474,11 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
                                                    },
                          easy_override=False, verbose=-1,
                          RAM_cache=True)
-    first_d_vec = list(d_vecs.keys())[0]
-    # print(len(d_vecs))
-    # print(list(d_vecs))
-    # print(d_vecs[first_d_vec].shape)
-    # quit()
-    if semantic_tup[3] == 'obj_M':
+    if semantic_tup[3] == 'obj_solo':
+        vecs = []
+        for obj in df_sn['obj']:
+            vecs.append(d_vecs[(None, obj)])
+    elif semantic_tup[3] == 'obj_M':
         scns = df_sn['scene'].to_list()
         vecs = []
         for (obj, scn) in zip(df_sn['obj'], df_sn['scene']):
@@ -585,24 +605,24 @@ if __name__ == '__main__':
     all_llama_layers = list(range(0, 80 if '70b' in MODEL else 28))
 
     all_llama_cats = ['gate_proj_in']
-    all_llama_cats = ['attn_weights']
+    # all_llama_cats = ['attn_weights']
     # all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
 
     # MODEL = (MODEL, 'grok_first')
     NORMALIZE = True
-    LAST_ONLY = True
+    LAST_ONLY = False
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
-            if LLAMA_CAT in ['attn_weights', 'attn_output']:
-                SEMANTIC_L.append(('llama', LLAMA_CAT,
-                                   (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
-                                   'scn', MODEL, NORMALIZE))
+            # if LLAMA_CAT in ['attn_weights', 'attn_output']:
+                # SEMANTIC_L.append(('llama', LLAMA_CAT,
+                #                    (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+                #                    'scn', MODEL, NORMALIZE))
             SEMANTIC_L.append(('llama', LLAMA_CAT,
                                (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
-                               'obj', MODEL, NORMALIZE))
+                               'obj_solo', MODEL, NORMALIZE))
 
     # for LLAMA_CAT in all_llama_cats:
     #     for LLAMA_LAYER in all_llama_layers:

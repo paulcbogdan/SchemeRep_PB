@@ -178,7 +178,7 @@ class LlamaActivationExtractor:
 
         # Print activations
         for key, d in self.attention_act.items():
-            if key == 'attn_weights':
+            if key == 'attn_weights' and len(target_indices) > 1:
                 out['attn'][key] = self._extract_target_attn_weights(d, target_indices[0],
                                                                      target_indices[1])
             else:

@@ -87,7 +87,8 @@ def get_context_pairs(items):
     scenes = df_sn['scene'].unique()
     scene2items = {}
     for scene in scenes:
-        scene2items[scene] = items
+        items_ = [item for item in items if item != scene]
+        scene2items[scene] = items_
     return scene2items
 
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
@@ -107,6 +108,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
         item2item1s = generate_comparison_pairs_d(tuple(items), quick)
         print(f'\t{item2item1s[items[0]]=}')
     already_did = set()  # ???
+    weird_scene_collisions = 0
     for i0_idx, item0 in enumerate(tqdm(items, desc='outer loop get llama')):
         if (quick is not None) or (quick == 'scenes'):
             items1 = item2item1s[item0]
@@ -185,14 +187,16 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                     if len(v.shape) > 1:
                         v = v.reshape(-1)
                 if idx_target == 0:  # sentence f'{item 0} and {item 1}'. focus on embedding: item0
-                    if (item0, item1, item0) in d_vecs:
+                    if (item0, item1, item0) in d_vecs and quick == 'scenes':
+                        weird_scene_collisions += 1
+                    elif (item0, item1, item0) in d_vecs:
                         raise ValueError
                     if quick == 'scenes':
                         d_vecs[(item1, item0, item0)] = v
                     else:
                         d_vecs[(item0, item1, item0)] = v
                 else:
-                    if (item0, item1, item1) in d_vecs:
+                    if (item0, item1, item1) in d_vecs and quick != 'scenes':
                         raise ValueError
                     if quick == 'scenes':
                         d_vecs[(item1, item0, item1)] = v
@@ -205,7 +209,11 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                     total = len(items) * quick
                 else:
                     total = len(items) * (len(items) - 1)
+                if quick == 'scenes':
+                    total = len(items) * len(item2item1s[items[0]])
                 print(f'{cnt=} / {total=}')
+    if quick == 'scenes':
+        print(f'{weird_scene_collisions=}')
     return d_vecs
 
 
