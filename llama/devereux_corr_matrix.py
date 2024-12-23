@@ -18,10 +18,10 @@ def make_corr_matrix(pf_thresh=300, quick=None):
     llama_RSM = get_deve_llama_RSM(llama_m, pf_thresh=pf_thresh, quick=quick)
 
     simCSE_m = get_dev_explore_BERT(bert_type='simCSE', st=2)
-    simCSE_RSM = get_deve_llama_RSM(simCSE_m, pf_thresh=pf_thresh, quick=quick)
+    simCSE_RSM = get_deve_llama_RSM(simCSE_m, pf_thresh=pf_thresh, quick=1,)
 
     BERT_m = get_dev_explore_BERT(bert_type='BERT', st=2)
-    BERT_RSM = get_deve_llama_RSM(BERT_m, pf_thresh=pf_thresh, quick=quick)
+    BERT_RSM = get_deve_llama_RSM(BERT_m, pf_thresh=pf_thresh, quick=1)
 
     w2v_RSM = get_w2v_deve_RSM(pf_thresh=pf_thresh)
     model_RSMs = [llama_RSM, simCSE_RSM, BERT_RSM, w2v_RSM]
@@ -36,6 +36,9 @@ def make_corr_matrix(pf_thresh=300, quick=None):
     human_RSMs = [type2RSM[feature_type] for feature_type in feature_types]
 
     trils = np.tril_indices_from(llama_RSM, k=-1)
+    # for RSM in model_RSMs + human_RSMs:
+    #     print(f'{RSM.shape=}')
+    # quit()
 
     RSMs_flats = np.array([RSM[trils] for RSM in model_RSMs + human_RSMs])
     t_st = time()
@@ -122,7 +125,7 @@ def make_feature_x_feature_matrix(pf_thresh=300,):
     # corrs[np.isnan(corrs)] = 0
     # corr = stats.spearmanr(RSMs_flats, nan_policy='omit').correlation
     # print(f'Time needed for correlation: {time() - t_st=:.2f} s')
-    plot_heatmap(corrs, labels, vmin=0, vmax=0.25, cmap='viridis',
+    plot_heatmap(corrs, labels, vmin=0, vmax=0.5, cmap='viridis',
                  title='RSM x RSM between different models')
 
 
@@ -131,5 +134,5 @@ if __name__ == '__main__':
     #                                     odd_even=0)
     # quit()
     # make_corr_matrix()
-    # make_corr_matrix_llama()
-    make_feature_x_feature_matrix()
+    make_corr_matrix_llama()
+    # make_feature_x_feature_matrix()

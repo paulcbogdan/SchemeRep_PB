@@ -27,12 +27,13 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
 
 def sn_attn_encoding(sn, region='PFC', local=True,
                      big_voxelwise=False,
-                     str_interaction=True):
+                     str_interaction=False):
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
-                                   st=12, end=20)
+                                   st=12, end=20
+                                   )
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,

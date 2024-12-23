@@ -40,7 +40,7 @@ def compare_depths(region='Str',
     #     t, p = stats.ttest_1samp(model_vals[i], 0)
     #     print(f'{model_str}: {t=:.3f}, {p=:.4f}')
 
-    t_mat = cross_t(model_vals)
+    t_mat = cross_t(model_vals, model_strs)
     plot_heatmap(t_mat, model_strs, region, attn)
 
 
@@ -65,31 +65,31 @@ def compare_llamas(region='Str',
     t_mat = cross_t(model_vals)
     plot_heatmap(t_mat, model_strs, region, attn)
 
-def compare_models(region='PFC', big_voxelwise=False, local=True,
+def compare_models(region='ITL', big_voxelwise=False, local=True,
                    # attn='all_minus_attn'
                    attn=False
                    ):
     llama2_7b = get_explore_llama(activation_model=r'meta-llama/Llama-2-7b-hf',
-                                  attn=attn, st=8)
+                                  attn=attn, st=12, end=13)
     llama32_3b = get_explore_llama(activation_model='meta-llama/Llama-3.2-3b',
-                                   attn=attn, st=8, do_M=False)
+                                   attn=attn, st=12, end=13, do_M=False)
     # llama33_70 = get_explore_llama(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
     #                                attn=attn, st=8)
     # llama33_70 = get_explore_llama(activation_model=(r'meta-llama/Llama-3.2-3b', 'grok_first'),
     #                                attn=attn, st=8)
     llama32_3b_M = get_explore_llama(activation_model='meta-llama/Llama-3.2-3b',
-                                     attn=attn, st=8, do_M=True)
+                                     attn=attn, st=12, end=13, do_M=True)
     # llama33_70 = get_explore_llama(activation_model=r'meta-llama/Llama-3.1-70b',
     #                                attn=attn, st=8)
-    BERT = get_explore_BERT('BERT', st=2)
-    simCSE = get_explore_BERT('simCSE', st=2)
+    BERT = get_explore_BERT('BERT', st=6, end=7)
+    simCSE = get_explore_BERT('simCSE', st=6, end=7)
     word2vec = True
 
     # models = [llama2_7b, llama31_3b, llama33_70, BERT, simCSE, word2vec]
     models = [llama32_3b, llama32_3b_M, BERT, simCSE, word2vec]
     model_strs = [retrieve_name(model)[0] for model in models]
     model_vals = run_models(models, model_strs, region, big_voxelwise, local)
-    t_mat = cross_t(model_vals)
+    t_mat = cross_t(model_vals, model_strs)
     plot_heatmap(t_mat, model_strs, region, attn)
 
 def run_models(models, model_strs, region, big_voxelwise, local,
@@ -108,7 +108,7 @@ def run_models(models, model_strs, region, big_voxelwise, local,
         model_vals.append(vals)
     return model_vals
 
-def cross_t(model_vals):
+def cross_t(model_vals, model_strs=None):
     t_mat = np.zeros((len(model_vals), len(model_vals)))
     for i, vals0 in enumerate(model_vals):
         for j, vals1 in enumerate(model_vals):
@@ -116,6 +116,13 @@ def cross_t(model_vals):
                 continue
             t, p = stats.ttest_rel(vals0, vals1)
             t_mat[i, j] = t
+            if model_strs is not None:
+                vals0_M = np.mean(vals0)
+                vals1_M = np.mean(vals1)
+                print(model_strs[i], f'({vals0_M:.3f})',
+                      'vs.',
+                      model_strs[j], f'({vals1_M:.3f})',
+                      f'{t=:.3f}')
     return t_mat
 
 def plot_heatmap(corr_t, region_labels, region=None, attn=None,

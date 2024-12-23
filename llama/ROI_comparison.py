@@ -3,7 +3,7 @@ from sympy.physics.vector import cross
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.model_settings import get_base_kw, get_explore_llama
+from llama.model_settings import get_base_kw, get_explore_llama, get_explore_BERT
 from llama.run_many_layers import run_layer
 from old.plot_gen import my_plot_surf
 from scipy import stats
@@ -88,52 +88,80 @@ def item_vs_attn_ROIs(combine_regions=False, st=8, end=None,
 
 def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
                  activation_model='meta-llama/Llama-3.2-3b',
-                 do_M=False, cross=True):
+                 do_M=False, obj_task=True):
     llama31_3b = get_explore_llama(activation_model,
                                    attn=attn, st=st, end=end,
-                                   do_M=do_M)
+                                   do_M=do_M, last_only=False)
     model = llama31_3b
+
+    # model = get_explore_BERT('simCSE', do_M=False, st=2, end=10)
     atlas = get_atlas(combine_regions=combine_regions)
     ROIs = atlas['ROIs']
 
     ts = []
     for ROI in ROIs:
-        if cross:
+        if obj_task:
             fps = 'obj'
-        elif do_M:
-            fps = 'non_obj'
         else:
-            fps = 'obj'
+            fps = 'non_obj'
+        # fps = ['con7_fMRI']
         kw = get_base_kw(ROI, model=model, fps=fps,
                          big_voxelwise=False, local=False)
         process_allow_misses(kw, ROI)
         t, vals = pickle_wrap(run_layer, kwargs=kw,
                               verbose=-1, easy_override=False,
                               dir_branches=100)
-        if np.abs(t) > 2:
-            print(f'{ROI}: {t=:.3f}')
+        # if np.abs(t) > 2:
+        print(f'{ROI}: {t=:.3f}')
         ts.append(t)
 
     vmax = np.quantile(np.abs(ts), 0.95)
     title = 'Attn' if attn else 'Item'
 
-    if cross:
-        title = 'Object embedding (one context)\n'
-        title += f'(layers {st} - {end})\n'
-        title += f'Non-encoding tasks only'
-        cmap = 'Greens'
-    elif do_M:
+
+    if do_M:
         title = 'Object embedding (scene averages)\n'
-        title += f'(layers {st} - {end})\n'
-        title += f'Non-encoding tasks'
-        cmap = 'hot'
-        cmap = 'Reds'
     else:
-        title = 'Object embedding (scene → object)\n'
-        title += f'(layers {st} - {end})\n'
-        title += f'Encoding task only'
-        cmap = 'Blues'
-    my_plot_surf(ts, atlas, title, vmax=vmax, thresh=2,
+        if fps == 'obj':
+            title = 'Object embedding (scene → object)\n'
+        else:
+            title = 'Object embedding (one scene)\n'
+
+    title += f'(layers {st} - {end})\n'
+    if isinstance(fps, list):
+        title = str(fps)
+        cmap = 'Purples'
+    elif fps == 'obj':
+        title += 'Encoding task'
+        if do_M:
+            cmap = 'Reds'
+        else:
+            cmap = 'Blues'
+    else:
+        if do_M:
+            cmap = 'Reds'
+        else:
+            cmap = 'Greens'
+        title += 'Non-encoding tasks'
+
+
+    # if cross:
+    #     title = 'Object embedding (one context)\n'
+    #     title += f'(layers {st} - {end})\n'
+    #     title += f'Non-encoding tasks only'
+    #     cmap = 'Greens'
+    # elif do_M:
+    #     title = 'Object embedding (scene averages)\n'
+    #     title += f'(layers {st} - {end})\n'
+    #     title += f'Non-encoding tasks'
+    #     cmap = 'hot'
+    #     cmap = 'Reds'
+    # else:
+    #     title = 'Object embedding (scene → object)\n'
+    #     title += f'(layers {st} - {end})\n'
+    #     title += f'Encoding task only'
+    #     cmap = 'Blues'
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
 
@@ -150,17 +178,15 @@ if __name__ == '__main__':
     # quit()
 
     for st in range(4, 20, tick):
+        run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
+                     do_M=False, obj_task=True)
+        continue
+        # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
+        #              do_M=True, obj_task=True)
+        # continue
+
         run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=False, cross=False)
+                     do_M=True, obj_task=False)
+        quit()
         run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=True, cross=False)
-        run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=True, cross=True)
-    # quit()
-    # ACTIVATION_MODEL = 'meta-llama/Llama-3.3-70b-Instruct'
-    # item_vs_attn_ROIs(combine_regions=False, activation_model=ACTIVATION_MODEL,
-    #                   st=8, end=16)
-    # quit()
-    # for st in range(8, 80, 8):
-    #     run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick)
-        # run_all_ROIs(eattn=False, activation_model=ACTIVATION_MODEL, st=st, end=st + tick)
+                     do_M=False, obj_task=False)

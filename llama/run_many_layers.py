@@ -104,37 +104,21 @@ def run_many_layers(big_voxelwise=True, attn=False,
     target_ROIs = ['Occipital', 'ITL', 'PFC'] # 'Parietal',
 
     ALL_RESULTS = defaultdict(list)
-
-    target_roi2baddies = defaultdict(list)
-    semantic_l = get_explore_BERT()
-    semantic_l = [True]
-    semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-2-7b-hf',
-                                   attn=False)
-    # semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
-    #                                attn=False)
-    # semantic_l = get_explore_llama(activation_model=(r'meta-llama/Llama-3.2-3b', 'grok_first'),
-    #                                attn=False)
-    # semantic_l = get_explore_llama(activation_model=(r'meta-llama/Llama-3.2-3b', 'grok_first'),
-    #                                attn=False)
-    # semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-    #                                attn=attn,
-    #                                do_M='obj_dif'
-    #                                )
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn='attn_output', do_M=False,
+                                   attn=False, do_M=False, last_only=False,
                                    )
-    # if not attn:
-    #     semantic_l_ = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-    #                                    attn=attn, do_M=True)
-    # semantic_l += semantic_l_
-    # semantic_l = get_explore_BERT('BERT')
-    # semantic_l = get_explore_BERT('simCSE', do_M=True)
+    semantic_l_M = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+                                   attn=False, do_M=True, last_only=False
+                                   )
+    semantic_l += semantic_l_M
 
-    # semantic_l = semantic_l[5::6]
-    semantic_l = semantic_l[::-1]
-    # fps_do = 'non_obj'
-    fps_do = 'obj'
-    # fps_do = 'all'
+    semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
+    semantic_l += semantic_l_BERT
+    semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
+    semantic_l += semantic_l_BERT
+
+    # fps_do = 'obj'
+    fps_do = 'non_obj'
 
     for semantic in semantic_l:
         # print(f'{semantic=}')
@@ -152,7 +136,10 @@ def run_many_layers(big_voxelwise=True, attn=False,
             # THERE IS SOME FUNKINESS SOMETIMES WITH RANDOM LOW
             # THERE MUST BE RUN_LAYER GETTING OVERRIDDEN SOMEHOW
             if ctrl_contex:
-                if isinstance(semantic, list):
+                if semantic[1] in ['attn_weights', 'attn_output']:
+                    ctrl = (semantic[0], 'gate_proj_in', semantic[2],
+                                'obj', semantic[4], semantic[5])
+                elif isinstance(semantic, list):
                     raise ValueError
                 else:
                     if semantic[3] == 'obj':
@@ -163,6 +150,8 @@ def run_many_layers(big_voxelwise=True, attn=False,
                                 'obj', semantic[4], semantic[5])
             else:
                 ctrl = None
+
+
             kw['ctrl'] = ctrl
 
             import zlib
@@ -196,13 +185,33 @@ def plot_all_results(all_results, subtitle=''):
                 label = module_type
                 if 'obj' in c_dict:
                     values = c_dict['obj']
-                else:
+                    color = 'green'
+                    layer_nums = np.array(list(range(len(values)))) * 2
+                    if 'obj_M' in c_dict:
+                        label = label if j == 0 else None
+                    else:
+                        label = f'{label}\n(scene → object)' if j == 0 else None
+                    color = 'olive' if module_type == 'BERT' else 'limegreen'
+                    plt.plot(layer_nums, values, label=label,
+                             color=color, marker='o',
+                             # color='olive' if module_type == 'BERT' else 'limegreen',
+                             linewidth=3)
+                    high = np.max([high, np.max(values)])
+
+                if 'obj_M' in c_dict:
+                    color = 'olive'
                     values = c_dict['obj_M']
-                layer_nums = np.array(list(range(len(values)))) * 2
-                plt.plot(layer_nums, values, label=label if j == 0 else None,
-                         color='olive' if module_type == 'BERT' else 'limegreen',
-                         linewidth=3)
-                high = np.max([high, np.max(values)])
+                    layer_nums = np.array(list(range(len(values)))) * 2
+                    if 'obj' in c_dict:
+                        label = f'{label}\n(scene averages)' if j == 0 else None
+                    else:
+                        label = f'{label}' if j == 0 else None
+                    color = 'olive' if module_type == 'BERT' else 'limegreen'
+                    plt.plot(layer_nums, values, label=label,
+                             color=color, marker='o',
+                             # color='olive' if module_type == 'BERT' else 'limegreen',
+                             linewidth=3)
+                    high = np.max([high, np.max(values)])
 
             elif 'obj' in c_dict or 'obj_dif' in c_dict:
                 print('TOAST')
@@ -219,7 +228,7 @@ def plot_all_results(all_results, subtitle=''):
                 layer_nums = np.array(list(range(len(values))))
                 color = 'purple' if 'attn' in module_type else 'dodgerblue'
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
-                         color=color, linewidth=3)
+                         color=color, linewidth=3, marker='o',)
                 high = np.max([high, np.max(values)])
             elif 'scn' in c_dict:
                 print('TOAST')
@@ -236,7 +245,7 @@ def plot_all_results(all_results, subtitle=''):
                 layer_nums = np.array(list(range(len(values))))
                 # color = 'purple' if 'attn' in module_type else 'dodgerblue'
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
-                         color='orange', linewidth=3)
+                         color='orange', linewidth=3, marker='o')
                 high = np.max([high, np.max(values)])
 
             if ('obj_M' in c_dict and not
@@ -245,7 +254,7 @@ def plot_all_results(all_results, subtitle=''):
                 values = c_dict['obj_M']
                 layer_nums = np.array(list(range(len(values))))
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
-                         color='red', linewidth=3)
+                         color='red', linewidth=3, marker='o')
                 high = np.max([high, np.max(values)])
 
         plt.yticks([0, 2, 4, 6, 8, 10, 12])
@@ -260,7 +269,7 @@ def plot_all_results(all_results, subtitle=''):
 
     fig.legend(loc='lower center', ncol=2, frameon=False)
     if len(b_dict) == 1:
-        plt.subplots_adjust(bottom=0.11, top=0.91, right=0.95, left=0.08,
+        plt.subplots_adjust(bottom=0.13, top=0.91, right=0.95, left=0.08,
                             hspace=.4)
     else:
         plt.subplots_adjust(bottom=0.18, top=0.91, right=0.95, left=0.08,

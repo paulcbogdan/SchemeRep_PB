@@ -66,6 +66,7 @@ class DetailedSimCSEEmbedder:
         for (word_idx, num_words) in word_idxs_all:
             idx_st = word_idx
             idx_end = word_idx + num_words
+            # TODO: can change this to no longer average...
             activations = np.array([hidden_states[i].cpu().numpy()[0, idx_st:idx_end, :]
                                     for i in range(len(hidden_states))])
             activations = np.nanmean(activations, axis=1) # average across idxs of a given word

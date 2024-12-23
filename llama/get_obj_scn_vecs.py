@@ -44,11 +44,17 @@ def get_sentence_obj_scn_in(obj, scn):
     else:
         scene_part = f'{scn2grammar[scn]} {scn},'
 
-    if not pd.isna(obj2override[obj]):
+    schemerep_objs = get_schemerep_objs()
+    deve = obj not in schemerep_objs
+    if deve:
+        if obj.lower() in ['a', 'e', 'i', 'o', 'u']:
+            object_part = f'an {obj}'
+        else:
+            object_part = f'a {obj}'
+    elif not pd.isna(obj2override[obj]):
         object_part = obj2override[obj]
     else:
         object_part = f'{obj2grammar[obj]} {obj}'
-
 
     sentence = f'{scene_part} {object_part}'
     if scn == 'inside of a car':
@@ -61,6 +67,12 @@ def get_sentence_obj_scn_in(obj, scn):
         obj = 'oversized tire'
 
     return sentence, obj, scn
+
+@cache
+def get_schemerep_objs():
+    df_sn = get_trial_info('102')
+    objs = df_sn['obj'].unique()
+    return set(objs)
 
 def get_llama_activations(obj, scn,
                           activation_model='meta-llama/Llama-3.2-1b',):
@@ -118,18 +130,12 @@ def get_llama_activations(obj, scn,
                         for idx in range(2):
                             reses_val = []
                             for res_ in reses:
-                                # print(f'- {outer}/{inner} -')
-                                # print(f'{res_[outer][inner][layer_num][idx].shape=}')
                                 if inner == 'attn_weights':
                                     reses_val.append(np.nanmean(res_[outer][inner][layer_num][idx],
                                                                 axis=(0, 1), keepdims=True))
                                 else:
                                     reses_val.append(np.nanmean(res_[outer][inner][layer_num][idx],
                                                                 axis=0, keepdims=True))
-                                # print(f'{reses_val[-1].shape=}')
-                                # print(f'{res_[outer][inner][layer_num][idx].shape=}')
-                            # reses_val = [res_[outer][inner][layer_num][idx] for res_ in reses]
-                            # print(f'{np.array(reses_val).shape=}')
                             res[outer][inner][layer_num].append(np.nanmean(reses_val, axis=0))
         else:
             raise ValueError
@@ -170,12 +176,12 @@ def process_cat_cat_inner(cat):
 def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                                 activation_model='meta-llama/Llama-3.2-1b',
                                 all_possible=False):
+    if isinstance(layer_name, tuple):
+        last_only = layer_name[1]
+        layer_name = layer_name[0]
     cat_, inner = process_cat_cat_inner(cat)
     print('getting llama d_vecs no norming...')
 
-    # sns = get_sns('all')['healthy']
-    # bad_sns = ['116', '125', '133', '213', '215', '231']
-    # sns = [sn for sn in sns if sn not in bad_sns]
     sns = ['102', '103', '104'] # everyone else is a duplicate
     already_done = set()
     scn_objs = []
@@ -231,10 +237,16 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                 # idx0 is the object passed
                 # idx1 is the scene passed
                 if cat == 'attn_weights':
-                    v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
-                                   axis=(0, 1))
+                    if last_only:
+                        v = res['attn']['attn_weights'][layer_name][idx_target][-1, -1]
+                    else:
+                        v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
+                                       axis=(0, 1))
                 else:
-                    v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
+                    if last_only:
+                        v = res[inner][cat_][layer_name][idx_target][-1]
+                    else:
+                        v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
                     if len(v.shape) > 1:
                         v = v.reshape(-1) # reshapes q_proj, k_proj, v_proj
                                           # which are (attn_heads, vector)
@@ -425,56 +437,22 @@ def get_sn_fp_llama_RSM_(sn, fp, semantic_tup, dist='spear', within_to_nan=True,
             replace('7', '').replace('8', ''))
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
 
-    if isinstance(semantic_tup[1], list) or isinstance(semantic_tup[1], tuple) \
-            or isinstance(semantic_tup[2], list) or isinstance(semantic_tup[2], tuple):
-        raise ValueError
-        if isinstance(semantic_tup[1], str):
-            tup1 = [semantic_tup[1]]
-        else:
-            tup1 = semantic_tup[1]
-        if isinstance(semantic_tup[2], str):
-            tup2 = [semantic_tup[2]]
-        else:
-            tup2 = semantic_tup[2]
-        # print(semantic_tup)
-        do_tups = []
-        for val_i in tup1:
-            for val_j in tup2:
-                do_tups.append((val_i, val_j))
+    # if isinstance(semantic_tup[1], tuple):
+    #     cat_ = semantic_tup[1][0]
+    # else:
+    #     cat_ = semantic_tup[1]
+    cat_ = semantic_tup[1]
+    all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif',
+                                               'scn_M'] else False
 
-        d_vecs = defaultdict(list)
-        for val_i, val_j in do_tups:
-            # if isinstance(val_i, tuple):
-            #     val_i = val_i[0]
-
-            d_vecs_ = pickle_wrap(get_llama_d_vecs, kwargs={'cat': val_i,
-                                                            'layer_name': val_j,
-                                                            'normalize': normalize,
-                                                            'activation_model': activation_model,
-                                                            'all_possible': all_possible,
-                                                            },
-                                 easy_override=False, verbose=-1,
-                                 RAM_cache=True)
-            for key, val in d_vecs_.items():
-                d_vecs[key].extend(val.tolist())
-        d_vecs = {key: np.array(val) for key, val in d_vecs.items()}
-    else:
-        # if isinstance(semantic_tup[1], tuple):
-        #     cat_ = semantic_tup[1][0]
-        # else:
-        #     cat_ = semantic_tup[1]
-        cat_ = semantic_tup[1]
-        all_possible = True if semantic_tup[3] in ['obj_M', 'obj_dif',
-                                                   'scn_M'] else False
-
-        d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat_,
-                                                       'layer_name': semantic_tup[2],
-                                                       'normalize': normalize,
-                                                       'activation_model': activation_model,
-                                                       'all_possible': all_possible,
-                                                       },
-                             easy_override=False, verbose=-1,
-                             RAM_cache=True)
+    d_vecs = pickle_wrap(get_llama_d_vecs, kwargs={'cat': cat_,
+                                                   'layer_name': semantic_tup[2],
+                                                   'normalize': normalize,
+                                                   'activation_model': activation_model,
+                                                   'all_possible': all_possible,
+                                                   },
+                         easy_override=False, verbose=-1,
+                         RAM_cache=True)
     first_d_vec = list(d_vecs.keys())[0]
     # print(len(d_vecs))
     # print(list(d_vecs))
@@ -608,22 +586,31 @@ if __name__ == '__main__':
 
     all_llama_cats = ['gate_proj_in']
     all_llama_cats = ['attn_weights']
-    all_llama_cats = ['attn_output']
+    # all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
 
     # MODEL = (MODEL, 'grok_first')
     NORMALIZE = True
+    LAST_ONLY = True
 
     for LLAMA_CAT in all_llama_cats:
         for LLAMA_LAYER in all_llama_layers:
-            # if LLAMA_CAT in ['attn_weights', 'attn_output']:
-            #     SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn', MODEL,
-            #                        NORMALIZE))
-            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'obj_M', MODEL,
-                               NORMALIZE))
-            SEMANTIC_L.append(('llama', LLAMA_CAT, LLAMA_LAYER, 'scn_M', MODEL,
-                               NORMALIZE))
+            if LLAMA_CAT in ['attn_weights', 'attn_output']:
+                SEMANTIC_L.append(('llama', LLAMA_CAT,
+                                   (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+                                   'scn', MODEL, NORMALIZE))
+            SEMANTIC_L.append(('llama', LLAMA_CAT,
+                               (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+                               'obj', MODEL, NORMALIZE))
+
+    # for LLAMA_CAT in all_llama_cats:
+    #     for LLAMA_LAYER in all_llama_layers:
+    #         SEMANTIC_L.append(('llama', LLAMA_CAT, (LLAMA_LAYER, True), 'obj_M', MODEL,
+    #                            NORMALIZE))
+    #         SEMANTIC_L.append(('llama', LLAMA_CAT, (LLAMA_LAYER, True), 'scn_M', MODEL,
+    #                            NORMALIZE))
+
     RAM_CACHE_LLAMA = True
 
     for SEMANTIC in SEMANTIC_L:

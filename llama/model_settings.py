@@ -4,7 +4,7 @@ from functools import cache
 @cache
 def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                       attn=False, normalize=True, st=0, end=None,
-                      do_prod=False, do_M=False):
+                      do_prod=False, do_M=False, last_only=False):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
@@ -37,6 +37,8 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
 
     semantic_l = []
     for llama_layer in all_llama_layers:
+        if last_only:
+            llama_layer = (llama_layer, True)
         for llama_cat in all_llama_cats:
             if isinstance(do_M, str):
                 semantic_l.append(('llama', llama_cat, llama_layer, do_M, activation_model,
@@ -48,17 +50,17 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                 semantic_l.append(('llama', llama_cat, llama_layer, 'prod', activation_model,
                                    normalize))
             else:
-                if llama_cat in ['attn_weights', 'attn_output']:
-                    semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
-                                       normalize))
+                # if llama_cat in ['attn_weights', 'attn_output']:
+                #     semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                #                        normalize))
                 semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
                                    normalize))
 
     return semantic_l
 
 
-def get_explore_BERT(bert_type='BERT', st=0, do_M=False):
-    layers = list(range(st, 13))
+def get_explore_BERT(bert_type='BERT', st=0, end=13, do_M=False):
+    layers = list(range(st, end))
     semantic_l = []
     normalize = True
     for layer in layers:

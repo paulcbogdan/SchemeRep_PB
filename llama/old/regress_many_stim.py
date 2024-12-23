@@ -66,8 +66,6 @@ def regr_fMRI_on_many_stim_all_sn(region, stim_l, separate=False,
     bad_sns = ['116', '125', '133', '213', '215', '231']
 
     fps = ['bl7_fMRI', 'obj7_fMRI', 'con7_fMRI',  'vis7_fMRI' ]
-    # fps = ['obj7_fMRI']
-    # fps = ['bl7_fMRI', 'con7_fMRI', 'vis7_fMRI']
 
     betas = np.full((len(sns), len(fps), len(stim_l)), np.nan)
 

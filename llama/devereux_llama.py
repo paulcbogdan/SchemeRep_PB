@@ -6,13 +6,15 @@ from time import time
 import numpy as np
 import pandas as pd
 from nltk.misc.sort import quick
+from sympy.combinatorics import symmetric
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.BERT_vecs import get_BERT_extractor, get_simCSE_extractor
 from llama.devereux_get_quick_lists import generate_comparison_pairs_d
-from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner
+from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner, get_llama_activations
 from llama.model_settings import get_explore_llama
+from organize_bhv import get_trial_info
 
 # import matplotlib.pyplot as plt
 
@@ -80,22 +82,33 @@ def get_quick_items(items, quick, flip=False):
     return items, items_mat
 
 
+def get_context_pairs(items):
+    df_sn = get_trial_info('102')
+    scenes = df_sn['scene'].unique()
+    scene2items = {}
+    for scene in scenes:
+        scene2items[scene] = items
+    return scene2items
 
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       cat='input', layer_name=1,
-                                      activation_model='meta-llama/Llama-3.2-3b-Instruct',
+                                      activation_model='meta-llama/Llama-3.2-3b',
                                       quick=5):
+    print(f'{symmetric=}')
     print(f'Getting llama d vecs for {cat}/{layer_name}')
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
-    if quick:
+    if quick == 'scenes':
+        item2item1s = get_context_pairs(items)
+        items = list(item2item1s.keys())
+    elif quick:
         print(f'Grabbing pairs for: {len(items)=}, {quick=}')
         item2item1s = generate_comparison_pairs_d(tuple(items), quick)
         print(f'\t{item2item1s[items[0]]=}')
     already_did = set()  # ???
     for i0_idx, item0 in enumerate(tqdm(items, desc='outer loop get llama')):
-        if quick:
+        if (quick is not None) or (quick == 'scenes'):
             items1 = item2item1s[item0]
         else:
             items1 = items
@@ -104,30 +117,41 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                 if quick:
                     raise ValueError(f'{item0=} ({i0_idx}) {item1=} ({i1_idx})')
                 continue
-            if symmetric and (quick is None):
-                if item0 > item1:
-                    continue
+            # if symmetric and (quick is None):
+            #     if item0 > item1:
+            #         continue
             if (item0, item1) in already_did:
                 # print('Should never trigger')
                 continue
             already_did.add((item0, item1))
-            res, fp = pickle_wrap(get_llama_activations_deve,
-                                  kwargs={'item0': item0, 'item1': item1,
-                                          'activation_model': activation_model},
-                                  easy_override=False, verbose=-1, dir_branches=100,
-                                  RAM_cache=True, get_fp=True)
-            # print(list(res['attn']))
-            # if cat_ == ''
-
+            # print(item0, item1)
+            if quick == 'scenes':
+                res, fp = pickle_wrap(get_llama_activations,
+                                          kwargs={'obj': item1, 'scn': item0,
+                                                  'activation_model': activation_model},
+                                          easy_override=False, verbose=-1, dir_branches=100,
+                                          RAM_cache=True, get_fp=True
+                                          )
+            else:
+                res, fp = pickle_wrap(get_llama_activations_deve,
+                                      kwargs={'item0': item0, 'item1': item1,
+                                              'activation_model': activation_model},
+                                      easy_override=False, verbose=-1, dir_branches=1000,
+                                      RAM_cache=True, get_fp=True)
 
             if 'mlp_out' in res:# or 'attn_output' in res['attn']:
                 # if 'mlp_out' in res:
                 del res['mlp_out']
-                del res['mlp_in']['down_proj']
-                del res['mlp_in']['up_proj']
-                del res['mlp_in']['act_fn']
-                del res['attn']['q_proj']
-                del res['attn']['k_proj']
+                if 'down_proj' in res['mlp_in']:
+                    del res['mlp_in']['down_proj']
+                if 'up_proj' in res['mlp_in']:
+                    del res['mlp_in']['up_proj']
+                if 'act_fn' in res['mlp_in']:
+                    del res['mlp_in']['act_fn']
+                if 'q_proj' in res['attn']:
+                    del res['attn']['q_proj']
+                if 'k_proj' in res['attn']:
+                    del res['attn']['k_proj']
 
                 with open(fp, 'wb') as f:
                     pickle.dump(res, f)
@@ -135,7 +159,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             # clean up the res dict. BERT/simCSE won't have dicts here
             if isinstance(res, dict):
                 for inner_, d in res.items():
-                    if inner_ in ['mlp_out', 'mlp_in', 'attn']:
+                    if inner_ in ['mlp_out', 'mlp_in', 'attn']: #
                         del_keys = []
                         for outer in d.keys():
                             if outer != cat_:
@@ -146,28 +170,41 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             for idx_target in [0, 1]:
                 if activation_model in ['BERT', 'simCSE']:
                     v = res[idx_target][layer_name]
-                elif cat in 'attn_weights':
+                elif cat in ['attn_weights']:
+                    if symmetric:
+                        raise ValueError
                     v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
                                    axis=(0, 1))
                 else:
-                    v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
+                    assert len(res[inner][cat_][layer_name]) == 2
+                    # TODO: maybe could try only taking the last embedding of a split word
+                    if symmetric:
+                        v = res[inner][cat_][layer_name][idx_target][-1]
+                    else:
+                        v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
                     if len(v.shape) > 1:
                         v = v.reshape(-1)
                 if idx_target == 0:  # sentence f'{item 0} and {item 1}'. focus on embedding: item0
-                    d_vecs[(item0, item1, item0)] = v
-                    if symmetric:
+                    if (item0, item1, item0) in d_vecs:
+                        raise ValueError
+                    if quick == 'scenes':
                         d_vecs[(item1, item0, item0)] = v
+                    else:
+                        d_vecs[(item0, item1, item0)] = v
                 else:
-                    d_vecs[(item0, item1, item1)] = v
-                    if symmetric:
+                    if (item0, item1, item1) in d_vecs:
+                        raise ValueError
+                    if quick == 'scenes':
                         d_vecs[(item1, item0, item1)] = v
+                    else:
+                        d_vecs[(item0, item1, item1)] = v
+
             cnt += 1
-            if cnt % 100 == 0:
+            if cnt % 1000 == 0:
                 if quick:
                     total = len(items) * quick
                 else:
                     total = len(items) * (len(items) - 1)
-                    total = total // 2 if symmetric else total
                 print(f'{cnt=} / {total=}')
     return d_vecs
 
@@ -224,16 +261,18 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
         df = df[df['concept'].isin(items)]
 
     items = df['concept'].unique()
+
     return items, df
 
 
 
-def get_llama_d_vecs_non_normed_deve(pf_thresh=250, cat='input', layer_name=1,
+def get_llama_d_vecs_non_normed_deve(pf_thresh=300, cat='gate_proj_in', layer_name=1,
                                      activation_model='meta-llama/Llama-3.2-3b',
-                                     quick=5, item_standard='deve'):
+                                     quick=None, item_standard='deve',
+                                     symmetric=False):
     items, _ = get_standard_items_list(pf_thresh, item_standard=item_standard)
     d_vecs, fp = pickle_wrap(get_llama_d_vecs_non_normed_deve_,
-                         kwargs={'items': items, 'symmetric': False,
+                         kwargs={'items': items, 'symmetric': symmetric,
                                  'cat': cat, 'layer_name': layer_name,
                                  'activation_model': activation_model,
                                  'quick': quick,},
@@ -244,10 +283,12 @@ def get_llama_d_vecs_non_normed_deve(pf_thresh=250, cat='input', layer_name=1,
 
 def get_llama_d_vecs_deve(pf_thresh=250, cat='input', layer_name=1,
                           activation_model='meta-llama/Llama-3.2-1b',
-                          normalize=True, quick=5, item_standard='deve'):
+                          normalize=True, quick=5, item_standard='deve',
+                          symmetric=False):
     d_vecs = get_llama_d_vecs_non_normed_deve(pf_thresh, cat, layer_name,
                                               activation_model,
-                                              quick, item_standard)
+                                              quick, item_standard,
+                                              symmetric)
     if isinstance(normalize, bool) and normalize:
         vecs_ar = np.array([v for v in d_vecs.values()])
         M = np.nanmean(vecs_ar, axis=0)
@@ -260,38 +301,30 @@ def get_llama_d_vecs_deve(pf_thresh=250, cat='input', layer_name=1,
     return d_vecs
 
 
-def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve'):
-    # if semantic_l[-1] == 'delta':
-    #     RSM0 = pickle_wrap(get_deve_llama_RSM,
-    #                        kwargs={'semantic': semantic_l[0], 'pf_thresh': pf_thresh,
-    #                                'quick': quick, 'item_standard': item_standard},
-    #                        easy_override=False, verbose=-1)
-    #     RSM1 = pickle_wrap(get_deve_llama_RSM,
-    #                        kwargs={'semantic': semantic_l[1], 'pf_thresh': pf_thresh,
-    #                                   'quick': quick, 'item_standard': item_standard},
-    #                        easy_override=False, verbose=-1)
-    #     RSM = RSM0 - RSM1
-    # else:
+def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve',
+                         symmetric=False):
     all_RSM = []
     for semantic in semantic_l:
         RSM = pickle_wrap(get_deve_llama_RSM,
                           kwargs={'semantic': semantic, 'pf_thresh': pf_thresh,
-                                  'quick': quick, 'item_standard': item_standard},
-                          easy_override=True, verbose=-1)
+                                  'quick': quick, 'item_standard': item_standard,
+                                  'symmetric': symmetric},
+                          easy_override=False, verbose=-1)
         all_RSM.append(RSM)
     RSM = np.nanmean(all_RSM, axis=0)
     return RSM
 
 
-def get_deve_llama_RSM(semantic, pf_thresh=100,
-                       quick=5, item_standard='deve',
-                       position=None
+def get_deve_llama_RSM(semantic, pf_thresh=100, quick=5, item_standard='deve',
+                       position=None, symmetric=False
                        ):
 
     if isinstance(semantic, list):
         RSM = pickle_wrap(get_deve_llama_RSM_l,
                           kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh,
-                                  'quick': quick, 'item_standard': item_standard},
+                                  'quick': quick, 'item_standard': item_standard,
+                                  'symmetric': symmetric
+                                  },
                           easy_override=False, verbose=1)
     elif isinstance(semantic, tuple):
         cat = semantic[1]
@@ -305,10 +338,11 @@ def get_deve_llama_RSM(semantic, pf_thresh=100,
                                   'normalize': normalize,
                                   'quick': quick,
                                   'item_standard': item_standard,
-                                  'position': position
+                                  'position': position,
+                                  'symmetric': symmetric
                                   # 'only_second': only_second
                                   },
-                          easy_override=False, verbose=1)
+                          easy_override=True, verbose=1)
     else:
         raise ValueError
     return RSM
@@ -329,7 +363,7 @@ def get_item_prod_sum(items, cat, items_M_vecs):
 def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                       activation_model='meta-llama/Llama-3.2-3b',
                       normalize=True, quick=5, item_standard='deve',
-                      position=None):
+                      position=None, symmetric=False):
     # if position is not None:
     #     assert quick is None
     cat_ = cat if isinstance(cat, str) else cat[0]
@@ -339,7 +373,9 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                                  'activation_model': activation_model,
                                  'normalize': normalize,
                                  'quick': quick,
-                                 'item_standard': item_standard},
+                                 'item_standard': item_standard,
+                                 'symmetric': symmetric
+                                 },
                          easy_override=False, verbose=-1)
     print(f'\tGathered d_vecs ({quick=})')
     items, _ = get_standard_items_list(pf_thresh)
@@ -348,12 +384,18 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
         item2keys = defaultdict(list)
         for (order0, order1, item), v in d_vecs.items():
             if position is None:
+                # if item == 'yoyo':
+                #     print(f'{(order0)}, {(order1)}, {(item)}: {v[:4]=}')
                 item2keys[item].append((order0, order1, item))
             elif position == 0:
                 if order0 == item:
+                    # if item == 'ambulance':
+                    #     print(f'{order0=}, {item=}: {v[:4]=}')
                     item2keys[item].append((order0, order1, item))
             elif position == 1:
                 if order1 == item:
+                    # v = d_vecs[(order0, order1, item)]
+
                     item2keys[item].append((order0, order1, item))
             elif position == 'flip':
                 if order1 == item:
@@ -366,7 +408,10 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
 
         items_M_vecs = []
         for item in items:
+            # print(item)
             item_vecs = np.array([d_vecs[key] for key in item2keys[item]])
+            # print(item_vecs)
+            # quit()
             item_vecs[np.isinf(item_vecs)] = np.nan
             M_vec = np.nanmean(item_vecs, axis=0)
             items_M_vecs.append(M_vec)
@@ -378,6 +423,8 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                 v = np.nan_to_num(v, nan=M)
             items_M_vecs_.append(v)
         items_M_vecs = np.array(items_M_vecs_)
+        # print(items_M_vecs)
+        # quit()
         if isinstance(cat, tuple):
             assert cat[1] in ['item_sum', 'item_prod']
             vecs = get_item_prod_sum(items, cat, items_M_vecs)
@@ -400,22 +447,25 @@ def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
                         normalize=True,
                         quick=5, item_standard='deve',
                         position=None,
-                        # only_second=True
+                        symmetric=False,
                         ):
     if isinstance(quick, tuple):
         quick0 = quick[0]
         quick1 = quick[1]
         vecs0 = get_llama_vecs_ar(pf_thresh, cat, layer_name,
                                   activation_model, normalize, quick0, item_standard,
-                                  position)
+                                  position, symmetric)
+        if isinstance(quick1, tuple):
+            position = quick1[1]
+            quick1 = quick1[0]
         vecs1 = get_llama_vecs_ar(pf_thresh, cat, layer_name,
                                   activation_model, normalize, quick1, item_standard,
-                                  position)
+                                  position, symmetric)
         vecs = vecs0 - vecs1
     else:
         vecs = get_llama_vecs_ar(pf_thresh, cat, layer_name,
                                  activation_model, normalize, quick, item_standard,
-                                 position)
+                                 position, symmetric)
     RSM = np.corrcoef(vecs)
     return RSM
 
@@ -423,7 +473,7 @@ def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
 def get_dev_explore_BERT(bert_type='BERT', st=0):
     layers = list(range(st, 13))
     semantic_l = []
-    normalize = True
+    normalize = False
     for layer in layers:
         semantic = ('BERT', bert_type, layer, 'obj', bert_type, normalize)
         semantic_l.append(semantic)
@@ -435,42 +485,37 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
                                pf_thresh=300, quick=None, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
-    # llama31_3b = get_explore_llama(activation_model=activation_model,
-    #                                attn='attn_output', st=0)
     llama31_3b = get_explore_llama(activation_model=activation_model,
-                                   attn=False, st=0)
-    models = llama31_3b
+                                   attn=False, st=0, normalize=False)
+    # llama31_3b1 = get_explore_llama(activation_model=activation_model,
+    #                                attn='attn_output', st=0)
+    models = llama31_3b# + llama31_3b1
 
-    # TODO: attn_outpuut
-    # llama31_3b_output = get_explore_llama(activation_model=activation_model,
-    #                                       attn='attn_output', st=0)
-    # models += llama31_3b_output
-    #
-    # llama31_3b = get_explore_llama(activation_model=activation_model,
-    #                                attn=False, st=0)
-    # models += llama31_3b
-
-    # models = get_dev_explore_BERT('BERT')
-    # models = models + models_
-    # models = get_dev_explore_BERT('simCSE')
-    # models = models + models_
-    # models = models + models_simCSE
-    # llama31_3b_attn = get_explore_llama(activation_model=activation_model,
-    #                                     attn=True, st=0)
-    # models = [llama31_3b, llama31_3b_attn]
+    models_BERT = get_dev_explore_BERT('BERT')
+    models_simCSE = get_dev_explore_BERT('simCSE')
+    models = models + models_BERT + models_simCSE
     for model in models:
         get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-                           quick=quick, item_standard=item_standard)
-    # get_deve_llama_RSM(models, pf_thresh=pf_thresh,
-    #                    quick=quick, item_standard=item_standard)
+                           quick=quick, item_standard=item_standard,
+                           symmetric=False)
 
 
 if __name__ == '__main__':
-    prep_all_llama_d_vecs_deve(quick=1)
+    # res, fp = pickle_wrap(get_llama_activations_deve,
+    #                       kwargs={'item0': 'ambulance', 'item1': 'yoyo',
+    #                               'activation_model': 'meta-llama/Llama-3.2-3b'},
+    #                       easy_override=False, verbose=-1, dir_branches=1000,
+    #                       RAM_cache=True, get_fp=True)
+    # print(res['attn']['attn_weights'][4])
+    # print('----------')
+    # print(res['attn']['attn_weights'][5])
+    # quit()
+    prep_all_llama_d_vecs_deve(quick='scenes')
 
     # prep_all_llama_d_vecs_deve()
     # prep_all_llama_d_vecs_deve(quick=4)
     # prep_all_llama_d_vecs_deve(quick=50)
+    # prep_all_llama_d_vecs_deve(quick=1)
 
     # TODO: Try Llama-3.2-1b
 

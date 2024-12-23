@@ -146,7 +146,8 @@ def features_benefiting_from_context(st=4, end=14, pf_thresh=300,
     # harp: IRAF=462.9
     # scissors: IRAF=441.5
 
-def get_vecs_alt_context(items, d_vecs, vecs_all_M, zscore=True):
+def get_vecs_alt_context(items, d_vecs, vecs_all_M, zscore=True,
+                         position=None):
     vecs_alt = []
     for context in items:
         if context == 'cigar':
@@ -161,8 +162,9 @@ def get_vecs_alt_context(items, d_vecs, vecs_all_M, zscore=True):
                 vec1 = np.full(3072, np.nan)
             else:
                 vec1 = d_vecs[(context, item1, item1)]
-                vec1_flip = d_vecs[(item1, context, item1)]
-                vec1 = np.nanmean([vec1, vec1_flip], axis=0)
+                if position is None:
+                    vec1_flip = d_vecs[(item1, context, item1)]
+                    vec1 = np.nanmean([vec1, vec1_flip], axis=0)
             vec1 -= vecs_all_M[i]
             vecs_alt_context.append(vec1)
         vecs_alt.append(vecs_alt_context)
@@ -179,7 +181,8 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                         activation_model='meta-llama/Llama-3.2-3b',
                         normalize=True, quick=None,
                         feature_type='functional',
-                        context_specific=True):
+                        context_specific=True,
+                        position=1, symmetric=False):
     # vecs_all_M = get_llama_vecs_ar(pf_thresh, cat, layer_name,
     #                                activation_model, normalize,
     #                                quick=None)
@@ -191,9 +194,13 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                                      'activation_model': activation_model,
                                      'normalize': normalize,
                                      'quick': quick,
+                                     'symmetric': symmetric
                                      },
                              easy_override=False, verbose=-1)
-    idx_target = list(items).index(target_item)
+    try:
+        idx_target = list(items).index(target_item)
+    except ValueError:
+        return [np.nan]
 
     d_vecs = pickle_wrap(get_llama_d_vecs_deve,
                          kwargs={'pf_thresh': pf_thresh, 'cat': cat,
@@ -201,6 +208,7 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                                  'activation_model': activation_model,
                                  'normalize': normalize,
                                  'quick': quick,
+                                 'symmetric': symmetric
                                  },
                          easy_override=False, verbose=-1)
 
@@ -215,8 +223,9 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
                 vec = np.full(vec_len, np.nan)
             else:
                 vec = d_vecs[(context, target_item, target_item)]
-                vec_flip = d_vecs[(target_item, context, target_item)]
-                vec = np.nanmean([vec, vec_flip], axis=0)
+                if position is None:
+                    vec_flip = d_vecs[(target_item, context, target_item)]
+                    vec = np.nanmean([vec, vec_flip], axis=0)
                 vec -= vecs_all_M[idx_target]
         except KeyError:
             vec = np.full(vec_len, np.nan)
@@ -228,10 +237,11 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
     # t_st = time()
     if context_specific:
         print('Getting vecs alt')
-        vecs_all_M = pickle_wrap(get_vecs_alt_context,
+        fp = 'cache/vecs_alt_context.pkl'
+        vecs_all_M = pickle_wrap(get_vecs_alt_context, fp,
                                  kwargs={'items': items, 'd_vecs': d_vecs,
                                          'vecs_all_M': vecs_all_M,
-                                         'zscore': True},
+                                         'zscore': True, 'position': position},
                                  easy_override=False, verbose=-1)
         print('Got vecs alt z-scored')
     vecs_target_c = stats.rankdata(vecs_target_c, axis=0, nan_policy='omit')
@@ -284,7 +294,7 @@ def find_context_helper(target_item='lobster', pf_thresh=300,
         r, p = stats.spearmanr(IRAFs, feature2vecs[feature],
                                nan_policy='omit')
         rs.append(r)
-        print(f'\n- {feature} ({r=:.2f}, {p=:.3f}) -')
+        print(f'\n- {feature}/{target_item} ({r=:.2f}, {p=:.3f}) -')
 
 
         feat_M = np.nanmean(feature2vecs[feature])
@@ -358,9 +368,9 @@ if __name__ == '__main__':
 
     RS_ALL = []
     RS_ALL_ABS = []
-    # FEATURE_TYPE = 'functional'
-    # FEATURE_TYPE = 'encyclopedic'
-    # FEATURE_TYPE = 'taxonomic'
+    FEATURE_TYPE = 'functional'
+    FEATURE_TYPE = 'encyclopedic'
+    FEATURE_TYPE = 'taxonomic'
     FEATURE_TYPE = 'visual perceptual'
 
     # ITEMS = ['lobster']
@@ -370,6 +380,9 @@ if __name__ == '__main__':
         RS = find_context_helper(target_item=ITEM, feature_type=FEATURE_TYPE)
         RS_ABS = np.abs(np.array(RS))
         M_R = np.nanmean(RS)
+        if np.isnan(M_R):
+            print(f'Mystery NaN: {ITEM}')
+            continue
         M_R_ABS = np.nanmean(RS_ABS)
         print(f'{ITEM} ({FEATURE_TYPE}): {M_R=:.3f}')
         RS_ALL.append(M_R)

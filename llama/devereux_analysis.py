@@ -113,8 +113,15 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250):
             plt.show()
     return type2RSM
 
-def get_devereux_RSM_by_type_(pf_thresh=250, attn=False, odd_even=None):
+def get_devereux_RSM_by_type_(pf_thresh=250, attn=False, odd_even=None,
+                              feat_min=2):
     items, df = get_standard_items_list(pf_thresh=pf_thresh)
+    if feat_min is not None:
+        feat_cnt = df['feature'].value_counts()
+        df = df[df['feature'].isin(feat_cnt[feat_cnt >= feat_min].index)]
+        num_features_by_type = df.groupby('feature type')['feature'].nunique()
+        print(num_features_by_type)
+
     if odd_even is not None:
         assert odd_even in [0, 1]
         all_keep_features = []
@@ -134,7 +141,7 @@ def get_devereux_RSM_by_type(pf_thresh=250, attn=False, odd_even=None):
     type2RSM = pickle_wrap(get_devereux_RSM_by_type_,
                            kwargs={'pf_thresh': pf_thresh, 'attn': attn,
                                    'odd_even': odd_even},
-                           easy_override=True, verbose=-1)
+                           easy_override=False, verbose=-1)
     print('Got devereux RSMs')
     return type2RSM
 
@@ -152,17 +159,20 @@ def get_item_sum_RSM(model):
             RSM[i, j] = RSM[idx0, idx1]
 
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
-                   pf_thresh=300, quick=None, item_standard='deve'):
+                   pf_thresh=300, quick=None, item_standard='deve',
+                   position=1):
     models = get_explore_llama(activation_model=activation_model,
                                # attn='attn_output',
-                               attn=False,
-                               st=0)
-    models = get_dev_explore_BERT('BERT')
+                               attn=True, st=0, normalize=False)
+    if position == 0:
+        quick = 4
+    # models = get_dev_explore_BERT('BERT')
 
     if 'llama' in models[0]:
         layers = 28
     else:
         layers = 13
+    assert layers == len(models)
 
     plt.rcParams.update({'font.size': 14})
     fig, axs = plt.subplots(1, 1, figsize=(6, 5.5))
@@ -175,9 +185,11 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
         # pf_thresh = 300
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
+                                 # quick=(quick, (1, 0)),
                                  quick=quick,
                                  item_standard=item_standard,
-                                 position=1,
+                                 position=position,
+                                 symmetric=False
                                  )
         # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
         #                                     quick=1, item_standard=item_standard)
@@ -221,6 +233,7 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
 
     title = (f'{model_name}\n'
              f'{pf_thresh} items, averaging across {quick} contexts')
+    title += f'\nPosition {position}'
 
     plt.title(title)
     fig.legend(ncol=2, frameon=False, loc='lower center')
@@ -235,9 +248,6 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
 
 
 def examine_deve_dino_overlap():
-    # test = get_standard_items_list(0)
-    # print(len(test))
-    # quit()
 
     concepts_std, _ = get_standard_items_list(pf_thresh=250)
 
