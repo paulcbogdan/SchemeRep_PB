@@ -128,6 +128,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             already_did.add((item0, item1))
             # print(item0, item1)
             if quick == 'scenes':
+                assert 'llama' in activation_model
                 res, fp = pickle_wrap(get_llama_activations,
                                           kwargs={'obj': item1, 'scn': item0,
                                                   'activation_model': activation_model},
@@ -192,14 +193,14 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                     elif (item0, item1, item0) in d_vecs:
                         raise ValueError
                     if quick == 'scenes':
-                        d_vecs[(item1, item0, item0)] = v
+                        d_vecs[(item0, item1, item1)] = v
                     else:
                         d_vecs[(item0, item1, item0)] = v
                 else:
                     if (item0, item1, item1) in d_vecs and quick != 'scenes':
                         raise ValueError
                     if quick == 'scenes':
-                        d_vecs[(item1, item0, item1)] = v
+                        d_vecs[(item0, item1, item0)] = v
                     else:
                         d_vecs[(item0, item1, item1)] = v
 
@@ -238,12 +239,14 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
         df_mariam = pd.read_csv(fp_mariam)
         df_deve = df_deve[df_deve['in_both']]
         deve_pf_per_concept = df_deve['pf'].sum() / len(df_deve['concept'].unique())
+        df_deve['pf_orig'] = df_deve['pf']
         if norm_per_concept:
             df_deve['pf'] = df_deve['pf'] / deve_pf_per_concept
 
         df_mariam = df_mariam[df_mariam['in_both']]
         df_mariam['which'] = 'mariam'
         mariam_pf_per_concept = df_mariam['pf'].sum() / len(df_mariam['concept'].unique())
+        df_mariam['pf_orig'] = df_mariam['pf']
         if norm_per_concept:
             df_mariam['pf'] = df_mariam['pf'] / mariam_pf_per_concept
         # dividing as so makes it so a larger participant sample in deve/mariam won't bias
@@ -255,6 +258,7 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
         pd.set_option('display.max_rows', None)
         df = df[df['concept'].apply(lambda x: False if ('(' in x or ')' in x) else True)]
         df['feature'] = df['feature'].apply(lambda x: x.replace(' ', '_'))
+        df['pf_orig'] = df['pf']
 
     if pf_thresh > len(df['concept'].unique()):
         pass
@@ -350,7 +354,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100, quick=5, item_standard='deve',
                                   'symmetric': symmetric
                                   # 'only_second': only_second
                                   },
-                          easy_override=True, verbose=1)
+                          easy_override=False, verbose=1)
     else:
         raise ValueError
     return RSM
@@ -368,6 +372,7 @@ def get_item_prod_sum(items, cat, items_M_vecs):
                 raise ValueError
     return vecs
 
+# @cache
 def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                       activation_model='meta-llama/Llama-3.2-3b',
                       normalize=True, quick=5, item_standard='deve',
@@ -386,7 +391,7 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                                  },
                          easy_override=False, verbose=-1)
     print(f'\tGathered d_vecs ({quick=})')
-    items, _ = get_standard_items_list(pf_thresh)
+    items, _ = get_standard_items_list(pf_thresh, item_standard)
     print(f'\t{len(items)=}')
     if cat != 'attn_weights' or True:
         item2keys = defaultdict(list)
@@ -403,7 +408,6 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
             elif position == 1:
                 if order1 == item:
                     # v = d_vecs[(order0, order1, item)]
-
                     item2keys[item].append((order0, order1, item))
             elif position == 'flip':
                 if order1 == item:
@@ -414,12 +418,12 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
             else:
                 raise ValueError
 
+        # print(list(d_vecs)[:100])
+        # quit()
+
         items_M_vecs = []
         for item in items:
-            # print(item)
             item_vecs = np.array([d_vecs[key] for key in item2keys[item]])
-            # print(item_vecs)
-            # quit()
             item_vecs[np.isinf(item_vecs)] = np.nan
             M_vec = np.nanmean(item_vecs, axis=0)
             items_M_vecs.append(M_vec)
@@ -466,9 +470,13 @@ def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
         if isinstance(quick1, tuple):
             position = quick1[1]
             quick1 = quick1[0]
+        # print(vecs0)
+        # print('test')
         vecs1 = get_llama_vecs_ar(pf_thresh, cat, layer_name,
                                   activation_model, normalize, quick1, item_standard,
                                   position, symmetric)
+        # print(vecs1)
+        # quit()
         vecs = vecs0 - vecs1
     else:
         vecs = get_llama_vecs_ar(pf_thresh, cat, layer_name,
@@ -499,9 +507,9 @@ def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
     #                                attn='attn_output', st=0)
     models = llama31_3b# + llama31_3b1
 
-    models_BERT = get_dev_explore_BERT('BERT')
-    models_simCSE = get_dev_explore_BERT('simCSE')
-    models = models + models_BERT + models_simCSE
+    # models_BERT = get_dev_explore_BERT('BERT')
+    # models_simCSE = get_dev_explore_BERT('simCSE')
+    # models = models + models_BERT + models_simCSE
     for model in models:
         get_deve_llama_RSM(model, pf_thresh=pf_thresh,
                            quick=quick, item_standard=item_standard,

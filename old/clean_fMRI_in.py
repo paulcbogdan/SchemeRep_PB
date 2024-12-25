@@ -1,7 +1,9 @@
+
 import os
 import pandas as pd
 import shutil
 from pathlib import Path
+
 
 sns = os.listdir(r'C:\PycharmProjects\SchemeRep\fMRI_in')
 possible_drops = ['Bl_NoGSR_8', 'Con_NoGSR_8', 'Enc_NoGSR_8', 'Vis_NoGSR_8']

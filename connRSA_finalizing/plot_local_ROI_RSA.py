@@ -6,7 +6,7 @@ import numpy as np
 from nilearn import image, plotting
 import matplotlib.pyplot as plt
 
-def plot_cortex_RSA(semantic=False, RSA=True, control_network=False):
+def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'

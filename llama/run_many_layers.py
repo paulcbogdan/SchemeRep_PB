@@ -104,18 +104,19 @@ def run_many_layers(big_voxelwise=True, attn=False,
     target_ROIs = ['Occipital', 'ITL', 'PFC'] # 'Parietal',
 
     ALL_RESULTS = defaultdict(list)
+    ALL_RESULTS_VALS = defaultdict(list)
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M='obj_solo', last_only=False,
+                                   attn=False, do_M=False, last_only=False,
                                    )
     semantic_l_M = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M=False, last_only=False
+                                   attn=False, do_M='obj_solo', last_only=False
                                    )
     semantic_l += semantic_l_M
     #
-    # semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
-    # semantic_l += semantic_l_BERT
-    # semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
-    # semantic_l += semantic_l_BERT
+    semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
+    semantic_l += semantic_l_BERT
+    semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
+    semantic_l += semantic_l_BERT
 
     fps_do = 'obj'
     # fps_do = 'non_obj'
@@ -156,16 +157,92 @@ def run_many_layers(big_voxelwise=True, attn=False,
 
             import zlib
             kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
-            t, _ = pickle_wrap(run_layer, kwargs=kw,
-                               verbose=1, easy_override=True,
+            t, vals = pickle_wrap(run_layer, kwargs=kw,
+                               verbose=1, easy_override=False,
                                dir_branches=100, )
 
             ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
+            ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
+
+
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
                     'non_obj': 'Task: All but encoding',
                     'all': 'Task: All tasks'}
-    plot_all_results(ALL_RESULTS, fps_do2title[fps_do])
+    # plot_all_results(ALL_RESULTS, fps_do2title[fps_do])
+    plt.rcParams.update({'font.size': 20})
+    fig, axs = plt.subplots(len(target_ROIs), 1,
+                            figsize=(10, 5 * len(target_ROIs)))
+    cnt = 0
+    for i, region in enumerate(target_ROIs):
+        plt.sca(axs[cnt])
+        cnt += 1
+        for (key, ar) in ALL_RESULTS_VALS.items():
+            # print(f'{key=}')
+            # curr_t, p = stats.ttest_1samp(ar, 0, nan_policy='omit', axis=1)
+            # print(f'{curr_t=}, {ALL_RESULTS[key]=}')
+            if region not in key: continue
+            plot_line(ar, key, region, do_labels=i == len(target_ROIs) - 1)
+
+    fig.legend(loc='lower center', ncol=2, frameon=False)
+    plt.suptitle( fps_do2title[fps_do], fontsize=28)
+
+    plt.subplots_adjust(bottom=0.15, top=0.91, right=0.95, left=0.12,
+                        hspace=.4)
+
+    plt.show()
+    quit()
+
+def plot_line(ar_vals, key, region, do_labels=False):
+    confidence_interval = np.std(ar_vals, axis=1) / np.sqrt(len(ar_vals))
+
+    # Create the figure and axis
+    # plt.figure(figsize=(10, 6))
+
+    # Plot the main line
+    t = np.arange(len(ar_vals))
+    M = np.mean(ar_vals, axis=1)
+
+    if 'BERT' == key[1]:
+        t *= 2
+        color = 'olive'
+        label = 'BERT'
+    elif 'simCSE' == key[1]:
+        t *= 2
+        color = 'green'
+        label = 'simCSE'
+    else:
+        if key[2] in ['obj_solo', 'obj_M']:
+            if key[2] == 'obj_solo':
+                label = 'Item embedding\n(object solo)'
+            else:
+                label = f'Item embedding\n(scene averages)'
+            color = 'red'
+        else:
+            label = 'Item embedding\n(scene → object)'
+            color = 'dodgerblue'
+    label = label if do_labels else None
+
+    plt.plot(t, M, color, label=label,
+             linewidth=3, marker='o')
+
+    # Plot the confidence interval
+    plt.fill_between(t,
+                     M - confidence_interval,
+                     M + confidence_interval,
+                     color=color, alpha=0.2,
+                     # label='Confidence Interval'
+                     )
+
+    # Customize the plot
+    plt.grid(True, alpha=0.3)
+    plt.title(region)
+    plt.yticks([0, 0.01, 0.02])
+    plt.ylim(0, 0.02)
+    plt.ylabel('Correlation (r)')
+    if do_labels:
+        plt.xlabel('Layer')
+    plt.gca().spines[['top', 'right', ]].set_visible(False)
 
 
 def plot_all_results(all_results, subtitle=''):

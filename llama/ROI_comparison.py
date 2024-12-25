@@ -166,7 +166,7 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
 
 
 if __name__ == '__main__':
-    tick = 4
+    tick = 16
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'
 
 
@@ -178,9 +178,9 @@ if __name__ == '__main__':
     # quit()
 
     for st in range(4, 20, tick):
-        run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=False, obj_task=True)
-        continue
+        # run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
+        #              do_M=False, obj_task=True)
+        # continue
         # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
         #              do_M=True, obj_task=True)
         # continue

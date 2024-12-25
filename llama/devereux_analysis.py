@@ -141,7 +141,7 @@ def get_devereux_RSM_by_type(pf_thresh=250, attn=False, odd_even=None):
     type2RSM = pickle_wrap(get_devereux_RSM_by_type_,
                            kwargs={'pf_thresh': pf_thresh, 'attn': attn,
                                    'odd_even': odd_even},
-                           easy_override=False, verbose=-1)
+                           easy_override=True, verbose=-1)
     print('Got devereux RSMs')
     return type2RSM
 
@@ -159,11 +159,12 @@ def get_item_sum_RSM(model):
             RSM[i, j] = RSM[idx0, idx1]
 
 def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
-                   pf_thresh=300, quick=None, item_standard='deve',
+                   pf_thresh=300, quick='scenes', item_standard='deve',
                    position=1):
     models = get_explore_llama(activation_model=activation_model,
                                # attn='attn_output',
-                               attn=True, st=0, normalize=False)
+                               attn=False,
+                               st=0, normalize=False)
     if position == 0:
         quick = 4
     # models = get_dev_explore_BERT('BERT')
@@ -185,15 +186,22 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
         # pf_thresh = 300
 
         RSM = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-                                 # quick=(quick, (1, 0)),
-                                 quick=quick,
+                                 quick=(quick, (1, 0)),
+                                 # quick=quick,
                                  item_standard=item_standard,
                                  position=position,
                                  symmetric=False
                                  )
+        RSM[np.diag_indices_from(RSM)] = np.nan
+        # plt.imshow(RSM, vmin=0, vmax=0.2)
+        # plt.colorbar()
+        # plt.show()
+        # quit()
         # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
         #                                     quick=1, item_standard=item_standard)
         # RSM = RSM - RSM_no_context
+        upper_tile = np.nanquantile(RSM, 0.99)
+        RSM[RSM > upper_tile] = np.nan
 
         trils = np.tril_indices_from(RSM, k=-1)
         RSM_flat = RSM[trils]
@@ -205,6 +213,8 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
             assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
             RSM_feat_flat = RSM_feat[trils]
             RSM_feat_nans = np.isnan(RSM_feat_flat)
+            RSM_llama_nanas = np.isnan(RSM_flat)
+            RSM_feat_nans = RSM_feat_nans | RSM_llama_nanas
             num_nans = np.sum(RSM_feat_nans)
             RSM_flat_ = RSM_flat[~RSM_feat_nans]
             RSM_feat_flat_ = RSM_feat_flat[~RSM_feat_nans]
@@ -273,5 +283,10 @@ def examine_deve_dino_overlap():
 
 
 if __name__ == '__main__':
+    # plt.plot([5, 4, 6, 5, 6, 5, 5, 8, 4])
+    # plt.show()
+    # quit()
+
+
     do_llama_x_dev()
 

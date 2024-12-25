@@ -7,7 +7,7 @@ import numpy as np
 from scipy import stats
 from time import time
 
-from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
@@ -147,7 +147,7 @@ def test_w2v_regression():
     prods = np.nanmean(prods, axis=1, keepdims=True)
     fit_regularized_models(prods, relatedness)
 
-def fit_regularized_models(X, y, cv_folds=5, random_state=42):
+def fit_regularized_models(X, y, cv_folds=6, random_state=42):
 
     """
     Fit Lasso, Ridge, and ElasticNet models with cross-validation
@@ -177,7 +177,8 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
     # X_scaled = X
 
     # Create cross-validation object
-    cv = KFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    cv = StratifiedKFold(n_splits=cv_folds, shuffle=True,
+                         random_state=random_state)
     # cv = LeaveOneOut()
 
     # Initialize models
@@ -189,19 +190,18 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
     results = {}
 
     # Fit models and calculate R² scores
-    for name, model in [('Lasso', lasso),
+    for name, model in [#('Lasso', lasso),
                         ('Ridge', ridge),
-                        ('ElasticNet', elastic)]:
+                        #('ElasticNet', elastic)
+                        ]:
 
         fold_predictions = []
         fold_R2s = []
-        for train_idx, test_idx in cv.split(X):
+        for train_idx, test_idx in cv.split(X, y):
             # Split data
             X_train, X_test = X[train_idx], X[test_idx]
-            # X_train = StandardScaler().fit_transform(X_train)
-            # X_test = StandardScaler().fit_transform(X_test)
             y_train, y_test = y[train_idx], y[test_idx]
-
+            # print(np.mean(y_test))
 
             # Fit model and make prediction
             model.fit(X_train, y_train)
@@ -230,12 +230,12 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
 
     # Print results
     for name, result in results.items():
-        print(f"{name} Regression Results:")
-        r_score = np.sqrt(result['r2_score'])
-        print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
-        # print(f"Best alpha: {result['best_alpha']:.4f}")
-        # if name == 'ElasticNet':
-        #     print(f"Best L1 ratio: {result['l1_ratio']:.4f}")
+        # print(f"{name} Regression Results:")
+        if result['r2_score'] < 0:
+            r_score = 0
+        else:
+            r_score = np.sqrt(result['r2_score'])
+        # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
 
     return results
 

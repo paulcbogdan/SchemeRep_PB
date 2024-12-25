@@ -21,15 +21,26 @@ def get_w2v_vec_deve(stim, w2v):
     return np.mean(vecs, axis=0)
 
 
-def get_d_vecs_w2v_deve(pf_thresh=250, normalize=True):
-    items, _ = get_standard_items_list(pf_thresh)
+def get_d_vecs_w2v_deve(pf_thresh=250, normalize=True,
+                        item_standard='deve'):
+    items, _ = get_standard_items_list(pf_thresh,
+                                       item_standard=item_standard)
     from gensim import downloader
     w2vectors = downloader.load('word2vec-google-news-300')
     d_vecs = {}
     item_remap = {'doughnut': 'donut',
                   'land_rover': 'landrover', # 'car' is already in the dataset
                   'range_rover': 'SUV',
-                  'axe': 'ax'
+                  'axe': 'ax',
+                  'tyre': 'tire',
+                  'aeroplane': 'airplane',
+                  'brussel_sprouts': 'brussels_sprouts',
+                  'castenets': 'castanets',
+                  'catalogue': 'catalog',
+                  'chest_of_drawers': 'dresser',
+                  'plough': 'plow',
+                  'pyjamas': 'pajamas',
+                  'whisky': 'whiskey'
                   }
     for item in items:
         if item in item_remap:
@@ -49,6 +60,17 @@ def get_d_vecs_w2v_deve(pf_thresh=250, normalize=True):
             d_vecs[item] = (vec - vec_Ms) / vec_SDs
     return d_vecs
 
+def get_w2v_deve_vecs(pf_thresh, item_standard='deve'):
+    items, _ = get_standard_items_list(pf_thresh,
+                                       item_standard=item_standard)
+    d_vecs = pickle_wrap(get_d_vecs_w2v_deve,
+                         kwargs={'pf_thresh': pf_thresh,
+                                 'item_standard': item_standard})
+    items_M_vecs = []
+    for item in items:
+        items_M_vecs.append(d_vecs[item])
+    items_M_vecs = np.array(items_M_vecs)
+    return items_M_vecs
 
 def get_w2v_deve_RSM(pf_thresh=250):
     items, _ = get_standard_items_list(pf_thresh)
@@ -87,5 +109,5 @@ def test_w2v_dev(pf_thresh=300):
 
 
 if __name__ == '__main__':
-    # get_w2v_deve_RSM(pf_thresh=250)
-    test_w2v_dev()
+    get_w2v_deve_RSM(pf_thresh=600)
+    # test_w2v_dev()

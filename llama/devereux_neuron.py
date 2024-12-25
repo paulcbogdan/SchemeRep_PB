@@ -37,21 +37,31 @@ def get_mat_M(item1, items0, activation_model
     mat = np.nanmean(np.array(mats), axis=0)
     return mat
 
-def get_binary_feat_matrix(items, item_std,
-                           feature_type='visual perceptual',
-                           pf_thresh=100, threshold=50):
-    _, df = get_standard_items_list(pf_thresh, item_std)
-    df = df[df['feature type'] == feature_type]
+def get_binary_feat_matrix(items, item_std='deve',
+                           feature_type='all',
+                           pf_thresh=100, threshold=50,
+                           req=1, #odd_even=None
+                           ):
+    _, df = get_standard_items_list(pf_thresh, item_std,
+                                    )
+    if feature_type != 'all':
+        df = df[df['feature type'] == feature_type]
     feat2onehot = {}
     for feature, df_feature in df.groupby('feature'):
-        items_w_feature = df_feature['concept'].unique()
+        df_cnt = df_feature.groupby('concept')['pf_orig'].sum()
+        df_cnt = df_cnt[df_cnt >= req]
+        items_w_feature = set(df_cnt.index)
+        # items_w_feature = df_feature['concept'].unique()
         l = []
         for item in items:
             l.append(item in items_w_feature)
         num1s = np.sum(l)
         if num1s < threshold:
             continue
+        # print(feature)
+        # print(df_cnt)
         feat2onehot[feature] = np.array(l)
+    # quit()
     return feat2onehot
 
 def test_interaction(t, mats_all):

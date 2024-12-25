@@ -85,5 +85,5 @@ def match_mariam():
     print(df_deve['feature type'].value_counts())
 
 if __name__ == '__main__':
-    # convert_mariam2deve()
+    convert_mariam2deve()
     match_mariam()
