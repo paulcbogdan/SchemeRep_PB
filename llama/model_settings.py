@@ -5,6 +5,7 @@ from functools import cache
 def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                       attn=False, normalize=True, st=0, end=None,
                       do_prod=False, do_M=False, last_only=False,
+                      include_scn=False
                       ):
     # Redundant: gate_proj_in & up_proj_in
     # Redundant: act_fn_in & gate_proj_out
@@ -18,8 +19,8 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
         all_llama_cats = ['attn_weights']
     else:
         all_llama_cats = ['gate_proj_in']
-    if isinstance(attn, bool) and attn:
-        assert not do_M
+    # if isinstance(attn, bool) and attn:
+    #     assert not do_M
     # print(activation_model)
     # if activation_model == 'meta-llama/Llama-3.2-3b':
     if ('-1b' in activation_model or
@@ -45,6 +46,9 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                 semantic_l.append(('llama', llama_cat, llama_layer, do_M, activation_model,
                                    normalize))
             elif do_M:
+                if include_scn:
+                    semantic_l.append(('llama', llama_cat, llama_layer, 'scn_M', activation_model,
+                                       normalize))
                 semantic_l.append(('llama', llama_cat, llama_layer, 'obj_M', activation_model,
                                    normalize))
             elif do_prod:
@@ -52,8 +56,9 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                                    normalize))
             else:
                 # if llama_cat in ['attn_weights', 'attn_output']:
-                #     semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
-                #                        normalize))
+                if include_scn:
+                    semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                                       normalize))
                 semantic_l.append(('llama', llama_cat, llama_layer, 'obj', activation_model,
                                    normalize))
 

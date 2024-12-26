@@ -45,7 +45,14 @@ def do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim):
     solutions = solutions[:, 1:]
     return solutions
 
-
+def get_sn_fp_inc_RSM(sn, fp):
+    df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
+    sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
+            replace('7', '').replace('8', ''))
+    df_sn.sort_values(by=f'{sess}_trial', inplace=True)
+    v_inc = df_sn['inc'].astype(float).to_numpy()
+    RSM = np.abs(v_inc[:, None] - v_inc[None, :])
+    return RSM
 
 def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
@@ -63,7 +70,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             RSM_focus = within_run_to_nan(RSM_focus)
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
-    if isinstance(semantic, bool) and semantic:
+    if isinstance(semantic, str) and semantic == 'inc':
+        RSM_stim = get_sn_fp_inc_RSM(sn, fp)
+    elif isinstance(semantic, bool) and semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)
     elif isinstance(semantic, bool) and not semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 0)
@@ -95,7 +104,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_ctrl_l = []
         n_skip_cols = 0
         for ROI_ctrl in ROIs_ctrl:
-            if isinstance(ROI_ctrl, tuple):
+            if isinstance(ROI_ctrl, str) and ROI_ctrl == 'inc':
+                RSM_ctrl = get_sn_fp_inc_RSM(sn, fp)
+            elif isinstance(ROI_ctrl, tuple):
                 assert ROI_ctrl[0] in ['llama', 'BERT']
                 if ROI_ctrl[0] == 'BERT':
                     RSM_ctrl = get_sn_fp_BERT_RSM(sn, fp, ROI_ctrl)

@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
-from llama.get_obj_scn_vecs import process_cat_cat_inner
+from llama.get_obj_scn_vecs import process_cat_cat_inner, get_obj2grammar, get_scn2grammar, get_llama_activations
+from organize_bhv import get_trial_info
 
 
 def get_rissman_df(condition=''):
@@ -41,23 +42,32 @@ def get_rissman_similarity(pair, flip=False,
         item0 = pair[0].lower()
         item1 = pair[1].lower()
 
-    res, fp = pickle_wrap(get_llama_activations_deve,
-                          kwargs={'item0': item0, 'item1': item1,
-                                  'activation_model': activation_model},
-                          easy_override=False, verbose=-1, dir_branches=100,
-                          RAM_cache=False, get_fp=True)
+    obj2grammar, _ = get_obj2grammar()
+    scn2grammar, _ = get_scn2grammar()
+    if pair[0] in obj2grammar and pair[1] in scn2grammar:
+        res, fp = pickle_wrap(get_llama_activations,
+                                  kwargs={'obj': pair[0], 'scn': pair[1],
+                                          'activation_model': activation_model},
+                                  easy_override=False, verbose=-1, dir_branches=100,
+                                  RAM_cache=False, get_fp=True
+                                  )
+    else:
+        res, fp = pickle_wrap(get_llama_activations_deve,
+                              kwargs={'item0': item0, 'item1': item1,
+                                      'activation_model': activation_model},
+                              easy_override=False, verbose=-1, dir_branches=100,
+                              RAM_cache=False, get_fp=True)
 
-    if 'mlp_out' in res:
-        del res['mlp_out']
+    if 'mlp_out' in res and 'down_proj' in res['mlp_out']:
+        del res['mlp_out']['down_proj']
+        del res['mlp_out']['up_proj']
+        del res['mlp_out']['gate_proj']
         del res['mlp_in']['down_proj']
         del res['mlp_in']['up_proj']
-        del res['mlp_in']['act_fn']
         del res['attn']['q_proj']
         del res['attn']['k_proj']
-
         with open(fp, 'wb') as f:
             pickle.dump(res, f)
-
 
     d_vecs = {}
     for idx_target in [0, 1]:
@@ -85,7 +95,8 @@ def get_rissman_similarity(pair, flip=False,
             if (item0, item1, item1) in d_vecs:
                 raise ValueError
             d_vecs[(item0, item1, item1)] = v
-
+    # print(list(d_vecs.keys()))
+    # quit()
     return d_vecs
 
 def get_rissman_w2v_d_vecs():
@@ -129,7 +140,6 @@ def get_w2v_similarity(do_print=False):
 def test_w2v_regression():
     d_vecs = pickle_wrap(get_rissman_w2v_d_vecs, verbose=-1)
     pairs, relatedness, _ = get_rissman_df()
-    # np.random.shuffle(relatedness)
     prods = []
     for pair in pairs:
         vec_0 = d_vecs[pair[0]]
@@ -175,6 +185,9 @@ def fit_regularized_models(X, y, cv_folds=6, random_state=42):
     # scaler = StandardScaler()
     # X_scaled = scaler.fit_transform(X)
     # X_scaled = X
+
+    print(f'{X.shape=}')
+    print(f'{y.shape=}')
 
     # Create cross-validation object
     cv = StratifiedKFold(n_splits=cv_folds, shuffle=True,
@@ -235,7 +248,7 @@ def fit_regularized_models(X, y, cv_folds=6, random_state=42):
             r_score = 0
         else:
             r_score = np.sqrt(result['r2_score'])
-        # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
+        print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
 
     return results
 
@@ -251,7 +264,8 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
         kw = {'pair': pair, 'flip': flip, 'cat': cat, 'get_last': get_last,
               'layer_name': layer_name, 'activation_model': activation_model}
         d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
-                                  verbose=-1, easy_override=False)
+                                  verbose=-1, easy_override=True)
+        pair = (pair[0].lower(), pair[1].lower())
         if flip:
             vec_0 = d_vecs_pair[(pair[1], pair[0], pair[0])]
             vec_1 = d_vecs_pair[(pair[1], pair[0], pair[1])]
@@ -268,15 +282,37 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
             vecs_1_all.extend(vec_1)
     return vecs_0_all, vecs_1_all
 
+def get_SchemeRep_df(no_neu=True):
+    sns = ['102', '103', '104'] # everyone else is a duplicate
+    already_done = set()
+    objs_l = []
+    scns_l = []
+    ics_l = []
+    for sn in sns:
+        df_sn = get_trial_info(sn)
+        if no_neu:
+            df_sn = df_sn[df_sn['inc'] != 2]
+        objs = df_sn['obj'].to_list()
+        scns = df_sn['scene'].to_list()
+        ics = df_sn['inc'].to_list()
+        objs_l.extend(objs)
+        scns_l.extend(scns)
+        ics_l.extend(ics)
+    pairs = list(zip(objs_l, scns_l))
+    return pairs, ics_l, None
 
 def analyze_rissman(cat='attn_weights',
-                    # cat='gate_proj_in',
-                    get_last=False, layer_name=1):
-    pairs, relatedness, df_grp = get_rissman_df()
+                    #cat='gate_proj_in',
+                    get_last=False, layer_name=1,
+                    do_SchemeRep=True):
+    if do_SchemeRep:
+        pairs, relatedness, _ = get_SchemeRep_df()
+    else:
+        pairs, relatedness, _ = get_rissman_df()
 
     M_attns = []
     vecs_attns = []
-    for pair in pairs:#, desc='Llama all rissman pairs'):
+    for pair in pairs:
         if isinstance(layer_name, list):
             vec_010, vec_011 = (
                 get_rissman_similarity_many_layers(pair, cat=cat, get_last=get_last,
@@ -289,6 +325,7 @@ def analyze_rissman(cat='attn_weights',
                   'layer_name': layer_name}
             d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
                                       verbose=-1, easy_override=True)
+            pair = (pair[0].lower(), pair[1].lower())
             vec_010 = d_vecs_pair[(pair[0], pair[1], pair[0])]
             vec_011 = d_vecs_pair[(pair[0], pair[1], pair[1])]
 
@@ -309,7 +346,18 @@ def analyze_rissman(cat='attn_weights',
     r, p = stats.spearmanr(M_attns, relatedness)
     title = f'{layer_name} | relatedness x mean {cat}: {r=:.2f}, {p=:.3f}'
     print(title)
-    # return
+    relatedness = np.array(relatedness)
+    vecs_attns = np.array(vecs_attns)
+    # for i in range(vecs_attns.shape[1]):
+    #     r, p = stats.spearmanr(vecs_attns[:, i], relatedness)
+    #     plt.scatter(vecs_attns[:, i], relatedness)
+    #     plt.title(f'{i} | {r=:.2f}')
+    #     plt.show()
+    #     print(f'{i}: {r=:.3f}, {p=:.3f}')
+    # print(vecs_attns.shape)
+    # quit()
+
+
     fit_regularized_models(np.array(vecs_attns), relatedness)
     print('-')
 
@@ -321,8 +369,10 @@ if __name__ == '__main__':
     # get_w2v_similarity()
     # quit()
     # get_rissman_w2v_d_vecs()
+    # analyze_rissman(layer_name=8)
+
     analyze_rissman(layer_name=list(range(4, 20)))
-    quit()
+    # quit()
 
     for LAYER_NAME in range(0, 24):
         # for FOCUS in range(24):

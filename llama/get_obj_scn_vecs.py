@@ -4,6 +4,7 @@ from functools import cache
 from time import time
 
 from Utils.pickle_wrap_funcs import pickle_wrap
+from llama.model_settings import get_explore_llama
 from llama.old.gen_sentence import generate_sentences_API
 from organize_bhv import get_trial_info
 import numpy as np
@@ -398,6 +399,10 @@ def norm_by_obj(d_vecs, cat='input', layer_name=1, normalize=True,
 
 def get_sn_fp_llama_RSM_l(sn, fp, semantic_tup_l, dist='spear', within_to_nan=True,
                           ):
+    # print(semantic_tup_l)
+    # quit()
+    # print('test')
+    # quit()
     all_RSM = []
     do_PCA = False
     for semantic_tup in semantic_tup_l:
@@ -605,7 +610,7 @@ if __name__ == '__main__':
     all_llama_layers = list(range(0, 80 if '70b' in MODEL else 28))
 
     all_llama_cats = ['gate_proj_in']
-    # all_llama_cats = ['attn_weights']
+    all_llama_cats = ['attn_weights']
     # all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
@@ -630,6 +635,13 @@ if __name__ == '__main__':
     #                            NORMALIZE))
     #         SEMANTIC_L.append(('llama', LLAMA_CAT, (LLAMA_LAYER, True), 'scn_M', MODEL,
     #                            NORMALIZE))
+
+    SEMANTIC_L =  get_explore_llama(MODEL,
+                                   attn=True, normalize=True,
+                                   do_prod=False, do_M=True,
+                                   include_scn=True,
+                                   st=8, end=20, last_only=False,
+                                   )
 
     RAM_CACHE_LLAMA = True
 

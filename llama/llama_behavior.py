@@ -1,4 +1,4 @@
-
+from Utils.atlas_funcs import get_atlas
 from connRSA.conn_regress import do_regr_RSA_sn
 from llama.model_settings import get_explore_llama, get_base_kw
 from llama.numba_regr_test import pairwise_interaction_t_values_proper
@@ -8,6 +8,11 @@ import numpy as np
 from scipy import stats
 
 from organize_bhv import get_trial_info
+
+
+# disable SettingWithCopyWarning
+import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def get_base_kw_predicting(sn, region, local, big_voxelwise):
     kw = {'fp': 'obj7_fMRI', 'sn': sn}
@@ -25,25 +30,37 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
     kw['stdize_by_run'] = False
     return kw
 
-def sn_attn_encoding(sn, region='PFC', local=True,
+def sn_attn_encoding(sn, region='subcort', local=True,
                      big_voxelwise=False,
                      str_interaction=False):
+    # region = 'PFC'
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
-                                   st=12, end=20
+                                   include_scn=True,
+                                   # st=8, end=20,
+                                   last_only=False
                                    )
 
-    model_item = get_explore_llama(activation_model,
-                                   attn=False, normalize=True,
-                                   do_prod=False)
+    # model_item = get_explore_llama(activation_model,
+    #                                attn=False, normalize=True,
+    #                                do_prod=True)
+    # model_item = get_explore_llama(activation_model,
+    #                                attn=True, normalize=True,
+    #                                do_prod=False, do_M=True,
+    #                                include_scn=True,
+    #                                st=8, end=20, last_only=False,
+    #                                )
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
+
+    # kw['semantic'] = 'inc'
     kw['semantic'] = model_attn
-    kw['ROIs_ctrl'] = []
+
+    kw['ROIs_ctrl'] = []#'inc']# model_item] # ['cortical_M_corr']#model_item]
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
-                        easy_override=False, dir_branches=100)
+                        easy_override=True, dir_branches=100)
 
     df_sn = get_trial_info(sn)
     df_sn.sort_values(by=f'obj_trial', inplace=True)
@@ -51,19 +68,23 @@ def sn_attn_encoding(sn, region='PFC', local=True,
         IRAFs = IRAFs[:, 0]
     df_sn['IRAFs'] = IRAFs
 
-    df_sn['inc'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
-    df_sn['enc_acc'] = (df_sn['inc'] - df_sn['per_inc']).abs()
+    # df_sn = df_sn[df_sn['inc'] == 3]
+    df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
+    df_sn['enc_acc'] = (df_sn['inc_m'] - df_sn['per_inc']).abs()
+    # print(df_sn['enc_acc'].value_counts())
+    # df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
+    # print(len(df_sn))
 
     if str_interaction:
-        kw = get_base_kw_predicting(sn, 'Tha', local, big_voxelwise)
+        kw = get_base_kw_predicting(sn, 'subcort', local, big_voxelwise)
         kw['semantic'] = model_attn
         kw['ROIs_ctrl'] = []
         IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
-                                easy_override=False, dir_branches=100)
+                                easy_override=True, dir_branches=100)
 
         y = np.array(df_sn['enc_acc'].to_list())
 
-        df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
+        df_sn = df_sn.dropna(subset=['IRAFs', 'enc_acc'],)
         assert len(df_sn) > 10, f'{len(df_sn)=}'
 
         X = np.array([IRAFs, IRAFs_str]).T
@@ -76,9 +97,11 @@ def sn_attn_encoding(sn, region='PFC', local=True,
         t = pairwise_interaction_t_values_proper(y, X)
         return t[0, 1]
 
-    df_sn.dropna(subset=['IRAFs', 'enc_acc'], inplace=True)
+    df_sn = df_sn.dropna(subset=['IRAFs', 'enc_acc'])
+    # print(df_sn['inc'].value_counts())
+
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['enc_acc'])
-    print(f'{r=:.3f}')
+    # print(f'{r=:.3f}')
     return r
 
 def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
@@ -179,7 +202,7 @@ def get_sn_llama_mem(sn, fps, mem_key='vis_hit'):
     assert len(df_sn) > 10, f'{len(df_sn)=}'
 
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['mem_key'])
-    print(f'{r=:.3f}')
+    # print(f'{r=:.3f}')
     return r
 
 
@@ -189,15 +212,20 @@ def test_sn_llama_mem():
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
 
-    efs = []
-    for sn in sns:
-        ef = sn_attn_encoding(sn)
-        # ef = sn_item_dm(sn)
-        if ef is None: continue
-        efs.append(ef)
-    t, p = stats.ttest_1samp(efs, 0, axis=0)
-    N = np.sum(~np.isnan(efs), axis=0)
-    print(f't[{N - 1}] = {t:.2f}, {p=:.3f}')
+    REGIONS = get_atlas(combine_regions=True,
+                        combine_bilateral=True)['ROIs']
+    for REGION in REGIONS:
+        # print(REGION)
+        efs = []
+        for sn in sns:
+            ef = sn_attn_encoding(sn, region=REGION)
+            if np.isnan(ef): continue
+            # ef = sn_item_dm(sn)
+            if ef is None: continue
+            efs.append(ef)
+        t, p = stats.ttest_1samp(efs, 0, axis=0)
+        N = np.sum(~np.isnan(efs), axis=0)
+        print(f'{REGION} | t[{N - 1}] = {t:.2f}, {p=:.3f}')
 
 
 
