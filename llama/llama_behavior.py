@@ -39,7 +39,7 @@ def sn_attn_encoding(sn, region='subcort', local=True,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
-                                   # st=8, end=20,
+                                   st=8, end=20,
                                    last_only=False
                                    )
 
@@ -58,7 +58,7 @@ def sn_attn_encoding(sn, region='subcort', local=True,
     # kw['semantic'] = 'inc'
     kw['semantic'] = model_attn
 
-    kw['ROIs_ctrl'] = [model_item]
+    kw['ROIs_ctrl'] = []#model_item]
     #, 'cortical_M_corr']
     # ['inc']# model_item] # ['cortical_M_corr']#model_item]
 
@@ -80,7 +80,7 @@ def sn_attn_encoding(sn, region='subcort', local=True,
     if str_interaction:
         kw = get_base_kw_predicting(sn, 'subcort', local, big_voxelwise)
         kw['semantic'] = model_attn
-        kw['ROIs_ctrl'] = [model_item]
+        kw['ROIs_ctrl'] = []#model_item]
         IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                                 easy_override=False, dir_branches=100)
         if len(kw['ROIs_ctrl']):
@@ -113,12 +113,13 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     big_voxelwise = True
     activation_model = 'meta-llama/Llama-3.2-3b'
     model = get_explore_llama(activation_model,
-                              attn=False, normalize=True,
+                              attn=True, normalize=True,
                               do_M=False, st=4, end=16,)
 
     model = get_explore_llama(activation_model,
                               attn=False, normalize=True,
-                              do_M='obj_solo', st=4, end=16,)
+                              do_M='obj_solo',
+                              st=4, end=16,)
 
     # model = get_explore_llama(activation_model,
     #                           attn=True, normalize=True,
@@ -128,7 +129,7 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
     kw['fp'] = 'obj7_fMRI'
     kw['semantic'] = model
-    kw['ROIs_ctrl'] = []#model_solo]
+    kw['ROIs_ctrl'] = []#'cortical_M_corr']#model_solo]
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw,
                         verbose=-1, easy_override=False,
@@ -137,8 +138,12 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
         IRAFs = IRAFs[:, 0]
 
     df_sn = get_trial_info(sn)
+    df_sn['is_YA'] = df_sn['sn'].apply(lambda x: str(x)[0] == '1')
+
     df_sn.sort_values(by=f'obj_trial', inplace=True)
     df_sn['IRAFs'] = IRAFs
+
+    # df_sn = df_sn[df_sn['inc'] == 3]
 
     df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
     df_sn['mem_key'] = df_sn['vis_hit'].astype(float)
@@ -147,7 +152,12 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     assert len(df_sn) > 10, f'{len(df_sn)=}'
 
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['mem_key'])
-    # print(f'{r=:.3f}')
+    # r = np.nanmean(df_sn['IRAFs'])
+    is_YA = df_sn['is_YA'].iloc[0]
+
+    # if is_YA:
+    #     r = 0
+    #     r = -r
     return r
 
 
@@ -163,8 +173,8 @@ def test_sn_llama_mem():
         # print(REGION)
         efs = []
         for sn in sns:
-            # ef = sn_attn_encoding(sn, region=REGION)
-            ef = sn_item_dm(sn, region=REGION)
+            ef = sn_attn_encoding(sn, region=REGION)
+            # ef = sn_item_dm(sn, region=REGION)
             if np.isnan(ef): continue
             if ef is None: continue
             efs.append(ef)
