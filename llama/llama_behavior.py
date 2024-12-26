@@ -32,7 +32,7 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
 
 def sn_attn_encoding(sn, region='subcort', local=True,
                      big_voxelwise=False,
-                     str_interaction=False):
+                     str_interaction=True):
     # region = 'PFC'
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
@@ -43,9 +43,10 @@ def sn_attn_encoding(sn, region='subcort', local=True,
                                    last_only=False
                                    )
 
-    # model_item = get_explore_llama(activation_model,
-    #                                attn=False, normalize=True,
-    #                                do_prod=True)
+    model_item = get_explore_llama(activation_model,
+                                   attn=False, normalize=True,
+                                   include_scn=True,
+                                   do_prod=False)
     # model_item = get_explore_llama(activation_model,
     #                                attn=True, normalize=True,
     #                                do_prod=False, do_M=True,
@@ -57,10 +58,10 @@ def sn_attn_encoding(sn, region='subcort', local=True,
     # kw['semantic'] = 'inc'
     kw['semantic'] = model_attn
 
-    kw['ROIs_ctrl'] = []#'inc']# model_item] # ['cortical_M_corr']#model_item]
+    kw['ROIs_ctrl'] = [model_item]# ['inc']# model_item] # ['cortical_M_corr']#model_item]
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
-                        easy_override=True, dir_branches=100)
+                        easy_override=False, dir_branches=100)
 
     df_sn = get_trial_info(sn)
     df_sn.sort_values(by=f'obj_trial', inplace=True)
@@ -68,19 +69,20 @@ def sn_attn_encoding(sn, region='subcort', local=True,
         IRAFs = IRAFs[:, 0]
     df_sn['IRAFs'] = IRAFs
 
-    # df_sn = df_sn[df_sn['inc'] == 3]
+    # df_sn = df_sn[df_sn['inc'] == 1]
     df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
-    df_sn['enc_acc'] = (df_sn['inc_m'] - df_sn['per_inc']).abs()
+    df_sn['enc_acc'] = -(df_sn['inc_m'] - df_sn['per_inc']).abs()
     # print(df_sn['enc_acc'].value_counts())
     # df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
-    # print(len(df_sn))
 
     if str_interaction:
         kw = get_base_kw_predicting(sn, 'subcort', local, big_voxelwise)
         kw['semantic'] = model_attn
-        kw['ROIs_ctrl'] = []
+        kw['ROIs_ctrl'] = [model_item]
         IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
-                                easy_override=True, dir_branches=100)
+                                easy_override=False, dir_branches=100)
+        if len(kw['ROIs_ctrl']):
+            IRAFs_str = IRAFs_str[:, 0]
 
         y = np.array(df_sn['enc_acc'].to_list())
 
