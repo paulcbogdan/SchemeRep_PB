@@ -21,7 +21,7 @@ except ModuleNotFoundError:
 import scipy.stats as stats
 #from old.test_lifu import get_stim_RDM_lifu
 from organize_bhv import get_trial_info
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
 os.chdir(r'C:\PycharmProjects\SchemeRep')
@@ -152,9 +152,6 @@ def get_semantic_vectors_(normalize=False, norm_by_type=True):
         d_all[scene] = get_w2v_vec(scene_rename, w2vectors)
         vecs_obj.append(d_all[obj])
         vecs_scn.append(d_all[scene])
-        # vecs_all.append(d_all[obj])
-        # vecs_all.append(d_all[scene])
-        # print(f'{d_all[obj]=}')
 
     if normalize:
         d_all = norm_vectors(d_all, vecs_obj, vecs_scn, norm_by_type,

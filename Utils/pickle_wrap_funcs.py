@@ -74,7 +74,7 @@ def obj2str(val):
     kwargs_str = ''
     if isinstance(val, np.ndarray):
         if val.size > 9_999_999:
-            warnings.warn(f'Hashing a large array ({val.shape}) to make the filepath, '
+            warnings.warn(f'Hashing a large ndarray ({val.shape}) to make the filepath, '
                           f'may add considerable time to filepath generation.',
                           PickleWrapWarning, stacklevel=2)
         kwargs_str += hash_array(val)
@@ -113,7 +113,6 @@ def f2str(callback, kwargs=None):
             val = kwargs[key]
             kwargs_str += obj2str(val)
         kwargs_str = kwargs_str[:-1]
-
     return kwargs_str
 
 

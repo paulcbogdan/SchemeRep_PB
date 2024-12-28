@@ -43,7 +43,10 @@ def run_layer(kw, fps, big_voxelwise, region,
                 kw['ROI_focus'] = f'{region}_BOLD'
             kw['ROIs_ctrl'] = []
             if ctrl is not None:
-                kw['ROIs_ctrl'] = [ctrl]
+                if isinstance(ctrl, list):
+                    kw['ROIs_ctrl'] = ctrl
+                else:
+                    kw['ROIs_ctrl'] = [ctrl]
             kw['return_dif'] = True
             if allow_misses is not None and (sn in allow_misses or allow_misses == 'all'):
                 try:
@@ -98,78 +101,88 @@ def run_layer(kw, fps, big_voxelwise, region,
     print(f'{local_str}: t[{N - 1}] = {t:.2f}, p = {p:.3f}')
     return t, vals
 
+def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROIs,
+                     ctrl_contex=False):
+    if isinstance(semantic, bool) or semantic == 'inc':
+        llama_cat, llama_layer, obj_scn = None, None, None
+    else:
+        llama_cat = semantic[1]
+        llama_layer = semantic[2]
+        obj_scn = semantic[3]
+    for i, target_ROI in enumerate(target_ROIs):
+        kw = get_base_kw(target_ROI, model=semantic,
+                         fps=fps_do, big_voxelwise=False,
+                         local=True)
+        # THERE IS SOME FUNKINESS SOMETIMES WITH RANDOM LOW
+        # THERE MUST BE RUN_LAYER GETTING OVERRIDDEN SOMEHOW
+        if ctrl_contex:
+            if semantic[1] in ['attn_weights', 'attn_output']:
+                ctrl = (semantic[0], 'gate_proj_in', semantic[2],
+                        'obj', semantic[4], semantic[5])
+            elif isinstance(semantic
+                    , list):
+                raise ValueError
+            else:
+                if semantic[3] == 'obj':
+                    ctrl = [(semantic[0], semantic[1], semantic[2],
+                             'obj_solo', semantic[4], semantic[5]),
+                            (semantic[0], semantic[1], semantic[2],
+                             'scn', semantic[4], semantic[5]),
+                            ]
+        else:
+            ctrl = None
 
-def run_many_layers(big_voxelwise=True, attn=False,
-                    ctrl_contex=False):
-    target_ROIs = ['Occipital', 'ITL', 'PFC'] # 'Parietal',
+        kw['ctrl'] = ctrl
 
+        import zlib
+        kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
+        t, vals = pickle_wrap(run_layer, kwargs=kw,
+                              verbose=1, easy_override=False,
+                              dir_branches=100, )
+
+        ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
+        ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
+
+
+def run_layers_static(big_voxelwise=True, attn=False,
+                      ctrl_contex=False):
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
     semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
                                    attn=False, do_M=False, last_only=False,
                                    )
-    semantic_l_M = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+    semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
                                    attn=False, do_M='obj_solo', last_only=False
                                    )
-    semantic_l += semantic_l_M
-    #
-    semantic_l_BERT = get_explore_BERT('BERT', do_M=False)
+    # semantic_l += semantic_l_M
+    semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
     semantic_l += semantic_l_BERT
-    semantic_l_BERT = get_explore_BERT('simCSE', do_M=False)
+    semantic_l_BERT = get_explore_BERT('simCSE', do_M='obj_solo')
     semantic_l += semantic_l_BERT
 
-    fps_do = 'obj'
-    # fps_do = 'non_obj'
+
+    w2v_glove_l = [True, 'glove']
+    semantic_l += w2v_glove_l
+    # semantic_l = ['glove']
+    # semantic_l = [True]
+
+    # fps_do = 'obj'
+    fps_do = 'non_obj'
 
     for semantic in semantic_l:
-        # print(f'{semantic=}')
-        # quit()
-        if isinstance(semantic, bool) and semantic:
-            llama_cat, llama_layer, obj_scn = None, None, None
-        else:
-            llama_cat = semantic[1]
-            llama_layer = semantic[2]
-            obj_scn = semantic[3]
-        for i, target_ROI in enumerate(target_ROIs):
-            kw = get_base_kw(target_ROI, model=semantic,
-                             fps=fps_do, big_voxelwise=False,
-                             local=True)
-            # THERE IS SOME FUNKINESS SOMETIMES WITH RANDOM LOW
-            # THERE MUST BE RUN_LAYER GETTING OVERRIDDEN SOMEHOW
-            if ctrl_contex:
-                if semantic[1] in ['attn_weights', 'attn_output']:
-                    ctrl = (semantic[0], 'gate_proj_in', semantic[2],
-                                'obj', semantic[4], semantic[5])
-                elif isinstance(semantic, list):
-                    raise ValueError
-                else:
-                    if semantic[3] == 'obj':
-                        ctrl = (semantic[0], semantic[1], semantic[2],
-                                'obj_M', semantic[4], semantic[5])
-                    else:
-                        ctrl = (semantic[0], semantic[1], semantic[2],
-                                'obj', semantic[4], semantic[5])
-            else:
-                ctrl = None
-
-
-            kw['ctrl'] = ctrl
-
-            import zlib
-            kw['kw']['pickle_wrap_key'] = zlib.adler32(str(semantic).encode())
-            t, vals = pickle_wrap(run_layer, kwargs=kw,
-                               verbose=1, easy_override=False,
-                               dir_branches=100, )
-
-            ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
-            ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
-
+        run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROIs,
+                         ctrl_contex=False)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
                     'non_obj': 'Task: All but encoding',
                     'all': 'Task: All tasks'}
-    # plot_all_results(ALL_RESULTS, fps_do2title[fps_do])
+    plot_results_t(ALL_RESULTS, fps_do2title[fps_do])
+    # plot_results_M_SE(target_ROIs, ALL_RESULTS_VALS, fps_do2title[fps_do])
+    quit()
+
+def plot_results_M_SE(target_ROIs, ALL_RESULTS_VALS, suptitle):
     plt.rcParams.update({'font.size': 20})
     fig, axs = plt.subplots(len(target_ROIs), 1,
                             figsize=(10, 5 * len(target_ROIs)))
@@ -185,13 +198,10 @@ def run_many_layers(big_voxelwise=True, attn=False,
             plot_line(ar, key, region, do_labels=i == len(target_ROIs) - 1)
 
     fig.legend(loc='lower center', ncol=2, frameon=False)
-    plt.suptitle( fps_do2title[fps_do], fontsize=28)
-
+    plt.suptitle(suptitle, fontsize=28)
     plt.subplots_adjust(bottom=0.15, top=0.91, right=0.95, left=0.12,
                         hspace=.4)
-
     plt.show()
-    quit()
 
 def plot_line(ar_vals, key, region, do_labels=False):
     confidence_interval = np.std(ar_vals, axis=1) / np.sqrt(len(ar_vals))
@@ -245,7 +255,7 @@ def plot_line(ar_vals, key, region, do_labels=False):
     plt.gca().spines[['top', 'right', ]].set_visible(False)
 
 
-def plot_all_results(all_results, subtitle=''):
+def plot_results_t(all_results, subtitle=''):
     nested_dict = flat_dict_to_nested(all_results)
     # print(all_results)
     # quit()
@@ -253,17 +263,35 @@ def plot_all_results(all_results, subtitle=''):
     fig, axs = plt.subplots(len(nested_dict), 1, figsize=(10, 5 * len(nested_dict)))
     module_type2label = {'gate_proj_in': 'Item embedding',
                          'attn_weights': 'Attention weights',}
+    # print(f'{nested_dict=}')
     for j, (region, b_dict) in enumerate(nested_dict.items()):
         plt.sca(axs[j])
         plt.title(region)
         high = 0
         for i, (module_type, c_dict) in enumerate(b_dict.items()):
+            if module_type is None:
+                val = c_dict[None][0]
+                label = 'word2vec' if j == 0 else None
+                plt.plot([14], [val], label=label, color='red',
+                          marker='o', linewidth=3, markersize=8)
+                plt.plot([13.5, 14.5], [val, val], color='red',
+                         linewidth=3)
+                continue
+            elif module_type == 'l':
+                val = c_dict['v'][0]
+                label = 'GloVe' if j == 0 else None
+                plt.plot([14], [val], label=label, color='crimson',
+                          marker='o', linewidth=3, markersize=8)
+                plt.plot([13.5, 14.5], [val, val], color='crimson',
+                         linewidth=3)
+                continue
+
             if 'simCSE' in module_type or 'BERT' in module_type:
                 label = module_type
                 if 'obj' in c_dict:
                     values = c_dict['obj']
                     color = 'green'
-                    layer_nums = np.array(list(range(len(values)))) * 2
+                    layer_nums = np.array(list(range(len(values))))# * 2
                     if 'obj_M' in c_dict:
                         label = label if j == 0 else None
                     else:
@@ -278,7 +306,7 @@ def plot_all_results(all_results, subtitle=''):
                 if 'obj_M' in c_dict:
                     color = 'olive'
                     values = c_dict['obj_M']
-                    layer_nums = np.array(list(range(len(values)))) * 2
+                    layer_nums = np.array(list(range(len(values))))# * 2
                     if 'obj' in c_dict:
                         label = f'{label}\n(scene averages)' if j == 0 else None
                     else:
@@ -290,7 +318,6 @@ def plot_all_results(all_results, subtitle=''):
                              linewidth=3)
                     high = np.max([high, np.max(values)])
             elif 'obj' in c_dict or 'obj_dif' in c_dict:
-                print('TOAST')
                 if module_type == 'attn_weights':
                     label = 'Attention weights'
                 elif module_type == 'gate_proj_in':
@@ -350,7 +377,24 @@ def plot_all_results(all_results, subtitle=''):
             plt.xlabel('Layer')
         plt.gca().spines[['top', 'right', ]].set_visible(False)
 
-    fig.legend(loc='lower center', ncol=2, frameon=False)
+    # plt.legend(['a', 'b', 'c', 'd', 'e'], [0, 1, 2, 3, 4])
+        if j == 0:
+            handles, labels = plt.gca().get_legend_handles_labels()
+            handles = handles[1:] + handles[:1]
+            labels = labels[1:] + labels[:1]
+            # plt.legend(handles, labels)
+    #
+    # # Sort them using a paired sort (sorts labels and reorders handles accordingly)
+    # sorted_pairs = sorted(zip(labels, handles))
+    # sorted_labels, sorted_handles = zip(*sorted_pairs)
+    #
+    # # Create legend with sorted labels
+    # plt.legend(sorted_handles, sorted_labels)
+    # plt.show()
+    # quit()
+    plt.xlim(-0.5, 28.5)
+
+    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False)
     if len(b_dict) == 1:
         plt.subplots_adjust(bottom=0.13, top=0.91, right=0.95, left=0.08,
                             hspace=.4)
@@ -381,4 +425,4 @@ def print_all_results(all_results):
 
 
 if __name__ == '__main__':
-    run_many_layers(big_voxelwise=True)
+    run_layers_static(big_voxelwise=True)

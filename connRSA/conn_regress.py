@@ -8,6 +8,7 @@ from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from llama.BERT_vecs import get_sn_fp_BERT_RSM, get_sn_fp_BERT_RSM_l
+from llama.GloVe_vecs import get_sn_fp_glove_RSM
 from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM, get_sn_fp_llama_RSM_l
 from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
@@ -70,7 +71,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             RSM_focus = within_run_to_nan(RSM_focus)
 
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
-    if isinstance(semantic, str) and semantic == 'inc':
+    if isinstance(semantic, str) and semantic.lower() == 'glove':
+        RSM_stim = get_sn_fp_glove_RSM(sn, fp)
+    elif isinstance(semantic, str) and semantic == 'inc':
         RSM_stim = get_sn_fp_inc_RSM(sn, fp)
     elif isinstance(semantic, bool) and semantic:
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, semantic)

@@ -119,7 +119,9 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
     title = 'Attn' if attn else 'Item'
 
 
-    if do_M:
+    if do_M == 'obj_solo':
+        title = 'Object embedding (no scene)\n'
+    elif do_M:
         title = 'Object embedding (scene averages)\n'
     else:
         if fps == 'obj':
@@ -144,25 +146,9 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
             cmap = 'Greens'
         title += 'Non-encoding tasks'
 
-
-    # if cross:
-    #     title = 'Object embedding (one context)\n'
-    #     title += f'(layers {st} - {end})\n'
-    #     title += f'Non-encoding tasks only'
-    #     cmap = 'Greens'
-    # elif do_M:
-    #     title = 'Object embedding (scene averages)\n'
-    #     title += f'(layers {st} - {end})\n'
-    #     title += f'Non-encoding tasks'
-    #     cmap = 'hot'
-    #     cmap = 'Reds'
-    # else:
-    #     title = 'Object embedding (scene → object)\n'
-    #     title += f'(layers {st} - {end})\n'
-    #     title += f'Encoding task only'
-    #     cmap = 'Blues'
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
+
 
 
 if __name__ == '__main__':
@@ -185,8 +171,8 @@ if __name__ == '__main__':
         #              do_M=True, obj_task=True)
         # continue
 
+        # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
+        #              do_M=True, obj_task=False)
+        # quit()
         run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=True, obj_task=False)
-        quit()
-        run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-                     do_M=False, obj_task=False)
+                     do_M='obj_solo', obj_task=False)
