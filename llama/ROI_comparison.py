@@ -1,12 +1,13 @@
 import numpy as np
-from sympy.physics.vector import cross
+from scipy import stats
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.model_settings import get_base_kw, get_explore_llama, get_explore_BERT
+from llama.llama_behavior import run_sn_attn_enc
+from llama.model_settings import get_base_kw, get_explore_llama
 from llama.run_many_layers import run_layer
 from old.plot_gen import my_plot_surf
-from scipy import stats
+
 
 def process_allow_misses(kw, ROI):
     if ROI in ['69 ATL_L_6_1', '70 ATL_R_6_1', '89 ITG_L_7_1',
@@ -63,9 +64,9 @@ def item_vs_attn_ROIs(combine_regions=False, st=8, end=None,
     vals_item_l = np.array(vals_item_l)
     vals_item_M = np.nanmean(vals_item_l, axis=0)
     for i, ROI in enumerate(ROIs):
-        vals_attn = vals_attn_l[i]# - vals_attn_M
-        vals_item = vals_item_l[i]# - vals_item_M
-        t, p = stats.ttest_rel(vals_attn, vals_item, nan_policy='omit') # positive: attn > item
+        vals_attn = vals_attn_l[i]  # - vals_attn_M
+        vals_item = vals_item_l[i]  # - vals_item_M
+        t, p = stats.ttest_rel(vals_attn, vals_item, nan_policy='omit')  # positive: attn > item
         M_attn = np.nanmean(vals_attn) * 1_000
         M_item = np.nanmean(vals_item) * 1_000
         if np.abs(t) > 2:
@@ -118,7 +119,6 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
     vmax = np.quantile(np.abs(ts), 0.95)
     title = 'Attn' if attn else 'Item'
 
-
     if do_M == 'obj_solo':
         title = 'Object embedding (no scene)\n'
     elif do_M:
@@ -150,11 +150,146 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
                  only_positive=True, cmap=cmap)
 
 
+def run_ctxt_contrast_ROIs(combine_regions=True, st=8, end=20,
+                           activation_model='meta-llama/Llama-3.2-3b',
+                           ):
+    model_obj_scn = get_explore_llama(activation_model,
+                                      attn=False, st=st, end=end,
+                                      do_M=False, last_only=False)
+
+    model_obj_solo = get_explore_llama(activation_model,
+                                       attn=False, st=st, end=end,
+                                       do_M='obj_solo', last_only=False)
+    model_scn = get_explore_llama(activation_model,
+                                  attn=False, st=st, end=end,
+                                  do_M='scn', last_only=False)
+
+    # model = get_explore_BERT('simCSE', do_M=False, st=2, end=10)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_regions)
+    ROIs = atlas['ROIs']
+
+    ts = []
+    ts_ctx = []
+    for ROI in ROIs:
+        fps = 'obj'
+        kw_ctxt = get_base_kw(ROI, model=model_obj_scn, fps=fps,
+                              big_voxelwise=False, local=combine_regions)
+        process_allow_misses(kw_ctxt, ROI)
+        # kw_ctxt['ctrl'] = [model_obj_solo, model_scn]
+
+        t_ctxt, vals_ctxt = pickle_wrap(run_layer, kwargs=kw_ctxt,
+                                        verbose=-1, easy_override=False,
+                                        dir_branches=100)
+        ts_ctx.append(t_ctxt)
+
+        kw_solo = get_base_kw(ROI, model=model_obj_solo, fps=fps,
+                              big_voxelwise=False, local=combine_regions)
+        process_allow_misses(kw_solo, ROI)
+        _, vals_solo = pickle_wrap(run_layer, kwargs=kw_solo,
+                                   verbose=-1, easy_override=False,
+                                   dir_branches=100)
+        t, p = stats.ttest_rel(vals_ctxt, vals_solo, nan_policy='omit')
+        print(f'Context vs. solo | {ROI}: {t=:.3f}')
+        ts.append(t)
+
+    vmax = np.quantile(np.abs(ts), 0.95)
+    title = ('Contextualized vs. static contrast\n'
+             'Encoding task\n')
+    title += f'(layers {st} - {end})'
+    cmap = 'Oranges'
+
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
+                 only_positive=True, cmap=cmap)
+
+    title = 'Contextualized item embedding\n'
+    title += f'(layers {st} - {end})'
+    cmap = 'Blues'
+    my_plot_surf(ts_ctx, atlas, title, vmax=6, thresh=2,
+                 only_positive=True, cmap=cmap)
+
+
+def run_attn_ROIs(combine_regions=False, st=8, end=20,
+                  activation_model='meta-llama/Llama-3.2-3b',
+                  obj_task=True):
+    model = get_explore_llama(activation_model,
+                              attn=True, st=st, end=end,
+                              do_M=False, last_only=False)
+
+    model_obj_solo = get_explore_llama(activation_model,
+                                       attn=False, st=st, end=end,
+                                       do_M='obj_solo', last_only=False)
+    model_scn = get_explore_llama(activation_model,
+                                  attn=False, st=st, end=end,
+                                  do_M='scn', last_only=False)
+
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_regions)
+    ROIs = atlas['ROIs']
+
+    ts = []
+    for ROI in ROIs:
+        if obj_task:
+            fps = 'obj'
+        else:
+            fps = 'non_obj'
+        kw = get_base_kw(ROI, model=model, fps=fps,
+                         big_voxelwise=False, local=combine_regions)
+        kw['ctrl'] = [model_obj_solo]#, model_scn]
+        process_allow_misses(kw, ROI)
+        t, vals = pickle_wrap(run_layer, kwargs=kw,
+                              verbose=-1, easy_override=False,
+                              dir_branches=100)
+        # if np.abs(t) > 2:
+        print(f'{ROI}: {t=:.3f}')
+        ts.append(t)
+
+    title = 'Attention weights\n'
+
+    title += f'(layers {st} - {end})\n'
+    if isinstance(fps, list):
+        title = str(fps)
+        cmap = 'Purples'
+    elif fps == 'obj':
+        title += 'Encoding task'
+        cmap = 'Purples'
+    else:
+        title += 'Non-encoding tasks'
+        cmap = 'Purples'
+
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
+                 only_positive=True, cmap=cmap)
+
+def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_regions)
+    ROIs = atlas['ROIs']
+
+    ts = []
+    for ROI in ROIs:
+        # ROI = 'PFC'
+        # ROI = 'SFG'
+        t, vals = run_sn_attn_enc(ROI, control_item=True,
+                                  do_acc=True, FC='subcort',
+                                  local=combine_regions)
+        print(f'{ROI}: {t=:.3f}')
+        ts.append(t)
+
+    title = 'Attention x encoding accuracy\n'
+    cmap = 'Greens'
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
+                 only_positive=True, cmap=cmap)
+
+
+
 
 if __name__ == '__main__':
+    run_attn_bhv_ROIs()
+    # run_attn_ROIs()
+    # run_ctxt_contrast_ROIs()
+    quit()
     tick = 16
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'
-
 
     # item_vs_attn_ROIs(combine_regions=False, activation_model=ACTIVATION_MODEL,
     #                   st=24, end=28)
@@ -174,5 +309,5 @@ if __name__ == '__main__':
         # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
         #              do_M=True, obj_task=False)
         # quit()
-        run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
+        run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st + tick,
                      do_M='obj_solo', obj_task=False)

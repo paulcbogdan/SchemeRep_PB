@@ -1,4 +1,5 @@
 from Utils.atlas_funcs import get_atlas
+from marinate import marinate
 from connRSA.conn_regress import do_regr_RSA_sn
 from llama.model_settings import get_explore_llama, get_base_kw
 from llama.numba_regr_test import pairwise_interaction_t_values_proper
@@ -31,7 +32,8 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
     return kw
 
 def sn_attn_enc(sn, region='subcort', local=True,
-                big_voxelwise=False, do_acc=True
+                big_voxelwise=False, do_acc=True,
+                control_item=False
                 ):
     # region = 'PFC'
     activation_model = 'meta-llama/Llama-3.2-3b'
@@ -51,7 +53,7 @@ def sn_attn_enc(sn, region='subcort', local=True,
 
     # kw['semantic'] = 'inc'
     kw['semantic'] = model_attn
-    kw['ROIs_ctrl'] = []
+    kw['ROIs_ctrl'] = [model_item] if control_item else []
     # ['inc']# model_item] # ['cortical_M_corr']#model_item]
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
@@ -68,43 +70,54 @@ def sn_attn_enc(sn, region='subcort', local=True,
     if do_acc:
         df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
         df_sn['enc_acc'] = -(df_sn['inc_m'] - df_sn['per_inc']).abs()
+        # enc_nans = df_sn['enc_acc'].isna()
+        # df_sn['enc_acc'] = (df_sn['enc_acc'] < 1).astype(float)
+        # df_sn.loc[enc_nans, 'enc_acc'] = np.nan
     else:
         df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
-
-    # print(df_sn['enc_acc'].value_counts())
 
     df_sn = df_sn.dropna(subset=['IRAFs', 'enc_acc'])
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['enc_acc'])
     # print(f'{r=:.3f}')
     return r
 
-def sn_attn_enc_Tha(sn, region='subcort', local=True,
-                     big_voxelwise=False, do_acc=True
+def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
+                    big_voxelwise=False, do_acc=True,
+                    control_item=False
                     ):
-    region_ = 'PFC'
+    # local = True
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
-                                   st=8, end=20,
+                                   # st=8, end=20,
                                    last_only=False
                                    )
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
                                    include_scn=True,
-                                   do_prod=False)
-    kw = get_base_kw_predicting(sn, region_, local, big_voxelwise)
+                                   do_prod=False,
+                                   # st=8, end=20,
+                                   )
+
+
+
+    kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
 
     kw['semantic'] = model_attn
 
-    kw['ROIs_ctrl'] = []#model_item]
-    #, 'cortical_M_corr']
-    # ['inc']# model_item] # ['cortical_M_corr']#model_item]
+    kw['ROIs_ctrl'] = [model_item] if control_item else []
+    # print(kw['ROIs_ctrl'])
+    # quit()
+    # print(kw)
+    # quit()
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                         easy_override=False, dir_branches=100)
+    # print(IRAFs)
+    # quit()
 
     df_sn = get_trial_info(sn)
     df_sn.sort_values(by=f'obj_trial', inplace=True)
@@ -115,15 +128,22 @@ def sn_attn_enc_Tha(sn, region='subcort', local=True,
     if do_acc:
         df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
         df_sn['enc_acc'] = -(df_sn['inc_m'] - df_sn['per_inc']).abs()
+        # enc_nans = df_sn['enc_acc'].isna()
+        # df_sn['enc_acc'] = (df_sn['enc_acc'] < 1).astype(float)
+        # df_sn.loc[enc_nans, 'enc_acc'] = np.nan
     else:
         df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
+    # print(df_sn['enc_acc'].value_counts())
+    # quit()
 
-
-    kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
+    kw = get_base_kw_predicting(sn, FC_target, local, big_voxelwise)
     kw['semantic'] = model_attn
-    kw['ROIs_ctrl'] = []#model_item]
+    kw['ROIs_ctrl'] = [model_item] if control_item else []
+
     IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                             easy_override=False, dir_branches=100)
+    # print(IRAFs_str)
+    # quit()
     if len(kw['ROIs_ctrl']):
         IRAFs_str = IRAFs_str[:, 0]
 
@@ -140,6 +160,8 @@ def sn_attn_enc_Tha(sn, region='subcort', local=True,
     X = X[~nans]
     X = stats.zscore(X, axis=0)
     t = pairwise_interaction_t_values_proper(y, X)
+    # print(t)
+    # quit()
     return t[0, 1]
 
 
@@ -154,11 +176,6 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     model = get_explore_llama(activation_model,
                               attn=False, normalize=True,
                               do_M='obj_solo', st=6, end=22)
-
-    # model = get_explore_llama(activation_model,
-    #                           attn=True, normalize=True,
-    #                           include_scn=True,
-    #                           do_prod=False)
 
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
     kw['fp'] = 'obj7_fMRI'
@@ -194,6 +211,32 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     #     r = -r
     return r
 
+@marinate(overwrite=True)
+def run_sn_attn_enc(region, control_item=False, do_acc=True,
+                    FC=None, local=False):
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
+    efs = []
+    efs = []
+    # print('toast')
+    for sn in sns:
+        try:
+            if FC:
+                ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
+                                     control_item=control_item,
+                                     do_acc=do_acc)
+            else:
+                ef = sn_attn_enc(sn, region=region, local=local,
+                                 control_item=control_item,
+                                 do_acc=do_acc)
+        except FileNotFoundError:
+            efs.append(np.nan)
+            continue
+        efs.append(ef)
+    t, p = stats.ttest_1samp(efs, 0, axis=0)
+    N = np.sum(~np.isnan(efs), axis=0)
+    return t, efs
 
 def test_sn_llama_mem():
     fps = ['obj7_fMRI']
@@ -208,8 +251,9 @@ def test_sn_llama_mem():
         # print(REGION)
         efs = []
         for sn in sns:
-            # ef = sn_attn_enc_Tha(sn, region=REGION)
-            ef = sn_item_dm(sn, region=REGION)
+            # ef = sn_attn_enc(sn, region=REGION)
+            ef = sn_attn_enc_Tha(sn, region=REGION)
+            # ef = sn_item_dm(sn, region=REGION)
             if np.isnan(ef): continue
             if ef is None: continue
             efs.append(ef)
