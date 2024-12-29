@@ -142,10 +142,12 @@ def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
 
     IRAFs_str = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                             easy_override=False, dir_branches=100)
-    # print(IRAFs_str)
-    # quit()
+
     if len(kw['ROIs_ctrl']):
         IRAFs_str = IRAFs_str[:, 0]
+
+    # r, p = stats.spearmanr(IRAFs, IRAFs_str, nan_policy='omit')
+    # return r
 
     y = np.array(df_sn['enc_acc'].to_list())
 
@@ -160,8 +162,6 @@ def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
     X = X[~nans]
     X = stats.zscore(X, axis=0)
     t = pairwise_interaction_t_values_proper(y, X)
-    # print(t)
-    # quit()
     return t[0, 1]
 
 
@@ -221,18 +221,19 @@ def run_sn_attn_enc(region, control_item=False, do_acc=True,
     efs = []
     # print('toast')
     for sn in sns:
-        try:
-            if FC:
-                ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
-                                     control_item=control_item,
-                                     do_acc=do_acc)
-            else:
-                ef = sn_attn_enc(sn, region=region, local=local,
+        # try:
+        if FC:
+            ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
                                  control_item=control_item,
                                  do_acc=do_acc)
-        except FileNotFoundError:
-            efs.append(np.nan)
-            continue
+        else:
+            ef = sn_attn_enc(sn, region=region, local=local,
+                             control_item=control_item,
+                             do_acc=do_acc)
+        # except FileNotFoundError as e:
+        #     print(f'{e=}')
+            # efs.append(np.nan)
+            # continue
         efs.append(ef)
     t, p = stats.ttest_1samp(efs, 0, axis=0)
     N = np.sum(~np.isnan(efs), axis=0)

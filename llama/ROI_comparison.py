@@ -267,17 +267,20 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
 
     ts = []
     for ROI in ROIs:
-        # ROI = 'PFC'
+        # if ROI == 'SFG':
+        #     ts.append(0)
+        #     continue
+        ROI = 'PFC'
         # ROI = 'SFG'
-        t, vals = run_sn_attn_enc(ROI, control_item=True,
-                                  do_acc=True, FC='subcort',
+        t, vals = run_sn_attn_enc(ROI, control_item=False,
+                                  do_acc=True, FC='tha_str',
                                   local=combine_regions)
         print(f'{ROI}: {t=:.3f}')
         ts.append(t)
 
     title = 'Attention x encoding accuracy\n'
     cmap = 'Greens'
-    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=1.65,
                  only_positive=True, cmap=cmap)
 
 
@@ -286,7 +289,7 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
 if __name__ == '__main__':
     run_attn_bhv_ROIs()
     # run_attn_ROIs()
-    # run_ctxt_contrast_ROIs()
+    # run_ctxt_contrast_RrOIs()
     quit()
     tick = 16
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'

@@ -169,7 +169,7 @@ if __name__ == '__main__':
     targets = ['Occipital', 'IT', 'ITL']
     # targets = ['tha_str']
     targets = ['PFC_no_OFC']
-    targets = ['cortical']
+    targets = ['tha_str']
     for sem_per in [True, False]:
         for target in targets:#[::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,
