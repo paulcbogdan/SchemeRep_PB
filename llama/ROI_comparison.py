@@ -209,7 +209,7 @@ def run_ctxt_contrast_ROIs(combine_regions=True, st=8, end=20,
                  only_positive=True, cmap=cmap)
 
 
-def run_attn_ROIs(combine_regions=False, st=8, end=20,
+def run_attn_ROIs(combine_regions=True, st=8, end=20,
                   activation_model='meta-llama/Llama-3.2-3b',
                   obj_task=True):
     model = get_explore_llama(activation_model,
@@ -234,7 +234,7 @@ def run_attn_ROIs(combine_regions=False, st=8, end=20,
         else:
             fps = 'non_obj'
         kw = get_base_kw(ROI, model=model, fps=fps,
-                         big_voxelwise=False, local=combine_regions)
+                         big_voxelwise=True, local=False)#combine_regions)
         kw['ctrl'] = [model_obj_solo]#, model_scn]
         process_allow_misses(kw, ROI)
         t, vals = pickle_wrap(run_layer, kwargs=kw,
@@ -270,12 +270,22 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
         # if ROI == 'SFG':
         #     ts.append(0)
         #     continue
-        ROI = 'PFC'
+        # ROI = 'PFC'
+        # ROI = 'FP'
         # ROI = 'SFG'
-        t, vals = run_sn_attn_enc(ROI, control_item=False,
+        t, vals = run_sn_attn_enc('PFC', control_item=True,
                                   do_acc=True, FC='tha_str',
                                   local=combine_regions)
+
+
+        # t, vals = run_sn_attn_enc('Tha', control_item=False,
+        #                           do_acc=True, FC=ROI,
+        #                           local=combine_regions)
+        # t, vals = run_sn_attn_enc(ROI, control_item=False,
+        #                           do_acc=True, FC='tha_str',
+        #                           local=combine_regions)
         print(f'{ROI}: {t=:.3f}')
+        quit()
         ts.append(t)
 
     title = 'Attention x encoding accuracy\n'

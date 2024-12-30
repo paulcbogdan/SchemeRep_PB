@@ -144,34 +144,42 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True):
+def run_layers_static(obj_scn=False, attn=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
+    # target_ROIs = ['Tha', 'Str', 'tha_str']
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
-    if obj_scn:
+    if attn:
         semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                       attn=False, do_M=False, last_only=False,
+                                       attn=True, do_M=False, last_only=False,
+                                       include_scn=True
                                        )
         fps_do = 'obj'
     else:
-        semantic_l = []
-        fps_do = 'non_obj'
-    semantic_l += get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M='obj_solo', last_only=False
-                                   )
-    semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
-    semantic_l += semantic_l_BERT
-    semantic_l_BERT = get_explore_BERT('simCSE', do_M='obj_solo')
-    semantic_l += semantic_l_BERT
+        if obj_scn:
+            semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+                                           attn=False, do_M=False, last_only=False,
+                                           )
+            fps_do = 'obj'
+        else:
+            semantic_l = []
+            fps_do = 'non_obj'
+        semantic_l += get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+                                       attn=False, do_M='obj_solo', last_only=False
+                                       )
+        semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
+        semantic_l += semantic_l_BERT
+        semantic_l_BERT = get_explore_BERT('simCSE', do_M='obj_solo')
+        semantic_l += semantic_l_BERT
 
 
-    w2v_glove_l = [True, 'glove']
-    semantic_l += w2v_glove_l
+        w2v_glove_l = [True, 'glove']
+        semantic_l += w2v_glove_l
 
 
     for semantic in semantic_l:
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
-                         target_ROIs, ctrl_contex=False)
+                         target_ROIs, ctrl_contex=False)#attn)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',

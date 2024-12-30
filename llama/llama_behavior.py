@@ -81,7 +81,7 @@ def sn_attn_enc(sn, region='subcort', local=True,
     # print(f'{r=:.3f}')
     return r
 
-def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
+def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                     big_voxelwise=False, do_acc=True,
                     control_item=False
                     ):
@@ -91,14 +91,16 @@ def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
-                                   st=12, end=20,
+                                   st=8, end=20,
                                    last_only=False
                                    )
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
-                                   include_scn=True,
+                                   include_scn=False,
                                    do_prod=False,
+                                   do_M='obj_solo',
+                                   st=6, end=12
                                    # st=8, end=20,
                                    )
 
@@ -129,7 +131,7 @@ def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
         df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
         df_sn['enc_acc'] = -(df_sn['inc_m'] - df_sn['per_inc']).abs()
         # enc_nans = df_sn['enc_acc'].isna()
-        # df_sn['enc_acc'] = (df_sn['enc_acc'] < 1).astype(float)
+        # df_sn['enc_acc'] = (df_sn['enc_acc'] > -1).astype(float)
         # df_sn.loc[enc_nans, 'enc_acc'] = np.nan
     else:
         df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
@@ -253,7 +255,10 @@ def test_sn_llama_mem():
         efs = []
         for sn in sns:
             # ef = sn_attn_enc(sn, region=REGION)
-            ef = sn_attn_enc_Tha(sn, region=REGION)
+            try:
+                ef = sn_attn_enc_Tha(sn, region=REGION)
+            except np.linalg.LinAlgError:
+                pass
             # ef = sn_item_dm(sn, region=REGION)
             if np.isnan(ef): continue
             if ef is None: continue
