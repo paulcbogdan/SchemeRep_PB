@@ -91,7 +91,7 @@ def sn_attn_enc_Tha(sn, region, FC_target='subcort', local=True,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
-                                   # st=8, end=20,
+                                   st=12, end=20,
                                    last_only=False
                                    )
 

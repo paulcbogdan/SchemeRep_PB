@@ -357,6 +357,8 @@ def get_deve_llama_RSM(semantic, pf_thresh=100, quick=5, item_standard='deve',
                           easy_override=False, verbose=1)
     else:
         raise ValueError
+    # print(RSM)
+    # quit()
     return RSM
 
 def get_item_prod_sum(items, cat, items_M_vecs):
@@ -470,13 +472,9 @@ def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
         if isinstance(quick1, tuple):
             position = quick1[1]
             quick1 = quick1[0]
-        # print(vecs0)
-        # print('test')
         vecs1 = get_llama_vecs_ar(pf_thresh, cat, layer_name,
                                   activation_model, normalize, quick1, item_standard,
                                   position, symmetric)
-        # print(vecs1)
-        # quit()
         vecs = vecs0 - vecs1
     else:
         vecs = get_llama_vecs_ar(pf_thresh, cat, layer_name,

@@ -7,6 +7,7 @@ import numpy as np
 from scipy import stats
 from time import time
 
+from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from tqdm import tqdm
 
@@ -157,7 +158,8 @@ def test_w2v_regression():
     prods = np.nanmean(prods, axis=1, keepdims=True)
     fit_regularized_models(prods, relatedness)
 
-def fit_regularized_models(X, y, cv_folds=5, random_state=42):
+def fit_regularized_models(X, y, cv_folds=5, random_state=42,
+                           plot=False):
 
     """
     Fit Lasso, Ridge, and ElasticNet models with cross-validation
@@ -173,11 +175,12 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
     """
 
     import numpy as np
-    from sklearn.linear_model import LassoCV, RidgeCV, ElasticNetCV
+    from sklearn.linear_model import LassoCV, RidgeCV, ElasticNetCV, RidgeClassifierCV
     from sklearn.preprocessing import StandardScaler
     from sklearn.model_selection import KFold
     from sklearn.metrics import r2_score
     from sklearn.exceptions import UndefinedMetricWarning
+    from sklearn.svm import SVC
     import warnings
     warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 
@@ -186,21 +189,23 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
     # X_scaled = scaler.fit_transform(X)
     # X_scaled = X
 
-    print(f'{X.shape=}')
-    print(f'{y.shape=}')
-
     # Create cross-validation object
     if len(np.unique(y)) <= 3:
         cv = StratifiedKFold(n_splits=cv_folds, shuffle=True,
                              random_state=random_state)
+        binary = True
     else:
         cv = KFold(n_splits=cv_folds, shuffle=True,
                              random_state=random_state)
+        binary = False
     # cv = LeaveOneOut()
+    # print(f'{binary=}')
 
     # Initialize models
     lasso = LassoCV(cv=cv, random_state=random_state)
     ridge = RidgeCV(cv=cv)
+    ridge = RidgeCV(cv=cv)
+    svm = SVC(kernel='linear', C=1)
     elastic = ElasticNetCV(cv=cv, random_state=random_state)
 
     # Dictionary to store results
@@ -208,7 +213,8 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
 
     # Fit models and calculate R² scores
     for name, model in [#('Lasso', lasso),
-                        ('Ridge', ridge),
+                        # ('Ridge', ridge),
+                        ('Ridge', svm) if binary else ('Ridge', ridge),
                         #('ElasticNet', elastic)
                         ]:
         # print(f'{X=}')
@@ -217,36 +223,45 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
         fold_predictions = []
         fold_R2s = []
         coefs = []
+        y_tests = []
+        y_preds = []
         for train_idx, test_idx in cv.split(X, y):
             # Split data
+
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
-
+            # print(f'{y_train=}')
             # Fit model and make prediction
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
+            y_pred[y_pred > 4] = 4
+            y_pred[y_pred < 1] = 1
             r2 = r2_score(y_test, y_pred)
             fold_R2s.append(r2)
             coefs.append(model.coef_)
 
+            y_tests.extend(list(y_test))
+            y_preds.extend(list(y_pred))
+
+
         coefs = np.mean(coefs, axis=0)
-        # print(f'Fitting: {name}')
         r2 = np.mean(fold_R2s)
 
         # Store results
         results[name] = {
             'model': model,
             'r2_score': r2,
-            'best_alpha': model.alpha_,
+            # 'best_alpha': model.alpha_,
             'coefs': coefs
         }
 
         if name == 'ElasticNet':
             results[name]['l1_ratio'] = model.l1_ratio_
 
-    # Generate sample data for demonstration
-
-    # Fit models
+        if plot or True:
+            plt.scatter(y_tests, y_preds)
+            plt.title(f'{name} | {r2=:.2f}')
+            plt.show()
 
     # Print results
     for name, result in results.items():
@@ -255,10 +270,20 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42):
             r_score = 0
         else:
             r_score = np.sqrt(result['r2_score'])
-        print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
+        # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
+        rs_all = []
         for i in range(len(result['coefs'])):
             r, p = stats.spearmanr(X[:, i], y)
-            print(f'\t{i} | {r=:.2f}, {result["coefs"][i]=:.2f}')
+            rs_all.append(r)
+        plt.hist(rs_all, bins=20, range=(-1, 1),
+                 color='dodgerblue')
+        plt.title(f'{name} | {r_score=:.2f}')
+        plt.xticks(np.linspace(-1, 1, 11,))
+        plt.ylabel('Frequency (n)')
+        plt.xlabel('Correlation (r)')
+        plt.show()
+        quit()
+            # print(f'\t{i} | {r=:.2f}, {result["coefs"][i]=:.2f}')
 
     return results
 
@@ -383,6 +408,7 @@ if __name__ == '__main__':
 
     # analyze_rissman(layer_name=list(range(4, 20)))
     analyze_rissman(layer_name=list(range(8, 16)))
+    quit()
 
     for LAYER_NAME in range(0, 24):
         # for FOCUS in range(24):

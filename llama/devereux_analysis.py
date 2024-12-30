@@ -167,7 +167,7 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                                st=0, normalize=False)
     if position == 0:
         quick = 4
-    # models = get_dev_explore_BERT('BERT')
+    models = get_dev_explore_BERT('BERT')
 
     if 'llama' in models[0]:
         layers = 28
@@ -193,13 +193,7 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                                  symmetric=False
                                  )
         RSM[np.diag_indices_from(RSM)] = np.nan
-        # plt.imshow(RSM, vmin=0, vmax=0.2)
-        # plt.colorbar()
-        # plt.show()
-        # quit()
-        # RSM_no_context = get_deve_llama_RSM(model, pf_thresh=pf_thresh,
-        #                                     quick=1, item_standard=item_standard)
-        # RSM = RSM - RSM_no_context
+
         upper_tile = np.nanquantile(RSM, 0.99)
         RSM[RSM > upper_tile] = np.nan
 

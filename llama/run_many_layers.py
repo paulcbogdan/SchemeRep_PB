@@ -144,18 +144,21 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(big_voxelwise=True, attn=False,
-                      ctrl_contex=False):
+def run_layers_static(obj_scn=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
-    semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                   attn=False, do_M=False, last_only=False,
-                                   )
-    semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+    if obj_scn:
+        semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+                                       attn=False, do_M=False, last_only=False,
+                                       )
+        fps_do = 'obj'
+    else:
+        semantic_l = []
+        fps_do = 'non_obj'
+    semantic_l += get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
                                    attn=False, do_M='obj_solo', last_only=False
                                    )
-    # semantic_l += semantic_l_M
     semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
     semantic_l += semantic_l_BERT
     semantic_l_BERT = get_explore_BERT('simCSE', do_M='obj_solo')
@@ -164,15 +167,11 @@ def run_layers_static(big_voxelwise=True, attn=False,
 
     w2v_glove_l = [True, 'glove']
     semantic_l += w2v_glove_l
-    # semantic_l = ['glove']
-    # semantic_l = [True]
 
-    # fps_do = 'obj'
-    fps_do = 'non_obj'
 
     for semantic in semantic_l:
-        run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROIs,
-                         ctrl_contex=False)
+        run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
+                         target_ROIs, ctrl_contex=False)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
@@ -184,8 +183,10 @@ def run_layers_static(big_voxelwise=True, attn=False,
 
 def plot_results_M_SE(target_ROIs, ALL_RESULTS_VALS, suptitle):
     plt.rcParams.update({'font.size': 20})
-    fig, axs = plt.subplots(len(target_ROIs), 1,
-                            figsize=(10, 5 * len(target_ROIs)))
+    # fig, axs = plt.subplots(len(target_ROIs), 1,
+    #                         figsize=(10, 5 * len(target_ROIs)))
+    fig, axs = plt.subplots(1, len(target_ROIs),
+                            figsize=(5 * len(target_ROIs), 10))
     cnt = 0
     for i, region in enumerate(target_ROIs):
         plt.sca(axs[cnt])
@@ -260,7 +261,10 @@ def plot_results_t(all_results, subtitle=''):
     # print(all_results)
     # quit()
     plt.rcParams.update({'font.size': 20})
-    fig, axs = plt.subplots(len(nested_dict), 1, figsize=(10, 5 * len(nested_dict)))
+    # fig, axs = plt.subplots(len(nested_dict), 1,
+    #                         figsize=(10, 5 * len(nested_dict)))
+    fig, axs = plt.subplots(1, len(nested_dict),
+                            figsize=(5 * len(nested_dict), 5))
     module_type2label = {'gate_proj_in': 'Item embedding',
                          'attn_weights': 'Attention weights',}
     # print(f'{nested_dict=}')
@@ -274,7 +278,7 @@ def plot_results_t(all_results, subtitle=''):
                 label = 'word2vec' if j == 0 else None
                 plt.plot([14], [val], label=label, color='red',
                           marker='o', linewidth=3, markersize=8)
-                plt.plot([13.5, 14.5], [val, val], color='red',
+                plt.plot([13.1, 14.9], [val, val], color='red',
                          linewidth=3)
                 continue
             elif module_type == 'l':
@@ -282,7 +286,7 @@ def plot_results_t(all_results, subtitle=''):
                 label = 'GloVe' if j == 0 else None
                 plt.plot([14], [val], label=label, color='crimson',
                           marker='o', linewidth=3, markersize=8)
-                plt.plot([13.5, 14.5], [val, val], color='crimson',
+                plt.plot([13.1, 14.9], [val, val], color='crimson',
                          linewidth=3)
                 continue
 
@@ -368,20 +372,21 @@ def plot_results_t(all_results, subtitle=''):
                 high = np.max([high, np.max(values)])
 
         plt.yticks([0, 2, 4, 6, 8, 10, 12])
-        plt.ylabel('t-value')
-        if high > 7:
-            plt.ylim(0, high * 1.1)
+
+        if high > 8:
+            plt.ylim(0, 13.2)#high * 1.1)
         else:
-            plt.ylim(0, 7)
-        if j == len(nested_dict) - 1:
-            plt.xlabel('Layer')
+            plt.ylim(0, 8.8)
+        if j == 0:
+            plt.ylabel('t-value')
+        plt.xlabel('Layer', labelpad=-53)
         plt.gca().spines[['top', 'right', ]].set_visible(False)
 
     # plt.legend(['a', 'b', 'c', 'd', 'e'], [0, 1, 2, 3, 4])
         if j == 0:
             handles, labels = plt.gca().get_legend_handles_labels()
-            handles = handles[1:] + handles[:1]
-            labels = labels[1:] + labels[:1]
+            # handles = handles[1:] + handles[:1]
+            # labels = labels[1:] + labels[:1]
             # plt.legend(handles, labels)
     #
     # # Sort them using a paired sort (sorts labels and reorders handles accordingly)
@@ -394,15 +399,15 @@ def plot_results_t(all_results, subtitle=''):
     # quit()
     plt.xlim(-0.5, 28.5)
 
-    fig.legend(handles, labels, loc='lower center', ncol=3, frameon=False)
+    fig.legend(handles, labels, loc='lower center', ncol=6, frameon=False)
     if len(b_dict) == 1:
-        plt.subplots_adjust(bottom=0.13, top=0.91, right=0.95, left=0.08,
+        plt.subplots_adjust(bottom=0.21, top=0.91, right=0.95, left=0.04,
                             hspace=.4)
     else:
-        plt.subplots_adjust(bottom=0.18, top=0.91, right=0.95, left=0.08,
+        plt.subplots_adjust(bottom=0.28, top=0.91, right=0.98, left=0.04,
                             hspace=.4)
     # plt.tight_layout()
-    plt.suptitle(subtitle, fontsize=28)
+    # plt.suptitle(subtitle, fontsize=28)
     plt.show()
 
 
@@ -425,4 +430,4 @@ def print_all_results(all_results):
 
 
 if __name__ == '__main__':
-    run_layers_static(big_voxelwise=True)
+    run_layers_static()
