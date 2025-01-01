@@ -121,6 +121,7 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
 
     if do_M == 'obj_solo':
         title = 'Object embedding (no scene)\n'
+        cmap = 'Blues'
     elif do_M:
         title = 'Object embedding (scene averages)\n'
     else:
@@ -129,28 +130,29 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
         else:
             title = 'Object embedding (one scene)\n'
 
-    title += f'(layers {st} - {end})\n'
-    if isinstance(fps, list):
-        title = str(fps)
-        cmap = 'Purples'
-    elif fps == 'obj':
-        title += 'Encoding task'
-        if do_M:
-            cmap = 'Reds'
-        else:
-            cmap = 'Blues'
-    else:
-        if do_M:
-            cmap = 'Reds'
-        else:
-            cmap = 'Greens'
-        title += 'Non-encoding tasks'
+    # title += f'(layers {st} - {end})\n'
+    # if isinstance(fps, list):
+    #     title = str(fps)
+    #     cmap = 'Purples'
+    # elif fps == 'obj':
+    #     title += 'Encoding task'
+    #     if do_M:
+    #         cmap = 'Reds'
+    #     else:
+    #         cmap = 'Blues'
+    # else:
+    #     if do_M:
+    #         cmap = 'Reds'
+    #     else:
+    #         cmap = 'Greens'
+    #     title += 'Non-encoding tasks'
 
-    my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
+    my_plot_surf(ts, atlas, title='',#title,
+                 vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
 
-def run_ctxt_contrast_ROIs(combine_regions=True, st=8, end=20,
+def run_ctxt_contrast_ROIs(combine_regions=False, st=6, end=20,
                            activation_model='meta-llama/Llama-3.2-3b',
                            ):
     model_obj_scn = get_explore_llama(activation_model,
@@ -197,19 +199,20 @@ def run_ctxt_contrast_ROIs(combine_regions=True, st=8, end=20,
     title = ('Contextualized vs. static contrast\n'
              'Encoding task\n')
     title += f'(layers {st} - {end})'
-    cmap = 'Oranges'
+    title = ''
+    cmap = 'RdPu'
 
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
     title = 'Contextualized item embedding\n'
     title += f'(layers {st} - {end})'
-    cmap = 'Blues'
+    cmap = 'Oranges'
     my_plot_surf(ts_ctx, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
 
-def run_attn_ROIs(combine_regions=True, st=8, end=20,
+def run_attn_ROIs(combine_regions=False, st=8, end=20,
                   activation_model='meta-llama/Llama-3.2-3b',
                   obj_task=True):
     model = get_explore_llama(activation_model,
@@ -234,8 +237,8 @@ def run_attn_ROIs(combine_regions=True, st=8, end=20,
         else:
             fps = 'non_obj'
         kw = get_base_kw(ROI, model=model, fps=fps,
-                         big_voxelwise=True, local=False)#combine_regions)
-        kw['ctrl'] = [model_obj_solo]#, model_scn]
+                         big_voxelwise=False, local=False)#combine_regions)
+        kw['ctrl'] = [model_obj_solo, model_scn]
         process_allow_misses(kw, ROI)
         t, vals = pickle_wrap(run_layer, kwargs=kw,
                               verbose=-1, easy_override=False,
@@ -249,33 +252,30 @@ def run_attn_ROIs(combine_regions=True, st=8, end=20,
     title += f'(layers {st} - {end})\n'
     if isinstance(fps, list):
         title = str(fps)
-        cmap = 'Purples'
     elif fps == 'obj':
         title += 'Encoding task'
-        cmap = 'Purples'
     else:
         title += 'Non-encoding tasks'
-        cmap = 'Purples'
+    title = ''
+    cmap = 'Greens'
 
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
-def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
+def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
+    # ROIs = ['PFC_ACC', 'Occipital', 'Parietal', 'Temporal']
 
     ts = []
     for ROI in ROIs:
-        # if ROI == 'SFG':
-        #     ts.append(0)
-        #     continue
-        # ROI = 'PFC'
-        # ROI = 'FP'
-        # ROI = 'SFG'
-        t, vals = run_sn_attn_enc('PFC', control_item=True,
-                                  do_acc=True, FC='tha_str',
-                                  local=combine_regions)
+        t, vals = run_sn_attn_enc(ROI, control_item=True,
+                                  do_acc=True, #FC='tha_str',
+                                  FC=None,
+                                  local=combine_regions,
+                                  # test=True
+                                  )
 
 
         # t, vals = run_sn_attn_enc('Tha', control_item=False,
@@ -285,21 +285,25 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
         #                           do_acc=True, FC='tha_str',
         #                           local=combine_regions)
         print(f'{ROI}: {t=:.3f}')
-        quit()
+        # quit()
         ts.append(t)
 
     title = 'Attention x encoding accuracy\n'
-    cmap = 'Greens'
+    cmap = 'viridis'
     my_plot_surf(ts, atlas, title, vmax=6, thresh=1.65,
                  only_positive=True, cmap=cmap)
 
-
+def make_Fig3_obj_solo(st=6, end=20, activation_model='meta-llama/Llama-3.2-3b'):
+    run_all_ROIs(attn=False, activation_model=activation_model,
+                 st=st, end=end, do_M='obj_solo', obj_task=False)
 
 
 if __name__ == '__main__':
+    # make_Fig3_obj_solo()
+    # quit()
     run_attn_bhv_ROIs()
     # run_attn_ROIs()
-    # run_ctxt_contrast_RrOIs()
+    # run_ctxt_contrast_ROIs()
     quit()
     tick = 16
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'

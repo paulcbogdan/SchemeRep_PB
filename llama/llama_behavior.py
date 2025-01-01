@@ -83,7 +83,8 @@ def sn_attn_enc(sn, region='subcort', local=True,
 
 def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                     big_voxelwise=False, do_acc=True,
-                    control_item=False
+                    control_item=False,
+                    st=8, end=20
                     ):
     # local = True
     activation_model = 'meta-llama/Llama-3.2-3b'
@@ -91,7 +92,7 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                                    attn=True, normalize=True,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
-                                   st=8, end=20,
+                                   st=st, end=end,
                                    last_only=False
                                    )
 
@@ -100,10 +101,9 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                                    include_scn=False,
                                    do_prod=False,
                                    do_M='obj_solo',
-                                   st=6, end=12
+                                   st=st, end=end
                                    # st=8, end=20,
                                    )
-
 
 
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
@@ -196,6 +196,7 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     df_sn.sort_values(by=f'obj_trial', inplace=True)
     df_sn['IRAFs'] = IRAFs
 
+
     # df_sn = df_sn[df_sn['inc'] == 3]
 
     df_sn['mem_key'] = df_sn['vis_hit'] & df_sn['con_hit']
@@ -213,7 +214,7 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     #     r = -r
     return r
 
-@marinate(overwrite=True)
+@marinate(overwrite=False)
 def run_sn_attn_enc(region, control_item=False, do_acc=True,
                     FC=None, local=False):
     sns = get_sns('all')['healthy']
@@ -222,22 +223,26 @@ def run_sn_attn_enc(region, control_item=False, do_acc=True,
     efs = []
     efs = []
     # print('toast')
+
+    # print(1 + 'str')
+
     for sn in sns:
         # try:
-        if FC:
-            ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
+        try:
+            if FC:
+                ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
+                                     control_item=control_item,
+                                     do_acc=do_acc)
+            else:
+                ef = sn_attn_enc(sn, region=region, local=local,
                                  control_item=control_item,
                                  do_acc=do_acc)
-        else:
-            ef = sn_attn_enc(sn, region=region, local=local,
-                             control_item=control_item,
-                             do_acc=do_acc)
-        # except FileNotFoundError as e:
+        except FileNotFoundError as e:
         #     print(f'{e=}')
-            # efs.append(np.nan)
-            # continue
+            efs.append(np.nan)
+            continue
         efs.append(ef)
-    t, p = stats.ttest_1samp(efs, 0, axis=0)
+    t, p = stats.ttest_1samp(efs, 0, axis=0, nan_policy='omit')
     N = np.sum(~np.isnan(efs), axis=0)
     return t, efs
 

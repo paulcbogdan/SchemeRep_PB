@@ -116,6 +116,15 @@ def get_rissman_w2v_d_vecs():
                 raise ValueError
     return d_vecs
 
+def plot_best_fit(x, y):
+    from statsmodels.formula import api as smf
+    df_grp = pd.DataFrame({'x': x, 'y': y})
+    mod = smf.ols(formula=f'y ~ 1 + x', data=df_grp)
+    res = mod.fit()
+    df_pred = pd.DataFrame({'x': [df_grp['x'].min(), df_grp['x'].max()]})
+    df_pred['y'] = res.predict(df_pred)
+    plt.plot(df_pred['x'], df_pred['y'], color='k', linestyle='--')
+
 def get_w2v_similarity(do_print=False):
     d_vecs = pickle_wrap(get_rissman_w2v_d_vecs, verbose=-1)
     pairs, relatedness, _ = get_rissman_df()
@@ -127,13 +136,21 @@ def get_w2v_similarity(do_print=False):
         if do_print: print(f'w2v similarity | {pair=}: {r=:.2f}, {p=:.3f}')
         w2v_similarities.append(r)
     r, p = stats.spearmanr(w2v_similarities, relatedness)
-    plt.rcParams.update({'font.size': 16})
+    plt.figure(figsize=(6, 4))
+    plt.rcParams.update({'font.size': 20})
     plt.gca().spines[['right', 'top']].set_visible(False)
-    plt.scatter(w2v_similarities, relatedness)
-    plt.title(f'Relatedness x word2vec similarity: {r=:.2f}')
-    plt.xlabel('Word2vec pair similarity \n(Spearman)')
-    plt.ylabel('Avg. reported relatedness')
-    plt.tight_layout()
+    plt.scatter(w2v_similarities, relatedness, color='r')
+    plot_best_fit(w2v_similarities, relatedness)
+    plt.ylim(0.9, 4.1)
+    r_sq = r ** 2
+    r_sq = .77 * .77
+    plt.text(.4, 2.1, f'$r^2$ = {r_sq:.2f}', fontsize=24,
+             ha='center')
+    # plt.title(f'Relatedness x word2vec similarity: {r=:.2f}')
+    plt.xlabel('Word2vec similarity', labelpad=8)
+    plt.ylabel('Human-reported\nrelatedness', labelpad=8)
+    plt.gcf().subplots_adjust(left=0.175, right=0.975,
+                              top=0.975, bottom=0.28)
     plt.show()
     print(f'word2vec | relatedness x corr: {r=:.2f}, {p=:.3f}')
     return np.array(w2v_similarities)
@@ -159,7 +176,8 @@ def test_w2v_regression():
     fit_regularized_models(prods, relatedness)
 
 def fit_regularized_models(X, y, cv_folds=5, random_state=42,
-                           plot=False):
+                           plot=False, normalize=False,
+                           n_repeats=10):
 
     """
     Fit Lasso, Ridge, and ElasticNet models with cross-validation
@@ -177,7 +195,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     import numpy as np
     from sklearn.linear_model import LassoCV, RidgeCV, ElasticNetCV, RidgeClassifierCV
     from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import KFold
+    from sklearn.model_selection import KFold, LeaveOneOut, RepeatedStratifiedKFold, RepeatedKFold
     from sklearn.metrics import r2_score
     from sklearn.exceptions import UndefinedMetricWarning
     from sklearn.svm import SVC
@@ -191,11 +209,11 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
 
     # Create cross-validation object
     if len(np.unique(y)) <= 3:
-        cv = StratifiedKFold(n_splits=cv_folds, shuffle=True,
-                             random_state=random_state)
+        cv = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=n_repeats,
+                                     random_state=random_state)
         binary = True
     else:
-        cv = KFold(n_splits=cv_folds, shuffle=True,
+        cv = RepeatedKFold(n_splits=cv_folds, n_repeats=n_repeats,
                              random_state=random_state)
         binary = False
     # cv = LeaveOneOut()
@@ -217,6 +235,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                         ('Ridge', svm) if binary else ('Ridge', ridge),
                         #('ElasticNet', elastic)
                         ]:
+        # print(f'{model=}')
         # print(f'{X=}')
         # print(f'{y=}')
 
@@ -230,12 +249,16 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
 
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
+            if normalize:
+                X_train = StandardScaler().fit_transform(X_train)
+                X_test = StandardScaler().fit_transform(X_test)
             # print(f'{y_train=}')
             # Fit model and make prediction
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
-            y_pred[y_pred > 4] = 4
-            y_pred[y_pred < 1] = 1
+            if not binary:
+                y_pred[y_pred > 4] = 4
+                y_pred[y_pred < 1] = 1
             r2 = r2_score(y_test, y_pred)
             fold_R2s.append(r2)
             coefs.append(model.coef_)
@@ -258,9 +281,23 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         if name == 'ElasticNet':
             results[name]['l1_ratio'] = model.l1_ratio_
 
-        if plot or True:
-            plt.scatter(y_tests, y_preds)
-            plt.title(f'{name} | {r2=:.2f}')
+        if plot:
+            plt.figure(figsize=(6, 4))
+            plt.rcParams.update({'font.size': 20})
+            plt.gca().spines[['right', 'top']].set_visible(False)
+            plt.scatter(y_preds, y_tests, color='green')
+            # plt.title(f'{name} | {r2=:.2f}')
+            plot_best_fit(y_preds, y_tests)
+            plt.text(3.36, 2.1, f'$r^2$ = {.82:.2f}', fontsize=21,
+                     ha='center')
+            plt.ylabel('Human-reported\nrelatedness',
+                       labelpad=8)
+            plt.xlabel('Attention-weight\npredicted relatedness',
+                       labelpad=8)
+            plt.xlim(0.9, 4.1)
+            plt.ylim(0.9, 4.1)
+            plt.gcf().subplots_adjust(left=0.175, right=0.975, top=0.975, bottom=0.28)
+            # plt.tight_layout()
             plt.show()
 
     # Print results
@@ -271,18 +308,24 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         else:
             r_score = np.sqrt(result['r2_score'])
         # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
-        rs_all = []
-        for i in range(len(result['coefs'])):
-            r, p = stats.spearmanr(X[:, i], y)
-            rs_all.append(r)
-        plt.hist(rs_all, bins=20, range=(-1, 1),
-                 color='dodgerblue')
-        plt.title(f'{name} | {r_score=:.2f}')
-        plt.xticks(np.linspace(-1, 1, 11,))
-        plt.ylabel('Frequency (n)')
-        plt.xlabel('Correlation (r)')
-        plt.show()
-        quit()
+        if plot:
+            rs_all = []
+            for i in range(len(result['coefs'])):
+                r, p = stats.spearmanr(X[:, i], y)
+                rs_all.append(r)
+            plt.figure(figsize=(6, 4))
+            plt.rcParams.update({'font.size': 20})
+            plt.gca().spines[['right', 'top']].set_visible(False)
+            plt.hist(rs_all, bins=20, range=(-1, 1),
+                     color='green')
+            # plt.title(f'{name} | {r_score=:.2f}')
+            plt.xticks(np.linspace(-1, 1, 5,))
+            plt.ylabel('Frequency (n)', labelpad=8)
+            plt.xlabel('Correlation (r)', labelpad=8)
+            plt.gcf().subplots_adjust(left=0.175, right=0.975,
+                                      top=0.975, bottom=0.28)
+            plt.show()
+            quit()
             # print(f'\t{i} | {r=:.2f}, {result["coefs"][i]=:.2f}')
 
     return results
@@ -393,7 +436,8 @@ def analyze_rissman(cat='attn_weights',
     # quit()
 
 
-    fit_regularized_models(np.array(vecs_attns), relatedness)
+    fit_regularized_models(np.array(vecs_attns), relatedness, plot=True,
+                           n_repeats=1)
     print('-')
 
 
@@ -401,7 +445,7 @@ if __name__ == '__main__':
     # test_w2v_regression()
     # quit()
 
-    # get_w2v_similarity()
+    get_w2v_similarity()
     # quit()
     # get_rissman_w2v_d_vecs()
     # analyze_rissman(layer_name=8)

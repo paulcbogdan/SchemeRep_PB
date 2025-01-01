@@ -792,7 +792,7 @@ def do_regr():
                    target_ROIs)
     target_ROIs = ['ITL']
     target_ROIs = ['cortical']
-    target_ROIs = ['FP']
+    target_ROIs = ['Temporal']
 
 
     ts_ROI, ts_BOLD, ts_conn = [], [], []

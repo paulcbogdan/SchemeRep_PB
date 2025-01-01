@@ -236,7 +236,9 @@ def do_carnivore_herbivore(layer_name=4, reverse=False, get_food=False):
 
     r, p = stats.spearmanr(RSM_llama[trils], RSM_eat[trils])
     print(f'{layer_name} | llama x eat: {r=:.3f} | {p=:.3f}')
-    # quit()
+
+def cross_species_regression():
+    pass
 
 if __name__ == '__main__':
     for layer_name in range(0, 28):

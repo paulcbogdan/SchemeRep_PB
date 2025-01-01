@@ -147,6 +147,7 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
 def run_layers_static(obj_scn=False, attn=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     # target_ROIs = ['Tha', 'Str', 'tha_str']
+    # target_ROIs = ['PFC_ACC']
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
     if attn:
@@ -179,7 +180,7 @@ def run_layers_static(obj_scn=False, attn=True):
 
     for semantic in semantic_l:
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
-                         target_ROIs, ctrl_contex=False)#attn)
+                         target_ROIs, ctrl_contex=attn)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
@@ -224,11 +225,11 @@ def plot_line(ar_vals, key, region, do_labels=False):
 
     if 'BERT' == key[1]:
         t *= 2
-        color = 'olive'
+        color = 'chocolate'
         label = 'BERT'
     elif 'simCSE' == key[1]:
         t *= 2
-        color = 'green'
+        color = 'orange'
         label = 'simCSE'
     else:
         if key[2] in ['obj_solo', 'obj_M']:
@@ -277,7 +278,10 @@ def plot_results_t(all_results, subtitle=''):
                          'attn_weights': 'Attention weights',}
     # print(f'{nested_dict=}')
     for j, (region, b_dict) in enumerate(nested_dict.items()):
-        plt.sca(axs[j])
+        try:
+            plt.sca(axs[j])
+        except TypeError:
+            pass
         plt.title(region)
         high = 0
         for i, (module_type, c_dict) in enumerate(b_dict.items()):
@@ -302,38 +306,38 @@ def plot_results_t(all_results, subtitle=''):
                 label = module_type
                 if 'obj' in c_dict:
                     values = c_dict['obj']
-                    color = 'green'
+                    color = 'orange'
                     layer_nums = np.array(list(range(len(values))))# * 2
                     if 'obj_M' in c_dict:
                         label = label if j == 0 else None
                     else:
                         label = f'{label}\n(scene → object)' if j == 0 else None
-                    color = 'olive' if module_type == 'BERT' else 'limegreen'
+                    color = 'chocolate' if module_type == 'BERT' else 'orange'
                     plt.plot(layer_nums, values, label=label,
                              color=color, marker='o',
-                             # color='olive' if module_type == 'BERT' else 'limegreen',
+                             # color='chocolate' if module_type == 'BERT' else 'orange',
                              linewidth=3)
                     high = np.max([high, np.max(values)])
 
                 if 'obj_M' in c_dict:
-                    color = 'olive'
+                    color = 'chocolate'
                     values = c_dict['obj_M']
                     layer_nums = np.array(list(range(len(values))))# * 2
                     if 'obj' in c_dict:
                         label = f'{label}\n(scene averages)' if j == 0 else None
                     else:
                         label = f'{label}' if j == 0 else None
-                    color = 'olive' if module_type == 'BERT' else 'limegreen'
+                    color = 'chocolate' if module_type == 'BERT' else 'orange'
                     plt.plot(layer_nums, values, label=label,
                              color=color, marker='o',
-                             # color='olive' if module_type == 'BERT' else 'limegreen',
+                             # color='chocolate' if module_type == 'BERT' else 'orange',
                              linewidth=3)
                     high = np.max([high, np.max(values)])
             elif 'obj' in c_dict or 'obj_dif' in c_dict:
                 if module_type == 'attn_weights':
-                    label = 'Attention weights'
+                    label = 'Llama-3.2-3b\n(attention weights)'
                 elif module_type == 'gate_proj_in':
-                    label = 'Item embedding\n(scene → object)'
+                    label = 'Llama-3.2-3b\n(contextualized embedding)'
                 else:
                     raise ValueError
                 if 'obj' in c_dict:
@@ -341,7 +345,8 @@ def plot_results_t(all_results, subtitle=''):
                 else:
                     values = c_dict['obj_dif']
                 layer_nums = np.array(list(range(len(values))))
-                color = 'purple' if 'attn' in module_type else 'dodgerblue'
+                color = 'green' if 'attn' in module_type else 'purple'
+                assert len(values) < 29
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color=color, linewidth=3, marker='o',)
                 high = np.max([high, np.max(values)])
@@ -372,11 +377,11 @@ def plot_results_t(all_results, subtitle=''):
                          color='red', linewidth=3, marker='o')
                 high = np.max([high, np.max(values)])
             if 'obj_solo' in c_dict:
-                label = 'Item embedding\n(object solo)'
+                label = 'Llama-3.2-3b\n(static embedding)'
                 values = c_dict['obj_solo']
                 layer_nums = np.array(list(range(len(values))))
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
-                         color='orange', linewidth=3, marker='o')
+                         color='dodgerblue', linewidth=3, marker='o')
                 high = np.max([high, np.max(values)])
 
         plt.yticks([0, 2, 4, 6, 8, 10, 12])
@@ -387,7 +392,11 @@ def plot_results_t(all_results, subtitle=''):
             plt.ylim(0, 8.8)
         if j == 0:
             plt.ylabel('t-value')
-        plt.xlabel('Layer', labelpad=-53)
+        # print(f'{b_dict=}')
+        if 'attn_weights' in b_dict:
+            plt.xlabel('Layer')
+        else:
+            plt.xlabel('Layer', labelpad=-53)
         plt.gca().spines[['top', 'right', ]].set_visible(False)
 
     # plt.legend(['a', 'b', 'c', 'd', 'e'], [0, 1, 2, 3, 4])
@@ -407,13 +416,17 @@ def plot_results_t(all_results, subtitle=''):
     # quit()
     plt.xlim(-0.5, 28.5)
 
-    fig.legend(handles, labels, loc='lower center', ncol=6, frameon=False)
-    if len(b_dict) == 1:
-        plt.subplots_adjust(bottom=0.21, top=0.91, right=0.95, left=0.04,
-                            hspace=.4)
-    else:
-        plt.subplots_adjust(bottom=0.28, top=0.91, right=0.98, left=0.04,
-                            hspace=.4)
+    legend = fig.legend(handles, labels, loc='lower center', ncol=6, frameon=False,
+               # title_fontproperties={'ha': 'center'}
+                       )
+    for text in legend.get_texts():
+        text.set_ha('center')
+    # if len(b_dict) == 1:
+    #     plt.subplots_adjust(bottom=0.21, top=0.91, right=0.95, left=0.04,
+    #                         hspace=.4)
+    # else:
+    plt.subplots_adjust(bottom=0.28, top=0.91, right=0.98, left=0.04,
+                        hspace=.4)
     # plt.tight_layout()
     # plt.suptitle(subtitle, fontsize=28)
     plt.show()

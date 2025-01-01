@@ -1,7 +1,7 @@
 import numpy as np
 
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.devereux_analysis import get_devereux_RSM_by_type
+from llama.devereux_analysis import get_devereux_RSM_by_type, get_devereux_top50_RSM
 from llama.devereux_llama import get_standard_items_list
 import scipy.stats as stats
 
@@ -72,6 +72,7 @@ def get_w2v_deve_vecs(pf_thresh, item_standard='deve'):
     items_M_vecs = np.array(items_M_vecs)
     return items_M_vecs
 
+
 def get_w2v_deve_RSM(pf_thresh=250):
     items, _ = get_standard_items_list(pf_thresh)
     d_vecs = pickle_wrap(get_d_vecs_w2v_deve,
@@ -90,7 +91,10 @@ def test_w2v_dev(pf_thresh=300):
     trils = np.tril_indices_from(RSM, k=-1)
     RSM_flat = RSM[trils]
 
-    type2RSM = get_devereux_RSM_by_type(attn=False, pf_thresh=pf_thresh)
+    type2RSM_all = get_devereux_RSM_by_type(pf_thresh=pf_thresh,
+                                            attn=False)
+    type2RSM = get_devereux_top50_RSM(pf_thresh=pf_thresh)
+    type2RSM.update(type2RSM_all)
     for feature_type, RSM_feat in type2RSM.items():
         assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
         RSM_feat_flat = RSM_feat[trils]
@@ -109,5 +113,5 @@ def test_w2v_dev(pf_thresh=300):
 
 
 if __name__ == '__main__':
-    get_w2v_deve_RSM(pf_thresh=600)
-    # test_w2v_dev()
+    # get_w2v_deve_RSM(pf_thresh=600)
+    test_w2v_dev()

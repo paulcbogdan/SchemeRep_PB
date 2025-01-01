@@ -6,7 +6,6 @@ from time import time
 import numpy as np
 import pandas as pd
 from nltk.misc.sort import quick
-from sympy.combinatorics import symmetric
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap

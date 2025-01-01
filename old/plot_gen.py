@@ -162,12 +162,15 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
         tick_jump += 1
         ticks = list(range(0, int(vmax) + 1, tick_jump))
         axs[4].set_xticks(ticks, ticks, fontsize=11)
+        axs[4].set_xlabel('t-value', fontsize=12,
+                          labelpad=-43)
     else:
         max_ticks = 6
         vabs = np.max([np.abs(np.min(Ms)), np.abs(np.max(Ms))])
         tick_jump = (int(vabs) + 1)  // (max_ticks * 2)
         ticks = list(range(-int(vmax), int(vmax) + 1, tick_jump))
         axs[4].set_xticks(ticks, ticks, fontsize=11)
+
 
     if fp_out is None:
         plotting.show()
