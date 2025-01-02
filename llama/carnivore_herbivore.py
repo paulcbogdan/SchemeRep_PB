@@ -1,15 +1,13 @@
 import pickle
 
 import numpy as np
-from torch.nn.init import zeros_
+import scipy.stats as stats
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.devereux_llama import get_llama_activations_deve, get_standard_items_list
+from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner
-import scipy.stats as stats
 import matplotlib.pyplot as plt
-
 
 def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                                 cat='gate_proj_in', layer_name=1,
@@ -31,14 +29,13 @@ def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
     foods = meats + plants
 
     if do_unrelated:
-        unrelated = ['ambulance', 'armchair', 'arrow', 'axe', 'bed' 
-                     'bicycle', 'blender', 'canary', 'car', 'cello',
+        unrelated = ['ambulance', 'armchair', 'arrow', 'axe', 'bed'
+                                                              'bicycle', 'blender', 'canary', 'car', 'cello',
                      'goggles', 'gun', 'washing_machine', 'yoyo', 'motorcycle',
                      'television', 'train', 'razor', 'rake', 'raft']
         foods = unrelated
         meats = unrelated[:10]
         plants = unrelated[10:]
-
 
     cat_, inner = process_cat_cat_inner(cat)
     d_vecs = {}
@@ -75,7 +72,6 @@ def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                                 del res[inner_][outer]
 
                 for idx_target in [0, 1]:
-
                     if activation_model in ['BERT', 'simCSE']:
                         v = res[idx_target][layer_name]
                     elif cat in 'attn_weights':
@@ -86,8 +82,6 @@ def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                         v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
                         if len(v.shape) > 1:
                             v = v.reshape(-1)
-                        # if idx_target == 0:
-                            # print(f'({item0}, {item1}) | {idx_target}: {v[:4]=}')
                     if idx_target == 0:  # sentence f'{item 0} and {item 1}'. focus on embedding: item0
                         if (item0, item1, item0) in d_vecs:
                             raise ValueError
@@ -119,6 +113,7 @@ def get_animals_vecs(animals, foods, d_vecs, reverse=False,
         vecs_all.append(M_vec)
     return np.array(vecs_all)
 
+
 def do_animal_food_animal_food(layer_name=4, reverse=False, get_food=False):
     d_vecs, carnivores, herbivores, meats, plants = (
         pickle_wrap(make_df_carnivore_herbivore,
@@ -130,12 +125,7 @@ def do_animal_food_animal_food(layer_name=4, reverse=False, get_food=False):
                     easy_override=False, verbose=-1))
 
     animals = carnivores + herbivores
-    # meats_ = meats[::2] + plants[1::2]
-    # plants_ = meats[1::2] + plants[::2]
-    # meats = meats_
-    # plants = plants_
     foods = meats + plants
-
 
     vecs_all = []
     yes_eat = []
@@ -156,9 +146,9 @@ def do_animal_food_animal_food(layer_name=4, reverse=False, get_food=False):
             else:
                 yes_eat.append(0)
             if reverse:
-                vecs_all.append(d_vecs[(food, animal, food)])# - animal_M)
+                vecs_all.append(d_vecs[(food, animal, food)])  # - animal_M)
             else:
-                vecs_all.append(d_vecs[(animal, food, food)])# - animal_M)
+                vecs_all.append(d_vecs[(animal, food, food)])  # - animal_M)
         # vecs_all.append(vecs)
     vecs_all = np.array(vecs_all)
     bad_cols = np.isnan(vecs_all).any(axis=0)
@@ -184,35 +174,13 @@ def do_carnivore_herbivore(layer_name=4, reverse=False, get_food=False):
                             },
                     easy_override=False, verbose=-1))
 
-
-    vecs_carn = get_animals_vecs(carnivores, meats, # + plants, #  meats
+    vecs_carn = get_animals_vecs(carnivores, meats,  # + plants, #  meats
                                  d_vecs, reverse=reverse,
                                  get_food=get_food)
-    # vecs_carn_r = get_animals_vecs(carnivores, plants,# + meats, # + plants, #  meats
-    #                                 d_vecs, reverse=reverse,
-    #                                 get_food=get_food)
-    # vecs_carn = vecs_carn - vecs_carn_r
     vecs_herb = get_animals_vecs(herbivores, meats,  # plants
                                  d_vecs, reverse=reverse,
                                  get_food=get_food)
-    # vecs_herb_r = get_animals_vecs(herbivores, plants,  # plants
-    #                                d_vecs, reverse=reverse,
-    #                                get_food=get_food)
-    # vecs_herb = vecs_herb - vecs_herb_r
 
-    # vecs_carn = get_animals_vecs(carnivores, meats, #  meats
-    #                              d_vecs, reverse=reverse,
-    #                              get_food=get_food)
-    # vecs_herb = get_animals_vecs(herbivores, plants, # plants
-    #                              d_vecs, reverse=reverse,
-    #                              get_food=get_food)
-
-    # vecs_carn = get_animals_vecs(meats, herbivores + carnivores,
-    #                              d_vecs, reverse=reverse,
-    #                              get_food=get_food)
-    # vecs_herb = get_animals_vecs(plants, herbivores + carnivores,
-    #                              d_vecs, reverse=reverse,
-    #                              get_food=get_food)
     vecs_all = np.concatenate([vecs_carn, vecs_herb], axis=0)
     bad_cols = np.isnan(vecs_all).any(axis=0)
     prop_bad = np.sum(bad_cols) / len(bad_cols)
@@ -237,10 +205,142 @@ def do_carnivore_herbivore(layer_name=4, reverse=False, get_food=False):
     r, p = stats.spearmanr(RSM_llama[trils], RSM_eat[trils])
     print(f'{layer_name} | llama x eat: {r=:.3f} | {p=:.3f}')
 
-def cross_species_regression():
-    pass
+
+def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=None):
+    X = []
+    Y = []
+    foods = food_match + food_mismatch
+    if odd_even is not None:
+        foods = foods[::2] if odd_even == 0 else foods[1::2]
+    for animal in animals:
+        for food in foods:
+            vecs0 = d_vecs[(animal, food, food)]
+
+            vecs = vecs0
+            X.append(vecs)
+            if food in food_match:
+                Y.append(1)
+            else:
+                Y.append(0)
+    return np.array(X), np.array(Y)
+
+
+def cross_species_regression(layer_name=19, normalize=True,
+                             cat='attn_weights',
+                             # cat='gate_proj_in',
+                             ):
+    # Normalize=True is critical for generalizing from carnivore <-> herbivore
+    kw = {'layer_name': layer_name,
+          'do_unrelated': False,
+          'activation_model': 'meta-llama/Llama-3.2-3b',
+          'cat': cat
+          }
+
+    d_vecs, carnivores, herbivores, meats, plants = (
+        pickle_wrap(make_df_carnivore_herbivore,
+                    kwargs=kw,
+                    easy_override=False, verbose=-1))
+
+    if normalize:
+        keys2 = set(key[2] for key in d_vecs.keys())
+        for key2 in keys2:
+            vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
+                             (key[2] == key2 and key[1] == key2)])
+            vecs_M = np.nanmean(vecs, axis=0)
+            vecs_SD = np.nanstd(vecs, axis=0)
+            for key in d_vecs.keys():
+                if key[2] == key2:
+                    d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
+
+    animals = carnivores + herbivores
+    foods = meats + plants
+
+    X_carn, Y_carn = make_animal_food_vecs(carnivores, meats, plants, d_vecs, odd_even=0)
+    X_herb, Y_herb = make_animal_food_vecs(herbivores, plants, meats, d_vecs, odd_even=1)
+
+    from sklearn.model_selection import (StratifiedGroupKFold)
+    from sklearn.svm import SVC
+
+    clf = SVC(kernel='linear', C=1)
+    X = np.concatenate([X_carn, X_herb], axis=0)
+    bad_cols = np.isnan(X).any(axis=0)
+
+    X = X[:, ~bad_cols]
+    bad_cols_inf = np.isinf(X).any(axis=0)
+    X = X[:, ~bad_cols_inf]
+    # print(f'{X.shape=}')
+    y = np.concatenate([Y_carn, Y_herb], axis=0)
+
+    # groups = []
+    # for animal in animals:
+    #     for food in foods:
+    #         groups.append(animal)
+    # print(f'{len(groups)=}')
+    # print(f'{X.shape=}')
+    groups = [0] * X_carn.shape[0] + [1] * X_herb.shape[0]
+
+    fold_R2s = []
+
+    def remap_groups():
+        num_i = np.unique(groups)
+        d = {}
+        shuffle_arrange = np.random.permutation(len(num_i))
+        for i, num in enumerate(num_i):
+            d[num] = shuffle_arrange[i]
+        return np.array([d[num] for num in groups])
+
+    accs = []
+    # for i in range(100):
+        # cv = StratifiedGroupKFold(n_splits=10, shuffle=True, random_state=0)
+    # groups = np.arange(len(groups))
+    cv = StratifiedGroupKFold(n_splits=2)
+    # cv = SKFold
+    # groups = remap_groups()
+    accs_cv = []
+    for train_idx, test_idx in cv.split(X, y, groups):
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train, y_test = y[train_idx], y[test_idx]
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        # M_pred = np.mean(y_pred)
+        # print(f'{M_pred=:.3f}')
+        acc = np.mean(y_pred == y_test)
+        # print(f'\t{acc=:.3f}')
+        accs_cv.append(acc)
+    acc_cv = np.mean(accs_cv)
+    accs.append(acc_cv)
+    acc_M = np.mean(accs)
+    return acc_M
+
+def plot_layers_cross_species():
+    vals_attn = []
+    vals_residual = []
+    for layer_name in range(0, 28):
+        layer_name_l = layer_name
+        try:
+            r2_attn = cross_species_regression(layer_name=layer_name_l, #normalize=False,
+                                               cat='attn_weights')
+            r2_gate = cross_species_regression(layer_name=layer_name_l, #normalize=False,
+                                               cat='gate_proj_in')
+        except KeyError:
+            r2_attn = np.nan
+            r2_gate = np.nan
+
+        vals_attn.append(r2_attn)
+        vals_residual.append(r2_gate)
+
+    plt.plot(list(range(len(vals_attn))), vals_attn,
+             label='Attention', color='green', marker='.')
+    plt.plot(list(range(len(vals_residual))), vals_residual,
+                label='Residual', color='purple', marker='.')
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
-    for layer_name in range(0, 28):
-        do_animal_food_animal_food(layer_name)
-        # do_carnivore_herbivore(layer_name)
+    plot_layers_cross_species()
+    # cross_species_regression()
+    # quit()
+
+    # for layer_name in range(0, 28):
+    #     do_animal_food_animal_food(layer_name)
+    #     do_carnivore_herbivore(layer_name)

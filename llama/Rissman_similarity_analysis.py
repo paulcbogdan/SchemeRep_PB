@@ -1,4 +1,5 @@
 import pickle
+from typing import Union
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -7,7 +8,7 @@ import numpy as np
 from scipy import stats
 from time import time
 
-from sklearn.linear_model import RidgeClassifier
+from sklearn.linear_model import RidgeClassifier, ElasticNet
 from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from tqdm import tqdm
 
@@ -33,10 +34,12 @@ def get_rissman_df(condition=''):
 def get_rissman_similarity(pair, flip=False,
                            activation_model='meta-llama/Llama-3.2-3b',
                            cat='attn_weights', get_last=False,
-                           layer_name=1):
+                           layer_name=1, do_schemerep=False):
     cat_, inner = process_cat_cat_inner(cat)
-
-    if flip:
+    if do_schemerep:
+        item0 = pair[0]
+        item1 = pair[1]
+    elif flip:
         item0 = pair[1].lower()
         item1 = pair[0].lower()
     else:
@@ -45,7 +48,8 @@ def get_rissman_similarity(pair, flip=False,
 
     obj2grammar, _ = get_obj2grammar()
     scn2grammar, _ = get_scn2grammar()
-    if pair[0] in obj2grammar and pair[1] in scn2grammar:
+    if do_schemerep:#pair[0] in obj2grammar and pair[1] in scn2grammar:
+        assert not flip
         res, fp = pickle_wrap(get_llama_activations,
                                   kwargs={'obj': pair[0], 'scn': pair[1],
                                           'activation_model': activation_model},
@@ -53,6 +57,7 @@ def get_rissman_similarity(pair, flip=False,
                                   RAM_cache=False, get_fp=True
                                   )
     else:
+        # print(f'Do deve: {pair=}')
         res, fp = pickle_wrap(get_llama_activations_deve,
                               kwargs={'item0': item0, 'item1': item1,
                                       'activation_model': activation_model},
@@ -177,7 +182,7 @@ def test_w2v_regression():
 
 def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                            plot=False, normalize=False,
-                           n_repeats=10):
+                           n_repeats=10, groups=None):
 
     """
     Fit Lasso, Ridge, and ElasticNet models with cross-validation
@@ -192,23 +197,27 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     Dictionary containing models and their R² scores
     """
 
-    import numpy as np
-    from sklearn.linear_model import LassoCV, RidgeCV, ElasticNetCV, RidgeClassifierCV
+    from sklearn.linear_model import (LassoCV, RidgeCV, ElasticNetCV,
+                                      RidgeClassifierCV, SGDClassifier)
     from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import KFold, LeaveOneOut, RepeatedStratifiedKFold, RepeatedKFold
+    from sklearn.model_selection import (KFold, LeaveOneOut, RepeatedStratifiedKFold,
+                                         RepeatedKFold, LeaveOneGroupOut)
+    from functools import partial
     from sklearn.metrics import r2_score
     from sklearn.exceptions import UndefinedMetricWarning
     from sklearn.svm import SVC
     import warnings
     warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 
-    # Standardize features
-    # scaler = StandardScaler()
-    # X_scaled = scaler.fit_transform(X)
-    # X_scaled = X
 
     # Create cross-validation object
-    if len(np.unique(y)) <= 3:
+    if groups:
+        cv = LeaveOneGroupOut()
+        cv.split = partial(cv.split, groups=groups)
+        binary = True
+        y[y == np.min(y)] = 0
+        y[y == np.max(y)] = 1
+    elif len(np.unique(y)) <= 3:
         cv = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=n_repeats,
                                      random_state=random_state)
         binary = True
@@ -220,11 +229,14 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     # print(f'{binary=}')
 
     # Initialize models
-    lasso = LassoCV(cv=cv, random_state=random_state)
+    # lasso = LassoCV(cv=cv, random_state=random_state)
     ridge = RidgeCV(cv=cv)
-    ridge = RidgeCV(cv=cv)
+    # ridge = RidgeCV(cv=cv)
     svm = SVC(kernel='linear', C=1)
-    elastic = ElasticNetCV(cv=cv, random_state=random_state)
+    # svm = RidgeClassifier()
+    # elastic = ElasticNetCV(cv=cv, random_state=random_state)
+    # svm = SGDClassifier()
+    # svm = Elastic()
 
     # Dictionary to store results
     results = {}
@@ -235,18 +247,17 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                         ('Ridge', svm) if binary else ('Ridge', ridge),
                         #('ElasticNet', elastic)
                         ]:
-        # print(f'{model=}')
-        # print(f'{X=}')
-        # print(f'{y=}')
 
         fold_predictions = []
         fold_R2s = []
         coefs = []
         y_tests = []
         y_preds = []
+        test_sizes = []
         for train_idx, test_idx in cv.split(X, y):
+            test_sizes.append(len(test_idx))
+            # print(f'{len(train_idx)=}, {len(test_idx)=}')
             # Split data
-
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
             if normalize:
@@ -259,16 +270,27 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             if not binary:
                 y_pred[y_pred > 4] = 4
                 y_pred[y_pred < 1] = 1
-            r2 = r2_score(y_test, y_pred)
+                r2 = r2_score(y_test, y_pred)
+            else:
+                r2 = np.mean(y_test == y_pred)
+            # corr = stats.pearsonr(y_test, y_pred)[0]
+            # print(f'{len(test_idx)}: {r2=:.2f}, {corr=:.2f}')
+            # df = pd.DataFrame({'y_test': y_test, 'y_pred': y_pred})
+            # print(df[['y_test', 'y_pred']].value_counts())
+            # print(y_test)
+            # print(y_pred)
+            # print(f'{len(test_idx)}: {r2=:.2f}')
             fold_R2s.append(r2)
-            coefs.append(model.coef_)
-
+            try:
+                coefs.append(model.coef_)
+            except:
+                coefs.append(model.coef0)
             y_tests.extend(list(y_test))
             y_preds.extend(list(y_pred))
 
 
-        coefs = np.mean(coefs, axis=0)
-        r2 = np.mean(fold_R2s)
+        coefs = np.average(coefs, axis=0, weights=test_sizes)
+        r2 = np.average(fold_R2s, weights=test_sizes)
 
         # Store results
         results[name] = {
@@ -286,9 +308,9 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             plt.rcParams.update({'font.size': 20})
             plt.gca().spines[['right', 'top']].set_visible(False)
             plt.scatter(y_preds, y_tests, color='green')
-            # plt.title(f'{name} | {r2=:.2f}')
-            plot_best_fit(y_preds, y_tests)
-            plt.text(3.36, 2.1, f'$r^2$ = {.82:.2f}', fontsize=21,
+            plt.title(f'{name} | {r2=:.2f}')
+            # plot_best_fit(y_preds, y_tests)
+            plt.text(3.36, 2.1, f'$r^2$ = {r2:.2f}', fontsize=21,
                      ha='center')
             plt.ylabel('Human-reported\nrelatedness',
                        labelpad=8)
@@ -308,11 +330,15 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         else:
             r_score = np.sqrt(result['r2_score'])
         # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
+        if len(result['coefs'].shape) == 2:
+            result['coefs'] = result['coefs'][0]
+
         if plot:
             rs_all = []
-            for i in range(len(result['coefs'])):
+            for i in range(X.shape[1]):
                 r, p = stats.spearmanr(X[:, i], y)
                 rs_all.append(r)
+            # quit()
             plt.figure(figsize=(6, 4))
             plt.rcParams.update({'font.size': 20})
             plt.gca().spines[['right', 'top']].set_visible(False)
@@ -325,25 +351,27 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             plt.gcf().subplots_adjust(left=0.175, right=0.975,
                                       top=0.975, bottom=0.28)
             plt.show()
-            quit()
-            # print(f'\t{i} | {r=:.2f}, {result["coefs"][i]=:.2f}')
-
     return results
 
 def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
                                        layer_names=None, flip=False,
                                        # activation_model='meta-llama/Llama-2-7b-hf'
-                                       activation_model='meta-llama/Llama-3.2-3b'
+                                       activation_model='meta-llama/Llama-3.2-3b',
                                        # activation_model = 'meta-llama/Llama-3.3-70b-Instruct',
+                                       do_schemerep=True,
                                        ):
     vecs_0_all = []
     vecs_1_all = []
     for layer_name in layer_names:
         kw = {'pair': pair, 'flip': flip, 'cat': cat, 'get_last': get_last,
-              'layer_name': layer_name, 'activation_model': activation_model}
+              'layer_name': layer_name, 'activation_model': activation_model,
+              'do_schemerep': do_schemerep}
         d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
                                   verbose=-1, easy_override=True)
-        pair = (pair[0].lower(), pair[1].lower())
+        if do_schemerep:
+            pair = (pair[0], pair[1])
+        else:
+            pair = (pair[0].lower(), pair[1].lower())
         if flip:
             vec_0 = d_vecs_pair[(pair[1], pair[0], pair[0])]
             vec_1 = d_vecs_pair[(pair[1], pair[0], pair[1])]
@@ -351,16 +379,18 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
             vec_0 = d_vecs_pair[(pair[0], pair[1], pair[0])]
             vec_1 = d_vecs_pair[(pair[0], pair[1], pair[1])]
         if cat == 'gate_proj_in':
-            prod0 = stats.spearmanr(vec_0, vec_1, nan_policy='omit')[0]
-            prod1 = stats.spearmanr(vec_1, vec_0, nan_policy='omit')[0]
-            vecs_0_all.append(prod0)
-            vecs_1_all.append(prod1)
+            vecs_0_all.extend(vec_0)
+            vecs_1_all.extend(vec_1)
+            # prod0 = stats.spearmanr(vec_0, vec_1, nan_policy='omit')[0]
+            # prod1 = stats.spearmanr(vec_1, vec_0, nan_policy='omit')[0]
+            # vecs_0_all.append(prod0)
+            # vecs_1_all.append(prod1)
         else:
             vecs_0_all.extend(vec_0)
             vecs_1_all.extend(vec_1)
     return vecs_0_all, vecs_1_all
 
-def get_SchemeRep_df(no_neu=True):
+def get_SchemeRep_df(no_neu=False):
     sns = ['102', '103', '104'] # everyone else is a duplicate
     already_done = set()
     objs_l = []
@@ -381,39 +411,73 @@ def get_SchemeRep_df(no_neu=True):
 
 def analyze_rissman(cat='attn_weights',
                     #cat='gate_proj_in',
-                    get_last=False, layer_name=1,
-                    do_SchemeRep=False):
+                    activation_model='meta-llama/Llama-3.2-3b',
+                    get_last=False, layer_name: Union[int, list] = 1,
+                    do_SchemeRep=True, plot_hist=False
+                    ):
     if do_SchemeRep:
-        pairs, relatedness, _ = get_SchemeRep_df()
+        no_neu = True
+        pairs, relatedness, _ = get_SchemeRep_df(no_neu=no_neu)
+        if no_neu:
+            circles = find_circles(pairs)
+            word2circle = {}
+            for i, circle in enumerate(circles):
+                for word in circle:
+                    word2circle[word] = i
+                    word2circle[word[1]] = i
+            groups = [word2circle[pair[0]] for pair in pairs]
+            for pair, g in zip(pairs, groups):
+                assert word2circle[pair[0]] == g
+                assert word2circle[pair[1]] == g
+        else:
+            groups = [pair[0] for pair in pairs]
     else:
         pairs, relatedness, _ = get_rissman_df()
 
     M_attns = []
     vecs_attns = []
+
     for pair in pairs:
         if isinstance(layer_name, list):
             vec_010, vec_011 = (
                 get_rissman_similarity_many_layers(pair, cat=cat, get_last=get_last,
-                                                   layer_names=layer_name, flip=False))
-            vec_100, vec_101 = (
-                get_rissman_similarity_many_layers(pair, cat=cat, get_last=get_last,
-                                                   layer_names=layer_name, flip=True))
+                                                   layer_names=layer_name, flip=False,
+                                                   do_schemerep=do_SchemeRep,
+                                                   activation_model=activation_model))
+            if not do_SchemeRep:
+                vec_100, vec_101 = (
+                    get_rissman_similarity_many_layers(pair, cat=cat, get_last=get_last,
+                                                       layer_names=layer_name, flip=True,
+                                                       do_schemerep=do_SchemeRep,
+                                                       activation_model=activation_model))
         else:
             kw = {'pair': pair, 'flip': False, 'cat': cat, 'get_last': get_last,
-                  'layer_name': layer_name}
+                  'layer_name': layer_name, 'do_schemerep': do_SchemeRep,
+                  'activation_model': activation_model}
             d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
-                                      verbose=-1, easy_override=True)
-            pair = (pair[0].lower(), pair[1].lower())
+                                      verbose=-1, easy_override=False)
+            if do_SchemeRep:
+                pair = (pair[0], pair[1])
+            else:
+                pair = (pair[0].lower(), pair[1].lower())
             vec_010 = d_vecs_pair[(pair[0], pair[1], pair[0])]
             vec_011 = d_vecs_pair[(pair[0], pair[1], pair[1])]
 
-            kw['flip'] = True
-            d_vecs_pair = pickle_wrap(get_rissman_similarity, kwargs=kw,
-                                      verbose=-1)
-            vec_100 = d_vecs_pair[(pair[1], pair[0], pair[0])]
-            vec_101 = d_vecs_pair[(pair[1], pair[0], pair[1])]
+            if not do_SchemeRep:
+                kw['flip'] = True
+                d_vecs_pair = pickle_wrap(get_rissman_similarity, kwargs=kw,
+                                          verbose=-1, easy_override=False)
+                vec_100 = d_vecs_pair[(pair[1], pair[0], pair[0])]
+                vec_101 = d_vecs_pair[(pair[1], pair[0], pair[1])]
 
-        vecs_pair = np.array([vec_010, vec_011, vec_100, vec_101])
+        if do_SchemeRep:
+            if cat == 'gate_proj_in':
+                vecs_pair = np.array([vec_010])
+            else:
+                vecs_pair = np.array([vec_010, vec_011])
+        else:
+            vecs_pair = np.array([vec_010, vec_011, vec_100, vec_101])
+
         vec_pair = np.nanmean(vecs_pair, axis=0)
         M_attn = np.nanmean(vec_pair)
         M_attns.append(M_attn)
@@ -422,36 +486,141 @@ def analyze_rissman(cat='attn_weights',
         # TODO: lasso up the multiple weights
 
     r, p = stats.spearmanr(M_attns, relatedness)
-    title = f'{layer_name} | relatedness x mean {cat}: {r=:.2f}, {p=:.3f}'
-    print(title)
     relatedness = np.array(relatedness)
     vecs_attns = np.array(vecs_attns)
-    # for i in range(vecs_attns.shape[1]):
-    #     r, p = stats.spearmanr(vecs_attns[:, i], relatedness)
-    #     plt.scatter(vecs_attns[:, i], relatedness)
-    #     plt.title(f'{i} | {r=:.2f}')
-    #     plt.show()
-    #     print(f'{i}: {r=:.3f}, {p=:.3f}')
-    # print(vecs_attns.shape)
+
+    result = fit_regularized_models(np.array(vecs_attns), relatedness, plot=plot_hist,
+                                    n_repeats=1, normalize=False,
+                                    groups=groups if do_SchemeRep else None)
+    title = f'{layer_name} | mean {cat}: {r=:.2f}, {result["Ridge"]["r2_score"]=:.2f}'
+    print(title)
+
+    r2 = result['Ridge']['r2_score']
+    return r2
+
+def compare_attn_vs_gate(do_SchemeRep=False,
+                         activation_model='meta-llama/Llama-3.2-3b',
+                          # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         ):
+    vals_attn = []
+    vals_residual = []
+    for layer_name in range(0, 28):
+
+        # layer_name_l = list(range(layer_name, layer_name + 4))
+        layer_name_l = layer_name
+        try:
+            r2_attn = analyze_rissman(cat='attn_weights', layer_name=layer_name_l,
+                                      do_SchemeRep=do_SchemeRep,
+                                      activation_model=activation_model)
+            # r2_gate = np.nan
+            r2_gate = analyze_rissman(cat='gate_proj_in', layer_name=layer_name_l,
+                                      do_SchemeRep=do_SchemeRep,
+                                      activation_model=activation_model)
+        except KeyError:
+            r2_attn = np.nan
+            r2_gate = np.nan
+        # r2_gate = analyze_rissman(cat='gate_proj_in', layer_name=layer_name,
+        #                           do_SchemeRep=do_SchemeRep,
+        #                           activation_model=activation_model)
+        vals_attn.append(r2_attn)
+        vals_residual.append(r2_gate)
+
+    plt.plot(list(range(len(vals_attn))), vals_attn,
+             label='Attention', color='green', marker='.')
+    plt.plot(list(range(len(vals_residual))), vals_residual,
+                label='Residual', color='purple', marker='.')
+    plt.legend()
+    plt.show()
+
+
+def find_circles(pairs):
+    # Create adjacency dict
+    adj = {}
+    for i, j in pairs:
+        if i not in adj:
+            adj[i] = []
+        if j not in adj:
+            adj[j] = []
+        adj[i].append(j)
+        adj[j].append(i)
+    # adj_mat = np.zeros((228, 228))
+    # pairs_flat = [word for pair in pairs for word in pair]
+    # pairs_flat = list(set(pairs_flat))
+    # for word0, word1 in pairs:
+    #     i = pairs_flat.index(word0)
+    #     j = pairs_flat.index(word1)
+    #     adj_mat[i, j] = 1
+    #     adj_mat[j, i] = 1
+    # plt.imshow(adj_mat)
+    # plt.show()
     # quit()
 
+    def dfs(node, parent, path, circles):
+        if node in path:
+            # Found circle - get the circle portion
+            circle = path[path.index(node):]
+            circles.append(circle)
+            return
 
-    fit_regularized_models(np.array(vecs_attns), relatedness, plot=True,
-                           n_repeats=1)
-    print('-')
+        path.append(node)
+        for neighbor in adj[node]:
+            if neighbor != parent:
+                dfs(neighbor, node, path, circles)
+        path.pop()
+
+    circles = []
+    visited = set()
+
+    # Start DFS from each node
+    for node in tqdm(adj):
+        if node not in visited:
+            dfs(node, None, [], circles)
+            visited.add(node)
+
+    for circle in circles:
+        circle.sort()
+    circles = list(set(tuple(circle) for circle in circles))
+
+    return circles
+
+
+# from sklearn.model_selection import GroupKFold
+# import numpy as np
+#
+# # Example data
+# X = np.arange(20).reshape(10, 2)  # Feature matrix
+# y = np.arange(10)                # Target array
+# groups = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5]  # Group labels
+#
+# # Initialize GroupKFold with the desired number of splits
+# n_splits = 3
+# group_kfold = GroupKFold(n_splits=n_splits)
+#
+# # Perform the split
+# for train_index, test_index in group_kfold.split(X, y, groups):
+#     print("Train indices:", train_index, "Test indices:", test_index)
+# quit()
 
 
 if __name__ == '__main__':
+    compare_attn_vs_gate()
+    quit()
     # test_w2v_regression()
     # quit()
 
-    get_w2v_similarity()
+    # get_w2v_similarity()
     # quit()
     # get_rissman_w2v_d_vecs()
     # analyze_rissman(layer_name=8)
 
     # analyze_rissman(layer_name=list(range(4, 20)))
-    analyze_rissman(layer_name=list(range(8, 16)))
+
+    # analyze_rissman(layer_name=list(range(15, 20)), plot_hist=True,
+    #                 cat='attn_weights')
+
+    analyze_rissman(layer_name=list(range(16, 20)), plot_hist=True,
+                    cat='attn_weights')
+
     quit()
 
     for LAYER_NAME in range(0, 24):
