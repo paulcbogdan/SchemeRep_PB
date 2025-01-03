@@ -718,16 +718,14 @@ if __name__ == '__main__':
     a = res['attn']['attn_output'][0][0][0]
 
     for layer in range(24):
-        b0 = res['attn']['input'][layer + 1][0][0]
+        # b0 = res['attn']['input'][layer + 1][0][0]
         # b0 = res['mlp_in']['gate_proj'][layer][0][0]
-        # b0 = res['mlp_in']['gate_proj'][layer + 1][0][0]
+        b0 = res['mlp_in']['gate_proj'][layer][0][0]
         # b1 = res['mlp_out']['act_fn'][layer][0][0]
         b1 = res['attn']['attn_output'][layer][0][0]
 
-
-
         r, p = stats.spearmanr(b1, b0, nan_policy='omit')
-        print(f'{layer} | {r=:.3f}')
+        print(f'{layer} | {r=:.3f}, {p=:.3f}')
     quit()
     # # # print(res['mlp_out']['gate_proj'][0])
 

@@ -1,9 +1,73 @@
 import torch
+from torch.onnx.symbolic_opset9 import tensor
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import numpy as np
 from transformers import BitsAndBytesConfig
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
+
+def precompute_rope_params(head_dim, theta_base=10_000, context_length=4096, freq_config=None):
+    # from: https://github.com/rasbt/LLMs-from-scratch/blob/main/ch05/07_gpt_to_llama/standalone-llama32.ipynb
+    assert head_dim % 2 == 0, "Embedding dimension must be even"
+
+    # Compute the inverse frequencies
+    inv_freq = 1.0 / (theta_base ** (torch.arange(0, head_dim, 2)[: (head_dim // 2)].float() / head_dim))
+
+    # Frequency adjustments
+    if freq_config is not None:
+        low_freq_wavelen = freq_config["original_context_length"] / freq_config["low_freq_factor"]
+        high_freq_wavelen = freq_config["original_context_length"] / freq_config["high_freq_factor"]
+
+        wavelen = 2 * torch.pi / inv_freq
+
+        inv_freq_llama = torch.where(
+            wavelen > low_freq_wavelen, inv_freq / freq_config["factor"], inv_freq
+        )
+
+        smooth_factor = (freq_config["original_context_length"] / wavelen - freq_config["low_freq_factor"]) / (
+            freq_config["high_freq_factor"] - freq_config["low_freq_factor"]
+        )
+
+        smoothed_inv_freq = (
+            (1 - smooth_factor) * (inv_freq / freq_config["factor"]) + smooth_factor * inv_freq
+        )
+
+        is_medium_freq = (wavelen <= low_freq_wavelen) & (wavelen >= high_freq_wavelen)
+        inv_freq_llama = torch.where(is_medium_freq, smoothed_inv_freq, inv_freq_llama)
+        inv_freq = inv_freq_llama
+
+    # Generate position indices
+    positions = torch.arange(context_length)
+
+    # Compute the angles
+    angles = positions[:, None] * inv_freq[None, :]  # Shape: (context_length, head_dim // 2)
+
+    # Expand angles to match the head_dim
+    angles = torch.cat([angles, angles], dim=1)  # Shape: (context_length, head_dim)
+
+    # Precompute sine and cosine
+    cos = torch.cos(angles)
+    sin = torch.sin(angles)
+
+    return cos, sin
+
+class SharedBuffers:
+    _buffers = {}
+
+    @staticmethod
+    def get_buffers(context_length, head_dim, rope_base, freq_config, dtype=torch.float32):
+        key = (context_length, head_dim, rope_base, tuple(freq_config.values()) if freq_config else freq_config, dtype)
+
+        if key not in SharedBuffers._buffers:
+            # Create or fetch the buffers
+            mask = torch.triu(torch.ones(context_length, context_length), diagonal=1)
+            cos, sin = precompute_rope_params(head_dim, rope_base, context_length, freq_config)
+            if dtype is not None:
+                cos = cos.to(dtype)
+                sin = sin.to(dtype)
+            SharedBuffers._buffers[key] = (mask, cos, sin)
+
+        return SharedBuffers._buffers[key]
 
 def compute_rope(x, cos, sin):
     # x: (batch_size, num_heads, seq_len, head_dim)
@@ -69,12 +133,19 @@ class LlamaActivationExtractor:
             def attention_big_hook_(module, input, output):
 
                 hidden_states = input[0]
+                _, num_tokens, _ = hidden_states.size()
+                # print(f'{num_tokens=}')
                 # print(output[0].shape) # attention output, weighed by the attention weights
 
                 # Compute query, key, value projections
                 query_states = module.self_attn.q_proj(hidden_states)
                 key_states = module.self_attn.k_proj(hidden_states)
                 value_states = module.self_attn.v_proj(hidden_states)
+                # print(f'{query_states.size()=}')
+                # print(f'{key_states.size()=}')
+                # print(f'{value_states.size()=}')
+                # quit()
+
 
                 # Reshape and compute attention scores
                 query_states = query_states.view(
@@ -87,49 +158,79 @@ class LlamaActivationExtractor:
                 key_states = key_states.view(
                     key_states.size(0),
                     key_states.size(1),
+                    # module.self_attn.num_key_value_groups, # 3 groups, repeat 8 times for the 24 heads
+                    module.self_attn.num_key_value_heads,
+                    module.self_attn.head_dim,
+                )
+                # print(F'{key_states.size()=}')
+                # print(f'{module.self_attn.num_key_value_groups=}')
+                # print(F'{module.self_attn.num_key_value_heads=}')
+
+                value_states = value_states.view(
+                    value_states.size(0),
+                    value_states.size(1),
                     # module.self_attn.num_key_value_groups,
                     module.self_attn.num_key_value_heads,
                     module.self_attn.head_dim,
                 )
+                query_states = query_states.transpose(1, 2)
+                key_states = key_states.transpose(1, 2)
+                value_states = value_states.transpose(1, 2)
 
-                key_states = compute_rope(key_states, module.self_attn.cos, module.self_attn.sin)
-                query_states = compute_rope(query_states, module.self_attn.cos, module.self_attn.sin)
+
+                # print(F'{value_states.size()=}')
+
+
+                # print(module.self_attn.rope_base)
+                # quit()
+                rope_config = {              # RoPE frequency scaling
+                    "factor": 32.0,
+                    "low_freq_factor": 1.0,
+                    "high_freq_factor": 4.0,
+                    "original_context_length": 8192,
+                }
+                mask, cos, sin = SharedBuffers.get_buffers(48,
+                                                           module.self_attn.head_dim, 500_000.0,
+                                                           rope_config, torch.bfloat16)
+                # self.register_buffer("mask", mask)
+                #
+                # self.register_buffer("cos", cos)
+                # self.register_buffer("sin", sin)
+
+                key_states = compute_rope(key_states, cos.to(self.model.device),
+                                          sin.to(self.model.device))
+                query_states = compute_rope(query_states, cos.to(self.model.device),
+                                            sin.to(self.model.device))
 
                 key_states = key_states.repeat_interleave(
-                    module.self_attn.num_key_value_groups, dim=2)
-                value_states = value_states.repeat_interleave(
-                    module.self_attn.num_key_value_groups, dim=2)
+                    module.self_attn.num_key_value_groups, dim=1)
 
-                attn_scores = query_states @ key_states.transpose(-2, -1)
-                attn_scores_masked = query_states @ key_states.transpose(-2, -1)
-                mask_bool = module.self_attn.get_attention_mask()
-                attn_scores_masked.masked_fill_(mask_bool, float('-inf'))
+                value_states = value_states.repeat_interleave(
+                    module.self_attn.num_key_value_groups, dim=1)
+
+
+                attn_scores = query_states @ key_states.transpose(2, 3)
+                attn_scores_masked = query_states @ key_states.transpose(2, 3)
 
                 attn_weights = torch.nn.functional.softmax(
                     attn_scores / (module.self_attn.head_dim ** 0.5), dim=-1)
-                attn_weights_masked = torch.nn.functional.softmax(
-                    attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
-
-                # Compute attention scores
-                # attn_weights = torch.matmul(
-                #     query_states.transpose(1, 2),
-                #     key_states.transpose(1, 2).transpose(-1, -2)
-                # ) / (module.self_attn.head_dim ** 0.5)
-
-
-
-                # attention_mask = torch.tril(torch.ones(hidden_states.size(1), hidden_states.size(1)))
-                # Softmax to get attention probabilities
-                # attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
-                print(f'{input=}')
-                print(f'{output[0]=}')
+                # attn_weights_masked = torch.nn.functional.softmax(
+                #     attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
+                # mask_bool = mask.to(self.model.device).bool()[
+                #             :num_tokens, :num_tokens]
+                # attn_weights_masked = attn_weights_masked.masked_fill(mask_bool, float('-inf'))
+                # attn_output = attn_weights_masked @ value_states
+                # attn_output = attn_output.transpose(1, 2)
+                # attn_output = attn_output.reshape(attn_output.size(0), attn_output.size(1), -1)
+                # attn_output = module.self_attn.o_proj(attn_output)
 
                 self.attention_act['input'][layer_name] = hidden_states
                 self.attention_act['q_proj'][layer_name] = query_states
                 self.attention_act['k_proj'][layer_name] = key_states
                 self.attention_act['v_proj'][layer_name] = value_states
-                self.attention_act['attn_output'][layer_name] = output[0] if isinstance(output, tuple) else output
+                # self.attention_act['attn_output'][layer_name] = attn_output #output[0] if isinstance(output, tuple) else output
                 self.attention_act['attn_weights'][layer_name] = attn_weights
+                self.attention_act['attn_output'][layer_name] = output[0]
 
             return attention_big_hook_
 
