@@ -1,20 +1,18 @@
 import pickle
+from collections import defaultdict
 from typing import Union
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 # import matplotlib.pyplot as plt
 from scipy import stats
-from time import time
-
-from sklearn.linear_model import RidgeClassifier, ElasticNet
-from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner, get_obj2grammar, get_scn2grammar, get_llama_activations
+from marinate.pkld import pkld
 from organize_bhv import get_trial_info
 
 
@@ -31,6 +29,8 @@ def get_rissman_df(condition=''):
     relatedness = df_grp['relatedness_judgment'].values
     return pairs, relatedness, df_grp
 
+
+# @pkld
 def get_rissman_similarity(pair, flip=False,
                            activation_model='meta-llama/Llama-3.2-3b',
                            cat='attn_weights', get_last=False,
@@ -48,24 +48,41 @@ def get_rissman_similarity(pair, flip=False,
 
     obj2grammar, _ = get_obj2grammar()
     scn2grammar, _ = get_scn2grammar()
-    if do_schemerep:#pair[0] in obj2grammar and pair[1] in scn2grammar:
+    if do_schemerep:  # pair[0] in obj2grammar and pair[1] in scn2grammar:
         assert not flip
         res, fp = pickle_wrap(get_llama_activations,
-                                  kwargs={'obj': pair[0], 'scn': pair[1],
-                                          'activation_model': activation_model},
-                                  easy_override=False, verbose=-1, dir_branches=100,
-                                  RAM_cache=False, get_fp=True
-                                  )
+                              kwargs={'obj': pair[0], 'scn': pair[1],
+                                      'activation_model': activation_model},
+                              easy_override=False, verbose=-1, dir_branches=100,
+                              RAM_cache=False, get_fp=True
+                              )
     else:
-        # print(f'Do deve: {pair=}')
         res, fp = pickle_wrap(get_llama_activations_deve,
                               kwargs={'item0': item0, 'item1': item1,
                                       'activation_model': activation_model},
                               easy_override=False, verbose=-1, dir_branches=100,
                               RAM_cache=False, get_fp=True)
 
-    if 'mlp_out' in res and 'down_proj' in res['mlp_out']:
-        del res['mlp_out']['down_proj']
+    if cat == 'down_proj_out' and not (
+            'mlp_out' in res and 'down_proj' in res['mlp_out']):
+        if do_schemerep:  # pair[0] in obj2grammar and pair[1] in scn2grammar:
+            assert not flip
+            res, fp = pickle_wrap(get_llama_activations,
+                                  kwargs={'obj': pair[0], 'scn': pair[1],
+                                          'activation_model': activation_model},
+                                  easy_override=True, verbose=-1, dir_branches=100,
+                                  RAM_cache=False, get_fp=True
+                                  )
+        else:
+            res, fp = pickle_wrap(get_llama_activations_deve,
+                                  kwargs={'item0': item0, 'item1': item1,
+                                          'activation_model': activation_model},
+                                  easy_override=True, verbose=-1, dir_branches=100,
+                                  RAM_cache=False, get_fp=True)
+
+    if 'mlp_out' in res and 'up_proj' in res['mlp_out']:
+        # del res['mlp_out']['down_proj']
+        # del res['mlp_out']['act_fn']
         del res['mlp_out']['up_proj']
         del res['mlp_out']['gate_proj']
         del res['mlp_in']['down_proj']
@@ -105,6 +122,7 @@ def get_rissman_similarity(pair, flip=False,
     # quit()
     return d_vecs
 
+
 def get_rissman_w2v_d_vecs():
     print('Cooking rissman word2vecs...')
     pairs, _, _ = get_rissman_df()
@@ -121,6 +139,7 @@ def get_rissman_w2v_d_vecs():
                 raise ValueError
     return d_vecs
 
+
 def plot_best_fit(x, y):
     from statsmodels.formula import api as smf
     df_grp = pd.DataFrame({'x': x, 'y': y})
@@ -129,6 +148,7 @@ def plot_best_fit(x, y):
     df_pred = pd.DataFrame({'x': [df_grp['x'].min(), df_grp['x'].max()]})
     df_pred['y'] = res.predict(df_pred)
     plt.plot(df_pred['x'], df_pred['y'], color='k', linestyle='--')
+
 
 def get_w2v_similarity(do_print=False):
     d_vecs = pickle_wrap(get_rissman_w2v_d_vecs, verbose=-1)
@@ -160,6 +180,7 @@ def get_w2v_similarity(do_print=False):
     print(f'word2vec | relatedness x corr: {r=:.2f}, {p=:.3f}')
     return np.array(w2v_similarities)
 
+
 def test_w2v_regression():
     d_vecs = pickle_wrap(get_rissman_w2v_d_vecs, verbose=-1)
     pairs, relatedness, _ = get_rissman_df()
@@ -180,10 +201,11 @@ def test_w2v_regression():
     prods = np.nanmean(prods, axis=1, keepdims=True)
     fit_regularized_models(prods, relatedness)
 
+
 def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                            plot=False, normalize=False,
-                           n_repeats=10, groups=None):
-
+                           n_repeats=10, groups=None,
+                           do_r2=False):
     """
     Fit Lasso, Ridge, and ElasticNet models with cross-validation
 
@@ -197,10 +219,9 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     Dictionary containing models and their R² scores
     """
 
-    from sklearn.linear_model import (LassoCV, RidgeCV, ElasticNetCV,
-                                      RidgeClassifierCV, SGDClassifier)
+    from sklearn.linear_model import (RidgeCV)
     from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import (KFold, LeaveOneOut, RepeatedStratifiedKFold,
+    from sklearn.model_selection import (RepeatedStratifiedKFold,
                                          RepeatedKFold, LeaveOneGroupOut)
     from functools import partial
     from sklearn.metrics import r2_score
@@ -208,7 +229,6 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     from sklearn.svm import SVC
     import warnings
     warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
-
 
     # Create cross-validation object
     if groups:
@@ -223,7 +243,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         binary = True
     else:
         cv = RepeatedKFold(n_splits=cv_folds, n_repeats=n_repeats,
-                             random_state=random_state)
+                           random_state=random_state)
         binary = False
     # cv = LeaveOneOut()
     # print(f'{binary=}')
@@ -242,11 +262,11 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     results = {}
 
     # Fit models and calculate R² scores
-    for name, model in [#('Lasso', lasso),
-                        # ('Ridge', ridge),
-                        ('Ridge', svm) if binary else ('Ridge', ridge),
-                        #('ElasticNet', elastic)
-                        ]:
+    for name, model in [  # ('Lasso', lasso),
+        # ('Ridge', ridge),
+        ('Ridge', svm) if binary else ('Ridge', ridge),
+        # ('ElasticNet', elastic)
+    ]:
 
         fold_predictions = []
         fold_R2s = []
@@ -267,19 +287,17 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             # Fit model and make prediction
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
+            # print(f'{y_pred=}')
             if not binary:
                 y_pred[y_pred > 4] = 4
                 y_pred[y_pred < 1] = 1
                 r2 = r2_score(y_test, y_pred)
             else:
-                r2 = np.mean(y_test == y_pred)
-            # corr = stats.pearsonr(y_test, y_pred)[0]
-            # print(f'{len(test_idx)}: {r2=:.2f}, {corr=:.2f}')
-            # df = pd.DataFrame({'y_test': y_test, 'y_pred': y_pred})
-            # print(df[['y_test', 'y_pred']].value_counts())
-            # print(y_test)
-            # print(y_pred)
-            # print(f'{len(test_idx)}: {r2=:.2f}')
+                if do_r2:
+                    r2 = r2_score(y_test, y_pred)
+                else:
+                    r2 = np.mean(y_test == y_pred)
+
             fold_R2s.append(r2)
             try:
                 coefs.append(model.coef_)
@@ -287,7 +305,6 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                 coefs.append(model.coef0)
             y_tests.extend(list(y_test))
             y_preds.extend(list(y_pred))
-
 
         coefs = np.average(coefs, axis=0, weights=test_sizes)
         r2 = np.average(fold_R2s, weights=test_sizes)
@@ -338,20 +355,20 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             for i in range(X.shape[1]):
                 r, p = stats.spearmanr(X[:, i], y)
                 rs_all.append(r)
-            # quit()
             plt.figure(figsize=(6, 4))
             plt.rcParams.update({'font.size': 20})
             plt.gca().spines[['right', 'top']].set_visible(False)
             plt.hist(rs_all, bins=20, range=(-1, 1),
                      color='green')
             # plt.title(f'{name} | {r_score=:.2f}')
-            plt.xticks(np.linspace(-1, 1, 5,))
+            plt.xticks(np.linspace(-1, 1, 5, ))
             plt.ylabel('Frequency (n)', labelpad=8)
             plt.xlabel('Correlation (r)', labelpad=8)
             plt.gcf().subplots_adjust(left=0.175, right=0.975,
                                       top=0.975, bottom=0.28)
             plt.show()
     return results
+
 
 def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
                                        layer_names=None, flip=False,
@@ -366,8 +383,10 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
         kw = {'pair': pair, 'flip': flip, 'cat': cat, 'get_last': get_last,
               'layer_name': layer_name, 'activation_model': activation_model,
               'do_schemerep': do_schemerep}
-        d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
-                                  verbose=-1, easy_override=True)
+
+        d_vecs_pair = get_rissman_similarity(**kw)
+        # d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
+        #                           verbose=-1, easy_override=True)
         if do_schemerep:
             pair = (pair[0], pair[1])
         else:
@@ -378,7 +397,7 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
         else:
             vec_0 = d_vecs_pair[(pair[0], pair[1], pair[0])]
             vec_1 = d_vecs_pair[(pair[0], pair[1], pair[1])]
-        if cat == 'gate_proj_in':
+        if cat != 'attn_weights':
             vecs_0_all.extend(vec_0)
             vecs_1_all.extend(vec_1)
             # prod0 = stats.spearmanr(vec_0, vec_1, nan_policy='omit')[0]
@@ -390,8 +409,9 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
             vecs_1_all.extend(vec_1)
     return vecs_0_all, vecs_1_all
 
+
 def get_SchemeRep_df(no_neu=False):
-    sns = ['102', '103', '104'] # everyone else is a duplicate
+    sns = ['102', '103', '104']  # everyone else is a duplicate
     already_done = set()
     objs_l = []
     scns_l = []
@@ -409,14 +429,32 @@ def get_SchemeRep_df(no_neu=False):
     pairs = list(zip(objs_l, scns_l))
     return pairs, ics_l, None
 
+
+def normalize_rissman_SchemeRep(pairs, vecs):
+    obj2l = defaultdict(list)
+    for pair, vec in zip(pairs, vecs):
+        obj2l[pair[0]].append(vec)
+    obj2M = {}
+    for obj, vecs_pair in obj2l.items():
+        M = np.nanmean(vecs_pair, axis=0)
+        obj2M[obj] = M
+    for i, pair in enumerate(pairs):
+        vecs[i] -= obj2M[pair[0]]
+    return vecs
+
+
+@pkld(overwrite=False)
 def analyze_rissman(cat='attn_weights',
-                    #cat='gate_proj_in',
+                    # cat='gate_proj_in',
                     activation_model='meta-llama/Llama-3.2-3b',
                     get_last=False, layer_name: Union[int, list] = 1,
-                    do_SchemeRep=True, plot_hist=False
+                    do_SchemeRep=True, plot_hist=False,
+                    norm_SchemeRep=False,
+                    binary_nonrep=False,
+                    no_neu=True
                     ):
+    assert not (binary_nonrep and do_SchemeRep)
     if do_SchemeRep:
-        no_neu = True
         pairs, relatedness, _ = get_SchemeRep_df(no_neu=no_neu)
         if no_neu:
             circles = find_circles(pairs)
@@ -436,6 +474,7 @@ def analyze_rissman(cat='attn_weights',
 
     M_attns = []
     vecs_attns = []
+    # do_SchemeRep = False
 
     for pair in pairs:
         if isinstance(layer_name, list):
@@ -454,8 +493,12 @@ def analyze_rissman(cat='attn_weights',
             kw = {'pair': pair, 'flip': False, 'cat': cat, 'get_last': get_last,
                   'layer_name': layer_name, 'do_schemerep': do_SchemeRep,
                   'activation_model': activation_model}
-            d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
-                                      verbose=-1, easy_override=False)
+            # d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
+            #                           verbose=-1, easy_override=False)
+            # d_vecs_pair = get_rissman_similarity(**kw)
+            d_vecs_pair = pkld(get_rissman_similarity)(**kw)
+            # d_vecs_pair = pkld(get_rissman_similarity(**kw))()
+
             if do_SchemeRep:
                 pair = (pair[0], pair[1])
             else:
@@ -465,14 +508,15 @@ def analyze_rissman(cat='attn_weights',
 
             if not do_SchemeRep:
                 kw['flip'] = True
-                d_vecs_pair = pickle_wrap(get_rissman_similarity, kwargs=kw,
-                                          verbose=-1, easy_override=False)
+                d_vecs_pair = get_rissman_similarity(**kw)
+                # d_vecs_pair = pickle_wrap(get_rissman_similarity, kwargs=kw,
+                #                           verbose=-1, easy_override=False)
                 vec_100 = d_vecs_pair[(pair[1], pair[0], pair[0])]
                 vec_101 = d_vecs_pair[(pair[1], pair[0], pair[1])]
 
         if do_SchemeRep:
-            if cat == 'gate_proj_in':
-                vecs_pair = np.array([vec_010])
+            if cat != 'attn_weights':
+                vecs_pair = np.array([vec_010])  # this is the correct order, 0 = obj, 1 = scn
             else:
                 vecs_pair = np.array([vec_010, vec_011])
         else:
@@ -489,6 +533,17 @@ def analyze_rissman(cat='attn_weights',
     relatedness = np.array(relatedness)
     vecs_attns = np.array(vecs_attns)
 
+    if norm_SchemeRep:
+        vecs_attns = normalize_rissman_SchemeRep(pairs, vecs_attns)
+
+    # do_SchemeRep = True
+    # print(relatedness)
+    # quit()
+    if binary_nonrep:
+        relatedness = np.array(relatedness)
+        relatedness[relatedness < 3] = 0
+        relatedness[relatedness >= 3] = 1
+
     result = fit_regularized_models(np.array(vecs_attns), relatedness, plot=plot_hist,
                                     n_repeats=1, normalize=False,
                                     groups=groups if do_SchemeRep else None)
@@ -498,38 +553,85 @@ def analyze_rissman(cat='attn_weights',
     r2 = result['Ridge']['r2_score']
     return r2
 
-def compare_attn_vs_gate(do_SchemeRep=False,
+
+def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
                          activation_model='meta-llama/Llama-3.2-3b',
-                          # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         binary_nonrep=False,
+                         no_neu=False,
+                         # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                          ):
+    #     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
+    #                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
+    #                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
+    #                       'input']
+
+    assert not ((not do_SchemeRep) and (norm_SchemeRep))
+    assert not (no_neu and not do_SchemeRep)
     vals_attn = []
     vals_residual = []
-    for layer_name in range(0, 28):
-
+    vals_attn_output = []
+    vals_down = []
+    for layer_name in range(0, 28 if '3b' in activation_model else 80):
         # layer_name_l = list(range(layer_name, layer_name + 4))
         layer_name_l = layer_name
-        try:
-            r2_attn = analyze_rissman(cat='attn_weights', layer_name=layer_name_l,
-                                      do_SchemeRep=do_SchemeRep,
-                                      activation_model=activation_model)
-            # r2_gate = np.nan
-            r2_gate = analyze_rissman(cat='gate_proj_in', layer_name=layer_name_l,
-                                      do_SchemeRep=do_SchemeRep,
-                                      activation_model=activation_model)
-        except KeyError:
-            r2_attn = np.nan
-            r2_gate = np.nan
+        # try:
+        r2_attn = analyze_rissman(cat='attn_weights', layer_name=layer_name_l,
+                                  do_SchemeRep=do_SchemeRep,
+                                  activation_model=activation_model,
+                                  norm_SchemeRep=norm_SchemeRep,
+                                  binary_nonrep=binary_nonrep,
+                                  no_neu=no_neu)
+        # TODO: replace below with in
+        r2_gate = analyze_rissman(cat='input', layer_name=layer_name_l,
+                                  do_SchemeRep=do_SchemeRep,
+                                  activation_model=activation_model,
+                                  norm_SchemeRep=norm_SchemeRep,
+                                  binary_nonrep=binary_nonrep,
+                                  no_neu=no_neu)
+
+        r2_attn_output = analyze_rissman(cat='attn_output', layer_name=layer_name_l,
+                                         do_SchemeRep=do_SchemeRep,
+                                         activation_model=activation_model,
+                                         norm_SchemeRep=norm_SchemeRep,
+                                         binary_nonrep=binary_nonrep,
+                                         no_neu=no_neu)
+
+        r2_down = analyze_rissman(cat='down_proj_out', layer_name=layer_name_l,
+                                    do_SchemeRep=do_SchemeRep,
+                                    activation_model=activation_model,
+                                    norm_SchemeRep=norm_SchemeRep,
+                                    binary_nonrep=binary_nonrep,
+                                    no_neu=no_neu)
+        print(f'{layer_name=}, {r2_attn=:.2f}, {r2_gate=:.2f}, '
+              f'{r2_attn_output=:.2f}, {r2_down=:.2f}')
+        # except KeyError:
+        #     print('KeyError')
+        #     r2_attn = np.nan
+        #     r2_gate = np.nan
         # r2_gate = analyze_rissman(cat='gate_proj_in', layer_name=layer_name,
         #                           do_SchemeRep=do_SchemeRep,
         #                           activation_model=activation_model)
         vals_attn.append(r2_attn)
         vals_residual.append(r2_gate)
+        vals_attn_output.append(r2_attn_output)
+        vals_down.append(r2_down)
 
     plt.plot(list(range(len(vals_attn))), vals_attn,
              label='Attention', color='green', marker='.')
     plt.plot(list(range(len(vals_residual))), vals_residual,
-                label='Residual', color='purple', marker='.')
+             label='Residual', color='purple', marker='.')
+    plt.plot(list(range(len(vals_attn_output))), vals_attn_output,
+             label='Attention Output', color='red', marker='.')
+    plt.plot(list(range(len(vals_down))), vals_down,
+                label='Down Proj', color='dodgerblue', marker='.')
+    plt.xlabel('Layer')
     plt.legend()
+    if do_SchemeRep or binary_nonrep:
+        plt.ylim(0.5, 1)
+    else:
+        plt.ylim(-1, 1)
+    plt.title(f'{do_SchemeRep=}, {norm_SchemeRep=},\n'
+              f'{binary_nonrep=}, {no_neu=}')
     plt.show()
 
 
@@ -543,6 +645,7 @@ def find_circles(pairs):
             adj[j] = []
         adj[i].append(j)
         adj[j].append(i)
+
     # adj_mat = np.zeros((228, 228))
     # pairs_flat = [word for pair in pairs for word in pair]
     # pairs_flat = list(set(pairs_flat))
@@ -572,7 +675,7 @@ def find_circles(pairs):
     visited = set()
 
     # Start DFS from each node
-    for node in tqdm(adj):
+    for node in adj:
         if node not in visited:
             dfs(node, None, [], circles)
             visited.add(node)
@@ -603,8 +706,35 @@ def find_circles(pairs):
 
 
 if __name__ == '__main__':
-    compare_attn_vs_gate()
+    pair = ('apple', 'bank')
+    res, fp = pickle_wrap(get_llama_activations,
+                          kwargs={'obj': pair[0], 'scn': pair[1],
+                                  'activation_model': 'meta-llama/Llama-3.2-3b'},
+                          easy_override=True, verbose=-1, dir_branches=100,
+                          RAM_cache=False, get_fp=True
+                          )
+
+
+    a = res['attn']['attn_output'][0][0][0]
+
+    for layer in range(24):
+        b0 = res['attn']['input'][layer + 1][0][0]
+        # b0 = res['mlp_in']['gate_proj'][layer][0][0]
+        # b0 = res['mlp_in']['gate_proj'][layer + 1][0][0]
+        # b1 = res['mlp_out']['act_fn'][layer][0][0]
+        b1 = res['attn']['attn_output'][layer][0][0]
+
+
+
+        r, p = stats.spearmanr(b1, b0, nan_policy='omit')
+        print(f'{layer} | {r=:.3f}')
     quit()
+    # # # print(res['mlp_out']['gate_proj'][0])
+
+    # print(res['attn']['attn_output'][0])
+
+    compare_attn_vs_gate()
+    # quit()
     # test_w2v_regression()
     # quit()
 
@@ -617,12 +747,12 @@ if __name__ == '__main__':
 
     # analyze_rissman(layer_name=list(range(15, 20)), plot_hist=True,
     #                 cat='attn_weights')
-
-    analyze_rissman(layer_name=list(range(16, 20)), plot_hist=True,
-                    cat='attn_weights')
+    #
+    # analyze_rissman(layer_name=list(range(16, 20)), plot_hist=True,
+    #                 cat='attn_weights')
 
     quit()
 
     for LAYER_NAME in range(0, 24):
         # for FOCUS in range(24):
-         analyze_rissman(layer_name=LAYER_NAME)#, focus=FOCUS)
+        analyze_rissman(layer_name=LAYER_NAME)  # , focus=FOCUS)

@@ -1,14 +1,14 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy import stats
+
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.Rissman_similarity_analysis import fit_regularized_models
 from llama.devereux_llama import get_llama_vecs_ar, get_standard_items_list
 from llama.devereux_neuron import get_binary_feat_matrix
-import numpy as np
-import pandas as pd
-from scipy import stats, spatial
-import matplotlib.pyplot as plt
-
 from llama.devereux_w2v import get_w2v_deve_vecs
-from marinate import marinate
+from marinate.pkld import pkld
 
 
 def find_closest_feature(feat2onehot):
@@ -26,21 +26,21 @@ def find_closest_feature(feat2onehot):
 
 
 def examine_feature_reliability(pf_thresh=600, cat='gate_proj_in', layer_name=1,
-                          activation_model='meta-llama/Llama-3.2-3b',
-                          normalize=False, quick=1, item_standard='deve',
-                          position=0, symmetric=False,):
+                                activation_model='meta-llama/Llama-3.2-3b',
+                                normalize=False, quick=1, item_standard='deve',
+                                position=0, symmetric=False, ):
     items, df = get_standard_items_list(pf_thresh, item_standard)
 
     feat2onehot0 = pickle_wrap(get_binary_feat_matrix,
-                              kwargs={'items': items,
-                                      'pf_thresh': pf_thresh,
-                                      'threshold': 30,
-                                      'item_std': item_standard,
-                                      'req': 3,
-                                      'odd_even': 0,
-                                      },
-                              verbose=-1, easy_override=False,
-                              RAM_cache=True)
+                               kwargs={'items': items,
+                                       'pf_thresh': pf_thresh,
+                                       'threshold': 30,
+                                       'item_std': item_standard,
+                                       'req': 3,
+                                       'odd_even': 0,
+                                       },
+                               verbose=-1, easy_override=False,
+                               RAM_cache=True)
     feat2onehot1 = pickle_wrap(get_binary_feat_matrix,
                                kwargs={'items': items,
                                        'pf_thresh': pf_thresh,
@@ -52,21 +52,16 @@ def examine_feature_reliability(pf_thresh=600, cat='gate_proj_in', layer_name=1,
                                verbose=-1, easy_override=False,
                                RAM_cache=True)
     for feat in feat2onehot0.keys():
-
         onehot0 = feat2onehot0[feat]
         onehot1 = feat2onehot1[feat]
         print(f'{feat} | {np.mean(onehot0):.2f} | {np.mean(onehot1):.2f} | '
               f'{stats.spearmanr(onehot0, onehot1).correlation:.2f}')
     quit()
 
-@marinate(overwrite=True)
-def do_feature_regression(feature='is_small',
-                          pf_thresh=600, cat='gate_proj_in', layer_name=8,
-                          activation_model='meta-llama/Llama-3.2-3b',
-                          normalize=False, quick=1, item_standard='deve',
-                          position=0, symmetric=False,
-                          req=10, normalize_regr=False):
 
+@pkld(store='both', verbose=1)
+def get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat, layer_name,
+                      normalize, quick, position, symmetric):
     if activation_model == 'w2v':
         vecs = get_w2v_deve_vecs(pf_thresh, item_standard)
     else:
@@ -74,9 +69,9 @@ def do_feature_regression(feature='is_small',
             vecs = []
             for layer in layer_name:
                 vecs_layer = get_llama_vecs_ar(pf_thresh, cat, layer,
-                                         activation_model, normalize,
-                                         quick, item_standard,
-                                         position, symmetric)
+                                               activation_model, normalize,
+                                               quick, item_standard,
+                                               position, symmetric)
                 vecs.append(vecs_layer)
             vecs = np.concatenate(vecs, axis=1)
         else:
@@ -84,6 +79,19 @@ def do_feature_regression(feature='is_small',
                                      activation_model, normalize,
                                      quick, item_standard,
                                      position, symmetric)
+    return vecs
+
+
+@pkld(overwrite=True)
+def do_feature_regression(feature='is_small',
+                          pf_thresh=600, cat='gate_proj_in', layer_name=8,
+                          activation_model='meta-llama/Llama-3.2-3b',
+                          normalize=False, quick=1, item_standard='deve',
+                          position=0, symmetric=False,
+                          req=10, normalize_regr=False,
+                          do_r2=True):
+    vecs = get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat,
+                             layer_name, normalize, quick, position, symmetric)
 
     items, df = get_standard_items_list(pf_thresh, item_standard)
 
@@ -117,7 +125,6 @@ def do_feature_regression(feature='is_small',
 
     feat2closest, feat2closest_corr = find_closest_feature(feat2onehot)
 
-
     bad_feats = ['has_a_beak', 'does_grow',  # 'has_wings',
                  'has skin_peel'  # basically fruit?
                  'has_feathers'  # basically bird?
@@ -140,7 +147,7 @@ def do_feature_regression(feature='is_small',
                  # 'is_pretty_attractive'
                  'has_flesh',
                  'does_live_in_water', 'is_yellow',
-                 'is_black', 'is_red', 'is_brown', #'is_heavy',
+                 'is_black', 'is_red', 'is_brown',  # 'is_heavy',
                  'does_lay_eggs', 'has_eyes', 'is_hard',
                  'is_grown', 'is_colorful', 'is_white', 'is_pink',
                  # 'is_strong',
@@ -156,7 +163,8 @@ def do_feature_regression(feature='is_small',
     for feature, onehot in feat2onehot.items():
         if feature in bad_feats: continue
         feature_type = feature2type[feature]
-        res = fit_regularized_models(vecs, onehot, normalize=normalize_regr)
+        res = fit_regularized_models(vecs, onehot, normalize=normalize_regr,
+                                     do_r2=do_r2)
         r2_score = res['Ridge']['r2_score']
         # r2_score = np.random.normal()
         print(f'{feature_type} | {feature} ({np.mean(onehot):.2f}) | '
@@ -166,7 +174,6 @@ def do_feature_regression(feature='is_small',
         feature_types_l.append(feature_type)
     feat2onehot_ = {feat: feat2onehot[feat] for feat in feature_l}
     # feat2M = calculate_category_homogeneity(feat2onehot_)
-
 
     df_res = pd.DataFrame({'feature': feature_l,
                            'feature_type': feature_types_l,
@@ -193,12 +200,12 @@ def do_feature_regression(feature='is_small',
                 'dif']:
         df_res[key] = df_res[key].apply(lambda x: f'{x:.2f}')
 
-
     print(df_res[['feature_type', 'feature', 'r', 'closest',
                   'dif', 'closest_mediation',
                   'closest_r', 'closest_corr',
                   ]])
     return df_res
+
 
 def calculate_category_homogeneity(feat2onehot):
     items, df = get_standard_items_list(600, 'deve')
@@ -224,6 +231,7 @@ def calculate_category_homogeneity(feat2onehot):
     quit()
     return feat2M
 
+
 def plot_feat_regr(req=5, normalize_regr=False):
     model_name = ['simCSE']
     # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
@@ -241,11 +249,7 @@ def plot_feat_regr(req=5, normalize_regr=False):
     # df_llama = df_llama.iloc[:50]
     # df_llama = df_llama.iloc[::-1]
 
-
     x_llm = df_llama['feature'].str.replace('_', ' ').to_numpy()
-
-
-
 
     y_llm = np.array(df_llama['r'].astype(float).to_numpy() ** 2)
 
@@ -273,7 +277,6 @@ def plot_feat_regr(req=5, normalize_regr=False):
     # is_edible is just "living"
     x_llm = [mapper.get(x, x) for x in x_llm]
 
-
     y_dif_llm = y_llm - y_w2v
     y_dif_llm[y_dif_llm < 0] = 0
     y_dif_w2v = y_w2v - y_llm
@@ -288,7 +291,7 @@ def plot_feat_regr(req=5, normalize_regr=False):
     plt.barh(x_llm, y_dif_llm, left=y_gray, color='dodgerblue')
     plt.barh(x_llm, y_dif_w2v, left=y_gray, color='red')
     # plt.ylim(-0.75, 49.75)
-    plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])#, rotation=90)
+    plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])  # , rotation=90)
     plt.yticks(fontsize=9)
     plt.gca().spines[['right', 'bottom', ]].set_visible(False)
     plt.gca().tick_params(top=True, labeltop=True,
@@ -300,6 +303,7 @@ def plot_feat_regr(req=5, normalize_regr=False):
     plt.show()
     pd.set_option('display.max_rows', None)
     print(df_llama[['feature_type', 'feature', 'r']])
+
 
 def get_model_R2(name, layer):
     features = get_final_feats()
@@ -336,6 +340,8 @@ def plot_regr_lines():
     plt.show()
 
 
+def plot_single_feat_lines():
+    pass
 
 
 def get_final_feats():
@@ -354,13 +360,9 @@ def get_final_feats():
                    'is_worn', 'has_feathers', 'is_a_mammal', 'is_a_bird']
     return final_feats
 
+
 if __name__ == '__main__':
     # plot_regr_lines()
     plot_feat_regr()
     # examine_feature_reliability()
     # do_feature_regression(layer_name=8)
-
-
-
-
-

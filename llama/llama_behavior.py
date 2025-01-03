@@ -3,6 +3,7 @@ from marinate import marinate
 from connRSA.conn_regress import do_regr_RSA_sn
 from llama.model_settings import get_explore_llama, get_base_kw
 from llama.numba_regr_test import pairwise_interaction_t_values_proper
+from marinate.pkld import pkld
 from org_sns import get_sns
 from Utils.pickle_wrap_funcs import pickle_wrap
 import numpy as np
@@ -44,6 +45,23 @@ def sn_attn_enc(sn, region='subcort', local=True,
                                    st=8, end=20,
                                    last_only=False
                                    )
+
+    # model_attn = get_explore_llama(activation_model,
+    #                                attn='attn_output',
+    #                                normalize=1,
+    #                                do_prod=False, do_M=False,
+    #                                include_scn=False,
+    #                                st=2, end=20,
+    #                                last_only=False
+    #                                )
+
+    # model_attn = get_explore_llama(activation_model,
+    #                                attn=False, normalize=1,
+    #                                do_prod=False, do_M=False,
+    #                                include_scn=False,
+    #                                st=4, end=16,
+    #                                last_only=False
+    #                                )
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
@@ -87,6 +105,7 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                     st=8, end=20
                     ):
     # local = True
+    # control_item = False
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
                                    attn=True, normalize=True,
@@ -95,6 +114,23 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                                    st=st, end=end,
                                    last_only=False
                                    )
+
+    # model_attn = get_explore_llama(activation_model,
+    #                                attn='attn_output',
+    #                                normalize=1,
+    #                                do_prod=False, do_M=False,
+    #                                include_scn=False,
+    #                                st=2, end=20,
+    #                                last_only=False
+    #                                )
+
+    # model_attn = get_explore_llama(activation_model,
+    #                                attn=False, normalize=1,
+    #                                do_prod=False, do_M=False,
+    #                                include_scn=False,
+    #                                st=st, end=end,
+    #                                last_only=False
+    #                                )
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
@@ -214,7 +250,7 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     #     r = -r
     return r
 
-@marinate(overwrite=False)
+@pkld(overwrite=True)
 def run_sn_attn_enc(region, control_item=False, do_acc=True,
                     FC=None, local=False):
     sns = get_sns('all')['healthy']
@@ -222,7 +258,6 @@ def run_sn_attn_enc(region, control_item=False, do_acc=True,
     sns = [sn for sn in sns if sn not in bad_sns]
     efs = []
     efs = []
-    # print('toast')
 
     # print(1 + 'str')
 
@@ -261,7 +296,9 @@ def test_sn_llama_mem():
         for sn in sns:
             # ef = sn_attn_enc(sn, region=REGION)
             try:
-                ef = sn_attn_enc_Tha(sn, region=REGION)
+                # ef = sn_attn_enc(sn, region=REGION)
+                ef = sn_attn_enc_Tha(sn, region=REGION,
+                                     )
             except np.linalg.LinAlgError:
                 pass
             # ef = sn_item_dm(sn, region=REGION)

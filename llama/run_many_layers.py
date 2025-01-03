@@ -116,11 +116,12 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         # THERE IS SOME FUNKINESS SOMETIMES WITH RANDOM LOW
         # THERE MUST BE RUN_LAYER GETTING OVERRIDDEN SOMEHOW
         if ctrl_contex:
-            if semantic[1] in ['attn_weights', 'attn_output']:
+            if isinstance(semantic, bool):
+                ctrl = None
+            elif semantic[1] in ['attn_weights', 'attn_output']:
                 ctrl = (semantic[0], 'gate_proj_in', semantic[2],
                         'obj', semantic[4], semantic[5])
-            elif isinstance(semantic
-                    , list):
+            elif isinstance(semantic, list):
                 raise ValueError
             else:
                 if semantic[3] == 'obj':
@@ -129,6 +130,8 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
                             (semantic[0], semantic[1], semantic[2],
                              'scn', semantic[4], semantic[5]),
                             ]
+                else:
+                    ctrl = None
         else:
             ctrl = None
 
@@ -144,29 +147,32 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=False, attn=True):
+def run_layers_static(obj_scn=True, attn='attn_output',
+                      normalize=1):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     # target_ROIs = ['Tha', 'Str', 'tha_str']
     # target_ROIs = ['PFC_ACC']
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
-    if attn:
+    if isinstance(attn, bool) and attn:
         semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
                                        attn=True, do_M=False, last_only=False,
-                                       include_scn=True
+                                       include_scn=True, normalize=normalize,
                                        )
         fps_do = 'obj'
     else:
         if obj_scn:
             semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                           attn=False, do_M=False, last_only=False,
+                                           attn=attn, do_M=False, last_only=False,
+                                           normalize=normalize,
                                            )
             fps_do = 'obj'
         else:
             semantic_l = []
             fps_do = 'non_obj'
         semantic_l += get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                       attn=False, do_M='obj_solo', last_only=False
+                                       attn=False, do_M='obj_solo', last_only=False,
+                                        normalize=True
                                        )
         semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
         semantic_l += semantic_l_BERT
@@ -180,7 +186,7 @@ def run_layers_static(obj_scn=False, attn=True):
 
     for semantic in semantic_l:
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
-                         target_ROIs, ctrl_contex=attn)
+                         target_ROIs, ctrl_contex=False)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
@@ -334,10 +340,13 @@ def plot_results_t(all_results, subtitle=''):
                              linewidth=3)
                     high = np.max([high, np.max(values)])
             elif 'obj' in c_dict or 'obj_dif' in c_dict:
+                # print(f'{c_dict=}')
                 if module_type == 'attn_weights':
                     label = 'Llama-3.2-3b\n(attention weights)'
                 elif module_type == 'gate_proj_in':
                     label = 'Llama-3.2-3b\n(contextualized embedding)'
+                elif module_type == 'attn_output':
+                    label = 'Llama-3.2-3b\n(attention output)'
                 else:
                     raise ValueError
                 if 'obj' in c_dict:

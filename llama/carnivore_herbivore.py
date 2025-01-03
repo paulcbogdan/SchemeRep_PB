@@ -1,13 +1,16 @@
 import pickle
 
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
+from sklearn.model_selection import LeaveOneOut
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner
-import matplotlib.pyplot as plt
+from marinate.pkld import pkld
+
 
 def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                                 cat='gate_proj_in', layer_name=1,
@@ -48,28 +51,50 @@ def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                                       kwargs={'item0': item0, 'item1': item1,
                                               'activation_model': activation_model},
                                       easy_override=False, verbose=-1, dir_branches=1000,
-                                      RAM_cache=True, get_fp=True)
+                                      RAM_cache=False, get_fp=True)
+                # print(F'{food}, {animal}')
+                # print(f'{fp=}')
+                # print('mlp_out' in res)
+                # print('down_proj' in res['mlp_out'])
+                if cat == 'down_proj_out' and not (
+                        ('mlp_out' in res) and 'down_proj' in res['mlp_out']):
+                    res, fp = pickle_wrap(get_llama_activations_deve,
+                                          kwargs={'item0': item0, 'item1': item1,
+                                                  'activation_model': activation_model},
+                                          easy_override=True, verbose=-1, dir_branches=1000,
+                                          RAM_cache=False, get_fp=True)
+                    print(f'Attempt again: {cat=}')
+                    print(f'{fp=}')
 
-                if 'mlp_out' in res:
-                    del res['mlp_out']
-                    del res['mlp_in']['down_proj']
-                    del res['mlp_in']['up_proj']
-                    del res['mlp_in']['act_fn']
-                    del res['attn']['q_proj']
-                    del res['attn']['k_proj']
+
+                if 'mlp_out' in res:# and 'up_proj' in res['mlp_out']:
+                    if 'up_proj' in res['mlp_out']:
+                        del res['mlp_out']['up_proj']
+                    if 'gate_proj' in res['mlp_out']:
+                        del res['mlp_out']['gate_proj']
+                    if 'down_proj' in res['mlp_in']:
+                        del res['mlp_in']['down_proj']
+                    if 'up_proj' in res['mlp_in']:
+                        del res['mlp_in']['up_proj']
+                    if 'act_fn' in res['mlp_in']:
+                        del res['mlp_in']['act_fn']
+                    if 'q_proj' in res['attn']:
+                        del res['attn']['q_proj']
+                    if 'k_proj' in res['attn']:
+                        del res['attn']['k_proj']
 
                     with open(fp, 'wb') as f:
                         pickle.dump(res, f)
 
-                if isinstance(res, dict):
-                    for inner_, d in res.items():
-                        if inner_ in ['mlp_out', 'mlp_in', 'attn']:
-                            del_keys = []
-                            for outer in d.keys():
-                                if outer != cat_:
-                                    del_keys.append(outer)
-                            for outer in del_keys:
-                                del res[inner_][outer]
+                # if isinstance(res, dict):
+                #     for inner_, d in res.items():
+                #         if inner_ in ['mlp_out', 'mlp_in', 'attn']:
+                #             del_keys = []
+                #             for outer in d.keys():
+                #                 if outer != cat_:
+                #                     del_keys.append(outer)
+                #             for outer in del_keys:
+                #                 del res[inner_][outer]
 
                 for idx_target in [0, 1]:
                     if activation_model in ['BERT', 'simCSE']:
@@ -225,14 +250,18 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
     return np.array(X), np.array(Y)
 
 
+@pkld
 def cross_species_regression(layer_name=19, normalize=True,
                              cat='attn_weights',
+                             cross_animal=True,
                              # cat='gate_proj_in',
+                             activation_model='meta-llama/Llama-3.2-3b'
                              ):
     # Normalize=True is critical for generalizing from carnivore <-> herbivore
+    #   Don't even need odd_even=0/1
     kw = {'layer_name': layer_name,
           'do_unrelated': False,
-          'activation_model': 'meta-llama/Llama-3.2-3b',
+          'activation_model': activation_model,
           'cat': cat
           }
 
@@ -255,10 +284,11 @@ def cross_species_regression(layer_name=19, normalize=True,
     animals = carnivores + herbivores
     foods = meats + plants
 
-    X_carn, Y_carn = make_animal_food_vecs(carnivores, meats, plants, d_vecs, odd_even=0)
-    X_herb, Y_herb = make_animal_food_vecs(herbivores, plants, meats, d_vecs, odd_even=1)
+    X_carn, Y_carn = make_animal_food_vecs(carnivores, meats, plants, d_vecs,
+                                           odd_even=0 if cross_animal else None)
+    X_herb, Y_herb = make_animal_food_vecs(herbivores, plants, meats, d_vecs,
+                                           odd_even=1 if cross_animal else None)
 
-    from sklearn.model_selection import (StratifiedGroupKFold)
     from sklearn.svm import SVC
 
     clf = SVC(kernel='linear', C=1)
@@ -277,23 +307,38 @@ def cross_species_regression(layer_name=19, normalize=True,
     #         groups.append(animal)
     # print(f'{len(groups)=}')
     # print(f'{X.shape=}')
-    groups = [0] * X_carn.shape[0] + [1] * X_herb.shape[0]
+    if cross_animal:
+        groups = [0] * X_carn.shape[0] + [1] * X_herb.shape[0]
+    else:
+        groups = []
+        for i, animal in enumerate(carnivores):
+            for food in foods:
+                groups.append(i)
+        for i, animal in enumerate(herbivores):
+            for food in foods:
+                groups.append(i)
 
-    fold_R2s = []
 
-    def remap_groups():
-        num_i = np.unique(groups)
-        d = {}
-        shuffle_arrange = np.random.permutation(len(num_i))
-        for i, num in enumerate(num_i):
-            d[num] = shuffle_arrange[i]
-        return np.array([d[num] for num in groups])
+    # fold_R2s = []
+
+    # def remap_groups():
+    #     num_i = np.unique(groups)
+    #     d = {}
+    #     shuffle_arrange = np.random.permutation(len(num_i))
+    #     for i, num in enumerate(num_i):
+    #         d[num] = shuffle_arrange[i]
+    #     return np.array([d[num] for num in groups])
 
     accs = []
+    # for i in range(1 if cross_animal else 10):
     # for i in range(100):
-        # cv = StratifiedGroupKFold(n_splits=10, shuffle=True, random_state=0)
+    # cv = StratifiedGroupKFold(n_splits=10, shuffle=True, random_state=0)
     # groups = np.arange(len(groups))
-    cv = StratifiedGroupKFold(n_splits=2)
+    # if cross_animal:
+    #     cv = StratifiedGroupKFold(n_splits=2)
+    # else:
+    cv = LeaveOneOut()
+
     # cv = SKFold
     # groups = remap_groups()
     accs_cv = []
@@ -302,39 +347,63 @@ def cross_species_regression(layer_name=19, normalize=True,
         y_train, y_test = y[train_idx], y[test_idx]
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
-        # M_pred = np.mean(y_pred)
-        # print(f'{M_pred=:.3f}')
         acc = np.mean(y_pred == y_test)
-        # print(f'\t{acc=:.3f}')
         accs_cv.append(acc)
     acc_cv = np.mean(accs_cv)
     accs.append(acc_cv)
     acc_M = np.mean(accs)
     return acc_M
 
-def plot_layers_cross_species():
+
+def plot_layers_cross_species(cross_animal=False,
+                              # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                              activation_model='meta-llama/Llama-3.2-3b',
+                              ):
     vals_attn = []
     vals_residual = []
+    vals_attn_output = []
+    vals_down_proj = []
     for layer_name in range(0, 28):
         layer_name_l = layer_name
-        try:
-            r2_attn = cross_species_regression(layer_name=layer_name_l, #normalize=False,
-                                               cat='attn_weights')
-            r2_gate = cross_species_regression(layer_name=layer_name_l, #normalize=False,
-                                               cat='gate_proj_in')
-        except KeyError:
-            r2_attn = np.nan
-            r2_gate = np.nan
+        # try:
+        r2_attn = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
+                                           cat='attn_weights', cross_animal=cross_animal,
+                                           activation_model=activation_model)
+        # r2_gate = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
+        #                                    cat='gate_proj_in', cross_animal=cross_animal,
+        #                                    activation_model=activation_model)
+        r2_gate = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
+                                           cat='gate_proj_in', cross_animal=cross_animal,
+                                           activation_model=activation_model)
+        r2_attn_output = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
+                                                  cat='attn_output',
+                                                  cross_animal=cross_animal,
+                                                  activation_model=activation_model)
+        r2_down_proj = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
+                                                cat='down_proj_out',
+                                                cross_animal=cross_animal,
+                                                activation_model=activation_model)
+        # except KeyError:
+        #     r2_attn = np.nan
+        #     r2_gate = np.nan
+
 
         vals_attn.append(r2_attn)
         vals_residual.append(r2_gate)
+        vals_attn_output.append(r2_attn_output)
+        vals_down_proj.append(r2_down_proj)
 
     plt.plot(list(range(len(vals_attn))), vals_attn,
-             label='Attention', color='green', marker='.')
+             label='Attention Weights', color='green', marker='.')
     plt.plot(list(range(len(vals_residual))), vals_residual,
-                label='Residual', color='purple', marker='.')
+             label='Residual', color='purple', marker='.')
+    plt.plot(list(range(len(vals_attn_output))), vals_attn_output,
+             label='Attention Output', color='red', marker='.')
+    plt.plot(list(range(len(vals_down_proj))), vals_down_proj,
+                label='Down Projection', color='dodgerblue', marker='.')
     plt.legend()
     plt.show()
+
 
 if __name__ == '__main__':
     plot_layers_cross_species()

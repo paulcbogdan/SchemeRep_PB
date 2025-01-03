@@ -6,6 +6,7 @@ import pandas as pd
 from llama.devereux_llama import get_standard_items_list, get_deve_llama_RSM, prep_all_llama_d_vecs_deve, \
     get_dev_explore_BERT, ITEM_STANDARD
 from marinate import marinate
+from marinate.pkld import pkld
 
 try:
     import matplotlib.pyplot as plt
@@ -190,7 +191,7 @@ def get_devereux_RSM_by_type(pf_thresh=250, attn=False, odd_even=None):
     print('Got devereux RSMs')
     return type2RSM
 
-@marinate(store='memory', verbose=1)
+@pkld(store='both', verbose=1)
 def get_devereux_top50_RSM(pf_thresh=300):
     # pf_thresh = 600
     items = ['is_small', 'is_for_children', 'is_heavy', 'is_circular_rou', 'is_thin',

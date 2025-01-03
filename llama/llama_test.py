@@ -5,6 +5,24 @@ from transformers import BitsAndBytesConfig
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
 
 
+def compute_rope(x, cos, sin):
+    # x: (batch_size, num_heads, seq_len, head_dim)
+    batch_size, num_heads, seq_len, head_dim = x.shape
+    assert head_dim % 2 == 0, "Head dimension must be even"
+
+    # Split x into first half and second half
+    x1 = x[..., : head_dim // 2]  # First half
+    x2 = x[..., head_dim // 2 :]  # Second half
+
+    # Adjust sin and cos shapes
+    cos = cos[:seq_len, :].unsqueeze(0).unsqueeze(0)  # Shape: (1, 1, seq_len, head_dim)
+    sin = sin[:seq_len, :].unsqueeze(0).unsqueeze(0)
+
+    # Apply the rotary transformation
+    rotated = torch.cat((-x2, x1), dim=-1)
+    x_rotated = (x * cos) + (rotated * sin)
+
+    return x_rotated.to(dtype=x.dtype)
 
 class LlamaActivationExtractor:
     def __init__(self, model_name='meta-llama/Llama-3-8b-hf'):
@@ -46,10 +64,9 @@ class LlamaActivationExtractor:
         self.hooks = []
 
     def _register_comprehensive_hooks(self):
+
         def attention_big_hook(layer_name):
             def attention_big_hook_(module, input, output):
-                # print(module)
-                # quit()
 
                 hidden_states = input[0]
                 # print(output[0].shape) # attention output, weighed by the attention weights
@@ -74,19 +91,38 @@ class LlamaActivationExtractor:
                     module.self_attn.num_key_value_heads,
                     module.self_attn.head_dim,
                 )
+
+                key_states = compute_rope(key_states, module.self_attn.cos, module.self_attn.sin)
+                query_states = compute_rope(query_states, module.self_attn.cos, module.self_attn.sin)
+
                 key_states = key_states.repeat_interleave(
                     module.self_attn.num_key_value_groups, dim=2)
+                value_states = value_states.repeat_interleave(
+                    module.self_attn.num_key_value_groups, dim=2)
+
+                attn_scores = query_states @ key_states.transpose(-2, -1)
+                attn_scores_masked = query_states @ key_states.transpose(-2, -1)
+                mask_bool = module.self_attn.get_attention_mask()
+                attn_scores_masked.masked_fill_(mask_bool, float('-inf'))
+
+                attn_weights = torch.nn.functional.softmax(
+                    attn_scores / (module.self_attn.head_dim ** 0.5), dim=-1)
+                attn_weights_masked = torch.nn.functional.softmax(
+                    attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
 
                 # Compute attention scores
-                attn_weights = torch.matmul(
-                    query_states.transpose(1, 2),
-                    key_states.transpose(1, 2).transpose(-1, -2)
-                ) / (module.self_attn.head_dim ** 0.5)
+                # attn_weights = torch.matmul(
+                #     query_states.transpose(1, 2),
+                #     key_states.transpose(1, 2).transpose(-1, -2)
+                # ) / (module.self_attn.head_dim ** 0.5)
+
 
 
                 # attention_mask = torch.tril(torch.ones(hidden_states.size(1), hidden_states.size(1)))
                 # Softmax to get attention probabilities
                 # attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
+                print(f'{input=}')
+                print(f'{output[0]=}')
 
                 self.attention_act['input'][layer_name] = hidden_states
                 self.attention_act['q_proj'][layer_name] = query_states
@@ -106,6 +142,7 @@ class LlamaActivationExtractor:
         self.hooks = []
         for name, module in self.model.named_modules():
             name_spl = name.split('.')
+            print(f'{name=}')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'layers':
                 layer_num = int(name.split('.')[-1])
@@ -269,7 +306,6 @@ def main():
         # results = extractor.extract_activations(sentence, ['bank', 'bench'])
         results = extractor.extract_activations(sentence, ['fox', 'over'])
 
-        # print(results)
 
 
     finally:

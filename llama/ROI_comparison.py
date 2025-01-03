@@ -262,7 +262,7 @@ def run_attn_ROIs(combine_regions=False, st=8, end=20,
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
-def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
+def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
@@ -270,20 +270,20 @@ def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
 
     ts = []
     for ROI in ROIs:
-        t, vals = run_sn_attn_enc(ROI, control_item=True,
-                                  do_acc=True, #FC='tha_str',
-                                  FC=None,
-                                  local=combine_regions,
-                                  # test=True
-                                  )
+        # t, vals = run_sn_attn_enc(ROI, control_item=True,
+        #                           do_acc=True, #FC='tha_str',
+        #                           FC=None,
+        #                           local=combine_regions,
+        #                           # test=True
+        #                           )
 
 
         # t, vals = run_sn_attn_enc('Tha', control_item=False,
         #                           do_acc=True, FC=ROI,
         #                           local=combine_regions)
-        # t, vals = run_sn_attn_enc(ROI, control_item=False,
-        #                           do_acc=True, FC='tha_str',
-        #                           local=combine_regions)
+        t, vals = run_sn_attn_enc(ROI, control_item=False,
+                                  do_acc=True, FC='tha_str',
+                                  local=combine_regions)
         print(f'{ROI}: {t=:.3f}')
         # quit()
         ts.append(t)

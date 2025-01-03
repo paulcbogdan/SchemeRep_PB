@@ -161,33 +161,7 @@ def lmer_stats(df, ROI_cols):
     #
     # if len(df['fp_idx'].unique()) > 1:
     #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn) + (1|fp_idx)'
-    #     print('tteet')
-    # else:
-    #     formula = 'conn_score ~ 1 + BOLD_score + (1|sn)'
-    #     print('toast')
-    # # quit()
-    #
-    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    # model = Lmer(formula, data=df)
-    # model.fit(REML=True, verbose=False, summary=False)
-    # print(model.summary())
-    #
-    # print('-' * 120)
-    # formula = ('conn_score ~ 1 + BOLD_score + ' +
-    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
-    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    # model = Lmer(formula, data=df)
-    # model.fit(REML=True, verbose=False, summary=False)
-    # print(model.summary())
-    #
-    # formula = ('BOLD_score ~ 1 + ' +
-    #            ' + '.join(ROI_cols) + '+  (1|sn)')# + (1|fp_idx)'
-    # print(f'{Fore.LIGHTYELLOW_EX}{formula=}{Fore.RESET}')
-    # model = Lmer(formula, data=df)
-    # model.fit(REML=True, verbose=False, summary=False)
-    # print(model.summary())
 
-    # df['BOLD_score'] = df['conn_score']
     cols_keep = ['ROI_M', 'BOLD_score', 'conn_score', 'sn',
                  'fp_idx', 'hit_hit', 'con_hit', 'vis_hit']
 

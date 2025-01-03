@@ -92,7 +92,6 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
 
     settings['conn'] = 'BOLD'
     # dt_max = datetime(2024, 6, 10, 0, 0, 0, 0)
-    print('TOAST')
     settings['do_networks'] = False
     settings['combine_regions'] = False
     results_bold_sep = pickle_wrap(run_settings, None,

@@ -197,7 +197,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
         assert activation_model[1] == 'obj_solo'
         obj_solo = True
         activation_model = activation_model[0]
-        assert not all_possible
+        assert not all_possible, f'{activation_model=}' # subtracting mean doesn't make sense
     else:
         obj_solo = False
     cat_, inner = process_cat_cat_inner(cat)
@@ -242,7 +242,8 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
                               easy_override=False, verbose=-1, dir_branches=100,
-                              RAM_cache=RAM_CACHE_LLAMA, get_fp=True
+                              RAM_cache=True,#RAM_CACHE_LLAMA,
+                                      get_fp=True
                               )
             if 'mlp_out' in res and 'down_proj' in res['mlp_out']:
                 del res['mlp_out']['down_proj']
