@@ -285,7 +285,6 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
                                   do_acc=True, FC='tha_str',
                                   local=combine_regions)
         print(f'{ROI}: {t=:.3f}')
-        # quit()
         ts.append(t)
 
     title = 'Attention x encoding accuracy\n'
@@ -299,21 +298,13 @@ def make_Fig3_obj_solo(st=6, end=20, activation_model='meta-llama/Llama-3.2-3b')
 
 
 if __name__ == '__main__':
-    # make_Fig3_obj_solo()
-    # quit()
+    make_Fig3_obj_solo()
     run_attn_bhv_ROIs()
-    # run_attn_ROIs()
-    # run_ctxt_contrast_ROIs()
+    run_attn_ROIs()
+    run_ctxt_contrast_ROIs()
     quit()
     tick = 16
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'
-
-    # item_vs_attn_ROIs(combine_regions=False, activation_model=ACTIVATION_MODEL,
-    #                   st=24, end=28)
-    # quit()
-    # run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=4, end=8)
-    # run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=16, end=24)
-    # quit()
 
     for st in range(4, 20, tick):
         # run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
@@ -325,6 +316,5 @@ if __name__ == '__main__':
 
         # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
         #              do_M=True, obj_task=False)
-        # quit()
         run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st + tick,
                      do_M='obj_solo', obj_task=False)

@@ -82,7 +82,7 @@ def get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat, layer_nam
     return vecs
 
 
-@pkld(overwrite=True)
+@pkld(overwrite=False)
 def do_feature_regression(feature='is_small',
                           pf_thresh=600, cat='gate_proj_in', layer_name=8,
                           activation_model='meta-llama/Llama-3.2-3b',
@@ -97,31 +97,21 @@ def do_feature_regression(feature='is_small',
 
     feature2type = df.groupby('feature')['feature type'].first().to_dict()
 
-    feat2onehot = pickle_wrap(get_binary_feat_matrix,
-                              kwargs={'items': items,
-                                      'pf_thresh': pf_thresh,
-                                      'threshold': 20,
-                                      'item_std': item_standard,
-                                      'req': req,
-                                      },
-                              verbose=-1, easy_override=False,
-                              RAM_cache=True)
+    # feat2onehot = pickle_wrap(get_binary_feat_matrix,
+    #                           kwargs={'items': items,
+    #                                   'pf_thresh': pf_thresh,
+    #                                   'threshold': 20,
+    #                                   'item_std': item_standard,
+    #                                   'req': req,
+    #                                   },
+    #                           verbose=-1, easy_override=False,
+    #                           RAM_cache=True)
     # print(list(feat2onehot.keys()))
 
-    if 'is_noisy_loud' in feat2onehot and 'does_make_sound_a_noise' in feat2onehot:
-        feat2onehot['is_noisy'] = (feat2onehot['is_noisy_loud'] |
-                                   feat2onehot['does_make_sound_a_noise'])
-        feature2type['is_noisy'] = 'custom'
-        del feat2onehot['is_noisy_loud']
-        del feat2onehot['does_make_sound_a_noise']
-    elif 'is_noisy_loud' in feat2onehot:
-        feat2onehot['is_noisy'] = feat2onehot['is_noisy_loud']
-        feature2type['is_noisy'] = 'custom'
-        del feat2onehot['is_noisy_loud']
-    elif 'does_make_sound_a_noise' in feat2onehot:
-        feat2onehot['is_noisy'] = feat2onehot['does_make_sound_a_noise']
-        feature2type['is_noisy'] = 'custom'
-        del feat2onehot['does_make_sound_a_noise']
+    feat2onehot = get_binary_feat_matrix(items, item_standard, threshold=20,
+                                         pf_thresh=pf_thresh, req=req)
+
+
 
     feat2closest, feat2closest_corr = find_closest_feature(feat2onehot)
 
@@ -143,7 +133,7 @@ def do_feature_regression(feature='is_small',
                  'is_long',
                  'is_green',
                  'does_protect',  # similar to clothing
-                 'is_noisy_loud', 'does make sound_a noise',
+                 'is_noisy_loud', #'does make sound_a noise',
                  # 'is_pretty_attractive'
                  'has_flesh',
                  'does_live_in_water', 'is_yellow',
@@ -154,13 +144,12 @@ def do_feature_regression(feature='is_small',
                  'has_a_blade_blades', 'has_a_point',
                  # 'does_smell_is_smelly',
                  'is_sharp',
-                 'is_noisy_loud'
                  ]
 
     feature_l = []
     feature_types_l = []
     scores = []
-    for feature, onehot in feat2onehot.items():
+    for feature, onehot in list(feat2onehot.items())[::-1]:
         if feature in bad_feats: continue
         feature_type = feature2type[feature]
         res = fit_regularized_models(vecs, onehot, normalize=normalize_regr,
@@ -232,7 +221,11 @@ def calculate_category_homogeneity(feat2onehot):
     return feat2M
 
 
-def plot_feat_regr(req=5, normalize_regr=False):
+def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
+                   activation_model='meta-llama/Llama-3.2-3b',
+                   # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+
+                   ):
     model_name = ['simCSE']
     # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
     df_w2v = do_feature_regression(activation_model='w2v', req=req,
@@ -241,7 +234,11 @@ def plot_feat_regr(req=5, normalize_regr=False):
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
 
     df_llama = do_feature_regression(layer_name=list(range(4, 16)), req=req,
-                                     normalize_regr=normalize_regr)
+                                     normalize_regr=normalize_regr,
+                                     cat='input', activation_model=activation_model,
+                                     pf_thresh=pf_thresh,
+                                     # cat='down_proj_out'
+                                     )
     df_llama.loc[df_llama['r'].astype(float) < 0] = 0
 
     # df_w2v = df_w2v.iloc[:50]
@@ -303,6 +300,7 @@ def plot_feat_regr(req=5, normalize_regr=False):
     plt.show()
     pd.set_option('display.max_rows', None)
     print(df_llama[['feature_type', 'feature', 'r']])
+    print(df_llama['feature'].to_list())
 
 
 def get_model_R2(name, layer):
@@ -357,7 +355,8 @@ def get_final_feats():
                    'is_eaten_edible', 'has_fur_hair', 'made_of_metal', 'does_fly',
                    'is_a_weapon', 'is_clothing', 'is_an_insect', 'has_wheels',
                    'has_skin_peel', 'is_a_vegetable', 'has_wings', 'is_a_musical_in',
-                   'is_worn', 'has_feathers', 'is_a_mammal', 'is_a_bird']
+                   'is_worn', 'has_feathers', 'is_a_mammal', 'is_a_bird'
+                   ]
     return final_feats
 
 

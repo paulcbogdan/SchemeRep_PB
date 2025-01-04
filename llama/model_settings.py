@@ -18,7 +18,7 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     elif attn:
         all_llama_cats = ['attn_weights']
     else:
-        all_llama_cats = ['gate_proj_in']
+        all_llama_cats = ['input']
     # if isinstance(attn, bool) and attn:
     #     assert not do_M
     # print(activation_model)

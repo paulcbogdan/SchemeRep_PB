@@ -139,11 +139,24 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       kwargs={'item0': item0, 'item1': item1,
                                               'activation_model': activation_model},
                                       easy_override=False, verbose=-1, dir_branches=1000,
-                                      RAM_cache=True, get_fp=True)
+                                      RAM_cache=False, get_fp=True)
+                if cat == 'down_proj_out' and not (
+                        'mlp_out' in res and ('down_proj' in res['mlp_out'])):
+                    print('redo')
+                    res, fp = pickle_wrap(get_llama_activations_deve,
+                                          kwargs={'item0': item0, 'item1': item1,
+                                                  'activation_model': activation_model},
+                                          easy_override=True, verbose=-1, dir_branches=1000,
+                                          RAM_cache=True, get_fp=True)
+                    print('mlp_out' in res)
+
+
 
             if 'mlp_out' in res:# or 'attn_output' in res['attn']:
-                # if 'mlp_out' in res:
-                del res['mlp_out']
+                if 'up_proj' in res['mlp_out']:
+                    del res['mlp_out']['up_proj']
+                if 'gate_proj' in res['mlp_out']:
+                    del res['mlp_out']['gate_proj']
                 if 'down_proj' in res['mlp_in']:
                     del res['mlp_in']['down_proj']
                 if 'up_proj' in res['mlp_in']:
@@ -154,20 +167,19 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                     del res['attn']['q_proj']
                 if 'k_proj' in res['attn']:
                     del res['attn']['k_proj']
-
                 with open(fp, 'wb') as f:
                     pickle.dump(res, f)
 
-            # clean up the res dict. BERT/simCSE won't have dicts here
-            if isinstance(res, dict):
-                for inner_, d in res.items():
-                    if inner_ in ['mlp_out', 'mlp_in', 'attn']: #
-                        del_keys = []
-                        for outer in d.keys():
-                            if outer != cat_:
-                                del_keys.append(outer)
-                        for outer in del_keys:
-                            del res[inner_][outer]
+            # # clean up the res dict. BERT/simCSE won't have dicts here
+            # if isinstance(res, dict):
+            #     for inner_, d in res.items():
+            #         if inner_ in ['mlp_out', 'mlp_in', 'attn']: #
+            #             del_keys = []
+            #             for outer in d.keys():
+            #                 if outer != cat_:
+            #                     del_keys.append(outer)
+            #             for outer in del_keys:
+            #                 del res[inner_][outer]
 
             for idx_target in [0, 1]:
                 if activation_model in ['BERT', 'simCSE']:
@@ -270,6 +282,10 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
         if len(items) % 2 == 1:
             items = items[:-1]
         df = df[df['concept'].isin(items)]
+
+    # df_is_noisy = df[df['feature'].isin(['is_noisy_loud',
+    #                                      'does_make_sound_a_noise'])]
+    # df_is_noisy = df_is_noisy.groupby('concept')['pf'].sum()
 
     items = df['concept'].unique()
 
@@ -493,8 +509,8 @@ def get_dev_explore_BERT(bert_type='BERT', st=0):
     return semantic_l
 
 
-def prep_all_llama_d_vecs_deve(activation_model='meta-llama/Llama-3.2-3b',
-                               # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+def prep_all_llama_d_vecs_deve(#activation_model='meta-llama/Llama-3.2-3b',
+                               activation_model='meta-llama/Llama-3.3-70b-Instruct',
                                pf_thresh=300, quick=None, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
@@ -523,7 +539,8 @@ if __name__ == '__main__':
     # print('----------')
     # print(res['attn']['attn_weights'][5])
     # quit()
-    prep_all_llama_d_vecs_deve(quick='scenes')
+    # prep_all_llama_d_vecs_deve(quick='scenes')
+    prep_all_llama_d_vecs_deve(quick=1)
 
     # prep_all_llama_d_vecs_deve()
     # prep_all_llama_d_vecs_deve(quick=4)

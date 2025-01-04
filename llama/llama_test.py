@@ -89,7 +89,8 @@ def compute_rope(x, cos, sin):
     return x_rotated.to(dtype=x.dtype)
 
 class LlamaActivationExtractor:
-    def __init__(self, model_name='meta-llama/Llama-3-8b-hf'):
+    def __init__(self, model_name='meta-llama/Llama-3-8b-hf',
+                 ignore_attn=None, ignore_mlp_in=None, ignore_mlp_out=None):
         #
         # if '70b' or '7b' in model_name:
         #     bnb_config = BitsAndBytesConfig(
@@ -126,6 +127,9 @@ class LlamaActivationExtractor:
 
         # Store hook handles for cleanup
         self.hooks = []
+        self.ignore_attn = ignore_attn
+        self.ignore_mlp_in = ignore_mlp_in
+        self.ignore_mlp_out = ignore_mlp_out
 
     def _register_comprehensive_hooks(self):
 
@@ -209,17 +213,17 @@ class LlamaActivationExtractor:
                     module.self_attn.num_key_value_groups, dim=1)
 
 
-                attn_scores = query_states @ key_states.transpose(2, 3)
-                attn_scores_masked = query_states @ key_states.transpose(2, 3)
-
-                attn_weights = torch.nn.functional.softmax(
-                    attn_scores / (module.self_attn.head_dim ** 0.5), dim=-1)
-                # attn_weights_masked = torch.nn.functional.softmax(
-                #     attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
+                attn_scores = (query_states @ key_states.transpose(2, 3) /
+                               (module.self_attn.head_dim ** 0.5))
+                # attn_weights = attn_scores
+                # attn_scores_masked = query_states @ key_states.transpose(2, 3)
                 # mask_bool = mask.to(self.model.device).bool()[
                 #             :num_tokens, :num_tokens]
-                # attn_weights_masked = attn_weights_masked.masked_fill(mask_bool, float('-inf'))
-                # attn_output = attn_weights_masked @ value_states
+                # attn_weights = attn_scores.masked_fill(mask_bool, float('-inf'))
+                # attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
+                # attn_weights_masked = torch.nn.functional.softmax(
+                #     attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
+                # attn_output = attn_weights @ value_states
                 # attn_output = attn_output.transpose(1, 2)
                 # attn_output = attn_output.reshape(attn_output.size(0), attn_output.size(1), -1)
                 # attn_output = module.self_attn.o_proj(attn_output)
@@ -229,8 +233,8 @@ class LlamaActivationExtractor:
                 self.attention_act['k_proj'][layer_name] = key_states
                 self.attention_act['v_proj'][layer_name] = value_states
                 # self.attention_act['attn_output'][layer_name] = attn_output #output[0] if isinstance(output, tuple) else output
-                self.attention_act['attn_weights'][layer_name] = attn_weights
-                self.attention_act['attn_output'][layer_name] = output[0]
+                self.attention_act['attn_weights'][layer_name] = attn_scores
+                # self.attention_act['attn_output'][layer_name] = output[0]
 
             return attention_big_hook_
 
@@ -238,23 +242,40 @@ class LlamaActivationExtractor:
             def hook(module, input, output):
                 dict_to_store_in[layer_name] = input[0]
                 dict_to_store_out[layer_name] = output
+                # print(f'{dict_to_store_out=}')
             return hook
+
+        # def activation_hook_rotary(layer_name, dict_to_store_in, dict_to_store_out):
+        #     def hook(module, input, output):
+        #         # dict_to_store_in[layer_name] = input[0]
+        #         dict_to_store_out[layer_name] = output
+        #     return hook
 
         self.hooks = []
         for name, module in self.model.named_modules():
             name_spl = name.split('.')
             print(f'{name=}')
             if len(name_spl) < 2: continue
+            if name_spl[-2] == 'self_attn':
+                if name_spl[-1] == 'o_proj':
+                    layer_num = int(name.split('.')[-3])
+                    print(f'{layer_num=}')
+                    hook = module.register_forward_hook(activation_hook(
+                        layer_num, {}, self.attention_act['attn_output']))
+                    self.hooks.append(hook)
             if name_spl[-2] == 'layers':
+                print(f'\t{name=}')
                 layer_num = int(name.split('.')[-1])
                 hook = module.register_forward_hook(attention_big_hook(layer_num))
                 self.hooks.append(hook)
             if name_spl[-2] == 'mlp':
+                # continue
                 layer_num = int(name.split('.')[-3])
                 hook = module.register_forward_hook(
                     activation_hook(layer_num, self.mlp_act_in[name_spl[-1]],
                                     self.mlp_act_out[name_spl[-1]]))
                 self.hooks.append(hook)
+            # if name_spl[]
 
         return self
 
@@ -314,6 +335,8 @@ class LlamaActivationExtractor:
                'sentence': sentence
                }
 
+        # print(self.attention_act)
+        # quit()
         # Print activations
         for key, d in self.attention_act.items():
             if key == 'attn_weights' and len(target_indices) > 1:

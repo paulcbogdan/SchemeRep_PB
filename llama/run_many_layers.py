@@ -147,11 +147,8 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True, attn='attn_output',
-                      normalize=1):
+def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True):
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
-    # target_ROIs = ['Tha', 'Str', 'tha_str']
-    # target_ROIs = ['PFC_ACC']
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
     if isinstance(attn, bool) and attn:
@@ -186,7 +183,7 @@ def run_layers_static(obj_scn=True, attn='attn_output',
 
     for semantic in semantic_l:
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
-                         target_ROIs, ctrl_contex=False)
+                         target_ROIs, ctrl_contex=attn)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
@@ -347,6 +344,10 @@ def plot_results_t(all_results, subtitle=''):
                     label = 'Llama-3.2-3b\n(contextualized embedding)'
                 elif module_type == 'attn_output':
                     label = 'Llama-3.2-3b\n(attention output)'
+                elif module_type == 'down_proj_out':
+                    label = 'Llama-3.2-3b\n(MLP output)'
+                elif module_type == 'input':
+                    label = 'Llama-3.2-3b\n(residual input)'
                 else:
                     raise ValueError
                 if 'obj' in c_dict:

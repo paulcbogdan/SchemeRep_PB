@@ -113,5 +113,5 @@ def test_w2v_dev(pf_thresh=300):
 
 
 if __name__ == '__main__':
-    # get_w2v_deve_RSM(pf_thresh=600)
-    test_w2v_dev()
+    get_w2v_deve_RSM(pf_thresh=300)
+    # test_w2v_dev()

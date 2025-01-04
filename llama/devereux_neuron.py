@@ -11,6 +11,7 @@ from time import time
 from tqdm import tqdm
 
 from llama.numba_regr_test import pairwise_interaction_t_values_proper
+from marinate.pkld import pkld
 
 
 def get_matrix(item0, item1,
@@ -37,6 +38,7 @@ def get_mat_M(item1, items0, activation_model
     mat = np.nanmean(np.array(mats), axis=0)
     return mat
 
+@pkld
 def get_binary_feat_matrix(items, item_std='deve',
                            feature_type='all',
                            pf_thresh=100, threshold=50,
@@ -62,6 +64,25 @@ def get_binary_feat_matrix(items, item_std='deve',
         # print(df_cnt)
         feat2onehot[feature] = np.array(l)
     # quit()
+
+    # feature2type = df.groupby('feature')['feature type'].first().to_dict()
+
+    # if 'is_noisy_loud' in feat2onehot and 'does_make_sound_a_noise' in feat2onehot:
+    #     feat2onehot['is_noisy'] = (feat2onehot['is_noisy_loud'] |
+    #                                feat2onehot['does_make_sound_a_noise'])
+    #     feature2type['is_noisy'] = 'custom'
+    #     del feat2onehot['is_noisy_loud']
+    #     del feat2onehot['does_make_sound_a_noise']
+    # elif 'is_noisy_loud' in feat2onehot:
+    #     feat2onehot['is_noisy'] = feat2onehot['is_noisy_loud']
+    #     feature2type['is_noisy'] = 'custom'
+    #     del feat2onehot['is_noisy_loud']
+    # elif 'does_make_sound_a_noise' in feat2onehot:
+    #     feat2onehot['is_noisy'] = feat2onehot['does_make_sound_a_noise']
+    #     feature2type['is_noisy'] = 'custom'
+    #     del feat2onehot['does_make_sound_a_noise']
+
+
     return feat2onehot
 
 def test_interaction(t, mats_all):

@@ -17,7 +17,9 @@ RAM_CACHE_LLAMA = False
 @cache
 def get_llama_extractor(model_name='meta-llama/Llama-3.2-1b'):
     from llama.llama_test import LlamaActivationExtractor
-    extractor = LlamaActivationExtractor(model_name)
+    extractor = LlamaActivationExtractor(model_name,
+                                         # ignore_attn=['k_proj', 'p_proj']
+                                         )
     extractor._register_comprehensive_hooks()
     return extractor
 
@@ -242,17 +244,37 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                               kwargs={'obj': obj, 'scn': scn,
                                       'activation_model': activation_model},
                               easy_override=False, verbose=-1, dir_branches=100,
-                              RAM_cache=True,#RAM_CACHE_LLAMA,
-                                      get_fp=True
+                              RAM_cache=cat != 'down_proj_out', get_fp=True
                               )
-            if 'mlp_out' in res and 'down_proj' in res['mlp_out']:
-                del res['mlp_out']['down_proj']
-                del res['mlp_out']['up_proj']
-                del res['mlp_out']['gate_proj']
-                del res['mlp_in']['down_proj']
-                del res['mlp_in']['up_proj']
-                del res['attn']['q_proj']
-                del res['attn']['k_proj']
+
+            if cat == 'down_proj_out' and not (
+                    'mlp_out' in res and ('down_proj' in res['mlp_out'])):
+                print('redo')
+                res, fp = pickle_wrap(get_llama_activations,
+                              kwargs={'obj': obj, 'scn': scn,
+                                      'activation_model': activation_model},
+                              easy_override=True, verbose=-1, dir_branches=100,
+                              RAM_cache=True, get_fp=True
+                              )
+                print('mlp_out' in res)
+
+            if not all_possible:
+                print(f'Acquired: {obj=}, {scn=} ({time() - t_st:.2f} s)')
+            if 'mlp_out' in res:  # and 'up_proj' in res['mlp_out']:
+                if 'up_proj' in res['mlp_out']:
+                    del res['mlp_out']['up_proj']
+                if 'gate_proj' in res['mlp_out']:
+                    del res['mlp_out']['gate_proj']
+                if 'down_proj' in res['mlp_in']:
+                    del res['mlp_in']['down_proj']
+                if 'up_proj' in res['mlp_in']:
+                    del res['mlp_in']['up_proj']
+                if 'act_fn' in res['mlp_in']:
+                    del res['mlp_in']['act_fn']
+                if 'q_proj' in res['attn']:
+                    del res['attn']['q_proj']
+                if 'k_proj' in res['attn']:
+                    del res['attn']['k_proj']
                 with open(fp_pkl, 'wb') as f:
                     pickle.dump(res, f)
 
@@ -604,14 +626,13 @@ if __name__ == '__main__':
 
     # NORMALIZE = False
     # MODEL = r'meta-llama/Llama-3.1-3b' # 16 layers, 2k vectors
-    MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
-    # MODEL = r'meta-llama/Llama-3.1-70b' # 80 layers, 8k vectors
-    # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
+    # MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
+    # MODEL = r'meta-llama/Llama-3.1-70b' # r80 layers, 8k vectors
+    MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
     # MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
     all_llama_layers = list(range(0, 80 if '70b' in MODEL else 28))
 
-    all_llama_cats = ['gate_proj_in']
-    all_llama_cats = ['attn_weights']
+    all_llama_cats = ['gate_proj_in', 'attn_weights']
     # all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
@@ -626,9 +647,16 @@ if __name__ == '__main__':
                 # SEMANTIC_L.append(('llama', LLAMA_CAT,
                 #                    (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
                 #                    'scn', MODEL, NORMALIZE))
+            # SEMANTIC_L.append(('llama', LLAMA_CAT,
+            #                    (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+            #                    'obj_solo', MODEL, NORMALIZE))
+            # SEMANTIC_L.append(('llama', LLAMA_CAT,
+            #                    (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+            #                    'scn', MODEL, NORMALIZE))
             SEMANTIC_L.append(('llama', LLAMA_CAT,
                                (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
-                               'obj_solo', MODEL, NORMALIZE))
+                               'obj', MODEL, NORMALIZE))
+
 
     # for LLAMA_CAT in all_llama_cats:
     #     for LLAMA_LAYER in all_llama_layers:
@@ -637,12 +665,12 @@ if __name__ == '__main__':
     #         SEMANTIC_L.append(('llama', LLAMA_CAT, (LLAMA_LAYER, True), 'scn_M', MODEL,
     #                            NORMALIZE))
 
-    SEMANTIC_L =  get_explore_llama(MODEL,
-                                   attn=True, normalize=True,
-                                   do_prod=False, do_M=True,
-                                   include_scn=True,
-                                   st=8, end=20, last_only=False,
-                                   )
+    # SEMANTIC_L =  get_explore_llama(MODEL,
+    #                                attn=True, normalize=True,
+    #                                do_prod=False, do_M=True,
+    #                                include_scn=True,
+    #                                st=8, end=20, last_only=False,
+    #                                )
 
     RAM_CACHE_LLAMA = True
 
