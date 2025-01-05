@@ -72,7 +72,7 @@ def extract_abcd(*abcd,
     return d_vecs
 
 
-@pkld(overwrite=True)
+@pkld(overwrite=False)
 def run_analogy_analysis(cat='input', layer_name=1, position=3,
                          activation_model='meta-llama/Llama-3.2-3b',
                          do_r2=False, copies=1, flip_within=True,
@@ -108,13 +108,13 @@ def run_analogy_analysis(cat='input', layer_name=1, position=3,
     return r2
 
 
-def compare_GPT_spots70(activation_model='70b', position=7, do_r2=False,
-                        copies=1, flip_within=True, analogy=2):
+def compare_GPT_spots70_(activation_model='70b', position=7, do_r2=False,
+                        copies=1, flip_within=True, analogy=(2, 'hard')):
     compare_GPT_spots(activation_model=activation_model, position=position,
                       do_r2=do_r2, copies=copies, flip_within=flip_within,
                       analogy=analogy)
 
-def compare_GPT_spots70_(activation_model='70b', position=1, do_r2=False,
+def compare_GPT_spots70(activation_model='70b', position=1, do_r2=False,
                         copies=0, flip_within=False, analogy=1):
     # TODO: run this as flip_within
     compare_GPT_spots(activation_model=activation_model, position=position,
@@ -124,7 +124,7 @@ def compare_GPT_spots70_(activation_model='70b', position=1, do_r2=False,
 # def compare_GPT_spots(activation_model='70b', position=3, do_r2=False,
 #                   copies=1, flip_within=True, analogy=1):
 def compare_GPT_spots(activation_model='3', position=7, do_r2=False,
-                      copies=25, flip_within=True, analogy=(2, 'hard')):#(2, 1)):
+                      copies=(1, 2), flip_within=False, analogy=2):#(2, 1)):
 
     if activation_model == '70b':
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
@@ -253,7 +253,6 @@ def get_analogy2_abcds(copies=1, flip_within=True, just1=None):
     relatedness = []
     if isinstance(copies, tuple):
         copies, double = copies[0], copies[1]
-
     else:
         double = False
     for copy in range(copies):
@@ -286,7 +285,7 @@ def get_analogy2_abcds(copies=1, flip_within=True, just1=None):
                 #                0 + 2 * (i + i_boost),
                 #                1 + 2 * (i + i_boost)])
                 groups.extend([1, 0, 0, 1])
-                if double:
+                if double == 2:
                     # groups.extend([1 + 2 * (i + i_boost),
                     #                0 + 2 * (i + i_boost),
                     #                0 + 2 * (i + i_boost),
@@ -315,10 +314,10 @@ def get_analogy2_abcds(copies=1, flip_within=True, just1=None):
             for abcd2, rel in zip(abcd2s_add, relatedness_add):
                 abcd2s.append(abcd2)
                 relatedness.append(rel)
-                if double:
-                    raise ValueError
-                    abcd2_valid_alt = [abcd2[1], abcd2[0], abcd2[3], abcd2[2],
-                                       abcd2[5], abcd2[4], abcd2[7], abcd2[6]]
+                if double == 2:
+                    # raise ValueError
+                    abcd2_valid_alt = [abcd2[2], abcd2[3], abcd2[0], abcd2[1],
+                                       abcd2[6], abcd2[7], abcd2[4], abcd2[5]]
                     # abcd2_valid_alt = abcd2[4:] + abcd2[:4]
                     abcd2s.append(abcd2_valid_alt)
                     relatedness.append(rel)

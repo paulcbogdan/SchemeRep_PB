@@ -231,7 +231,8 @@ def do_carnivore_herbivore(layer_name=4, reverse=False, get_food=False):
     print(f'{layer_name} | llama x eat: {r=:.3f} | {p=:.3f}')
 
 
-def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=None):
+def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=None,
+                          food_second=True):
     X = []
     Y = []
     foods = food_match + food_mismatch
@@ -239,8 +240,11 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
         foods = foods[::2] if odd_even == 0 else foods[1::2]
     for animal in animals:
         for food in foods:
-            vecs0 = d_vecs[(animal, food, food)]
-
+            if food_second:
+                vecs0 = d_vecs[(animal, food, food)]
+            else:
+                vecs0 = d_vecs[(food, animal, animal)]
+            print(f'{animal} | {vecs0=}')
             vecs = vecs0
             X.append(vecs)
             if food in food_match:
@@ -250,12 +254,13 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
     return np.array(X), np.array(Y)
 
 
-@pkld
+@pkld(overwrite=True)
 def cross_species_regression(layer_name=19, normalize=True,
                              cat='attn_weights',
                              cross_animal=True,
                              # cat='gate_proj_in',
-                             activation_model='meta-llama/Llama-3.2-3b'
+                             activation_model='meta-llama/Llama-3.2-3b',
+                             food_second=False
                              ):
     if cat == 'input' and layer_name == 0 and normalize:
         return np.nan # (all inputs are same so normalize will make all nans)
@@ -273,25 +278,49 @@ def cross_species_regression(layer_name=19, normalize=True,
                     easy_override=False, verbose=-1))
 
     if normalize:
-        keys2 = set(key[2] for key in d_vecs.keys())
-        for key2 in keys2:
-            vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
-                             (key[2] == key2 and key[1] == key2)])
-            vecs_M = np.nanmean(vecs, axis=0)
-            # print(f'{vecs=}')
-            vecs_SD = np.nanstd(vecs, axis=0)
-            # print(f'{vecs_SD=}')
-            for key in d_vecs.keys():
-                if key[2] == key2:
-                    d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
+        # keys2 = set(key[2] for key in d_vecs.keys())
+
+        for food in meats + plants:
+            for stim_class in [carnivores + herbivores, meats + plants]:
+                for i in range(2):
+                    vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
+                                     key[i] == food and key[2] in stim_class])
+                    # print([key for key in d_vecs.keys() if
+                    #                  key[i] == food and key[2] in stim_class])
+                    # print(f'{vecs.shape=}')
+                    vecs_M = np.nanmean(vecs, axis=0)
+                    vecs_SD = np.nanstd(vecs, axis=0)
+                    for key in d_vecs.keys():
+                        if key[i] == food and key[2] in stim_class:
+                            d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
+        # print(d_vecs[(carnivores[0], meats[0], meats[0])])
+        #
+        # for key2 in keys2:
+        #     # if food_second:
+        #     vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
+        #                      (key[2] == key2 and key[1] == key2)])
+        #     # print([key for key in d_vecs.keys() if
+        #     #                  (key[2] == key2 and key[1] == key2)])
+        #     # else:
+        #     #     vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
+        #     #                      (key[2] == key2 and key[0] == key2)])
+        #     vecs_M = np.nanmean(vecs, axis=0)
+        #     vecs_SD = np.nanstd(vecs, axis=0)
+        #     for key in d_vecs.keys():
+        #         if key[2] == key2 and key[1] == key2:
+        #             d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
+        # print(d_vecs[(carnivores[0], meats[0], meats[0])])
+        # quit()
 
     animals = carnivores + herbivores
     foods = meats + plants
 
     X_carn, Y_carn = make_animal_food_vecs(carnivores, meats, plants, d_vecs,
-                                           odd_even=0 if cross_animal else None)
+                                           odd_even=0 if cross_animal else None,
+                                           food_second=food_second)
     X_herb, Y_herb = make_animal_food_vecs(herbivores, plants, meats, d_vecs,
-                                           odd_even=1 if cross_animal else None)
+                                           odd_even=1 if cross_animal else None,
+                                           food_second=food_second)
 
     from sklearn.svm import SVC
 
@@ -322,18 +351,7 @@ def cross_species_regression(layer_name=19, normalize=True,
         for i, animal in enumerate(herbivores):
             for food in foods:
                 groups.append(i)
-    # print(f'{groups}')
-    # quit()
 
-    # fold_R2s = []
-
-    # def remap_groups():
-    #     num_i = np.unique(groups)
-    #     d = {}
-    #     shuffle_arrange = np.random.permutation(len(num_i))
-    #     for i, num in enumerate(num_i):
-    #         d[num] = shuffle_arrange[i]
-    #     return np.array([d[num] for num in groups])
 
     accs = []
     # for i in range(1 if cross_animal else 10):
@@ -362,40 +380,27 @@ def cross_species_regression(layer_name=19, normalize=True,
     return acc_M
 
 
-def plot_layers_cross_species(cross_animal=True,
-                              activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                              # activation_model='meta-llama/Llama-3.2-3b',
+def plot_layers_cross_species(cross_animal=False,
+                              # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                              activation_model='meta-llama/Llama-3.2-3b',
+                              food_second=False
                               ):
     vals_attn = []
     vals_residual = []
     vals_attn_output = []
     vals_down = []
     vals_mid = []
-    for layer_name in range(0, 28):
+    for layer_name in range(1, 28):
         layer_name_l = layer_name
-        # print(f'{layer_name=}')
-        # try:
-        r2_attn = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
-                                           cat='attn_weights', cross_animal=cross_animal,
-                                           activation_model=activation_model)
-        r2_gate = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
-                                           cat='gate_proj_in', cross_animal=cross_animal,
-                                           activation_model=activation_model)
-        # print(f'input')
-        r2_input = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
-                                           cat='input', cross_animal=cross_animal,
-                                           activation_model=activation_model)
-        r2_attn_output = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
-                                                  cat='attn_output',
-                                                  cross_animal=cross_animal,
-                                                  activation_model=activation_model)
-        r2_down_proj = cross_species_regression(layer_name=layer_name_l,  # normalize=False,
-                                                cat='down_proj_out',
-                                                cross_animal=cross_animal,
-                                                activation_model=activation_model)
-        # except KeyError:
-        #     r2_attn = np.nan
-        #     r2_gate = np.nan
+        kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
+              'cross_animal': cross_animal, 'food_second': food_second}
+
+        r2_attn = cross_species_regression(cat='attn_weights', **kw)
+        r2_gate = cross_species_regression(cat='gate_proj_in', **kw)
+        r2_input = cross_species_regression(cat='input', **kw)
+        r2_attn_output = cross_species_regression(cat='attn_output', **kw)
+        r2_down_proj = cross_species_regression(cat='down_proj_out', **kw)
+
         print(f'{layer_name=} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
 
         vals_attn.append(r2_attn)
@@ -424,7 +429,9 @@ def plot_layers_cross_species(cross_animal=True,
 
 
 if __name__ == '__main__':
-    plot_layers_cross_species()
+    plot_layers_cross_species(food_second=True)
+    # plot_layers_cross_species(food_second=True)
+
     # cross_species_regression()
     # quit()
 

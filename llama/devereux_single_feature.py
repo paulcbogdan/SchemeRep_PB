@@ -78,7 +78,7 @@ def plot_all_feats(cat='input',
             r2 = regression_one_feature(feat, cat=cat,
                                         layer_name=layer_name,
                                         activation_model=activation_model,
-                                        do_r2=True,
+                                        do_r2=False,
                                         pf_thresh=pf_thresh, req=req)
             r2s.append(r2)
             # except KeyError:
