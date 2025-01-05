@@ -229,7 +229,8 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     from sklearn.linear_model import (RidgeCV)
     from sklearn.preprocessing import StandardScaler
     from sklearn.model_selection import (RepeatedStratifiedKFold,
-                                         RepeatedKFold, LeaveOneGroupOut)
+                                         RepeatedKFold, LeaveOneGroupOut,
+                                         StratifiedGroupKFold)
     from functools import partial
     from sklearn.metrics import r2_score
     from sklearn.exceptions import UndefinedMetricWarning
@@ -238,9 +239,12 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 
     # Create cross-validation object
-    if groups:
+    if groups is not None:
         # print('GROUPS!!')
-        cv = LeaveOneGroupOut()
+        if len(np.unique(groups)) > 10:
+            cv = StratifiedGroupKFold(n_splits=cv_folds,)
+        else:
+            cv = LeaveOneGroupOut()
         cv.split = partial(cv.split, groups=groups)
         binary = np.unique(y).size == 2
         # binary = True
@@ -287,6 +291,8 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             test_sizes.append(len(test_idx))
             # print(f'{len(train_idx)=}, {len(test_idx)=}')
             # Split data
+            # print(f'{train_idx=}, {test_idx=}')
+            # print(f'{y=}')
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
             if normalize:

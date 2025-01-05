@@ -181,12 +181,6 @@ class LlamaActivationExtractor:
                 key_states = key_states.transpose(1, 2)
                 value_states = value_states.transpose(1, 2)
 
-
-                # print(F'{value_states.size()=}')
-
-
-                # print(module.self_attn.rope_base)
-                # quit()
                 rope_config = {              # RoPE frequency scaling
                     "factor": 32.0,
                     "low_freq_factor": 1.0,
@@ -196,11 +190,6 @@ class LlamaActivationExtractor:
                 mask, cos, sin = SharedBuffers.get_buffers(48,
                                                            module.self_attn.head_dim, 500_000.0,
                                                            rope_config, torch.bfloat16)
-                # self.register_buffer("mask", mask)
-                #
-                # self.register_buffer("cos", cos)
-                # self.register_buffer("sin", sin)
-
                 key_states = compute_rope(key_states, cos.to(self.model.device),
                                           sin.to(self.model.device))
                 query_states = compute_rope(query_states, cos.to(self.model.device),
@@ -215,22 +204,10 @@ class LlamaActivationExtractor:
 
                 attn_scores = (query_states @ key_states.transpose(2, 3) /
                                (module.self_attn.head_dim ** 0.5))
-                # attn_weights = attn_scores
-                # attn_scores_masked = query_states @ key_states.transpose(2, 3)
-                # mask_bool = mask.to(self.model.device).bool()[
-                #             :num_tokens, :num_tokens]
-                # attn_weights = attn_scores.masked_fill(mask_bool, float('-inf'))
-                # attn_weights = torch.nn.functional.softmax(attn_weights, dim=-1)
-                # attn_weights_masked = torch.nn.functional.softmax(
-                #     attn_scores_masked / (module.self_attn.head_dim ** 0.5), dim=-1)
-                # attn_output = attn_weights @ value_states
-                # attn_output = attn_output.transpose(1, 2)
-                # attn_output = attn_output.reshape(attn_output.size(0), attn_output.size(1), -1)
-                # attn_output = module.self_attn.o_proj(attn_output)
 
                 self.attention_act['input'][layer_name] = hidden_states
-                self.attention_act['q_proj'][layer_name] = query_states
-                self.attention_act['k_proj'][layer_name] = key_states
+                # self.attention_act['q_proj'][layer_name] = query_states
+                # self.attention_act['k_proj'][layer_name] = key_states
                 self.attention_act['v_proj'][layer_name] = value_states
                 # self.attention_act['attn_output'][layer_name] = attn_output #output[0] if isinstance(output, tuple) else output
                 self.attention_act['attn_weights'][layer_name] = attn_scores
@@ -254,17 +231,14 @@ class LlamaActivationExtractor:
         self.hooks = []
         for name, module in self.model.named_modules():
             name_spl = name.split('.')
-            print(f'{name=}')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'self_attn':
                 if name_spl[-1] == 'o_proj':
                     layer_num = int(name.split('.')[-3])
-                    print(f'{layer_num=}')
                     hook = module.register_forward_hook(activation_hook(
                         layer_num, {}, self.attention_act['attn_output']))
                     self.hooks.append(hook)
             if name_spl[-2] == 'layers':
-                print(f'\t{name=}')
                 layer_num = int(name.split('.')[-1])
                 hook = module.register_forward_hook(attention_big_hook(layer_num))
                 self.hooks.append(hook)
@@ -304,7 +278,7 @@ class LlamaActivationExtractor:
                 word_token = self.tokenizer.encode(word, add_special_tokens=False)
             else:
                 word_token = self.tokenizer.encode(f' {word}', add_special_tokens=False)
-            print(f'{word}, {word_token}')
+            print(f'{word}: {word_token}')
             target_idx = self._find_word_indices(inputs.input_ids[0], word_token)
 
             if len(target_idx) == 0:
@@ -339,14 +313,21 @@ class LlamaActivationExtractor:
         # quit()
         # Print activations
         for key, d in self.attention_act.items():
+            if 'q_proj' in key: continue
+            if 'k_proj' in key: continue
             if key == 'attn_weights' and len(target_indices) > 1:
                 out['attn'][key] = self._extract_target_attn_weights(d, target_indices[0],
                                                                      target_indices[1])
             else:
                 out['attn'][key] = self._extract_target_activations(d, target_indices)
         for key, d in self.mlp_act_in.items():
+            if 'down' in key: continue
+            if 'up' in key: continue
+            if 'act_fn' in key: continue
             out['mlp_in'][key] = self._extract_target_activations(d, target_indices)
         for key, d in self.mlp_act_out.items():
+            if 'gate' in key: continue
+            if 'up' in key: continue
             out['mlp_out'][key] = self._extract_target_activations(d, target_indices)
 
         # if r'meta-llama/Llama-2-7b' in self.model_name:
