@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats as stats
 from tqdm import tqdm
+from warnings import warn
+from yaml import warnings
 
 import utils
 from Utils.pickle_wrap_funcs import pickle_wrap
@@ -103,6 +105,8 @@ def run_layer(kw, fps, big_voxelwise, region,
 
 def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROIs,
                      ctrl_contex=False):
+    print(f'Run: {semantic=}')
+
     if isinstance(semantic, bool) or semantic == 'inc':
         llama_cat, llama_layer, obj_scn = None, None, None
     else:
@@ -125,6 +129,10 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
                 raise ValueError
             else:
                 if semantic[3] == 'obj':
+                    # if '70b' not in semantic[4]:
+                    #     ctrl = None
+                    #     warn('70b llama does not allow controlling obj_solo')
+                    # else:
                     ctrl = [(semantic[0], semantic[1], semantic[2],
                              'obj_solo', semantic[4], semantic[5]),
                             (semantic[0], semantic[1], semantic[2],
@@ -147,19 +155,25 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True):
+def run_layers_static(obj_scn=False, attn='attn_outputs', normalize=True,
+                      activation_model='70b'
+                      ):
+    if '3b' in activation_model:
+        activation_model = 'meta-llama/Llama-3.2-3b'
+    else:
+        activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
     if isinstance(attn, bool) and attn:
-        semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+        semantic_l = get_explore_llama(activation_model=activation_model, #'grok_first'),
                                        attn=True, do_M=False, last_only=False,
                                        include_scn=True, normalize=normalize,
                                        )
         fps_do = 'obj'
     else:
         if obj_scn:
-            semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
+            semantic_l = get_explore_llama(activation_model=activation_model, #'grok_first'),
                                            attn=attn, do_M=False, last_only=False,
                                            normalize=normalize,
                                            )
@@ -167,10 +181,12 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True):
         else:
             semantic_l = []
             fps_do = 'non_obj'
-        semantic_l += get_explore_llama(activation_model=r'meta-llama/Llama-3.2-3b', #'grok_first'),
-                                       attn=False, do_M='obj_solo', last_only=False,
-                                        normalize=True
-                                       )
+        if '3b' in activation_model:
+            semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
+                                            attn=False, do_M='obj_solo', last_only=False,
+                                            normalize=True
+                                           )
+
         semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
         semantic_l += semantic_l_BERT
         semantic_l_BERT = get_explore_BERT('simCSE', do_M='obj_solo')
@@ -183,7 +199,7 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True):
 
     for semantic in semantic_l:
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
-                         target_ROIs, ctrl_contex=attn)
+                         target_ROIs, ctrl_contex=False if isinstance(attn, str) else attn)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
@@ -356,7 +372,7 @@ def plot_results_t(all_results, subtitle=''):
                     values = c_dict['obj_dif']
                 layer_nums = np.array(list(range(len(values))))
                 color = 'green' if 'attn' in module_type else 'purple'
-                assert len(values) < 29
+                assert len(values) != 56
                 plt.plot(layer_nums, values, label=label if j == 0 else None,
                          color=color, linewidth=3, marker='o',)
                 high = np.max([high, np.max(values)])
@@ -422,9 +438,8 @@ def plot_results_t(all_results, subtitle=''):
     #
     # # Create legend with sorted labels
     # plt.legend(sorted_handles, sorted_labels)
-    # plt.show()
-    # quit()
-    plt.xlim(-0.5, 28.5)
+
+    # plt.xlim(-0.5, 28.5)
 
     legend = fig.legend(handles, labels, loc='lower center', ncol=6, frameon=False,
                # title_fontproperties={'ha': 'center'}

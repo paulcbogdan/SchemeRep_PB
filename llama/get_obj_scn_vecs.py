@@ -149,7 +149,7 @@ def get_llama_activations(obj, scn,
                                                                 axis=0, keepdims=True))
                             res[outer][inner][layer_num].append(np.nanmean(reses_val, axis=0))
         else:
-            raise ValueError
+            raise ValueError(f'{activation_model=}')
     else:
         sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
         t = time()
@@ -191,6 +191,12 @@ def process_cat_cat_inner(cat):
 def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                                 activation_model='meta-llama/Llama-3.2-1b',
                                 all_possible=False):
+    print('getting llama d_vecs no norming...')
+    print(f'\t{cat=}')
+    print(f'\t{layer_name=}')
+    print(f'\t{activation_model=}')
+    print(f'\t{all_possible=}')
+
     last_only = False
     if isinstance(layer_name, tuple):
         last_only = layer_name[1]
@@ -203,7 +209,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
     else:
         obj_solo = False
     cat_, inner = process_cat_cat_inner(cat)
-    print('getting llama d_vecs no norming...')
+
 
     sns = ['102', '103', '104'] # everyone else is a duplicate
     already_done = set()
@@ -655,7 +661,7 @@ if __name__ == '__main__':
             #                    'scn', MODEL, NORMALIZE))
             SEMANTIC_L.append(('llama', LLAMA_CAT,
                                (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
-                               'obj', MODEL, NORMALIZE))
+                               'obj_solo', MODEL, NORMALIZE))
 
 
     # for LLAMA_CAT in all_llama_cats:

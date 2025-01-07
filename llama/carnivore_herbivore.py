@@ -11,10 +11,12 @@ from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner
 from marinate.pkld import pkld
 
+# suppress: RuntimeWarning: invalid value encountered in divide
+np.seterr(divide='ignore', invalid='ignore')
 
 def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
                                 cat='gate_proj_in', layer_name=1,
-                                do_unrelated=False):
+                                do_unrelated=False, food_second='both'):
     carnivores = ['shark', 'lion', 'wolf', 'tiger', 'bear',
                   'alligator', 'eagle', 'vulture', 'hyena', 'cougar']
     herbivores = [  # 'gazelle',
@@ -45,6 +47,14 @@ def make_df_carnivore_herbivore(activation_model='meta-llama/Llama-3.2-3b',
     for food in tqdm(foods, desc='Looping foods'):
         for animal in animals:
             for flip in [False, True]:
+                if food_second == 'both':
+                    pass
+                elif food_second:
+                    if not flip:
+                        continue
+                else:
+                    if flip:
+                        continue
                 item0 = animal if flip else food
                 item1 = food if flip else animal
                 res, fp = pickle_wrap(get_llama_activations_deve,
@@ -177,8 +187,6 @@ def do_animal_food_animal_food(layer_name=4, reverse=False, get_food=False):
         # vecs_all.append(vecs)
     vecs_all = np.array(vecs_all)
     bad_cols = np.isnan(vecs_all).any(axis=0)
-    prop_bad = np.sum(bad_cols) / len(bad_cols)
-    # print(f'Proportion of bad columns: {prop_bad:.3%}')
     vecs_all = vecs_all[:, ~bad_cols]
     vecs_all = stats.rankdata(vecs_all, axis=1)
     RSM_llama = np.corrcoef(vecs_all)
@@ -209,7 +217,6 @@ def do_carnivore_herbivore(layer_name=4, reverse=False, get_food=False):
     vecs_all = np.concatenate([vecs_carn, vecs_herb], axis=0)
     bad_cols = np.isnan(vecs_all).any(axis=0)
     prop_bad = np.sum(bad_cols) / len(bad_cols)
-    # print(f'Proportion of bad columns: {prop_bad:.3%}')
     vecs_all = vecs_all[:, ~bad_cols]
     vecs_all = stats.rankdata(vecs_all, axis=1)
     RSM_llama = np.corrcoef(vecs_all)
@@ -244,7 +251,6 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
                 vecs0 = d_vecs[(animal, food, food)]
             else:
                 vecs0 = d_vecs[(food, animal, animal)]
-            print(f'{animal} | {vecs0=}')
             vecs = vecs0
             X.append(vecs)
             if food in food_match:
@@ -254,7 +260,7 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
     return np.array(X), np.array(Y)
 
 
-@pkld(overwrite=True)
+@pkld(overwrite=False)
 def cross_species_regression(layer_name=19, normalize=True,
                              cat='attn_weights',
                              cross_animal=True,
@@ -269,7 +275,8 @@ def cross_species_regression(layer_name=19, normalize=True,
     kw = {'layer_name': layer_name,
           'do_unrelated': False,
           'activation_model': activation_model,
-          'cat': cat
+          'cat': cat,
+          'food_second': food_second
           }
 
     d_vecs, carnivores, herbivores, meats, plants = (
@@ -390,10 +397,11 @@ def plot_layers_cross_species(cross_animal=False,
     vals_attn_output = []
     vals_down = []
     vals_mid = []
-    for layer_name in range(1, 28):
+    for layer_name in range(0, 28):
         layer_name_l = layer_name
         kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
               'cross_animal': cross_animal, 'food_second': food_second}
+        kw['food_second'] = True
 
         r2_attn = cross_species_regression(cat='attn_weights', **kw)
         r2_gate = cross_species_regression(cat='gate_proj_in', **kw)
@@ -401,7 +409,23 @@ def plot_layers_cross_species(cross_animal=False,
         r2_attn_output = cross_species_regression(cat='attn_output', **kw)
         r2_down_proj = cross_species_regression(cat='down_proj_out', **kw)
 
-        print(f'{layer_name=} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
+        print(f'{layer_name} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
+
+        kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
+              'cross_animal': cross_animal, 'food_second': food_second}
+        kw['food_second'] = False
+
+        r2_attn_ = cross_species_regression(cat='attn_weights', **kw)
+        r2_gate_ = cross_species_regression(cat='gate_proj_in', **kw)
+        r2_input_ = cross_species_regression(cat='input', **kw)
+        r2_attn_output_ = cross_species_regression(cat='attn_output', **kw)
+        r2_down_proj_ = cross_species_regression(cat='down_proj_out', **kw)
+
+        r2_attn = (r2_attn + r2_attn_) / 2
+        r2_gate = (r2_gate + r2_gate_) / 2
+        r2_input = (r2_input + r2_input_) / 2
+        r2_attn_output = (r2_attn_output + r2_attn_output_) / 2
+        r2_down_proj = (r2_down_proj + r2_down_proj_) / 2
 
         vals_attn.append(r2_attn)
         vals_residual.append(r2_input)
@@ -411,6 +435,7 @@ def plot_layers_cross_species(cross_animal=False,
 
     # plt.plot(list(range(len(vals_attn))), vals_attn,
     #          label='Attention Weights', color='green', marker='.')
+    plt.title(f'Carn vs. Herb: {food_second=}, {cross_animal=}')
     plt.plot(list(range(len(vals_residual))), vals_residual,
              label='Residual (input)', color='purple', marker='.',
              alpha=0.5)
@@ -429,12 +454,6 @@ def plot_layers_cross_species(cross_animal=False,
 
 
 if __name__ == '__main__':
-    plot_layers_cross_species(food_second=True)
+    plot_layers_cross_species()
     # plot_layers_cross_species(food_second=True)
 
-    # cross_species_regression()
-    # quit()
-
-    # for layer_name in range(0, 28):
-    #     do_animal_food_animal_food(layer_name)
-    #     do_carnivore_herbivore(layer_name)

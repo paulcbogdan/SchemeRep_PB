@@ -229,7 +229,8 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     model_name = ['simCSE']
     # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
     df_w2v = do_feature_regression(activation_model='w2v', req=req,
-                                   normalize_regr=normalize_regr)
+                                   normalize_regr=normalize_regr,
+                                   do_r2='5050')
     df_w2v.loc[df_w2v['r'].astype(float) < 0] = 0
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
 
@@ -237,6 +238,7 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                                      normalize_regr=normalize_regr,
                                      cat='input', activation_model=activation_model,
                                      pf_thresh=pf_thresh,
+                                     do_r2='5050'
                                      # cat='down_proj_out'
                                      )
     df_llama.loc[df_llama['r'].astype(float) < 0] = 0

@@ -27,6 +27,42 @@ def make_sentence_analogy(a, b, c, d):
     return sentence
 
 
+def make_sentence_analogy_bury_middle(a, b, c, d):
+    first = f'{a} and {b}.'.capitalize()
+    last = f'{c} and {d}'.capitalize()
+    middle = (f'I thought about this for a long while. '
+              f'The more I pondered, the clearer it became '
+              f'that my initial reaction was just the tip of '
+              f'the iceberg. There were layers to this issue, '
+              f'complexities that I hadn\'t considered at '
+              f'first glance. Each new angle brought a '
+              f'different perspective, challenging my '
+              f'assumptions and making me question what I '
+              f'thought I knew. It was like peeling an onion, '
+              f'revealing not just answers, but more questions, '
+              f'more nuances to explore.')
+    sentence = f'{first} {middle} {last}'
+    return sentence
+
+def make_sentence_analogy_bury(a, b, c, d):
+    first = f'{a} and {b}.'.capitalize()
+    last = f'{c} and {d}'.capitalize()
+    middle = (f'I thought about this for a long while. '
+              f'The more I pondered, the clearer it became '
+              f'that my initial reaction was just the tip of '
+              f'the iceberg. There were layers to this issue, '
+              f'complexities that I hadn\'t considered at '
+              f'first glance. Each new angle brought a '
+              f'different perspective, challenging my '
+              f'assumptions and making me question what I '
+              f'thought I knew. It was like peeling an onion, '
+              f'revealing not just answers, but more questions, '
+              f'more nuances to explore')
+    sentence = f'{first} {last} {middle}'
+    return sentence
+
+
+
 def make_sentence_analogy2(*abcd2):
     abcd2 = [add_a_an(x) for x in abcd2]
     sentence = (f'Consider: {abcd2[0]} is to {abcd2[1]}, as {abcd2[2]} is to {abcd2[3]}; '
@@ -40,7 +76,7 @@ def pkld_extract_activations(sentence, target_words,
     extractor = get_llama_extractor(model_name=activation_model, )
     t_st = time()
     res = extractor.extract_activations(sentence, target_words)
-    print(f'time needed to extract activations (analogy): {time() - t_st:.2f} s')
+    print(f'time needed to extract activations: {time() - t_st:.2f} s')
     return res
 
 
@@ -49,23 +85,36 @@ def extract_abcd(*abcd,
                  activation_model='meta-llama/Llama-3.2-3b',
                  cat='input', layer_name=1):
     abcd = list(abcd)
+    buried = False
     if len(abcd) == 4:
-        sentence = make_sentence_analogy(*abcd)
+        if 'bury_mid' in activation_model:
+            sentence = make_sentence_analogy_bury_middle(*abcd)
+            activation_model = activation_model[0]
+        elif 'bury' in activation_model:
+            sentence = make_sentence_analogy_bury(*abcd)
+            activation_model = activation_model[0]
+            buried = True
+        else:
+            sentence = make_sentence_analogy(*abcd)
     elif len(abcd) == 8:
         sentence = make_sentence_analogy2(*abcd)
     else:
         raise ValueError(f'Bad length: {len(abcd)}')
-    res = pkld_extract_activations(sentence, abcd, activation_model)
 
+    if buried:
+        res = pkld_extract_activations(sentence, ['explore'], activation_model)
+    else:
+        res = pkld_extract_activations(sentence, abcd, activation_model)
     d_vecs = {}
 
     cat_, inner = process_cat_cat_inner(cat)
     for idx_target in range(len(abcd)):
+        idx_target_ = 0 if buried else idx_target
         if cat == 'attn_weights':
-            v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target],
+            v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target_],
                            axis=(0, 1))
         else:
-            v = np.nanmean(res[inner][cat_][layer_name][idx_target], axis=0)
+            v = np.nanmean(res[inner][cat_][layer_name][idx_target_], axis=0)
             if len(v.shape) > 1:
                 v = v.reshape(-1)  # reshapes q_proj, k_proj, v_proj, which are (attn_heads, vector)
         d_vecs[tuple(abcd + [idx_target])] = v
@@ -98,6 +147,7 @@ def run_analogy_analysis(cat='input', layer_name=1, position=3,
         # print(f'{abcd=}')
         d_vecs = extract_abcd(*abcd, cat=cat, layer_name=layer_name,
                               activation_model=activation_model)
+
         vec = d_vecs[tuple(abcd + [position])]
         vecs.append(vec)
     vecs = np.array(vecs)
@@ -109,26 +159,30 @@ def run_analogy_analysis(cat='input', layer_name=1, position=3,
 
 
 def compare_GPT_spots70_(activation_model='70b', position=7, do_r2=False,
-                        copies=1, flip_within=True, analogy=(2, 'hard')):
+                         copies=1, flip_within=True, analogy=(2, 'hard')):
     compare_GPT_spots(activation_model=activation_model, position=position,
                       do_r2=do_r2, copies=copies, flip_within=flip_within,
                       analogy=analogy)
 
-def compare_GPT_spots70(activation_model='70b', position=1, do_r2=False,
-                        copies=0, flip_within=False, analogy=1):
+
+def compare_GPT_spots70(activation_model='70b', position=3, do_r2=False,
+                        copies=0, flip_within=True, analogy=1):
+    # activation_model = (r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid')
     # TODO: run this as flip_within
+    # TODO: test flip_between with copies=3 maybe
     compare_GPT_spots(activation_model=activation_model, position=position,
                       do_r2=do_r2, copies=copies, flip_within=flip_within,
                       analogy=analogy)
+
 
 # def compare_GPT_spots(activation_model='70b', position=3, do_r2=False,
 #                   copies=1, flip_within=True, analogy=1):
-def compare_GPT_spots(activation_model='3', position=7, do_r2=False,
-                      copies=(1, 2), flip_within=False, analogy=2):#(2, 1)):
+def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
+                      copies=0, flip_within=True, analogy=1):  # (2, 1)):
 
-    if activation_model == '70b':
+    if '70b' in activation_model:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-    else:
+    elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     vals_input = []
     vals_down = []
@@ -136,7 +190,7 @@ def compare_GPT_spots(activation_model='3', position=7, do_r2=False,
     vals_attn_output = []
     # for layer_name in tqdm(range(28 if '3b' in activation_model else 80),
     #                        desc='Running layers', position=0, leave=True):
-    for layer_name in range(28 if '3b' in activation_model else 80):
+    for layer_name in range(28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80):
         kw = {'activation_model': activation_model, 'position': position,
               'do_r2': do_r2, 'copies': copies, 'flip_within': flip_within,
               'layer_name': layer_name, 'analogy': analogy}
@@ -193,7 +247,7 @@ Like an envelope and a letter, a box and a gift
 Like a magnet and a fridge, a hook and a ceiling
 Like a camera and a photo, a recorder and a sound
 Like a shoe and a footprint, a tire and a track
-Like a clock and a wall, a watch and a wrist ------
+Like a clock and a wall, a watch and a wrist
 Like a stove and a pot, a grill and a skewer
 Like a farmer and a field, a fisherman and a net
 Like a book and a shelf, a file and a folder
@@ -219,10 +273,11 @@ Like a fence and a yard, a wall and a room
 Like a lock and a chain, a belt and a pants
 Like a button and a shirt, a buckle and a belt
 Like a stage and a play, a screen and a movie
-Like a remote and a TV, a mouse and a screen
 Like a torch and a cave, a lamp and a room
 Like a comb and a hair, a razor and a beard
 Like a nose and a scent, a tongue and a taste'''
+
+# Like a remote and a TV, a mouse and a screen | errors with llama
 
     txts = txts.replace(',', '').split('\n')
     abcds = []
@@ -273,7 +328,7 @@ def get_analogy2_abcds(copies=1, flip_within=True, just1=None):
 
             abcd0_flip = flip_abcd(abcd0, flip_within)
             abcd1_flip = flip_abcd(abcd1, flip_within)
-            if just1 == 'hard': # test for generalization of gg -> ff
+            if just1 == 'hard':  # test for generalization of gg -> ff
                 abcd2_gg = abcd0 + abcd1
                 abcd2_ff = abcd0_flip + abcd1_flip
                 abcd2_gf = abcd0 + abcd1_flip
@@ -373,11 +428,31 @@ def get_analogy1_abcds(copies=1, flip_within=True):
 
 # Like a bucket and a well, a cup and a tap
 
+def prepare_analogy_figs():
+    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
+    #                   do_r2=False, copies=3, flip_within=True, analogy=1)
+    # compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'),
+    #                   position=3, do_r2=False, copies=3, flip_within=True, analogy=1)
+    #
+    # compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct', position=3,
+    #                   do_r2=False, copies=0, flip_within=True, analogy=1)
+    # compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
+    #                   position=3, do_r2=False, copies=0, flip_within=True, analogy=1)
+
+    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                      position=3, do_r2=False, copies=0, flip_within=True, analogy=1)
+
+    # compare_GPT_spots70(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'))
+    # compare_GPT_spots70(activation_model=r'meta-llama/Llama-3.3-70b-Instruct')
+
 if __name__ == '__main__':
+    prepare_analogy_figs()
     # print(test_pkld2(1, 2, a=3))
     # print(test_pkld2(1, 2, a=3))
 
     # parse_analogy_txts()
     # compare_GPT_spots()
-    compare_GPT_spots70()
+
+
+
 

@@ -29,6 +29,9 @@ def regression_one_feature(feature='is_small',
     # items, df = get_standard_items_list(pf_thresh, item_standard)
 
     items, _ = get_standard_items_list(pf_thresh, item_standard)
+    items = items[:pf_thresh]
+    # print(len(items))
+    # quit()
     feat2onehot = get_binary_feat_matrix(items, item_standard, threshold=10,
                                          pf_thresh=300, req=req)
     d_add = {}
@@ -46,11 +49,13 @@ def regression_one_feature(feature='is_small',
     return res['Ridge']['r2_score']
 
 
-def plot_all_feats(cat='input',
+def plot_all_feats(#cat='input',
                    #cat='down_proj_out',
-                   activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                   cat='attn_output',
+                   #  cat='gate_proj_in',
+                   # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                    pf_thresh=300, threshold=20, req=5,
-                   #activation_model='meta-llama/Llama-3.2-3b',
+                   activation_model='meta-llama/Llama-3.2-3b',
                    ):
     # feats = get_final_feats()#[::-1]
 
@@ -69,15 +74,16 @@ def plot_all_feats(cat='input',
              'is_thin', 'is_small', 'is_fast', 'made_of_glass', 'is_heavy', 'is_soft', 'is_strong']
     feats = feats[:50]
     feats = [feat for feat in feats if feat in feats_og]
+    feats = feats[:20]
     print(f'{len(feats)=}')
 
     for feat in feats:  # [:5]:
         r2s = []
         for layer_name in tqdm(range(80 if '70b' in activation_model else 28)):
-            # try:
             r2 = regression_one_feature(feat, cat=cat,
                                         layer_name=layer_name,
                                         activation_model=activation_model,
+                                        # do_r2='5050',
                                         do_r2=False,
                                         pf_thresh=pf_thresh, req=req)
             r2s.append(r2)
@@ -85,19 +91,22 @@ def plot_all_feats(cat='input',
             #     print(f'Failed for {feat=}, {layer_name=}')
             #     break
         else:
-            r2s = np.array(r2s)
+            # r2s = np.array(r2s)
             r2s_std = stats.zscore(r2s)
-            if r2s_std[0] > -1.5: continue
-            # r2s -= r2s[0]
+            # if r2s_std[0] > -2: continue
+            r2s -= r2s[0]
             r2s_all.append(r2s)
 
-            # plt.plot(r2s, label=feat, alpha=0.5,
-            #          marker='o', markersize=2)
-    # plt.legend()
-    # plt.show()
-    # quit()
+            plt.plot(r2s_std, label=feat, alpha=0.5,
+                     marker='o', markersize=2)
+            # plt.title(feat)
+            # plt.show()
+            # print(F'{feat}: {r2s[0]:.2f} {r2s[-1]:.2f}')
+    # # plt.legend()
+    plt.show()
+    quit()
     r2s_all = np.array(r2s_all)
-    r2s_all -= np.nanmean(r2s_all, axis=1)[:, None]
+    # r2s_all -= np.nanmean(r2s_all, axis=1)[:, None]
     # r2s_all -= r2s_all[:, 0][:, None]
     r2s_M = np.nanmean(r2s_all, axis=0)
     print(f'{r2s_all.shape=}')
@@ -113,6 +122,7 @@ def plot_all_feats(cat='input',
                      color='dodgerblue', alpha=0.2,
                      # label='Confidence Interval'
                      )
+    plt.title(f'{cat=}, {activation_model=}')
     # plt.legend()
     plt.show()
 

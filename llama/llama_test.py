@@ -187,7 +187,7 @@ class LlamaActivationExtractor:
                     "high_freq_factor": 4.0,
                     "original_context_length": 8192,
                 }
-                mask, cos, sin = SharedBuffers.get_buffers(48,
+                mask, cos, sin = SharedBuffers.get_buffers(192,#8192,#48,
                                                            module.self_attn.head_dim, 500_000.0,
                                                            rope_config, torch.bfloat16)
                 key_states = compute_rope(key_states, cos.to(self.model.device),

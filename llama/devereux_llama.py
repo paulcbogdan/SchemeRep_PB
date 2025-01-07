@@ -5,7 +5,6 @@ from time import time
 
 import numpy as np
 import pandas as pd
-from nltk.misc.sort import quick
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
@@ -31,7 +30,45 @@ def get_llama_activations_deve(item0, item1, activation_model):
     else:
         sentence = f'A {item0} and {item1}'
     t = time()
-    if activation_model == 'BERT':
+    if isinstance(activation_model, tuple):
+        extractor = get_llama_extractor(model_name=activation_model[0])
+        add_on = (f'I thought about this for a long while. '
+                  f'The more I pondered, the clearer it became '
+                  f'that my initial reaction was just the tip of '
+                  f'the iceberg. There were layers to this issue, '
+                  f'complexities that I hadn\'t considered at '
+                  f'first glance. Each new angle brought a '
+                  f'different perspective, challenging my '
+                  f'assumptions and making me question what I '
+                  f'thought I knew. It was like peeling an onion, '
+                  f'revealing not just answers, but more questions, '
+                  f'more nuances to explore')
+        if (activation_model[1] == 'bury' or
+                (isinstance(activation_model[1], tuple) and activation_model[1][0] == 'bury')):
+            add_on = f'are here. {add_on}'
+            if isinstance(activation_model[1], tuple):
+                words = add_on.split(' ')
+                num_words = int(len(words) * activation_model[1][1])
+                add_on = ' '.join(words[:num_words])
+            else:
+                words = add_on.split(' ')
+                num_words = len(words)
+            sentence = (f'{sentence} {add_on}')
+            res = extractor.extract_activations(sentence, [words[:num_words][-1],
+                                                           words[:num_words][-1]])
+            print(f'Time needed for activation extraction: {time() - t:.3f} s')
+            print(f'\t{[item0, item1]=} | {sentence=}')
+            return res
+        elif activation_model[1] == 'top':
+            sentence = f'{add_on}. {sentence}'
+            res = extractor.extract_activations(sentence, [item0, item1], )
+            print(f'Time needed for activation extraction: {time() - t:.3f} s')
+            print(f'\t{[item0, item1]=} | {sentence=}')
+            return res
+        else:
+            raise ValueError
+
+    elif activation_model == 'BERT':
         extractor = get_BERT_extractor()
     elif activation_model == 'simCSE':
         extractor = get_simCSE_extractor()
@@ -90,6 +127,7 @@ def get_context_pairs(items):
         scene2items[scene] = items_
     return scene2items
 
+
 def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       cat='input', layer_name=1,
                                       activation_model='meta-llama/Llama-3.2-3b',
@@ -129,11 +167,11 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             if quick == 'scenes':
                 assert 'llama' in activation_model
                 res, fp = pickle_wrap(get_llama_activations,
-                                          kwargs={'obj': item1, 'scn': item0,
-                                                  'activation_model': activation_model},
-                                          easy_override=False, verbose=-1, dir_branches=100,
-                                          RAM_cache=True, get_fp=True
-                                          )
+                                      kwargs={'obj': item1, 'scn': item0,
+                                              'activation_model': activation_model},
+                                      easy_override=False, verbose=-1, dir_branches=100,
+                                      RAM_cache=True, get_fp=True
+                                      )
             else:
                 res, fp = pickle_wrap(get_llama_activations_deve,
                                       kwargs={'item0': item0, 'item1': item1,
@@ -150,9 +188,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                           RAM_cache=True, get_fp=True)
                     print('mlp_out' in res)
 
-
-
-            if 'mlp_out' in res:# or 'attn_output' in res['attn']:
+            if 'mlp_out' in res:  # or 'attn_output' in res['attn']:
                 if 'up_proj' in res['mlp_out']:
                     del res['mlp_out']['up_proj']
                 if 'gate_proj' in res['mlp_out']:
@@ -273,7 +309,7 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
 
     if pf_thresh > len(df['concept'].unique()):
         pass
-    elif pf_thresh is not None :
+    elif pf_thresh is not None:
         pf_cnt = df.groupby('concept')['pf'].sum()
         pf_cnt = pf_cnt.sort_values(ascending=False)
         pf_thresh = pf_cnt.iloc[pf_thresh] - .0000001
@@ -292,19 +328,18 @@ def get_standard_items_list(pf_thresh, item_standard='deve', in_both=True,
     return items, df
 
 
-
 def get_llama_d_vecs_non_normed_deve(pf_thresh=300, cat='gate_proj_in', layer_name=1,
                                      activation_model='meta-llama/Llama-3.2-3b',
                                      quick=None, item_standard='deve',
                                      symmetric=False):
     items, _ = get_standard_items_list(pf_thresh, item_standard=item_standard)
     d_vecs, fp = pickle_wrap(get_llama_d_vecs_non_normed_deve_,
-                         kwargs={'items': items, 'symmetric': symmetric,
-                                 'cat': cat, 'layer_name': layer_name,
-                                 'activation_model': activation_model,
-                                 'quick': quick,},
-                         easy_override=False, verbose=-1,
-                         get_fp=True)
+                             kwargs={'items': items, 'symmetric': symmetric,
+                                     'cat': cat, 'layer_name': layer_name,
+                                     'activation_model': activation_model,
+                                     'quick': quick, },
+                             easy_override=False, verbose=-1,
+                             get_fp=True)
     return d_vecs
 
 
@@ -345,7 +380,6 @@ def get_deve_llama_RSM_l(semantic_l, pf_thresh=250, quick=5, item_standard='deve
 def get_deve_llama_RSM(semantic, pf_thresh=100, quick=5, item_standard='deve',
                        position=None, symmetric=False
                        ):
-
     if isinstance(semantic, list):
         RSM = pickle_wrap(get_deve_llama_RSM_l,
                           kwargs={'semantic_l': semantic, 'pf_thresh': pf_thresh,
@@ -376,6 +410,7 @@ def get_deve_llama_RSM(semantic, pf_thresh=100, quick=5, item_standard='deve',
     # quit()
     return RSM
 
+
 def get_item_prod_sum(items, cat, items_M_vecs):
     vecs = []
     for i, item0 in enumerate(items):
@@ -388,6 +423,7 @@ def get_item_prod_sum(items, cat, items_M_vecs):
             else:
                 raise ValueError
     return vecs
+
 
 # @cache
 def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
@@ -471,6 +507,7 @@ def get_llama_vecs_ar(pf_thresh=250, cat='input', layer_name=1,
                 vecs.append(v)
     return vecs
 
+
 def get_deve_llama_RSM_(pf_thresh=250, cat='input', layer_name=1,
                         activation_model='meta-llama/Llama-3.2-3b',
                         normalize=True,
@@ -509,16 +546,16 @@ def get_dev_explore_BERT(bert_type='BERT', st=0):
     return semantic_l
 
 
-def prep_all_llama_d_vecs_deve(#activation_model='meta-llama/Llama-3.2-3b',
-                               activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                               pf_thresh=300, quick=None, item_standard='deve'):
+def prep_all_llama_d_vecs_deve(  # activation_model='meta-llama/Llama-3.2-3b',
+        activation_model='meta-llama/Llama-3.3-70b-Instruct',
+        pf_thresh=300, quick=None, item_standard='deve'):
     global RAM_CACHE_LLAMA_DEV
     RAM_CACHE_LLAMA_DEV = True
     llama31_3b = get_explore_llama(activation_model=activation_model,
                                    attn=False, st=0, normalize=False)
     # llama31_3b1 = get_explore_llama(activation_model=activation_model,
     #                                attn='attn_output', st=0)
-    models = llama31_3b# + llama31_3b1
+    models = llama31_3b  # + llama31_3b1
 
     # models_BERT = get_dev_explore_BERT('BERT')
     # models_simCSE = get_dev_explore_BERT('simCSE')
