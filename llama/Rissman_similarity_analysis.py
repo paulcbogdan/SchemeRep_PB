@@ -701,8 +701,8 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
                                   binary_nonrep=binary_nonrep,
                                   no_neu=no_neu)
         # r2_down = np.nan
-        print(f'{layer_name=}, {r2_attn=:.2f}, {r2_input=:.2f}, '
-              f'{r2_attn_output=:.2f}, {r2_down=:.2f}')
+        # print(f'{layer_name=}, {r2_attn=:.2f}, {r2_input=:.2f}, '
+        #       f'{r2_attn_output=:.2f}, {r2_down=:.2f}')
         # TODO: edit attn_output to make suer its the right word2word
 
         # except KeyError:
@@ -733,6 +733,13 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
              label='MLP addition', color='dodgerblue', marker='.',
              alpha=0.5)
 
+    r_attn = get_autocorr(vals_attn)
+    r_input = get_autocorr(vals_residual)
+    r_attn_out = get_autocorr(vals_attn_output)
+    r_FFN = get_autocorr(vals_down)
+    r_mid = get_autocorr(vals_mid)
+    autocorr_title = (f'{r_attn=:.2f}, {r_input=:.2f}, {r_attn_out=:.2f}, '
+                      f'{r_FFN=:.2f}, {r_mid=:.2f}')
     plt.xlabel('Layer')
     plt.legend()
     if (do_SchemeRep and no_neu) or binary_nonrep:
@@ -740,9 +747,13 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
     else:
         plt.ylim(0, 1)
     plt.title(f'{do_SchemeRep=}, {norm_SchemeRep=},\n'
-              f'{binary_nonrep=}, {no_neu=}')
+              f'{binary_nonrep=}, {no_neu=}\n{autocorr_title}')
     plt.show()
 
+def get_autocorr(l, gap=1):
+    l = l[5:]
+    dif0 = np.diff(l)
+    return stats.spearmanr(dif0[:-gap], dif0[gap:], nan_policy='omit')[0]
 
 def find_circles(pairs):
     # Create adjacency dict
@@ -841,23 +852,26 @@ def prep_all_figures():
 
 def prep_all_figures70():
     compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         do_SchemeRep=True, norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu=True)
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                          do_SchemeRep=False, norm_SchemeRep=False,
                          binary_nonrep=True, no_neu=False)
-    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-    #                      do_SchemeRep=True, norm_SchemeRep=True,
-    #                      binary_nonrep=False, no_neu=True)
-
     compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
                          do_SchemeRep=False, norm_SchemeRep=False,
                          binary_nonrep=True, no_neu=False)
 
 
 if __name__ == '__main__':
+    # prep_all_figures()
+
     prep_all_figures70()
+
     quit()
-    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                         do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=True, no_neu=False)
+    # quit()
+    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+    #                      do_SchemeRep=False, norm_SchemeRep=False,
+    #                      binary_nonrep=True, no_neu=False)
 
     # prep_all_figures()
     # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
@@ -867,7 +881,7 @@ if __name__ == '__main__':
     # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
     #                      do_SchemeRep=True, norm_SchemeRep=True,
     #                      binary_nonrep=False, no_neu=True)
-    quit()
+    # quit()
     # try_concat()
     # pair = ('apple', 'bank')
     # res, fp = pickle_wrap(get_llama_activations,
@@ -896,19 +910,19 @@ if __name__ == '__main__':
     # print(res['attn']['attn_output'][0])
 
     # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.2-3b', 'top'))
-    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b')#('meta-llama/Llama-3.2-3b', 'top'))
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b')#('meta-llama/Llama-3.2-3b', 'top'))
+    #
+    #
+    #
+    # quit()
+    #
+    #
+    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'))
+    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', ('bury', 0.25)))
+    # # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', ('bury', 0.60)))
+    #
+    # quit()
 
-
-
-    quit()
-
-
-    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'))
-    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', ('bury', 0.25)))
-    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', ('bury', 0.60)))
-
-    quit()
-
-    for LAYER_NAME in range(0, 24):
-        # for FOCUS in range(24):
-        analyze_rissman(layer_name=LAYER_NAME)  # , focus=FOCUS)
+    # for LAYER_NAME in range(0, 24):
+    #     # for FOCUS in range(24):
+    #     analyze_rissman(layer_name=LAYER_NAME)  # , focus=FOCUS)

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from llama.Rissman_similarity_analysis import fit_regularized_models
+from llama.Rissman_similarity_analysis import fit_regularized_models, get_autocorr
 from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner
 from marinate.pkld import pkld
 
@@ -213,7 +213,15 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
              color='green', marker='.', alpha=0.5)
     plt.plot(vals_down, label='MLP addition',
              color='blue', marker='.', alpha=0.5)
-    plt.title(f'Analogy analysis, {position=}')
+
+    r_input = get_autocorr(vals_input)
+    r_attn_out = get_autocorr(vals_attn_output)
+    r_FFN = get_autocorr(vals_down)
+    r_mid = get_autocorr(vals_mid)
+    autocorr_title = (f'{r_input=:.2f}, {r_attn_out=:.2f}, '
+                      f'{r_FFN=:.2f}, {r_mid=:.2f}')
+
+    plt.title(f'Analogy analysis, {position=}\n{autocorr_title}')
     if do_r2:
         plt.ylabel('R^2')
         plt.plot([0, len(vals_input)], [0, 0], color='r', linestyle='--')
@@ -434,16 +442,16 @@ def prepare_analogy_figs():
     # compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'),
     #                   position=3, do_r2=False, copies=3, flip_within=True, analogy=1)
     #
-    # compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct', position=3,
+    # compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct', position=1,
     #                   do_r2=False, copies=0, flip_within=True, analogy=1)
-    # compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
+
+    # TODO: halfway done with flip_within=False
+    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
+                      position=1, do_r2=False, copies=0, flip_within=False, analogy=1)
+
+    # compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
     #                   position=3, do_r2=False, copies=0, flip_within=True, analogy=1)
 
-    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                      position=3, do_r2=False, copies=0, flip_within=True, analogy=1)
-
-    # compare_GPT_spots70(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'))
-    # compare_GPT_spots70(activation_model=r'meta-llama/Llama-3.3-70b-Instruct')
 
 if __name__ == '__main__':
     prepare_analogy_figs()

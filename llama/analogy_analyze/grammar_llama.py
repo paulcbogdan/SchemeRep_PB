@@ -351,34 +351,39 @@ def compare_GPT_grammar(activation_model='3', do_r2='discrete',
 
 def compare_GPT_grammar_all_comparisons(activation_model='3b',
                                         do_r2='discrete', add_they=False,
-                                        add_not=False):
-    # add_not = False
+                                        add_not=False,
+                                        reverse=False):
+    add_not = False
     add_they = False
     # activation_model = ('meta-llama/Llama-3.2-3b', 'bury')
-    forms = [('am', 'was'), ('have been', 'had been'),
-             # ('will be', 'will have been'),
+    forms = [('am', 'was'),
+             ('have been', 'had been'),
+             ('will be', 'will have been'),
     #          # ('will have been', 'will be', ),
              ]
 
     if add_they:
-        forms_they = [('they are', 'they were'), ('they have been', 'they had been'),
-                      # ('they will be', 'they will have been')
+        forms_they = [('they are', 'they were'),
+                      # ('they have been', 'they had been'),
+                      ('they will be', 'they will have been')
                       ]
         forms.extend(forms_they)
     if add_not:
-        forms_not = [('am not', 'was not'), ('have been not', 'had been not'),
+        forms_not = [('am not', 'was not'),
+                     # ('have been not', 'had been not'),
                      # ('will be not', 'will have been not')
-                     # ('will have been not', 'will be not',)
+                     ('will have been not', 'will be not',)
                      ]
         if add_they:
             forms_they_not = [('they are not', 'they were not'),
                               # ('they have been not', 'they had been not'),
-                              # ('they will be not', 'they will have been not')
+                              ('they will be not', 'they will have been not')
                               ]
             forms_not.extend(forms_they_not)
         forms.extend(forms_not)
 
-    # forms = [('am', 'was'), ('they are', 'they were')]
+    forms = [('am', 'was'), ('have been', 'had been')]
+    forms = [('am', 'was'), ('will be', 'will have been')]
 
     vals_input, vals_down, vals_mid, vals_attn_output = [], [], [], []
     for i, form0 in enumerate(forms):
@@ -408,11 +413,17 @@ def compare_GPT_grammar_all_comparisons(activation_model='3b',
 
             comparison = (form0, form1)
             t_st = time()
+            # for forms = [('am', 'was'), ('have been', 'had been')]
+            #   reverse=True do comparison within tuple.
+            #       e.g., train am vs. was -> test have been vs. had been
+            #   reverse=False do comparison between tuples
+            #       e.g., train am vs. have been -> test was vs. had been
             vals_input_, vals_down_, vals_mid_, vals_attn_output_ = (
                 compare_GPT_grammar(comparison=comparison,
                                     activation_model=activation_model,
-                                    do_r2=do_r2, reverse=False))
-            print(f'Time needed to do grammar comparison: {time() - t_st:.2f} s')
+                                    do_r2=do_r2, reverse=reverse))
+            print(f'Time needed to do grammar comparison: '
+                  f'{time() - t_st:.2f} s')
             if np.nanmean(np.array(vals_input_)[5:15]) > 0.98:
                 print(f'skip: {form0}/{form1}')
                 continue
@@ -422,6 +433,38 @@ def compare_GPT_grammar_all_comparisons(activation_model='3b',
             vals_down.append(vals_down_)
             vals_mid.append(vals_mid_)
             vals_attn_output.append(vals_attn_output_)
+
+            if not reverse:
+                mapper = {('am', 'was'): 'Simple ("am" & "was")',
+                          ('have been', 'had been'): 'Perfect ("have been" & "had been")',
+                          ('will be', 'will have been'): 'Future ("will be" & "will have been")',
+                          ('they are', 'they were'): 'Simple ("they are" & "they were")',
+                          ('they will be', 'they will have been'): 'Future ("they will be" & "they will have been")',
+                          ('am not', 'was not'): 'Simple ("am not" & "was not")',
+                          ('will be not', 'will have been not'): 'Future ("will be not" & "will have been not")',
+                          ('they are not', 'they were not'): 'Simple ("they are not" & "they were not")',
+                          ('they will be not', 'they will have been not'): 'Future ("they will be not" & "they will have been not")'}
+
+
+            plt.plot(vals_input_, label='Residual (input)',
+                     color='purple', marker='.', alpha=0.5)
+            plt.plot(vals_mid_, label='Residual (middle)',
+                     color='k', marker='.', alpha=0.5)
+            plt.plot(vals_attn_output_, label='Attention addition',
+                     color='green', marker='.', alpha=0.5)
+            plt.plot(vals_down_, label='MLP addition',
+                     color='blue', marker='.', alpha=0.5)
+            plt.title(f'Comparison: {comparison}')
+            if do_r2 and do_r2 != 'discrete':
+                plt.ylabel('R^2')
+                plt.plot([0, len(vals_input_)], [0, 0], color='r', linestyle='--')
+            else:
+                plt.ylabel('Accuracy')
+                plt.plot([0, len(vals_input_)], [0.5, 0.5], color='r', linestyle='--')
+            plt.ylim(0, 1)
+            plt.legend()
+            plt.show()
+
     vals_input = np.array(vals_input)
     vals_input = np.nanmean(vals_input, axis=0)
     vals_down = np.array(vals_down)
