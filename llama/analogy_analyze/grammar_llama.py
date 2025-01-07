@@ -117,14 +117,20 @@ def get_verb_sentences(verb, not_str=''):
     sentence10 = f"They will{not_str} be {verb}"
     sentence11 = f"They will{not_str} have been {verb}"
 
+    sentence12 = f"I are{not_str} {verb}"
+    sentence13 = f"They is{not_str} {verb}"
+    sentence14 = f"I been{not_str} have {verb}"
+
     d = {'am': sentence0, 'was': sentence1, 'have been': sentence2,
          'had been': sentence3, 'will be': sentence4, 'will have been': sentence5,
          'they are': sentence6, 'they were': sentence7,
          'they have been': sentence8, 'they had been': sentence9,
-         'they will be': sentence10, 'they will have been': sentence11}
+         'they will be': sentence10, 'they will have been': sentence11,
+         'I are': sentence12, 'they is': sentence13, 'been have': sentence14}
     order = ['am', 'was', 'have been', 'had been', 'will be', 'will have been',
              'they are', 'they were', 'they have been', 'they had been',
-             'they will be', 'they will have been']
+             'they will be', 'they will have been',
+             'I are', 'they is', 'been have']
 
     if not_str == ' not':
         d_ = {}
@@ -156,7 +162,6 @@ def get_vecs_verb(verb, activation_model='meta-llama/Llama-3.2-3b',
                       f'thought I knew. It was like peeling an onion, '
                       f'revealing not just answers, but more questions, '
                       f'more nuances to explore')
-            # activation_model = activation_model[0]
         else:
             raise ValueError
     d, order = get_verb_sentences(verb)
@@ -350,120 +355,97 @@ def compare_GPT_grammar(activation_model='3', do_r2='discrete',
 
 
 def compare_GPT_grammar_all_comparisons(activation_model='3b',
-                                        do_r2='discrete', add_they=False,
-                                        add_not=False,
-                                        reverse=False):
-    add_not = False
-    add_they = False
-    # activation_model = ('meta-llama/Llama-3.2-3b', 'bury')
-    forms = [('am', 'was'),
-             ('have been', 'had been'),
-             ('will be', 'will have been'),
-    #          # ('will have been', 'will be', ),
-             ]
+                                        do_r2='discrete', ):
 
-    if add_they:
-        forms_they = [('they are', 'they were'),
-                      # ('they have been', 'they had been'),
-                      ('they will be', 'they will have been')
+
+    comp_pairs_all = [
+        # Simple vs. perfect
+        (('am', 'was'), ('have been', 'had been')), # present -> past
+        (('am', 'will be'), ('have been', 'will have been')), # present -> future
+        (('was', 'will be'), ('had been', 'will have been')), # past -> future
+
+        # Past vs. present vs. future
+        # (('am', 'have been'), ('was', 'had been')),
+        # (('am', 'have been'), ('will be', 'will have been')),
+        # (('was', 'had been'), ('will be', 'will have been')),
+
+        # bonus: present/future simple vs. past simple/future perfect
+        # (('am', 'will be'), ('was', 'will have been')),
+        # (('am', 'have been'), ('was', 'will have been')), # No, very weak prediction
+        # (('will be', 'have been'), ('was', 'will have been')), # No, anti-prediction
+    ]
+    # comp_pairs_all = [(('am', 'was'), ('they are', 'they were')),]
+    # comp_pairs_all = [comp_pairs_all[-1]]
+    comp_pairs_all = [(('I are', 'been have'), ('am', 'have been')),
+                      (('I are', 'been have'), ('will be', 'have been')),
+                      (('I are', 'been have'), ('am', 'will be')),
+                      (('I are', 'been have'), ('am', 'will have been')),
+                      (('I are', 'been have'), ('will be', 'will have been')),
+                      (('I are', 'been have'), ('will have been', 'have been')),
                       ]
-        forms.extend(forms_they)
-    if add_not:
-        forms_not = [('am not', 'was not'),
-                     # ('have been not', 'had been not'),
-                     # ('will be not', 'will have been not')
-                     ('will have been not', 'will be not',)
-                     ]
-        if add_they:
-            forms_they_not = [('they are not', 'they were not'),
-                              # ('they have been not', 'they had been not'),
-                              ('they will be not', 'they will have been not')
-                              ]
-            forms_not.extend(forms_they_not)
-        forms.extend(forms_not)
 
-    forms = [('am', 'was'), ('have been', 'had been')]
-    forms = [('am', 'was'), ('will be', 'will have been')]
+
+
+    labels = [
+        'Simple vs. perfect: Generalize present -> past',
+        'Simple vs. perfect: Generalize present -> future',
+        'Simple vs. perfect: Generalize past -> future',
+    ]
+
 
     vals_input, vals_down, vals_mid, vals_attn_output = [], [], [], []
-    for i, form0 in enumerate(forms):
-        for j, form1 in enumerate(forms):
-            # is_good0 = form0[0] in form1[0]
-            # is_good1 = form0[1] in form1[1]
-            # print(f'{form0}, {form1} | {is_good0=}, {is_good1=}')
-            # if not is_good0 or not is_good1:
-            #     continue
-            # if form0 == ('am', 'was'):
-            #     form0 = ('was', 'am')
-            # is_will0 = 'will' in form0[0]
-            # is_will1 = 'will' in form1[0]
-            # print(f'{form0=}, {form1=} | {is_will0=}, {is_will1=}')
-            # if not is_will0 and not is_will1:
-            #     continue
-            # if is_will0 == is_will1:
-            #     continue
-            if i >= j:
-                continue
-            # if i >= j:
-            #     continue
-            # if 'not' in form0[0]:
-            #     continue
-            # if not ('not' in form1[0]):
-            #     continue
+    for form0, form1 in comp_pairs_all:
+        comparison = (form0, form1)
+        t_st = time()
+        # for forms = [('am', 'was'), ('have been', 'had been')]
+        #   reverse=True do comparison within tuple.
+        #       e.g., train am vs. was -> test have been vs. had been
+        #   reverse=False do comparison between tuples
+        #       e.g., train am vs. have been -> test was vs. had been
+        vals_input_, vals_down_, vals_mid_, vals_attn_output_ = (
+            compare_GPT_grammar(comparison=comparison,
+                                activation_model=activation_model,
+                                do_r2=do_r2, reverse=False))
+        print(f'Time needed to do grammar comparison: '
+              f'{time() - t_st:.2f} s')
+        # if np.nanmean(np.array(vals_input_)[5:15]) > 0.98:
+        #     print(f'skip: {form0}/{form1}')
+        #     continue
+        print(f'Do: {form0}/{form1} | '
+              f'{np.nanmean(np.array(vals_input_)[5:15])=}')
+        vals_input.append(vals_input_)
+        vals_down.append(vals_down_)
+        vals_mid.append(vals_mid_)
+        vals_attn_output.append(vals_attn_output_)
 
-            comparison = (form0, form1)
-            t_st = time()
-            # for forms = [('am', 'was'), ('have been', 'had been')]
-            #   reverse=True do comparison within tuple.
-            #       e.g., train am vs. was -> test have been vs. had been
-            #   reverse=False do comparison between tuples
-            #       e.g., train am vs. have been -> test was vs. had been
-            vals_input_, vals_down_, vals_mid_, vals_attn_output_ = (
-                compare_GPT_grammar(comparison=comparison,
-                                    activation_model=activation_model,
-                                    do_r2=do_r2, reverse=reverse))
-            print(f'Time needed to do grammar comparison: '
-                  f'{time() - t_st:.2f} s')
-            if np.nanmean(np.array(vals_input_)[5:15]) > 0.98:
-                print(f'skip: {form0}/{form1}')
-                continue
-            print(f'Do: {form0}/{form1} | '
-                  f'{np.nanmean(np.array(vals_input_)[5:15])=}')
-            vals_input.append(vals_input_)
-            vals_down.append(vals_down_)
-            vals_mid.append(vals_mid_)
-            vals_attn_output.append(vals_attn_output_)
+        mapper = {('am', 'was'): 'Simple ("am" & "was")',
+                  ('have been', 'had been'): 'Perfect ("have been" & "had been")',
+                  ('will be', 'will have been'): 'Future ("will be" & "will have been")',
+                  ('they are', 'they were'): 'Simple ("they are" & "they were")',
+                  ('they will be', 'they will have been'): 'Future ("they will be" & "they will have been")',
+                  ('am not', 'was not'): 'Simple ("am not" & "was not")',
+                  ('will be not', 'will have been not'): 'Future ("will be not" & "will have been not")',
+                  ('they are not', 'they were not'): 'Simple ("they are not" & "they were not")',
+                  ('they will be not', 'they will have been not'): 'Future ("they will be not" & "they will have been not")'}
 
-            if not reverse:
-                mapper = {('am', 'was'): 'Simple ("am" & "was")',
-                          ('have been', 'had been'): 'Perfect ("have been" & "had been")',
-                          ('will be', 'will have been'): 'Future ("will be" & "will have been")',
-                          ('they are', 'they were'): 'Simple ("they are" & "they were")',
-                          ('they will be', 'they will have been'): 'Future ("they will be" & "they will have been")',
-                          ('am not', 'was not'): 'Simple ("am not" & "was not")',
-                          ('will be not', 'will have been not'): 'Future ("will be not" & "will have been not")',
-                          ('they are not', 'they were not'): 'Simple ("they are not" & "they were not")',
-                          ('they will be not', 'they will have been not'): 'Future ("they will be not" & "they will have been not")'}
-
-
-            plt.plot(vals_input_, label='Residual (input)',
-                     color='purple', marker='.', alpha=0.5)
-            plt.plot(vals_mid_, label='Residual (middle)',
-                     color='k', marker='.', alpha=0.5)
-            plt.plot(vals_attn_output_, label='Attention addition',
-                     color='green', marker='.', alpha=0.5)
-            plt.plot(vals_down_, label='MLP addition',
-                     color='blue', marker='.', alpha=0.5)
-            plt.title(f'Comparison: {comparison}')
-            if do_r2 and do_r2 != 'discrete':
-                plt.ylabel('R^2')
-                plt.plot([0, len(vals_input_)], [0, 0], color='r', linestyle='--')
-            else:
-                plt.ylabel('Accuracy')
-                plt.plot([0, len(vals_input_)], [0.5, 0.5], color='r', linestyle='--')
-            plt.ylim(0, 1)
-            plt.legend()
-            plt.show()
+        plt.plot(vals_input_, label='Residual (input)',
+                 color='purple', marker='.', alpha=0.5)
+        plt.plot(vals_mid_, label='Residual (middle)',
+                 color='k', marker='.', alpha=0.5)
+        plt.plot(vals_attn_output_, label='Attention addition',
+                 color='green', marker='.', alpha=0.5)
+        plt.plot(vals_down_, label='MLP addition',
+                 color='blue', marker='.', alpha=0.5)
+        plt.title(f'Comparison: {comparison}')
+        if do_r2 and do_r2 != 'discrete':
+            plt.ylabel('R^2')
+            plt.plot([0, len(vals_input_)], [0, 0], color='r', linestyle='--')
+        else:
+            plt.ylabel('Accuracy')
+            plt.plot([0, len(vals_input_)], [0.5, 0.5], color='r', linestyle='--')
+        plt.ylim(0, 1)
+        plt.legend()
+        plt.show()
 
     vals_input = np.array(vals_input)
     vals_input = np.nanmean(vals_input, axis=0)
@@ -510,5 +492,5 @@ def make_attention_oscillation():
 if __name__ == '__main__':
     # compare_GPT_grammar_all_comparisons()
     # compare_GPT_grammar_all_comparisons(add_they=True, add_not=False)
-    compare_GPT_grammar_all_comparisons(add_they=True, add_not=True)
+    compare_GPT_grammar_all_comparisons()
 

@@ -88,7 +88,7 @@ def get_schemerep_objs():
 def get_llama_activations(obj, scn,
                           activation_model='meta-llama/Llama-3.2-1b',):
 
-    if isinstance(activation_model, tuple):
+    if isinstance(activation_model, tuple) and activation_model[1] != 'bury':
         if activation_model[1] == 'grok_first':
             activation_model = activation_model[0]
             sentences = pickle_wrap(generate_sentences_API,
@@ -153,6 +153,24 @@ def get_llama_activations(obj, scn,
     else:
         sentence, obj, scn = get_sentence_obj_scn_in(obj, scn)
         t = time()
+        if isinstance(activation_model, tuple) and activation_model[1] == 'bury':
+            add_on = (f'I thought about this for a long while. '
+                      f'The more I pondered, the clearer it became '
+                      f'that my initial reaction was just the tip of '
+                      f'the iceberg. There were layers to this issue, '
+                      f'complexities that I hadn\'t considered at '
+                      f'first glance. Each new angle brought a '
+                      f'different perspective, challenging my '
+                      f'assumptions and making me question what I '
+                      f'thought I knew. It was like peeling an onion, '
+                      f'revealing not just answers, but more questions, '
+                      f'more nuances to explore')
+            sentence = f'{sentence} sits. {add_on}'
+            extractor = get_llama_extractor(model_name=activation_model[0])
+            res = extractor.extract_activations(sentence, ['explore', 'explore'], )
+            print(f'Time needed for activation extraction (buried): {time() - t:.3f} s')
+            print(f'\t{sentence=}')
+            return res
         extractor = get_llama_extractor(model_name=activation_model)
         if scn is None:
             print(f'Object solo sentence: {sentence=}')

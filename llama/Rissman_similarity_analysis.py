@@ -519,12 +519,12 @@ def analyze_rissman(cat='attn_weights',
             # plt.imshow(vecs_all, aspect='auto', vmin=vmin, vmax=vmax)
             # plt.show()
 
-            print(f'{vecs_all.shape=}')
+            # print(f'{vecs_all.shape=}')
             result = fit_regularized_models(vecs_all, relatedness, plot=plot_hist,
                                             n_repeats=1, normalize=False,
                                             groups=groups if do_SchemeRep else None)
             print(f'{activation_model} | {result["Ridge"]["r2_score"]=:.2f}')
-            quit()
+            # quit()
 
             result = fit_regularized_models(np.array(vecs_all), relatedness, plot=plot_hist,
                                             n_repeats=1, normalize=False,
@@ -851,15 +851,18 @@ def prep_all_figures():
                          binary_nonrep=True, no_neu=False)
 
 def prep_all_figures70():
-    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=True, norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=True)
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=False, norm_SchemeRep=False,
+    #                      binary_nonrep=True, no_neu=False)
+    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
                          do_SchemeRep=True, norm_SchemeRep=True,
                          binary_nonrep=False, no_neu=True)
-    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                         do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=True, no_neu=False)
-    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                         do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=True, no_neu=False)
+    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+    #                      do_SchemeRep=False, norm_SchemeRep=False,
+    #                      binary_nonrep=True, no_neu=False)
 
 
 if __name__ == '__main__':
