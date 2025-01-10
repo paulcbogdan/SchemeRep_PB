@@ -21,7 +21,6 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
     else:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=combine_bilateral,
-                          split=split, split_code='xyz',
                           )
 
     # Some of this is related to using this code for other projects

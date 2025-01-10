@@ -36,14 +36,6 @@ def plot_single_ROI():
     #            'combine_regions': False, 'split': False,
     #            'RDM_method': None, 'age': 'healthy',
     #            'plotting': None, 'atlas': 'BNA', 'stdize_by_run': False}
-    #
-
-    #
-    # for key in kwargs:
-    #     val0 = kwargs[key]
-    #     val1 = kwargs2[key]
-    #     assert val0 == val1, f'{key}: {val0} vs {val1}'
-
 
     dir_results = r'cache/conn_RSA'
     results_bold_sep = pickle_wrap(run_settings, None,

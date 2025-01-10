@@ -31,6 +31,7 @@ def get_llama_activations_deve(item0, item1, activation_model):
         sentence = f'A {item0} and {item1}'
     t = time()
     if isinstance(activation_model, tuple):
+        print(f'Doing deve: {item0}, {item1}')
         extractor = get_llama_extractor(model_name=activation_model[0])
         add_on = (f'I thought about this for a long while. '
                   f'The more I pondered, the clearer it became '
@@ -73,6 +74,7 @@ def get_llama_activations_deve(item0, item1, activation_model):
     elif activation_model == 'simCSE':
         extractor = get_simCSE_extractor()
     else:
+        print(f'Doing deve: {item0}, {item1}')
         extractor = get_llama_extractor(model_name=activation_model)
     res = extractor.extract_activations(sentence, [item0, item1], )
     print(f'Time needed for activation extraction: {time() - t:.3f} s')

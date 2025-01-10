@@ -60,7 +60,6 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
     df_VD = df[df['PA_VD'] == 'VD']
     df_VD['FC'] -= df_VD.groupby('sn')['FC'].transform('mean')
 
-
     g = sns.catplot(x='high_low', y='FC', data=df_PA,
                     kind='boxen',
                     linecolor='k',
@@ -171,6 +170,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
 def get_conn_sn(sn, combine_regions=True, bilateral=False,
                 only=None, learning_rate=None,
                 drop_first=False, reset_trial0=False,
+                rl_lr='both'
                 ):
     try:
         df_rl, df_lr = get_df_PE(sn, 'both',
@@ -232,8 +232,7 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
     conn_low1[np.diag_indices_from(conn_low1)] = np.nan
     conn_high = (conn_high0 + conn_high1) / 2
     conn_low = (conn_low0 + conn_low1) / 2
-
-    return conn_high, conn_low
+    return conn_high, conn_low, conn_high0, conn_high1, conn_low0, conn_low1
 
 
 def make_conn(combine_regions=False, bilateral=False,
@@ -247,8 +246,8 @@ def make_conn(combine_regions=False, bilateral=False,
     s = s.replace('\n', '').replace(' ', '')
     sns = s.split(',')
 
-    conn_highs = []
-    conn_lows = []
+    conn_highs, conn_lows = [], []
+    conn_highs0, conn_highs1, conn_lows0, conn_lows1 = [], [], [], []
     bad_sns = []
     kw = {'combine_regions': combine_regions, 'bilateral': bilateral,
           'only': only, 'learning_rate': learning_rate,
@@ -262,22 +261,27 @@ def make_conn(combine_regions=False, bilateral=False,
     while len(good_sns) < num_sns and (len(sns) > 0):
         sn = sns.pop()
         kw['sn'] = sn
-        conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
-                                             easy_override=False,
-                                             dt_max=dt_max)
 
-        if conn_high is None:
+        # conn_high_sn, conn_low_sn, conn_high0, conn_high1, conn_low0, conn_low1
+        conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
+            pickle_wrap(get_conn_sn, kwargs=kw, easy_override=False, dt_max=dt_max))
+
+        if conn_high_sn is None:
             print(f'Bad conn: {sn}, attempting to redo')
-            conn_high, conn_low_sn = pickle_wrap(get_conn_sn, kwargs=kw,
-                                                 easy_override=True,
-                                                 dt_max=dt_max)
-        if conn_high is None:
+            conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
+                pickle_wrap(get_conn_sn, kwargs=kw, easy_override=True, dt_max=dt_max))
+
+        if conn_high_sn is None:
             print('BAD CONN??')
             bad_sns.append(sn)
             continue
 
-        conn_highs.append(conn_high)
+        conn_highs.append(conn_high_sn)
         conn_lows.append(conn_low_sn)
+        conn_highs0.append(conn_high0_sn)
+        conn_highs1.append(conn_high1_sn)
+        conn_lows0.append(conn_low0_sn)
+        conn_lows1.append(conn_low1_sn)
         good_sns.append(sn)
 
     print(f'{bad_sns=}')
@@ -285,7 +289,7 @@ def make_conn(combine_regions=False, bilateral=False,
     conn_lows = np.array(conn_lows)
 
     print(f'Final sns: {len(good_sns)=}')
-    return conn_highs, conn_lows, good_sns
+    return conn_highs, conn_lows, good_sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
 
 
 def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
@@ -316,15 +320,22 @@ def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
 
 def get_combo(kw, easy_override=False):
     kw['only'] = 'loss'
-    conn_highs, conn_lows, sns = (
+    (conn_highs_loss, conn_lows_loss, sns,
+     conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
     kw['only'] = 'win'
-    conn_highs2, conn_lows2, sns2 = (
+    (conn_highs_win, conn_lows_win, sns2,
+     conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
     assert sns == sns2
-    conn_highs = np.mean([conn_highs, conn_highs2], axis=0)
-    conn_lows = np.mean([conn_lows, conn_lows2], axis=0)
-    return conn_highs, conn_lows, sns
+    conn_highs = np.mean([conn_highs_loss, conn_highs_win], axis=0)
+    conn_lows = np.mean([conn_lows_loss, conn_lows_win], axis=0)
+
+    conn_highs0 = np.mean([conn_highs0_loss, conn_highs0_win], axis=0)
+    conn_highs1 = np.mean([conn_highs1_loss, conn_highs1_win], axis=0)
+    conn_lows0 = np.mean([conn_lows0_loss, conn_lows0_win], axis=0)
+    conn_lows1 = np.mean([conn_lows1_loss, conn_lows1_win], axis=0)
+    return conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
 
 
 def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
@@ -337,9 +348,10 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
         # can either be run while averaging a loss matrix & win matrix ('combo')
         #   or just making a single one covering both PE ('both')
         # the manuscript uses 'combo'
-        conn_highs, conn_lows, sns = get_combo(kw, easy_override=True)
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+            get_combo(kw, easy_override=False))
     else:
-        conn_highs, conn_lows, sns = (
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
 
     if combine_regions:
@@ -418,6 +430,7 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='t-value',
                           vmin=-6, vmax=6, fp=fp_out)
+
 
 def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
     kwargs = {'fp': 'obj7_fMRI',

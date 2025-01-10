@@ -46,7 +46,7 @@ def make_sentence_analogy_bury_middle(a, b, c, d):
 
 def make_sentence_analogy_bury(a, b, c, d):
     first = f'{a} and {b}.'.capitalize()
-    last = f'{c} and {d}'.capitalize()
+    last = f'{c} and {d}.'.capitalize()
     middle = (f'I thought about this for a long while. '
               f'The more I pondered, the clearer it became '
               f'that my initial reaction was just the tip of '
@@ -228,7 +228,7 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
     else:
         plt.ylabel('Accuracy')
         plt.plot([0, len(vals_input)], [0.5, 0.5], color='r', linestyle='--')
-    plt.ylim(0, 1)
+    plt.ylim(0.5, 1)
     plt.legend()
     plt.show()
 
@@ -403,18 +403,30 @@ def flip_abcd(abcd, flip_within):
 
 
 @cache
-def get_analogy1_abcds(copies=1, flip_within=True):
+def get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True):
     abcds_ = parse_txts()
     abcds = []
     groups = []
     for i, (a, b, c, d) in enumerate(abcds_):
-        abcds.append([a, b, c, d])
-        copies -= 1
-        if copies > 0: abcds.append([b, a, d, c])
-        copies -= 1
-        if copies > 0: abcds.append([c, d, a, b])
-        copies -= 1
-        if copies > 0: abcds.append([d, c, b, a])
+        # copies_ = copies
+        # if copies == (0, 1):
+        #     abcds.append([b, a, d, c])
+        # else:
+        if 0 in copies:
+            abcds.append([a, b, c, d])
+        if 1 in copies:
+            abcds.append([b, a, d, c])
+        if 2 in copies:
+            abcds.append([c, d, a, b])
+        if 3 in copies:
+            abcds.append([d, c, b, a])
+        # abcds.append([a, b, c, d])
+        # copies -= 1
+        # if copies > 0: abcds.append([b, a, d, c])
+        # copies -= 1
+        # if copies > 0: abcds.append([c, d, a, b])
+        # copies -= 1
+        # if copies > 0: abcds.append([d, c, b, a])
         groups.extend([i] * (len(abcds) - len(groups)))
 
     relatedness = [1] * len(abcds)
@@ -422,8 +434,10 @@ def get_analogy1_abcds(copies=1, flip_within=True):
     abcds_flip = []
     for abcd, group in zip(abcds, groups):
         abcd_flip = flip_abcd(abcd, flip_within)
+        # print(f'{abcd_flip} | {abcd} | {group}')
         abcds_flip.append(abcd_flip)
         groups.append(group)
+    # quit()
     relatedness = relatedness + [0] * len(abcds_flip)
     relatedness = np.array(relatedness)
 
@@ -436,12 +450,34 @@ def get_analogy1_abcds(copies=1, flip_within=True):
 
 # Like a bucket and a well, a cup and a tap
 
-def prepare_analogy_figs():
-    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
-    #                   do_r2=False, copies=3, flip_within=True, analogy=1)
+def prepare_analogy_figs(copies=(0, 1), flip_within=False):
+    # get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True)
+    # quit()
+
+    compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+
+    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
+    #                   do_r2=False, copies=copies, flip_within=False, analogy=1)
+    # quit()
+    if not flip_within:
+        compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
+                          do_r2=False, copies=copies, flip_within=False, analogy=1)
+    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+    if not flip_within:
+        compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=1,
+                          do_r2=False, copies=copies, flip_within=False, analogy=1)
+    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+    if not flip_within:
+        compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=1,
+                          do_r2=False, copies=copies, flip_within=False, analogy=1)
+
     # compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'),
     #                   position=3, do_r2=False, copies=3, flip_within=True, analogy=1)
-    #
+    quit()
+
     compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct', position=3,
                       do_r2=False, copies=0, flip_within=True, analogy=1)
 
@@ -451,11 +487,22 @@ def prepare_analogy_figs():
 
     # TODO: add period '.' after text
     compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                      position=3, do_r2=False, copies=0, flip_within=True, analogy=1)
+                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
 
+def prepare_analogy70():
+    compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
+                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+
+    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+
+    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
+                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
 
 if __name__ == '__main__':
-    prepare_analogy_figs()
+
+    prepare_analogy70()
+    # prepare_analogy_figs()
     # print(test_pkld2(1, 2, a=3))
     # print(test_pkld2(1, 2, a=3))
 

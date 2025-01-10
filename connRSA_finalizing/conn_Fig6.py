@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
-from connRSA.conn_regress import get_ERS_scores
+# from connRSA.conn_regress import get_ERS_scores
 from connRSA.single_trial_conn import prep_fps
 from fMRI_proc import within_run_to_nan, get_IRAFs
 from Study1A.load_Study1A_funcs import load_FC
@@ -37,7 +37,7 @@ filterwarnings("ignore", category=RuntimeWarning,
 
 
 import os
-os.chdir(r'/')
+# os.chdir(r'/')
 
 
 @cache
@@ -777,19 +777,14 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     plt.show()
 
 def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
-                    rsa_feat=True):
+                    rsa_feat=False):
     # semantic = False
     # regress_FC = False
     # rsa_feat = False
 
     dt_max = datetime(2024, 6, 8, 0, 0, 0, 0)
 
-
-    # ERS = False
     ERS_nan_block = False
-    # ERS = True
-    # rsa_feat = False
-    # ERS = False
     cross = False
     IRAF = False
     # rsa_feat = True
@@ -849,27 +844,6 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                                    easy_override=False,
                                    dt_max=dt_max)
             sn_corrs = 1 - sn_corrs
-            # print(sn_corrs)
-            # quit()
-            # print(sn_corrs.shape)
-            # quit()
-            # print(sn_corrs[0, 0, 0])
-            # print(sn_corrs[0, 0, 1])
-            # print('-')
-
-            # quit()
-            # plt.imshow(sn_corrs[0])
-            # plt.colorbar()
-            # plt.show()
-            # quit()
-
-            # kwargs['semantic'] = 'random'
-            # sn_corrs_random = pickle_wrap(get_RSA_feat_mat,
-            #                               kwargs=kwargs, verbose=-1,
-            #                               easy_override=False,
-            #                               dt_max=dt_max)
-            # sn_corrs = sn_corrs - sn_corrs_random
-            # sn_corrs = sn_corrs_random
         elif IRAF:
             kwargs['fps'] = fps
             kwargs['second_order'] = 'spear'
@@ -879,8 +853,6 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
                                    kwargs=kwargs, verbose=-1,
                                    easy_override=False,
                                    dt_max=dt_max)
-
-
         elif ERS:
             kwargs['fps'] = fps
             kwargs['cross'] = cross
@@ -957,6 +929,9 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
     # # plt.plot(np.nanmean(diag, axis=0))
     # # plt.show()
     # quit()
+    ERS_str = 'NPS' if ERS else 'RSM'
+
+    # matrix_to_csv(corrs, f'connRSA_finalizing/{ERS_str}_conn_for_swd.csv')
 
     if get_M and not regress_FC:
         return corrs
@@ -964,6 +939,10 @@ def run_IC_analysis(ERS=True, regress_FC=True, get_M=False,
     # M_ventral_FC, M_occ_FC,
     corrs_FC, sns_FC = (
         pickle_wrap(plot_FC_mat, None, easy_override=False, dt_max=dt_max))
+
+    print(corrs_FC.shape)
+    matrix_to_csv(corrs_FC, f'connRSA_finalizing/FC_conn_for_swd.csv')
+    quit()
 
     title = 'RSM x RSM connectivity' if not ERS else 'NPS x NPS connectivity'
     if regress_FC:
@@ -1051,10 +1030,9 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
     # fps = ['obj7_fMRI'] # may have caused error in figure being true
     for fp in fps:
         kwargs = {'fp': fp,
-                  'split': False,
                   'key': 'inc',
+                  'atlas_name': 'BNA',
                   'key_vals': (1, 2, 3),
-                  'strict_sns': True,
                   'get_df_sn': True
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
@@ -1069,6 +1047,7 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
         corrs.append(sn_conn)
 
     corrs = np.nanmean(corrs, axis=0)
+    matrix_to_csv(corrs, 'connRSA_finalizing/FC_conn_for_swd.csv')
 
     plt.rcParams.update({'font.size': 16,
                          'font.sans-serif': 'Arial'})
@@ -1241,6 +1220,14 @@ def plot_IT():
     view.open_in_browser()
 
 
+def matrix_to_csv(mat, fp=r'connRSA_finalizing/DistRep_FC_for_SWD.csv'):
+    mat = np.nanmean(mat, axis=0)
+    atlas = get_atlas()
+    ticks = atlas['ROIs']
+    print(mat.shape)
+    df = pd.DataFrame(mat, columns=ticks, index=ticks)
+    df.to_csv(fp)
+
 
     # print(corr.shape)
     # quit()
@@ -1249,8 +1236,10 @@ if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
     # plot_FC_mat(drop_con=False, four_tasks='7')
     # run_IC_analysis(ERS=True, regress_FC=False)
+    run_IC_analysis(ERS=False, regress_FC=True)
+
     # run_IC_analysis(ERS=False, regress_FC=False, rsa_feat=True)
-    run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=False)
+    # run_IC_analysis(ERS=False, regress_FC=True, rsa_feat=False)
     # plot_IT()
 
     # plot_IC_mat_on_brain()

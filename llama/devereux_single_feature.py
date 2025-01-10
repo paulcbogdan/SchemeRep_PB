@@ -26,12 +26,8 @@ def regression_one_feature(feature='is_small',
                              store_='both'
                              )
 
-    # items, df = get_standard_items_list(pf_thresh, item_standard)
-
     items, _ = get_standard_items_list(pf_thresh, item_standard)
     items = items[:pf_thresh]
-    # print(len(items))
-    # quit()
     feat2onehot = get_binary_feat_matrix(items, item_standard, threshold=10,
                                          pf_thresh=300, req=req)
     d_add = {}
@@ -53,9 +49,9 @@ def plot_all_feats(#cat='input',
                    #cat='down_proj_out',
                    cat='attn_output',
                    #  cat='gate_proj_in',
-                   # activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                   activation_model='meta-llama/Llama-3.3-70b-Instruct',
                    pf_thresh=300, threshold=20, req=5,
-                   activation_model='meta-llama/Llama-3.2-3b',
+                   # activation_model='meta-llama/Llama-3.2-3b',
                    ):
     # feats = get_final_feats()#[::-1]
 
@@ -77,7 +73,10 @@ def plot_all_feats(#cat='input',
     feats = feats[:20]
     print(f'{len(feats)=}')
 
-    for feat in feats:  # [:5]:
+    norm = plt.Normalize(vmin=0, vmax=len(feats))
+    cmap = plt.get_cmap('turbo')
+
+    for i, feat in enumerate(feats):  # [:5]:
         r2s = []
         for layer_name in tqdm(range(80 if '70b' in activation_model else 28)):
             r2 = regression_one_feature(feat, cat=cat,
@@ -87,22 +86,12 @@ def plot_all_feats(#cat='input',
                                         do_r2=False,
                                         pf_thresh=pf_thresh, req=req)
             r2s.append(r2)
-            # except KeyError:
-            #     print(f'Failed for {feat=}, {layer_name=}')
-            #     break
         else:
-            # r2s = np.array(r2s)
-            r2s_std = stats.zscore(r2s)
-            # if r2s_std[0] > -2: continue
             r2s -= r2s[0]
             r2s_all.append(r2s)
-
-            plt.plot(r2s_std, label=feat, alpha=0.5,
-                     marker='o', markersize=2)
-            # plt.title(feat)
-            # plt.show()
-            # print(F'{feat}: {r2s[0]:.2f} {r2s[-1]:.2f}')
-    # # plt.legend()
+            color = cmap(norm(i))
+            plt.plot(r2s, label=feat, alpha=0.5,
+                     marker='o', markersize=2, color=color)
     plt.show()
     quit()
     r2s_all = np.array(r2s_all)
@@ -125,6 +114,13 @@ def plot_all_feats(#cat='input',
     plt.title(f'{cat=}, {activation_model=}')
     # plt.legend()
     plt.show()
+
+def plot_each_layer_component():
+    plt.gca().yaxis.set_major_formatter(mtick.StrMethodFormatter('{x:.0%}'))
+    plt.gca().set_facecolor('whitesmoke')
+    plt.grid(color='lightgray', linestyle='-', linewidth=0.5, alpha=0.4)
+
+    pass
 
 
 if __name__ == '__main__':

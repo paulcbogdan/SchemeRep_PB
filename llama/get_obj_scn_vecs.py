@@ -51,6 +51,14 @@ def get_sentence_obj_scn_in(obj, scn):
         object_part = obj2override[obj]
     else:
         object_part = f'{obj2grammar[obj]} {obj}'
+    if object_part[:3] == 'nan':
+        object_part = object_part[3:]
+
+    if 'nan' in object_part and 'banana' not in object_part:
+        print(f'{scn2grammar=}')
+        print(f'{obj2grammar=}')
+        print(f'{obj2grammar=}')
+        raise ValueError(f'NaN!!?! {obj=}, {object_part=}')
 
     if scn is None:
         if obj == 'oversize tire':
@@ -219,11 +227,21 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
     if isinstance(layer_name, tuple):
         last_only = layer_name[1]
         layer_name = layer_name[0]
-    if isinstance(activation_model, tuple) and activation_model[1] != 'grok_first':
-        assert activation_model[1] == 'obj_solo'
-        obj_solo = True
-        activation_model = activation_model[0]
-        assert not all_possible, f'{activation_model=}' # subtracting mean doesn't make sense
+    if isinstance(activation_model, tuple):
+        if activation_model[1] == 'grok_first':
+            obj_solo = False
+        elif activation_model[1] == 'obj_solo':
+            obj_solo = True
+            activation_model = activation_model[0]
+        elif activation_model[1] == 'bury':
+            obj_solo = False
+        else:
+            raise ValueError
+    # if isinstance(activation_model, tuple) and activation_model[1] != 'grok_first':
+    #     assert activation_model[1] == 'obj_solo'
+    #     obj_solo = True
+    #     activation_model = activation_model[0]
+    #     assert not all_possible, f'{activation_model=}' # subtracting mean doesn't make sense
     else:
         obj_solo = False
     cat_, inner = process_cat_cat_inner(cat)
@@ -282,7 +300,7 @@ def get_llama_d_vecs_non_normed(cat='input', layer_name=1,
                               )
                 print('mlp_out' in res)
 
-            if not all_possible:
+            if not all_possible and layer_name == 0:
                 print(f'Acquired: {obj=}, {scn=} ({time() - t_st:.2f} s)')
             if 'mlp_out' in res:  # and 'up_proj' in res['mlp_out']:
                 if 'up_proj' in res['mlp_out']:

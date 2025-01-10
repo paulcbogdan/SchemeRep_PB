@@ -332,13 +332,13 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
         t_st = time()
 
-        rs_efs = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+        rs_efs1 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                 p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                                 lr='LR', combine_regions=combine_regions, bilateral=False, )
         rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
                                  p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                                  lr='RL', combine_regions=combine_regions, bilateral=False, )
-        rs_efs = np.nanmean([rs_efs, rs_efs2], axis=0)
+        rs_efs = np.nanmean([rs_efs1, rs_efs2], axis=0)
         print(f'Resting time: {time() - t_st:.5f} s')
         # combined regions within-subject effects depend on reg_global?
 

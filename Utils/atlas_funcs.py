@@ -59,9 +59,9 @@ def get_BN_atlas(combine_bilaterally=False, lifu_labels=True,
         img = image.load_img(r'cache/BN_Atlas_246_2mm.nii.gz')
 
     if lifu_labels:
-        fp_labels = r'cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
+        fp_labels = r'C:\PycharmProjects\SchemeRep\cache/BNA_labels_Lifu_ACC_ATL_fix.txt'
     else:
-        fp_labels = r'cache/BNA_labels.txt'
+        fp_labels = r'C:\PycharmProjects\SchemeRep\cache/BNA_labels.txt'
 
     labels = pd.read_csv(fp_labels, header=None)[0].to_list()
     if combine_bilaterally:
@@ -90,7 +90,7 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
     assert not (HCP and natview), 'HCP= and natview= are mutually exclusive'
     if new_space:
         # G:\
-        fp_ref = (r'fMRI_in\102'
+        fp_ref = (r'C:\PycharmProjects\SchemeRep\fMRI_in\102'
                   r'\ENC_GM20_LLS1_bpF_full\OBJ'
                   r'\ENC_sub102_run1_trial1_subset3_pairID29_object.nii')
     else:
@@ -170,7 +170,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False,
     return atlas
 
 def org_BNA_coords():
-    fp_coords_pre = r'cache\BNA_coords_pre.csv'
+    fp_coords_pre = r'C:\PycharmProjects\SchemeRep\cache\BNA_coords_pre.csv'
     df = pd.read_csv(fp_coords_pre)
     coords = []
     for l_coord, r_coord in zip(df['L_coord'], df['R_coord']):

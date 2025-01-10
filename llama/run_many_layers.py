@@ -155,13 +155,14 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=False, attn='attn_outputs', normalize=True,
+def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
                       activation_model='70b'
                       ):
     if '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
+    activation_model = ('meta-llama/Llama-3.3-70b-Instruct', 'bury')
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
@@ -181,11 +182,11 @@ def run_layers_static(obj_scn=False, attn='attn_outputs', normalize=True,
         else:
             semantic_l = []
             fps_do = 'non_obj'
-        if '3b' in activation_model:
-            semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
-                                            attn=False, do_M='obj_solo', last_only=False,
-                                            normalize=True
-                                           )
+        # if '3b' in activation_model:
+        semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
+                                        attn=False, do_M='obj_solo', last_only=False,
+                                        normalize=True
+                                       )
 
         semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
         semantic_l += semantic_l_BERT

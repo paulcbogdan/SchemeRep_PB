@@ -14,6 +14,7 @@ from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner, get_obj2grammar, get_scn2grammar, get_llama_activations
 from marinate.pkld import pkld
 from organize_bhv import get_trial_info
+from functools import cache
 
 
 def get_rissman_df(condition=''):
@@ -48,8 +49,10 @@ def get_rissman_similarity(pair, flip=False,
 
     obj2grammar, _ = get_obj2grammar()
     scn2grammar, _ = get_scn2grammar()
+    # print(f'{activation_model=}')
     if do_schemerep:  # pair[0] in obj2grammar and pair[1] in scn2grammar:
         assert not flip
+        # print(f'Doing llama: {cat}, {pair=}')
         res, fp = pickle_wrap(get_llama_activations,
                               kwargs={'obj': pair[0], 'scn': pair[1],
                                       'activation_model': activation_model},
@@ -67,10 +70,11 @@ def get_rissman_similarity(pair, flip=False,
             'mlp_out' in res and 'down_proj' in res['mlp_out']):
         if do_schemerep:  # pair[0] in obj2grammar and pair[1] in scn2grammar:
             assert not flip
+            print(f'Doing llama (for down_proj): {cat}, {pair=}')
             res, fp = pickle_wrap(get_llama_activations,
                                   kwargs={'obj': pair[0], 'scn': pair[1],
                                           'activation_model': activation_model},
-                                  easy_override=True, verbose=-1, dir_branches=100,
+                                  easy_override=False, verbose=-1, dir_branches=100,
                                   RAM_cache=False, get_fp=True
                                   )
         else:
@@ -447,6 +451,7 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
     return vecs_0_all, vecs_1_all
 
 
+@cache
 def get_SchemeRep_df(no_neu=False):
     sns = ['102', '103', '104']  # everyone else is a duplicate
     already_done = set()
@@ -455,7 +460,10 @@ def get_SchemeRep_df(no_neu=False):
     ics_l = []
     for sn in sns:
         df_sn = get_trial_info(sn)
-        if no_neu:
+        if isinstance(no_neu, int) or isinstance(no_neu, str):
+            no_neu = int(no_neu)
+            df_sn = df_sn[df_sn['inc'] != no_neu]
+        elif no_neu:
             df_sn = df_sn[df_sn['inc'] != 2]
         objs = df_sn['obj'].to_list()
         scns = df_sn['scene'].to_list()
@@ -464,6 +472,7 @@ def get_SchemeRep_df(no_neu=False):
         scns_l.extend(scns)
         ics_l.extend(ics)
     pairs = list(zip(objs_l, scns_l))
+    print(f'Prepped SchemeRep pairs: {pairs=}')
     return pairs, ics_l, None
 
 
@@ -513,11 +522,6 @@ def analyze_rissman(cat='attn_weights',
                 print(f'{activation_model_} | {result["Ridge"]["r2_score"]=:.2f}')
 
             vecs_all = np.concatenate(vecs_all, axis=1)
-            # vmax = np.nanquantile(vecs_all, .99)
-            # vmin = np.nanquantile(vecs_all, .01)
-            # vecs_all = stats.zscore(vecs_all, axis=0, nan_policy='omit')
-            # plt.imshow(vecs_all, aspect='auto', vmin=vmin, vmax=vmax)
-            # plt.show()
 
             # print(f'{vecs_all.shape=}')
             result = fit_regularized_models(vecs_all, relatedness, plot=plot_hist,
@@ -559,8 +563,10 @@ def analyze_rissman(cat='attn_weights',
 
     M_attns = []
     vecs_attns = []
-    # do_SchemeRep = False
+    if isinstance(do_SchemeRep, tuple) and do_SchemeRep[1] == 'deve':
+        do_SchemeRep = False
 
+    # quit()
     for pair in pairs:
         if isinstance(layer_name, list):
             vec_010, vec_011 = (
@@ -665,53 +671,34 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
     for layer_name in range(0, 28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80):
         # layer_name_l = list(range(layer_name, layer_name + 4))
         layer_name_l = layer_name
-        # try:
-        r2_attn = analyze_rissman(cat='attn_weights', layer_name=layer_name_l,
-                                  do_SchemeRep=do_SchemeRep,
-                                  activation_model=activation_model,
-                                  norm_SchemeRep=norm_SchemeRep,
-                                  binary_nonrep=binary_nonrep,
-                                  no_neu=no_neu)
+        kw = {'layer_name': layer_name_l, 'do_SchemeRep': do_SchemeRep,
+              'activation_model': activation_model, 'norm_SchemeRep': norm_SchemeRep,
+              'binary_nonrep': binary_nonrep, 'no_neu': no_neu}
 
-        r2_input = analyze_rissman(cat='input', layer_name=layer_name_l,
-                                   do_SchemeRep=do_SchemeRep,
-                                   activation_model=activation_model,
-                                   norm_SchemeRep=norm_SchemeRep,
-                                   binary_nonrep=binary_nonrep,
-                                   no_neu=no_neu)
+        if no_neu == 'all':
+            r2_attn, r2_input, r2_mid, r2_attn_output, r2_down = (
+                [], [], [], [], [])
+            for nn in range(1, 4):
+                if nn == 2: continue
+                kw['no_neu'] = nn
+                r2_attn.append(analyze_rissman(cat='attn_weights', **kw))
+                r2_input.append(analyze_rissman(cat='input', **kw))
+                r2_mid.append(analyze_rissman(cat='gate_proj_in', **kw))
+                r2_attn_output.append(analyze_rissman(cat='attn_output', **kw))
+                r2_down.append(analyze_rissman(cat='down_proj_out', **kw))
+            r2_attn = np.mean(r2_attn, axis=0)
+            r2_input = np.mean(r2_input, axis=0)
+            r2_mid = np.mean(r2_mid, axis=0)
+            r2_attn_output = np.mean(r2_attn_output, axis=0)
+            r2_down = np.mean(r2_down, axis=0)
+        else:
+            r2_attn = analyze_rissman(cat='attn_weights', **kw)
+            r2_input = analyze_rissman(cat='input', **kw)
+            r2_mid = analyze_rissman(cat='gate_proj_in', **kw)
+            r2_attn_output = analyze_rissman(cat='attn_output', **kw)
+            r2_down = analyze_rissman(cat='down_proj_out', **kw)
 
-        r2_mid = analyze_rissman(cat='gate_proj_in', layer_name=layer_name_l,
-                                 do_SchemeRep=do_SchemeRep,
-                                 activation_model=activation_model,
-                                 norm_SchemeRep=norm_SchemeRep,
-                                 binary_nonrep=binary_nonrep,
-                                 no_neu=no_neu)
 
-        r2_attn_output = analyze_rissman(cat='attn_output', layer_name=layer_name_l,
-                                         do_SchemeRep=do_SchemeRep,
-                                         activation_model=activation_model,
-                                         norm_SchemeRep=norm_SchemeRep,
-                                         binary_nonrep=binary_nonrep,
-                                         no_neu=no_neu)
-
-        r2_down = analyze_rissman(cat='down_proj_out', layer_name=layer_name_l,
-                                  do_SchemeRep=do_SchemeRep,
-                                  activation_model=activation_model,
-                                  norm_SchemeRep=norm_SchemeRep,
-                                  binary_nonrep=binary_nonrep,
-                                  no_neu=no_neu)
-        # r2_down = np.nan
-        # print(f'{layer_name=}, {r2_attn=:.2f}, {r2_input=:.2f}, '
-        #       f'{r2_attn_output=:.2f}, {r2_down=:.2f}')
-        # TODO: edit attn_output to make suer its the right word2word
-
-        # except KeyError:
-        #     print('KeyError')
-        #     r2_attn = np.nan
-        #     r2_gate = np.nan
-        # r2_gate = analyze_rissman(cat='gate_proj_in', layer_name=layer_name,
-        #                           do_SchemeRep=do_SchemeRep,
-        #                           activation_model=activation_model)
         vals_attn.append(r2_attn)
         vals_residual.append(r2_input)
         vals_attn_output.append(r2_attn_output)
@@ -838,39 +825,103 @@ def try_concat(do_SchemeRep=False, norm_SchemeRep=False,
 
 def prep_all_figures():
     compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
+                         do_SchemeRep=(True, 'deve'), norm_SchemeRep=False,
+                         binary_nonrep=False, no_neu=1)
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
+                         do_SchemeRep=True, norm_SchemeRep=False,
+                         binary_nonrep=False, no_neu=1)
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
                          do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=True, no_neu=False)
-    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
-    #                      do_SchemeRep=True, norm_SchemeRep=True,
-    #                      binary_nonrep=False, no_neu=True)
+                         binary_nonrep=False, no_neu=False)
+
     compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.2-3b', 'bury'),
                          do_SchemeRep=False, norm_SchemeRep=False,
                          binary_nonrep=True, no_neu=False)
+    quit()
+
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
+    #                      do_SchemeRep=(True, 'deve'), norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=1)
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
+    #                      do_SchemeRep=(True, 'deve'), norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=3)
+    # quit()
+
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.2-3b',
+                         do_SchemeRep=False, norm_SchemeRep=False,
+                         binary_nonrep=True, no_neu=False)
+
+
     compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.2-3b', ('bury', 0.25)),
                          do_SchemeRep=False, norm_SchemeRep=False,
                          binary_nonrep=True, no_neu=False)
 
 def prep_all_figures70():
     # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-    #                      do_SchemeRep=True, norm_SchemeRep=True,
-    #                      binary_nonrep=False, no_neu=True)
+    #                      do_SchemeRep=True, norm_SchemeRep=False, # TODO: toggle back to True
+    #                      binary_nonrep=False, no_neu=1)
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=True, norm_SchemeRep=False,
+    #                      binary_nonrep=False, no_neu=3)
+    # # quit()
+    #
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=True, norm_SchemeRep=False,
+    #                      binary_nonrep=False, no_neu=2)
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=(True, 'deve'), norm_SchemeRep=False,
+    #                      binary_nonrep=False, no_neu=3)
+    #
+    #
     # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     #                      do_SchemeRep=False, norm_SchemeRep=False,
     #                      binary_nonrep=True, no_neu=False)
+    # quit()
+    # for no_neu in range(1, 4):
     compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
                          do_SchemeRep=True, norm_SchemeRep=True,
-                         binary_nonrep=False, no_neu=True)
+                         binary_nonrep=False, no_neu='all')
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         do_SchemeRep=True, norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu='all')
     # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
     #                      do_SchemeRep=False, norm_SchemeRep=False,
     #                      binary_nonrep=True, no_neu=False)
 
+    # TODO: double-check that no_rep 1 is actually dropping inc
+
+def investigate_70_bury():
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         do_SchemeRep=(True, 'deve'), norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu=True)
+    quit()
+
+    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                         do_SchemeRep=False, norm_SchemeRep=False,
+                         binary_nonrep=False, no_neu=False)
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         do_SchemeRep=False, norm_SchemeRep=False,
+                         binary_nonrep=False, no_neu=False)
+
+    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                         do_SchemeRep=True, norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu='all')
+    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                         do_SchemeRep=True, norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu='all')
+
+def print_all_sentences():
+    pass
 
 if __name__ == '__main__':
+    # TODO: test the SchemeRep while doing the "and" format
+    #   do_SchemeRep=(True, 'deve')
     # prep_all_figures()
-
-    prep_all_figures70()
-
+    # TODO: compare analogy 70
+    # prep_all_figures70()
+    investigate_70_bury()
     quit()
+
     # quit()
     # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
     #                      do_SchemeRep=False, norm_SchemeRep=False,
