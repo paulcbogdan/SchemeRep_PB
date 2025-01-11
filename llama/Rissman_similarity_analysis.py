@@ -13,10 +13,12 @@ from tqdm import tqdm
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner, get_obj2grammar, get_scn2grammar, get_llama_activations
+from llama.plot_2rel import general_llama_plot
 from marinate.pkld import pkld
 from org_sns import get_sns
 from organize_bhv import get_trial_info
 from functools import cache
+from time import time
 
 
 def get_rissman_df(condition=''):
@@ -33,7 +35,7 @@ def get_rissman_df(condition=''):
     return pairs, relatedness, df_grp
 
 
-# @pkld
+@pkld
 def get_rissman_similarity(pair, flip=False,
                            activation_model='meta-llama/Llama-3.2-3b',
                            cat='attn_weights', get_last=False,
@@ -59,14 +61,14 @@ def get_rissman_similarity(pair, flip=False,
                               kwargs={'obj': pair[0], 'scn': pair[1],
                                       'activation_model': activation_model},
                               easy_override=False, verbose=-1, dir_branches=100,
-                              RAM_cache=False, get_fp=True
+                              RAM_cache=True, get_fp=True
                               )
     else:
         res, fp = pickle_wrap(get_llama_activations_deve,
                               kwargs={'item0': item0, 'item1': item1,
                                       'activation_model': activation_model},
                               easy_override=False, verbose=-1, dir_branches=100,
-                              RAM_cache=False, get_fp=True)
+                              RAM_cache=True, get_fp=True)
 
     if cat == 'down_proj_out' and not (
             'mlp_out' in res and 'down_proj' in res['mlp_out']):
@@ -323,7 +325,6 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         y_tests = []
         y_preds = []
         test_sizes = []
-        # print(f'{groups=}')
         for train_idx, test_idx in cv.split(X, y, groups=groups):
             test_sizes.append(len(test_idx))
             # Split data
@@ -573,7 +574,12 @@ def analyze_rissman(cat='attn_weights',
         else:
             pairs, relatedness, _ = get_SchemeRep_df(no_neu=no_neu)
         if no_neu and not (isinstance(no_neu, tuple) and no_neu[0] == False):
+
+            t_st = time()
+            print('Finding circles...')
             circles = find_circles(pairs)
+            print(f'{time() - t_st=:.2f} s')
+
             word2circle = {}
             for i, circle in enumerate(circles):
                 for word in circle:
@@ -589,11 +595,13 @@ def analyze_rissman(cat='attn_weights',
         pairs, relatedness, _ = get_rissman_df()
     M_attns = []
     vecs_attns = []
+    do_SchemeRep_groups = do_SchemeRep
     if isinstance(do_SchemeRep, tuple) and do_SchemeRep[1] == 'deve':
         do_SchemeRep = False
 
     # quit()
     for pair in pairs:
+        # print('Getting pairs')
         if isinstance(layer_name, list):
             vec_010, vec_011 = (
                 get_rissman_similarity_many_layers(pair, cat=cat, get_last=get_last,
@@ -613,7 +621,9 @@ def analyze_rissman(cat='attn_weights',
             # d_vecs_pair = pickle_wrap(get_rissman_similarity,  kwargs=kw,
             #                           verbose=-1, easy_override=False)
             # d_vecs_pair = get_rissman_similarity(**kw)
-            d_vecs_pair = pkld(get_rissman_similarity, overwrite=False)(**kw)
+            # print(f'Getting pair: {pair}')
+            d_vecs_pair = pkld(get_rissman_similarity, overwrite=False,
+                               verbose=0)(**kw)
 
             # print('test')
             # quit()
@@ -655,6 +665,7 @@ def analyze_rissman(cat='attn_weights',
     vecs_attns = np.array(vecs_attns)
 
     if norm_SchemeRep:
+        print('Normalizing rissman SchemeRep')
         vecs_attns = normalize_rissman_SchemeRep(pairs, vecs_attns)
 
     if binary_nonrep:
@@ -665,11 +676,15 @@ def analyze_rissman(cat='attn_weights',
     if get_vecs:
         return np.array(vecs_attns)
 
+    # from time import time
+    # t_st = time()
     result = fit_regularized_models(np.array(vecs_attns), relatedness, plot=plot_hist,
                                     n_repeats=1, normalize=False,
-                                    groups=groups if do_SchemeRep else None)
+                                    groups=groups if do_SchemeRep_groups else None)
     title = f'{layer_name} | mean {cat}: {r=:.2f}, {result["Ridge"]["r2_score"]=:.2f}'
     print(title)
+    # print(f'{time() - t_st=:.2f} s')
+    # quit()
 
     r2 = result['Ridge']['r2_score']
     return r2
@@ -679,8 +694,10 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
                          # activation_model='meta-llama/Llama-3.2-3b',
                          activation_model=('meta-llama/Llama-3.2-3b', 'bury'),
                          binary_nonrep=True, no_neu=False,
+                         xlabel=True
                          # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                          ):
+    print(f'Plotting compare_attn_vs_gate: {do_SchemeRep}, {no_neu}: {activation_model=}')
     # .25, .6,
     #     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
     #                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
@@ -731,39 +748,61 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
         vals_down.append(r2_down)
         vals_mid.append(r2_mid)
 
-    plt.plot(list(range(len(vals_attn))), vals_attn,
-             label='Attention', color='green', marker='.')
-    plt.plot(list(range(len(vals_residual))), vals_residual,
-             label='Residual (input)', color='purple', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_mid))), vals_mid,
-             label='Residual (middle)', color='k', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_attn_output))), vals_attn_output,
-             label='Attention addition', color='red', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_down))), vals_down,
-             label='MLP addition', color='dodgerblue', marker='.',
-             alpha=0.5)
-
-    r_attn = get_autocorr(vals_attn)
-    r_input = get_autocorr(vals_residual)
-    r_attn_out = get_autocorr(vals_attn_output)
-    r_FFN = get_autocorr(vals_down)
-    r_mid = get_autocorr(vals_mid)
-    autocorr_title = (f'{r_attn=:.2f}, {r_input=:.2f}, {r_attn_out=:.2f}, '
-                      f'{r_FFN=:.2f}, {r_mid=:.2f}')
-    plt.xlabel('Layer')
-    plt.legend()
+    # plt.plot(list(range(len(vals_attn))), vals_attn,
+    #          label='Attention', color='green', marker='.')
+    # plt.plot(list(range(len(vals_residual))), vals_residual,
+    #          label='Residual (input)', color='purple', marker='.',
+    #          alpha=0.5)
+    # plt.plot(list(range(len(vals_mid))), vals_mid,
+    #          label='Residual (middle)', color='k', marker='.',
+    #          alpha=0.5)
+    # plt.plot(list(range(len(vals_attn_output))), vals_attn_output,
+    #          label='Attention addition', color='red', marker='.',
+    #          alpha=0.5)
+    # plt.plot(list(range(len(vals_down))), vals_down,
+    #          label='MLP addition', color='dodgerblue', marker='.',
+    #          alpha=0.5)
+    #
+    # r_attn = get_autocorr(vals_attn)
+    # r_input = get_autocorr(vals_residual)
+    # r_attn_out = get_autocorr(vals_attn_output)
+    # r_FFN = get_autocorr(vals_down)
+    # r_mid = get_autocorr(vals_mid)
+    # autocorr_title = (f'{r_attn=:.2f}, {r_input=:.2f}, {r_attn_out=:.2f}, '
+    #                   f'{r_FFN=:.2f}, {r_mid=:.2f}')
+    # plt.xlabel('Layer')
+    # plt.legend()
+    plt.rcParams.update({'font.size': 14})
     if isinstance(no_neu, tuple) and no_neu[1] == 'cont':
-        plt.ylim(0, 1)
+        if isinstance(do_SchemeRep, tuple) and 'deve' in do_SchemeRep:
+            plt.title('Object-scene congruence\n"An {object} and {scene}"',
+                      fontsize=16)
+        else:
+            plt.title('Object-scene congruence\n"In the {scene}, an {object}"',
+                      fontsize=16)
+        y_low = 0
+        ylabel = 'Accuracy (R²)'
+        # plt.ylim(0, 1)
     elif (do_SchemeRep and no_neu ) or binary_nonrep:
-        plt.ylim(0.5, 1)
+        plt.title('Object-scene congruence binary')
+        y_low = 0.5
+        ylabel = 'Accuracy (%)'
+        # plt.ylim(0.5, 1)
     else:
-        plt.ylim(0, 1)
-    plt.title(f'{do_SchemeRep=}, {norm_SchemeRep=},\n'
-              f'{binary_nonrep=}, {no_neu=}\n{autocorr_title}')
-    plt.show()
+        plt.title('Object-object relatedness\n"An {item 1} and {item 2}"',
+                  fontsize=16)
+        ylabel = 'Accuracy (R²)'
+        y_low = 0
+
+    vals_l = [vals_residual, vals_attn_output, vals_down, vals_attn]
+    labels = ['Residual\n(input)', 'Attention\naddition',
+              'FFN\naddition', 'Attention\nweights']
+    colors = ['k', 'r', 'dodgerblue', 'green']
+    # from time import time
+    # t_st = time()
+    general_llama_plot(vals_l, labels, colors, ylabel=ylabel,
+                       y_low=y_low, do_legend=False, xlabel=xlabel)
+
 
 def get_autocorr(l, gap=1):
     l = l[5:]
@@ -781,17 +820,6 @@ def find_circles(pairs):
         adj[i].append(j)
         adj[j].append(i)
 
-    # adj_mat = np.zeros((228, 228))
-    # pairs_flat = [word for pair in pairs for word in pair]
-    # pairs_flat = list(set(pairs_flat))
-    # for word0, word1 in pairs:
-    #     i = pairs_flat.index(word0)
-    #     j = pairs_flat.index(word1)
-    #     adj_mat[i, j] = 1
-    #     adj_mat[j, i] = 1
-    # plt.imshow(adj_mat)
-    # plt.show()
-    # quit()
 
     def dfs(node, parent, path, circles):
         if node in path:
@@ -952,6 +980,8 @@ def investigate_70_bury(#do_SchemeRep=(True, 'deve'),
 
 def print_all_sentences():
     pass
+
+
 
 if __name__ == '__main__':
     # TODO: test the SchemeRep ws ile doing the "and" format

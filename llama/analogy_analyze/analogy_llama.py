@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 from llama.Rissman_similarity_analysis import fit_regularized_models, get_autocorr
 from llama.get_obj_scn_vecs import get_llama_extractor, process_cat_cat_inner
+from llama.plot_2rel import general_llama_plot
 from marinate.pkld import pkld
 
 
@@ -111,6 +112,7 @@ def extract_abcd(*abcd,
     for idx_target in range(len(abcd)):
         idx_target_ = 0 if buried else idx_target
         if cat == 'attn_weights':
+            # print(len(res['attn']['attn_weights'][layer_name]))
             v = np.nanmean(res['attn']['attn_weights'][layer_name][idx_target_],
                            axis=(0, 1))
         else:
@@ -166,7 +168,7 @@ def compare_GPT_spots70_(activation_model='70b', position=7, do_r2=False,
 
 
 def compare_GPT_spots70(activation_model='70b', position=3, do_r2=False,
-                        copies=0, flip_within=True, analogy=1):
+                        copies=0, flip_within=True, analogy=1,):
     # activation_model = (r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid')
     # TODO: run this as flip_within
     # TODO: test flip_between with copies=3 maybe
@@ -184,10 +186,11 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
     elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
-    vals_input = []
+    vals_residual = []
     vals_down = []
     vals_mid = []
     vals_attn_output = []
+    vals_attn = []
     # for layer_name in tqdm(range(28 if '3b' in activation_model else 80),
     #                        desc='Running layers', position=0, leave=True):
     for layer_name in range(28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80):
@@ -198,39 +201,70 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
         r2_down = run_analogy_analysis(cat='down_proj_out', **kw)
         r2_mid = run_analogy_analysis(cat='gate_proj_in', **kw)
         r2_attn_output = run_analogy_analysis(cat='attn_output', **kw)
-        vals_input.append(r2_input)
+        # r2_attn = run_analogy_analysis(cat='attn_weights', **kw)
+        vals_residual.append(r2_input)
         vals_down.append(r2_down)
         vals_mid.append(r2_mid)
         vals_attn_output.append(r2_attn_output)
+        # vals_attn.append(r2_attn)
         print(f'{layer_name} | {r2_input=:.2f}, {r2_down=:.2f}, '
               f'{r2_mid=:.2f}, {r2_attn_output=:.2f}')
 
-    plt.plot(vals_input, label='Residual (input)',
-             color='purple', marker='.', alpha=0.5)
-    plt.plot(vals_mid, label='Residual (middle)',
-             color='k', marker='.', alpha=0.5)
-    plt.plot(vals_attn_output, label='Attention addition',
-             color='green', marker='.', alpha=0.5)
-    plt.plot(vals_down, label='MLP addition',
-             color='blue', marker='.', alpha=0.5)
+    # plt.plot(vals_input, label='Residual (input)',
+    #          color='purple', marker='.', alpha=0.5)
+    # plt.plot(vals_mid, label='Residual (middle)',
+    #          color='k', marker='.', alpha=0.5)
+    # plt.plot(vals_attn_output, label='Attention addition',
+    #          color='green', marker='.', alpha=0.5)
+    # plt.plot(vals_down, label='MLP addition',
+    #          color='blue', marker='.', alpha=0.5)
+    #
+    # r_input = get_autocorr(vals_input)
+    # r_attn_out = get_autocorr(vals_attn_output)
+    # r_FFN = get_autocorr(vals_down)
+    # r_mid = get_autocorr(vals_mid)
+    # autocorr_title = (f'{r_input=:.2f}, {r_attn_out=:.2f}, '
+    #                   f'{r_FFN=:.2f}, {r_mid=:.2f}')
+    #
+    # plt.title(f'Analogy analysis, {position=}\n{autocorr_title}')
+    # if do_r2:
+    #     plt.ylabel('R^2')
+    #     plt.plot([0, len(vals_input)], [0, 0], color='r', linestyle='--')
+    # else:
+    #     plt.ylabel('Accuracy')
+    #     plt.plot([0, len(vals_input)], [0.5, 0.5], color='r', linestyle='--')
+    # plt.ylim(0.5, 1)
+    # plt.legend()
+    # plt.show()
 
-    r_input = get_autocorr(vals_input)
-    r_attn_out = get_autocorr(vals_attn_output)
-    r_FFN = get_autocorr(vals_down)
-    r_mid = get_autocorr(vals_mid)
-    autocorr_title = (f'{r_input=:.2f}, {r_attn_out=:.2f}, '
-                      f'{r_FFN=:.2f}, {r_mid=:.2f}')
-
-    plt.title(f'Analogy analysis, {position=}\n{autocorr_title}')
-    if do_r2:
-        plt.ylabel('R^2')
-        plt.plot([0, len(vals_input)], [0, 0], color='r', linestyle='--')
+    if flip_within:
+        assert position == 3
+        plt.title('Two-item relation\n'
+                  '"An {a} and {b}, a {c} and {d}" vs.\n'
+                  '"An {a} and {b}, a {d} and {c}"',
+                  fontsize=14, pad=10)
     else:
-        plt.ylabel('Accuracy')
-        plt.plot([0, len(vals_input)], [0.5, 0.5], color='r', linestyle='--')
-    plt.ylim(0.5, 1)
-    plt.legend()
-    plt.show()
+        if position == 1:
+            plt.title('Analogy vs. double-discrepancy\n'
+                      '"An {a} and {b}" vs.\n'
+                      '"An {a} and {b}"',
+                      fontsize=14, pad=10)
+            # plt.title('a:b vs. a:c')
+        else:
+            plt.title('Analogy vs. second-discrepancy\n'
+                      '"An {a} and {b}, a {c} and {d}" vs.\n'
+                      '"An {a} and {d}, a {c} and {b}"',
+                      fontsize=14, pad=10)
+
+
+    vals_l = [vals_residual, vals_attn_output, vals_down]
+    labels = ['Residual\n(input)', 'Attention\naddition',
+              'FFN\naddition', 'Attention\nweights']
+    colors = ['k', 'r', 'dodgerblue', 'green']
+    general_llama_plot(vals_l, labels, colors,
+                       ylabel='Accuracy (%)' if (not flip_within and
+                                                 position == 1) else '',
+                       do_legend=False, xlabel=True)
 
 
 @cache
@@ -443,54 +477,14 @@ def get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True):
 
     return abcds + abcds_flip, relatedness, groups
 
-
-# @pkld(verbose=True)
-# def test_pkld2(c, b, **kwargs):
-#     return str(c) + str(kwargs['a'])
-
-# Like a bucket and a well, a cup and a tap
-
-def prepare_analogy_figs(copies=(0, 1), flip_within=True):
-    # get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True)
-    # quit()
-
-    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
-    #                   do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
-
-    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
-    #                   do_r2=False, copies=copies, flip_within=False, analogy=1)
-
-    compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
+def prepare_analogy_figs(copies=(0, 1, 2, 3), flip_within=False,
+                         activation_model='meta-llama/Llama-3.2-3b'):
+    compare_GPT_spots(activation_model=activation_model, position=1,
                       do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
-    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=3,
+    compare_GPT_spots(activation_model=activation_model, position=3,
                       do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
-    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=3,
-                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
-
-    if not flip_within:
-        compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
-                          do_r2=False, copies=copies, flip_within=False, analogy=1)
-    if not flip_within:
-        compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=1,
-                          do_r2=False, copies=copies, flip_within=False, analogy=1)
-    if not flip_within:
-        compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=1,
-                          do_r2=False, copies=copies, flip_within=False, analogy=1)
-
-    # compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'),
-    #                   position=3, do_r2=False, copies=3, flip_within=True, analogy=1)
-    quit()
-
-    compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct', position=3,
-                      do_r2=False, copies=0, flip_within=True, analogy=1)
-
-    # TODO: halfway done with flip_within=False
-    # compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
-    #                   position=1, do_r2=False, copies=0, flip_within=False, analogy=1)
-
-    # TODO: add period '.' after text
-    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+    compare_GPT_spots(activation_model=activation_model, position=3,
+                      do_r2=False, copies=copies, flip_within=True, analogy=1)
 
 def prepare_analogy70():
     # compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
@@ -505,6 +499,9 @@ if __name__ == '__main__':
 
     # prepare_analogy70()
     prepare_analogy_figs()
+    # prepare_analogy_figs(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
+    #                      copies=(0, 1))
+
     # print(test_pkld2(1, 2, a=3))
     # print(test_pkld2(1, 2, a=3))
 

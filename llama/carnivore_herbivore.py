@@ -9,7 +9,10 @@ from tqdm import tqdm
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner
+from llama.plot_2rel import general_llama_plot
 from marinate.pkld import pkld
+from matplotlib import ticker as mtick
+
 
 # suppress: RuntimeWarning: invalid value encountered in divide
 np.seterr(divide='ignore', invalid='ignore')
@@ -264,7 +267,6 @@ def make_animal_food_vecs(animals, food_match, food_mismatch, d_vecs, odd_even=N
 def cross_species_regression(layer_name=19, normalize=True,
                              cat='attn_weights',
                              cross_animal=True,
-                             # cat='gate_proj_in',
                              activation_model='meta-llama/Llama-3.2-3b',
                              food_second=False
                              ):
@@ -292,32 +294,11 @@ def cross_species_regression(layer_name=19, normalize=True,
                 for i in range(2):
                     vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
                                      key[i] == food and key[2] in stim_class])
-                    # print([key for key in d_vecs.keys() if
-                    #                  key[i] == food and key[2] in stim_class])
-                    # print(f'{vecs.shape=}')
                     vecs_M = np.nanmean(vecs, axis=0)
                     vecs_SD = np.nanstd(vecs, axis=0)
                     for key in d_vecs.keys():
                         if key[i] == food and key[2] in stim_class:
                             d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
-        # print(d_vecs[(carnivores[0], meats[0], meats[0])])
-        #
-        # for key2 in keys2:
-        #     # if food_second:
-        #     vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
-        #                      (key[2] == key2 and key[1] == key2)])
-        #     # print([key for key in d_vecs.keys() if
-        #     #                  (key[2] == key2 and key[1] == key2)])
-        #     # else:
-        #     #     vecs = np.array([d_vecs[key] for key in d_vecs.keys() if
-        #     #                      (key[2] == key2 and key[0] == key2)])
-        #     vecs_M = np.nanmean(vecs, axis=0)
-        #     vecs_SD = np.nanstd(vecs, axis=0)
-        #     for key in d_vecs.keys():
-        #         if key[2] == key2 and key[1] == key2:
-        #             d_vecs[key] = (d_vecs[key] - vecs_M) / vecs_SD
-        # print(d_vecs[(carnivores[0], meats[0], meats[0])])
-        # quit()
 
     animals = carnivores + herbivores
     foods = meats + plants
@@ -336,10 +317,10 @@ def cross_species_regression(layer_name=19, normalize=True,
     bad_cols = np.isnan(X).any(axis=0)
 
     X = X[:, ~bad_cols]
-    # print(f'Post NaN drop: {X.shape=}')
+    print(f'Post NaN drop: {X.shape=}')
     bad_cols_inf = np.isinf(X).any(axis=0)
     X = X[:, ~bad_cols_inf]
-    # print(f'Post inf drop: {X.shape=}')
+    print(f'Post inf drop: {X.shape=}')
     y = np.concatenate([Y_carn, Y_herb], axis=0)
 
     # groups = []
@@ -388,9 +369,10 @@ def cross_species_regression(layer_name=19, normalize=True,
 
 
 def plot_layers_cross_species(cross_animal=False,
-                              # activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                              activation_model='meta-llama/Llama-3.2-3b',
-                              food_second=False
+                              activation_model='meta-llama/Llama-3.3-70b-Instruct',
+                              # activation_model='meta-llama/Llama-3.2-3b',
+                              food_second=False,
+                              plot_title=True
                               ):
     vals_attn = []
     vals_residual = []
@@ -403,19 +385,27 @@ def plot_layers_cross_species(cross_animal=False,
               'cross_animal': cross_animal, 'food_second': food_second}
         kw['food_second'] = True
 
-        r2_attn = cross_species_regression(cat='attn_weights', **kw)
+        if 'bury' not in activation_model:
+            r2_attn = cross_species_regression(cat='attn_weights', **kw)
+        else:
+            r2_attn = np.nan
+
         r2_gate = cross_species_regression(cat='gate_proj_in', **kw)
         r2_input = cross_species_regression(cat='input', **kw)
         r2_attn_output = cross_species_regression(cat='attn_output', **kw)
         r2_down_proj = cross_species_regression(cat='down_proj_out', **kw)
-
-        print(f'{layer_name} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
-
+        #
+        # print(f'{layer_name} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
+        #
         kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
               'cross_animal': cross_animal, 'food_second': food_second}
         kw['food_second'] = False
 
-        r2_attn_ = cross_species_regression(cat='attn_weights', **kw)
+        if 'bury' not in activation_model:
+            r2_attn_ = cross_species_regression(cat='attn_weights', **kw)
+        else:
+            r2_attn_ = np.nan
+
         r2_gate_ = cross_species_regression(cat='gate_proj_in', **kw)
         r2_input_ = cross_species_regression(cat='input', **kw)
         r2_attn_output_ = cross_species_regression(cat='attn_output', **kw)
@@ -435,23 +425,19 @@ def plot_layers_cross_species(cross_animal=False,
 
     # plt.plot(list(range(len(vals_attn))), vals_attn,
     #          label='Attention Weights', color='green', marker='.')
-    plt.title(f'Carn vs. Herb: {food_second=}, {cross_animal=}')
-    plt.plot(list(range(len(vals_residual))), vals_residual,
-             label='Residual (input)', color='purple', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_mid))), vals_mid,
-             label='Residual (middle)', color='k', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_attn_output))), vals_attn_output,
-             label='Attention addition', color='red', marker='.',
-             alpha=0.5)
-    plt.plot(list(range(len(vals_down))), vals_down,
-             label='MLP addition', color='dodgerblue', marker='.',
-             alpha=0.5)
+    # plt.rcParams.update({'font.size': 14})
+    if plot_title:
+        plt.title(f'Carn vs. Herb: {food_second=}, {cross_animal=}',
+                  fontsize=16)
 
-    plt.legend()
-    plt.show()
-
+    vals_l = [vals_residual, vals_attn_output, vals_down, vals_attn]
+    labels = ['Residual\n(input)', 'Attention\naddition',
+              'FFN\naddition', 'Attention\nweights']
+    colors = ['k', 'r', 'dodgerblue', 'green']
+    plt.title('Herbivore/carnivore x plant/meat\n"An {animal} and {food}"')
+    general_llama_plot(vals_l, labels, colors, ylabel='Accuracy (%)',
+                       do_legend=False)
+    # plt.show()
 
 if __name__ == '__main__':
     plot_layers_cross_species()
