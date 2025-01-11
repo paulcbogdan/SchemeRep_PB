@@ -129,7 +129,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=bilateral,
                       HCP=True)
-
+    # print('TEST TEST')
     glob_str = '_global' if reg_global else ''
     cc_str = '_nocc' if no_compcor else ''
     if rs:
@@ -139,6 +139,9 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
             assert os.path.exists(fp_lsa_lr)
     else:
         fp_lsa_lr = fr'C:\PycharmProjects\SchemeRep\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
+        # fp_lsa_lr = fr'H:\HCP_gambling\LSA\{sn}_{lr}_LSA{glob_str}{cc_str}.nii'
+
+    # print('toast')
     try:
         img_lsa_lr = image.load_img(fp_lsa_lr)
     except EOFError:
@@ -180,7 +183,11 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
     except Exception as e:
         print(f'ERROR: {sn}, {e=}')
         time.sleep(1)
-        return None, sn
+        return None, sn, None, None, None, None
+
+    # ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+    #                    bilateral=bilateral, reg_global=True,
+    #                    no_compcor=True)
 
     try:
         ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
@@ -188,12 +195,12 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
                            no_compcor=True)
     except ValueError:
         print(f'Not analyzed connectivity: {sn}')
-        return None, sn
+        return None, sn, None, None, None, None
     except Exception as e:
         print(f'ERROR: {sn}, {e=}')
         time.sleep(1)
-        return None, sn
-
+        return None, sn, None, None, None, None
+    print('Got ar')
     if only:
         df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
 
@@ -209,11 +216,11 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
                            no_compcor=True)
     except ValueError:
         print(f'Not analyzed connectivity: {sn}')
-        return None, sn
+        return None, sn, None, None, None, None
     except Exception as e:
         print(f'ERROR: {sn}, {e=}')
         time.sleep(1)
-        return None, sn
+        return None, sn, None, None, None, None
     if only:
         df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
 
@@ -256,8 +263,10 @@ def make_conn(combine_regions=False, bilateral=False,
 
     from datetime import datetime
     dt_max = datetime(2024, 9, 21, 18, 45, 0)
+    sns = sns[::-1]
 
     good_sns = []
+    t_st = time.time()
     while len(good_sns) < num_sns and (len(sns) > 0):
         sn = sns.pop()
         kw['sn'] = sn
@@ -266,10 +275,14 @@ def make_conn(combine_regions=False, bilateral=False,
         conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
             pickle_wrap(get_conn_sn, kwargs=kw, easy_override=False, dt_max=dt_max))
 
+
         if conn_high_sn is None:
             print(f'Bad conn: {sn}, attempting to redo')
             conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
                 pickle_wrap(get_conn_sn, kwargs=kw, easy_override=True, dt_max=dt_max))
+
+        print(f'Time needed for sn ({sn}): {time.time() - t_st:.2f} s')
+
 
         if conn_high_sn is None:
             print('BAD CONN??')
@@ -289,7 +302,8 @@ def make_conn(combine_regions=False, bilateral=False,
     conn_lows = np.array(conn_lows)
 
     print(f'Final sns: {len(good_sns)=}')
-    return conn_highs, conn_lows, good_sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
+    return (conn_highs, conn_lows, good_sns, conn_highs0, conn_highs1,
+            conn_lows0, conn_lows1)
 
 
 def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,

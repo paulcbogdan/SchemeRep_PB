@@ -450,26 +450,29 @@ def get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True):
 
 # Like a bucket and a well, a cup and a tap
 
-def prepare_analogy_figs(copies=(0, 1), flip_within=False):
+def prepare_analogy_figs(copies=(0, 1), flip_within=True):
     # get_analogy1_abcds(copies=(0, 1, 2, 3), flip_within=True)
     # quit()
 
-    compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
-                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+    # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
+    #                   do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
 
     # compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
     #                   do_r2=False, copies=copies, flip_within=False, analogy=1)
-    # quit()
+
+    compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=3,
+                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
+
     if not flip_within:
         compare_GPT_spots(activation_model='meta-llama/Llama-3.2-3b', position=1,
                           do_r2=False, copies=copies, flip_within=False, analogy=1)
-    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=3,
-                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
     if not flip_within:
         compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury_mid'), position=1,
                           do_r2=False, copies=copies, flip_within=False, analogy=1)
-    compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=3,
-                      do_r2=False, copies=copies, flip_within=flip_within, analogy=1)
     if not flip_within:
         compare_GPT_spots(activation_model=('meta-llama/Llama-3.2-3b', 'bury'), position=1,
                           do_r2=False, copies=copies, flip_within=False, analogy=1)
@@ -490,19 +493,18 @@ def prepare_analogy_figs(copies=(0, 1), flip_within=False):
                       position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
 
 def prepare_analogy70():
-    compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
-                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
-
-    compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+    # compare_GPT_spots(activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
+    #                   position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+    # compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+    #                   position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
 
     compare_GPT_spots(activation_model=(r'meta-llama/Llama-3.3-70b-Instruct', 'bury_mid'),
-                      position=3, do_r2=False, copies=(0, 1), flip_within=True, analogy=1)
+                      position=3, do_r2=False, copies=(2, 3), flip_within=True, analogy=1)
 
 if __name__ == '__main__':
 
-    prepare_analogy70()
-    # prepare_analogy_figs()
+    # prepare_analogy70()
+    prepare_analogy_figs()
     # print(test_pkld2(1, 2, a=3))
     # print(test_pkld2(1, 2, a=3))
 

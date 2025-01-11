@@ -7,12 +7,14 @@ import numpy as np
 import pandas as pd
 # import matplotlib.pyplot as plt
 from scipy import stats
+from sklearn.model_selection import GroupKFold
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner, get_obj2grammar, get_scn2grammar, get_llama_activations
 from marinate.pkld import pkld
+from org_sns import get_sns
 from organize_bhv import get_trial_info
 from functools import cache
 
@@ -244,12 +246,15 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
 
     # Create cross-validation object
     if groups is not None:
+        binary = np.unique(y).size == 2
         if len(np.unique(groups)) > 10:
-            cv = StratifiedGroupKFold(n_splits=cv_folds,)
+            if binary:
+                cv = StratifiedGroupKFold(n_splits=cv_folds)
+            else:
+                cv = GroupKFold(n_splits=cv_folds)
         else:
             cv = LeaveOneGroupOut()
         cv.split = partial(cv.split, groups=groups)
-        binary = np.unique(y).size == 2
     elif len(np.unique(y)) < 3:
         cv = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=n_repeats,
                                      random_state=random_state)
@@ -279,6 +284,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
 
 
 
+
     # cv = LeaveOneOut()
     # print(f'{binary=}')
 
@@ -289,9 +295,13 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     if multi_alpha:
         ridge = RidgeCV(alphas=[0.1, 1.0, 10.0])  # cv=cv)
     else:
-        ridge = RidgeCV(cv=cv)
+        ridge = RidgeCV()#cv=cv)
     # ridge = RidgeCV(cv=cv)
     svm = SVC(kernel='linear', C=1)
+    # print(f'{binary=}')
+    # print(f'{svm=}')
+    # print(f'{ridge=}')
+    # quit()
     # svm = RidgeClassifier()
     # elastic = ElasticNetCV(cv=cv, random_state=random_state)
     # svm = SGDClassifier()
@@ -313,22 +323,19 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         y_tests = []
         y_preds = []
         test_sizes = []
-        for train_idx, test_idx in cv.split(X, y):
+        # print(f'{groups=}')
+        for train_idx, test_idx in cv.split(X, y, groups=groups):
             test_sizes.append(len(test_idx))
             # Split data
             X_train, X_test = X[train_idx], X[test_idx]
             y_train, y_test = y[train_idx], y[test_idx]
-            # print(F'{train_idx=}')
-            # print(f'{test_idx=}')
-            # print(f'{y=}')
             if normalize:
                 X_train = StandardScaler().fit_transform(X_train)
                 X_test = StandardScaler().fit_transform(X_test)
-            # print(f'{y_train=}')
+
             # Fit model and make prediction
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
-            # print(f'{y_pred=}')
             if not binary:
                 y_pred[y_pred > 4] = 4
                 y_pred[y_pred < 1] = 1
@@ -450,6 +457,20 @@ def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
             vecs_1_all.extend(vec_1)
     return vecs_0_all, vecs_1_all
 
+def get_SchemeRep_df_cont(no_neu):
+    pairs, _, _ = get_SchemeRep_df(no_neu)
+    d_l = {}
+    for pair in pairs:
+        d_l[pair] = []
+    sns = get_sns('all')['healthy']
+    for sn in sns:
+        df = get_trial_info(sn)
+        for i, row in df.iterrows():
+            pair = (row['obj'], row['scene'])
+            if pair in d_l:
+                d_l[pair].append(row['per_inc'])
+    relatedness = [np.nanmean(d_l[pair]) for pair in pairs]
+    return pairs, relatedness, None
 
 @cache
 def get_SchemeRep_df(no_neu=False):
@@ -463,6 +484,8 @@ def get_SchemeRep_df(no_neu=False):
         if isinstance(no_neu, int) or isinstance(no_neu, str):
             no_neu = int(no_neu)
             df_sn = df_sn[df_sn['inc'] != no_neu]
+        # elif isinstance(no_neu, tuple):
+        #     df_sn = df_sn[df_sn['inc'] != no_neu]
         elif no_neu:
             df_sn = df_sn[df_sn['inc'] != 2]
         objs = df_sn['obj'].to_list()
@@ -544,8 +567,12 @@ def analyze_rissman(cat='attn_weights',
 
     assert not (binary_nonrep and do_SchemeRep)
     if do_SchemeRep:
-        pairs, relatedness, _ = get_SchemeRep_df(no_neu=no_neu)
-        if no_neu:
+        if isinstance(no_neu, tuple) and no_neu[1] == 'cont':
+            pairs, relatedness, _ = get_SchemeRep_df_cont(no_neu[0])
+
+        else:
+            pairs, relatedness, _ = get_SchemeRep_df(no_neu=no_neu)
+        if no_neu and not (isinstance(no_neu, tuple) and no_neu[0] == False):
             circles = find_circles(pairs)
             word2circle = {}
             for i, circle in enumerate(circles):
@@ -560,7 +587,6 @@ def analyze_rissman(cat='attn_weights',
             groups = [pair[0] for pair in pairs]
     else:
         pairs, relatedness, _ = get_rissman_df()
-
     M_attns = []
     vecs_attns = []
     if isinstance(do_SchemeRep, tuple) and do_SchemeRep[1] == 'deve':
@@ -729,7 +755,9 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
                       f'{r_FFN=:.2f}, {r_mid=:.2f}')
     plt.xlabel('Layer')
     plt.legend()
-    if (do_SchemeRep and no_neu) or binary_nonrep:
+    if isinstance(no_neu, tuple) and no_neu[1] == 'cont':
+        plt.ylim(0, 1)
+    elif (do_SchemeRep and no_neu ) or binary_nonrep:
         plt.ylim(0.5, 1)
     else:
         plt.ylim(0, 1)
@@ -884,24 +912,36 @@ def prep_all_figures70():
     compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
                          do_SchemeRep=True, norm_SchemeRep=True,
                          binary_nonrep=False, no_neu='all')
-    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-    #                      do_SchemeRep=False, norm_SchemeRep=False,
-    #                      binary_nonrep=True, no_neu=False)
+    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                         do_SchemeRep=False, norm_SchemeRep=False,
+                         binary_nonrep=True, no_neu=False)
 
     # TODO: double-check that no_rep 1 is actually dropping inc
 
-def investigate_70_bury():
-    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                         do_SchemeRep=(True, 'deve'), norm_SchemeRep=True,
-                         binary_nonrep=False, no_neu=True)
-    quit()
-
-    compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
-                         do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=False, no_neu=False)
-    compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
-                         do_SchemeRep=False, norm_SchemeRep=False,
-                         binary_nonrep=False, no_neu=False)
+def investigate_70_bury(#do_SchemeRep=(True, 'deve'),
+                        activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+                        do_SchemeRep=True
+                        ):
+    compare_attn_vs_gate(activation_model=activation_model,
+                         do_SchemeRep=do_SchemeRep, norm_SchemeRep=True,
+                         binary_nonrep=False, no_neu=(False, 'cont'))
+    # compare_attn_vs_gate(activation_model=activation_model,
+    #                      do_SchemeRep=do_SchemeRep, norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=(1, 'cont'))
+    # compare_attn_vs_gate(activation_model=activation_model,
+    #                      do_SchemeRep=do_SchemeRep, norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=(2, 'cont'))
+    # compare_attn_vs_gate(activation_model=activation_model,
+    #                      do_SchemeRep=do_SchemeRep, norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=(3, 'cont'))
+    # return
+    #
+    # compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
+    #                      do_SchemeRep=False, norm_SchemeRep=False,
+    #                      binary_nonrep=False, no_neu=False)
+    # compare_attn_vs_gate(activation_model='meta-llama/Llama-3.3-70b-Instruct',
+    #                      do_SchemeRep=False, norm_SchemeRep=False,
+    #                      binary_nonrep=False, no_neu=False)
 
     compare_attn_vs_gate(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'),
                          do_SchemeRep=True, norm_SchemeRep=True,
@@ -914,12 +954,18 @@ def print_all_sentences():
     pass
 
 if __name__ == '__main__':
-    # TODO: test the SchemeRep while doing the "and" format
+    # TODO: test the SchemeRep ws ile doing the "and" format
     #   do_SchemeRep=(True, 'deve')
     # prep_all_figures()
     # TODO: compare analogy 70
     # prep_all_figures70()
-    investigate_70_bury()
+    investigate_70_bury(activation_model='meta-llama/Llama-3.3-70b-Instruct')
+    investigate_70_bury(activation_model=('meta-llama/Llama-3.3-70b-Instruct', 'bury'))
+
+
+    # investigate_70_bury(activation_model='meta-llama/Llama-3.2-3b')
+    # investigate_70_bury(activation_model=('meta-llama/Llama-3.2-3b', 'bury'))
+
     quit()
 
     # quit()

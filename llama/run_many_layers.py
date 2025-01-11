@@ -162,7 +162,7 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-    activation_model = ('meta-llama/Llama-3.3-70b-Instruct', 'bury')
+    # activation_model = ('meta-llama/Llama-3.3-70b-Instruct', 'bury')
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
@@ -183,10 +183,11 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
             semantic_l = []
             fps_do = 'non_obj'
         # if '3b' in activation_model:
-        semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
-                                        attn=False, do_M='obj_solo', last_only=False,
-                                        normalize=True
-                                       )
+        if 'bury' not in activation_model:
+            semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
+                                            attn=False, do_M='obj_solo', last_only=False,
+                                            normalize=True
+                                           )
 
         semantic_l_BERT = get_explore_BERT('BERT', do_M='obj_solo')
         semantic_l += semantic_l_BERT

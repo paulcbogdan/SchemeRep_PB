@@ -1,6 +1,8 @@
 import os
 import pathlib
 
+import matplotlib.pyplot as plt
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -105,7 +107,7 @@ def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     rs_conn, map2new = get_rs_conn_sns(tuple(sns),
                                        tuple(all_pda), tuple(all_pdp),
                                        tuple(all_pva), tuple(all_pvp), **kw)
-    print(f'Make compressed time: {time() - t_st:.5f} s')
+    print(f'Make resting-state compressed time: {time() - t_st:.5f} s')
     p_d_ant = [map2new[p] for p in p_d_ant]
     p_d_pos = [map2new[p] for p in p_d_pos]
     p_v_ant = [map2new[p] for p in p_v_ant]
@@ -155,17 +157,25 @@ def get_HCP_task_conn(combine_regions):
           'drop_first': False, 'reset_trial0': True, }
 
     if kw['only'] == 'combo':
-        conn_highs, conn_lows, sns = get_combo(kw)
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+            get_combo(kw))
     else:
-        conn_highs, conn_lows, sns = (
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     sn2conns = {}
     for sn, conn_high, conn_low in zip(sns, conn_highs, conn_lows):
         sn2conns[sn] = conn_high, conn_low
-    return sn2conns
+    sn2conns_lr = {}
+    for sn, conn_high, conn_low in zip(sns, conn_highs0, conn_lows0):
+        sn2conns_lr[sn] = conn_high, conn_low
+    sn2conns_rl = {}
+    for sn, conn_high, conn_low in zip(sns, conn_highs1, conn_lows1):
+        sn2conns_rl[sn] = conn_high, conn_low
+    return sn2conns, sn2conns_lr, sn2conns_rl
 
 
 def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
+    print(f'{conn.shape=}')
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
     dd = np.nanmean(dd, axis=(1, 2))
     vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
@@ -179,13 +189,7 @@ def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     return itr, dd, vv, dv_ant, dv_pos, M_overall
 
 
-def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                 combine_regions=False):
-    kw = {'combine_regions': combine_regions, }
-    sn2conns = pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=True,
-                           RAM_cache=True)
-
-    assert set(sns) - set(sn2conns) == set(), f'{set(sns) - set(sn2conns)=}'
+def get_itr_ef_from_sn2conns(sns, sn2conns, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
     conn_high = [sn2conns[sn][0] for sn in sns]
     conn_high = np.array(conn_high)
     itr_h, dd_h, vv_h, dv_ant_h, dv_pos_h, M_overall_h = (
@@ -196,6 +200,28 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     itr_l, dd_l, vv_l, dv_ant_l, dv_pos_l, M_overall_l = (
         get_dd_etc(conn_low, p_d_ant, p_d_pos, p_v_ant, p_v_pos))
     return itr_l - itr_h
+
+
+def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                 combine_regions=False):
+    kw = {'combine_regions': combine_regions, }
+    sn2conns, sn2conns_lr, sn2conns_rl = (
+        pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=True,
+                    RAM_cache=True))
+
+    assert set(sns) - set(sn2conns) == set(), f'{set(sns) - set(sn2conns)=}'
+    # itr_ef = get_itr_ef_from_sn2conns(sns, sn2conns, p_d_ant, p_d_pos,
+    #                                   p_v_ant, p_v_pos)
+    itr_ef = None
+    itr_ef_lr = get_itr_ef_from_sn2conns(sns, sn2conns_lr, p_d_ant, p_d_pos,
+                                         p_v_ant, p_v_pos)
+    del sn2conns_lr
+    itr_ef_rl = get_itr_ef_from_sn2conns(sns, sn2conns_rl, p_d_ant, p_d_pos,
+                                         p_v_ant, p_v_pos)
+    del sn2conns_rl
+    # plt.scatter(itr_ef_lr, itr_ef_rl)
+    # plt.show()
+    return itr_ef, itr_ef_lr, itr_ef_rl
 
 
 def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
@@ -233,9 +259,9 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     else:
         fns = [fn for fn in fns if 'nocc' not in fn]
     fns_LR = [fn for fn in fns if 'LR_clean' in fn]
-    print(f'C:\ LR RS: N = {len(fns_LR)}')
+    print(f'C drive: LR RS: N = {len(fns_LR)}')
     fns_RL = [fn for fn in fns if 'RL_clean' in fn]
-    print(f'C:\ RL RS: N = {len(fns_RL)}')
+    print(f'C drive: RL RS: N = {len(fns_RL)}')
     sns_rs_LR = {fn.split('_')[0] for fn in fns_LR}
     sns_rs_RL = {fn.split('_')[0] for fn in fns_RL}
     sns_rs = sns_rs_LR.intersection(sns_rs_RL)
@@ -250,9 +276,9 @@ def find_overlapping_sns(reg_global_task=True, no_compcor_task=True,
     else:
         fns_E = [fn for fn in fns_E if 'nocc' not in fn]
     fns_LR_E = [fn for fn in fns_E if 'LR_clean' in fn]
-    print(rf'E:\ LR RS: N = {len(fns_LR_E)}')
+    print(rf'E drive: LR RS: N = {len(fns_LR_E)}')
     fns_RL_E = [fn for fn in fns_E if 'RL_clean' in fn]
-    print(rf'E:\ RL RS: N = {len(fns_RL_E)}')
+    print(rf'E drive: RL RS: N = {len(fns_RL_E)}')
     sns_rs_LR_E = {fn.split('_')[0] for fn in fns_LR_E}
     sns_rs_RL_E = {fn.split('_')[0] for fn in fns_RL_E}
     sns_rs_E = sns_rs_LR_E.intersection(sns_rs_RL_E)
@@ -276,6 +302,7 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
         s = f.read()
     s = s.replace('\n', '').replace(' ', '')
     sns = s.split(',')
+    sns = sns[::-1]
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other=skip_other, combine_regions=combine_regions))
@@ -283,21 +310,34 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
     p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all, p_no_all = (
         get_quads(skip_other=False, combine_regions=combine_regions))
 
-    rs_efs_all = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='LR', combine_regions=combine_regions, bilateral=False,
-                                )
-    rs_efs_all_rl = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                   p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                   lr='RL', combine_regions=combine_regions, bilateral=False,
-                                   )
-    rs_efs_all = np.nanmean([rs_efs_all, rs_efs_all_rl], axis=0)
+    # rs_efs_all_lr = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+    #                             p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+    #                             lr='LR', combine_regions=combine_regions, bilateral=False,
+    #                             )
+    # rs_efs_all_rl = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+    #                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+    #                                lr='RL', combine_regions=combine_regions, bilateral=False,
+    #                                )
+    # rs_efs_all = np.nanmean([rs_efs_all_lr, rs_efs_all_rl], axis=0)
 
-    task_efs_all = get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                                combine_regions=combine_regions, )
-    task_efs_all = np.abs(task_efs_all)
-    r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
-    print(f'Overall: {r=:.4f}, {p=:.2f}')
+    # reliability, _ = stats.spearmanr(rs_efs_all_lr, rs_efs_all_rl, nan_policy='omit')
+    # nans = np.isnan(rs_efs_all_lr) | np.isnan(rs_efs_all_rl)
+    # print(f'Num nans: {np.sum(nans)} / {rs_efs_all_rl.shape}')
+    # print(f'Spearman reliability: {reliability=:.4f}')
+    # reliability_r, _ = stats.pearsonr(rs_efs_all_lr[~nans], rs_efs_all_rl[~nans])
+    # print(f'Pearson reliability: {reliability_r=:.4f}')
+    # quit()
+
+    task_effs_all, task_efs_all_lr, task_efs_all_rl = (
+        get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                     combine_regions=combine_regions, ))
+    # task_efs_all = np.abs(task_efs_all)
+    # r, p = stats.spearmanr(rs_efs_all, task_efs_all, nan_policy='omit')
+    task_reliability, _ = stats.spearmanr(task_efs_all_lr, task_efs_all_rl,
+                                          nan_policy='omit')
+    print(f'Overall task reliability: {task_reliability=:.3f}')
+    # print(f'Overall: {r=:.4f}, {p=:.2f}')
+    # quit()
 
     num_pos = len(p_d_ant) * len(p_d_pos) * len(p_v_ant) * len(p_v_pos)
     print(f'Total number of ROI sets: {num_pos}')
@@ -318,6 +358,8 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
     rs_efs_l = []
     task_efs_l = []
+    reliability_l = []
+    reliability_task_l = []
     for (a, b, c, d) in tqdm(combos):
         if skip_other:
             pda_i = [a, a + 1]
@@ -332,21 +374,44 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
         t_st = time()
 
-        rs_efs1 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                lr='LR', combine_regions=combine_regions, bilateral=False, )
-        rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                 p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-                                 lr='RL', combine_regions=combine_regions, bilateral=False, )
-        rs_efs = np.nanmean([rs_efs1, rs_efs2], axis=0)
+        # rs_efs1 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+        #                          p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+        #                          lr='LR', combine_regions=combine_regions, bilateral=False, )
+        # rs_efs2 = get_HCP_rs_sns(sns, pda_i, pdp_i, pva_i, pvp_i,
+        #                          p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
+        #                          lr='RL', combine_regions=combine_regions, bilateral=False, )
+        # rs_efs = np.nanmean([rs_efs1, rs_efs2], axis=0)
+        # print(f'Resting time: {time() - t_st:.5f} s')
+        #
+        # reliability, _ = stats.spearmanr(rs_efs1, rs_efs2, nan_policy='omit')
+        # reliability_l.append(reliability)
+        # if len(reliability_l) > 1:
+        #     M_reliability = np.nanmean(reliability_l)
+        #     SD_reliability = np.nanstd(reliability_l)
+        #     print(f'rs reliability: {reliability=:.4f} ({a}, {b}, {c}, {d}) | '
+        #           f'{M_reliability=:.3f} [{SD_reliability:.3f}]')
+        # continue
+
         print(f'Resting time: {time() - t_st:.5f} s')
         # combined regions within-subject effects depend on reg_global?
 
         t_st = time()
-        task_efs = get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
-                                combine_regions=combine_regions)
-
+        task_efs, task_efs_lr, task_efs_rl = (
+            get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
+                         combine_regions=combine_regions))
         print(f'\tTask time: {time() - t_st:.5f} s')
+        # print(task_efs_lr)
+
+        task_reliability, _ = stats.spearmanr(task_efs_lr, task_efs_rl,
+                                              nan_policy='omit')
+        reliability_task_l.append(task_reliability)
+        if len(reliability_task_l) > 1:
+            M_reliability = np.nanmean(reliability_task_l)
+            SD_reliability = np.nanstd(reliability_task_l)
+            SE_reliability = SD_reliability / np.sqrt(len(reliability_task_l))
+            print(f'task reliability: {task_reliability=:.4f} ({a}, {b}, {c}, {d}) | '
+                  f'{M_reliability=:.3f} [{SD_reliability:.3f}, {SE_reliability:.3f}]')
+        continue
         num_nans = np.sum(np.isnan(rs_efs))
         assert num_nans == 0, f'{num_nans=}, f{rs_efs.shape=}'
 
@@ -355,7 +420,7 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
         if len(task_efs_l) % 10 == 0:
             ttest_on_correlations(task_efs_l, rs_efs_l)
-
+    quit()
     str_shape = '_' + str(np.array(task_efs_l).shape)
     fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr_{str_shape}_task.pkl'
     Path(fp_pkl).parent.mkdir(parents=True, exist_ok=True)

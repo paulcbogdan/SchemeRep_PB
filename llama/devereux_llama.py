@@ -44,7 +44,7 @@ def get_llama_activations_deve(item0, item1, activation_model):
                   f'thought I knew. It was like peeling an onion, '
                   f'revealing not just answers, but more questions, '
                   f'more nuances to explore')
-        if (activation_model[1] == 'bury' or
+        if (activation_model[1] == 'bury' or activation_model[1] == 'bury_solo' or
                 (isinstance(activation_model[1], tuple) and activation_model[1][0] == 'bury')):
             add_on = f'are here. {add_on}'
             if isinstance(activation_model[1], tuple):
@@ -54,7 +54,15 @@ def get_llama_activations_deve(item0, item1, activation_model):
             else:
                 words = add_on.split(' ')
                 num_words = len(words)
-            sentence = (f'{sentence} {add_on}')
+            if activation_model[1] == 'bury_solo':
+                if item0[0].lower() in ['a', 'e', 'i', 'o', 'u']:
+                    sentence = (f'An {item0}. {add_on}')
+                else:
+                    sentence = (f'A {item0}. {add_on}')
+            else:
+                sentence = (f'{sentence} {add_on}')
+            # print(f'{sentence=}')
+            # quit()
             res = extractor.extract_activations(sentence, [words[:num_words][-1],
                                                            words[:num_words][-1]])
             print(f'Time needed for activation extraction: {time() - t:.3f} s')
@@ -175,6 +183,9 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
                                       RAM_cache=True, get_fp=True
                                       )
             else:
+                # print(f'{item0=}')
+                # print(f'{item1=}')
+                # quit()
                 res, fp = pickle_wrap(get_llama_activations_deve,
                                       kwargs={'item0': item0, 'item1': item1,
                                               'activation_model': activation_model},
