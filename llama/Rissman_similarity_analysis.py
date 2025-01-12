@@ -216,7 +216,7 @@ def test_w2v_regression():
     fit_regularized_models(prods, relatedness)
 
 
-@pkld
+@pkld(overwrite=False)
 def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                            plot=False, normalize=False,
                            n_repeats=10, groups=None,
@@ -342,7 +342,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
                 y_pred[y_pred < 1] = 1
                 r2 = r2_score(y_test, y_pred)
             else:
-                if do_r2:
+                if do_r2 and do_r2 != '5050':
                     r2 = r2_score(y_test, y_pred)
                 else:
                     r2 = np.mean(y_test == y_pred)
@@ -524,6 +524,8 @@ def analyze_rissman(cat='attn_weights',
                     no_neu=False,
                     # get_vecs=False
                     ):
+
+
     if isinstance(activation_model, list):
         if activation_model[1] == 'get_vecs':
             get_vecs = True
@@ -694,14 +696,14 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
                          # activation_model='meta-llama/Llama-3.2-3b',
                          activation_model=('meta-llama/Llama-3.2-3b', 'bury'),
                          binary_nonrep=True, no_neu=False,
-                         xlabel=True
+                         do_xlabel=True, four_piece=False
                          # activation_model='meta-llama/Llama-3.3-70b-Instruct',
                          ):
     print(f'Plotting compare_attn_vs_gate: {do_SchemeRep}, {no_neu}: {activation_model=}')
     # .25, .6,
     #     all_llama_cats = ['gate_proj_in', 'up_proj_in', 'down_proj_in', 'act_fn_in',
     #                       'gate_proj_out', 'up_proj_out', 'down_proj_out', 'act_fn_out',
-    #                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', 'attn_output',
+    #                       'q_proj', 'k_proj', 'v_proj', 'attn_weights', '| tput',
     #                       'input']
 
     assert not ((not do_SchemeRep) and (norm_SchemeRep))
@@ -711,7 +713,8 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
     vals_attn_output = []
     vals_down = []
     vals_mid = []
-    for layer_name in range(0, 28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80):
+    num_layers = 28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80
+    for layer_name in range(num_layers):
         # layer_name_l = list(range(layer_name, layer_name + 4))
         layer_name_l = layer_name
         kw = {'layer_name': layer_name_l, 'do_SchemeRep': do_SchemeRep,
@@ -741,7 +744,8 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
             r2_attn_output = analyze_rissman(cat='attn_output', **kw)
             r2_down = analyze_rissman(cat='down_proj_out', **kw)
 
-
+        print(f'{layer_name} | {r2_attn=:.2f}, {r2_input=:.2f}, {r2_mid=:.2f}, '
+              f'{r2_attn_output=:.2f}, {r2_down=:.2f}')
         vals_attn.append(r2_attn)
         vals_residual.append(r2_input)
         vals_attn_output.append(r2_attn_output)
@@ -775,33 +779,47 @@ def compare_attn_vs_gate(do_SchemeRep=False, norm_SchemeRep=False,
     plt.rcParams.update({'font.size': 14})
     if isinstance(no_neu, tuple) and no_neu[1] == 'cont':
         if isinstance(do_SchemeRep, tuple) and 'deve' in do_SchemeRep:
-            plt.title('Object-scene congruence\n"An {object} and {scene}"',
-                      fontsize=16)
+            if four_piece:
+                title = 'Object-scene\ncongruence'
+            else:
+                title = 'Object-scene congruence\n"An {object} and {scene}"'
         else:
-            plt.title('Object-scene congruence\n"In the {scene}, an {object}"',
-                      fontsize=16)
+            if four_piece:
+                title = 'Object-scene\ncongruence'
+            else:
+                title = 'Object-scene congruence\n"In the {scene}, an {object}"'
         y_low = 0
-        ylabel = 'Accuracy (R²)'
+        do_ylabel = 'Accuracy (R²)'
         # plt.ylim(0, 1)
     elif (do_SchemeRep and no_neu ) or binary_nonrep:
-        plt.title('Object-scene congruence binary')
+        title = 'Object-scene congruence binary'
         y_low = 0.5
-        ylabel = 'Accuracy (%)'
+        do_ylabel = 'Accuracy (%)'
         # plt.ylim(0.5, 1)
     else:
-        plt.title('Object-object relatedness\n"An {item 1} and {item 2}"',
-                  fontsize=16)
-        ylabel = 'Accuracy (R²)'
+        if four_piece:
+            title = 'Object-object\nrelatedness'
+        else:
+            title = 'Object-object relatedness\n"An {item 1} and {item 2}"'
+        # plt.title('Object-object relatedness\n"An {item 1} and {item 2}"',
+        #           fontsize=16)
+        do_ylabel = 'Accuracy (R²)'
         y_low = 0
-
-    vals_l = [vals_residual, vals_attn_output, vals_down, vals_attn]
+    plt.title(title, fontsize=16)
+    vals_l = [vals_residual, vals_attn_output, vals_down,
+              #vals_attn
+              ]
     labels = ['Residual\n(input)', 'Attention\naddition',
-              'FFN\naddition', 'Attention\nweights']
-    colors = ['k', 'r', 'dodgerblue', 'green']
+              'FFN\naddition', #'Attention\nweights'
+              ]
+    colors = ['k', 'r', 'dodgerblue',
+              # 'green'
+              ]
     # from time import time
     # t_st = time()
-    general_llama_plot(vals_l, labels, colors, ylabel=ylabel,
-                       y_low=y_low, do_legend=False, xlabel=xlabel)
+    general_llama_plot(vals_l, labels, colors, ylabel=do_ylabel,
+                       y_low=y_low, do_legend=False, xlabel=do_xlabel,
+                       num_layers=num_layers, do_ylabel=not four_piece)
 
 
 def get_autocorr(l, gap=1):

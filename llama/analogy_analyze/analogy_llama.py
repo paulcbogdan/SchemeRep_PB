@@ -3,6 +3,7 @@ from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from mpmath import fourier
 from tqdm import tqdm
 
 from llama.Rissman_similarity_analysis import fit_regularized_models, get_autocorr
@@ -180,7 +181,8 @@ def compare_GPT_spots70(activation_model='70b', position=3, do_r2=False,
 # def compare_GPT_spots(activation_model='70b', position=3, do_r2=False,
 #                   copies=1, flip_within=True, analogy=1):
 def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
-                      copies=0, flip_within=True, analogy=1):  # (2, 1)):
+                      copies=0, flip_within=True, analogy=1,
+                      four_piece=False, xlabel=True, do_ylabel=False):  # (2, 1)):
 
     if '70b' in activation_model:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
@@ -193,7 +195,8 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
     vals_attn = []
     # for layer_name in tqdm(range(28 if '3b' in activation_model else 80),
     #                        desc='Running layers', position=0, leave=True):
-    for layer_name in range(28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80):
+    num_layers = 28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80
+    for layer_name in range(num_layers):
         kw = {'activation_model': activation_model, 'position': position,
               'do_r2': do_r2, 'copies': copies, 'flip_within': flip_within,
               'layer_name': layer_name, 'analogy': analogy}
@@ -210,61 +213,39 @@ def compare_GPT_spots(activation_model='3b', position=3, do_r2=False,
         print(f'{layer_name} | {r2_input=:.2f}, {r2_down=:.2f}, '
               f'{r2_mid=:.2f}, {r2_attn_output=:.2f}')
 
-    # plt.plot(vals_input, label='Residual (input)',
-    #          color='purple', marker='.', alpha=0.5)
-    # plt.plot(vals_mid, label='Residual (middle)',
-    #          color='k', marker='.', alpha=0.5)
-    # plt.plot(vals_attn_output, label='Attention addition',
-    #          color='green', marker='.', alpha=0.5)
-    # plt.plot(vals_down, label='MLP addition',
-    #          color='blue', marker='.', alpha=0.5)
-    #
-    # r_input = get_autocorr(vals_input)
-    # r_attn_out = get_autocorr(vals_attn_output)
-    # r_FFN = get_autocorr(vals_down)
-    # r_mid = get_autocorr(vals_mid)
-    # autocorr_title = (f'{r_input=:.2f}, {r_attn_out=:.2f}, '
-    #                   f'{r_FFN=:.2f}, {r_mid=:.2f}')
-    #
-    # plt.title(f'Analogy analysis, {position=}\n{autocorr_title}')
-    # if do_r2:
-    #     plt.ylabel('R^2')
-    #     plt.plot([0, len(vals_input)], [0, 0], color='r', linestyle='--')
-    # else:
-    #     plt.ylabel('Accuracy')
-    #     plt.plot([0, len(vals_input)], [0.5, 0.5], color='r', linestyle='--')
-    # plt.ylim(0.5, 1)
-    # plt.legend()
-    # plt.show()
-
     if flip_within:
         assert position == 3
-        plt.title('Two-item relation\n'
-                  '"An {a} and {b}, a {c} and {d}" vs.\n'
-                  '"An {a} and {b}, a {d} and {c}"',
-                  fontsize=14, pad=10)
+        if four_piece:
+            title = 'Analogy:\nHard comparison'
+        else:
+            title = ('Hard comparison\n'
+                     '"An {a} and {b}, a {c} and {d}" vs.\n'
+                     '"An {a} and {b}, a {d} and {c}"')
     else:
         if position == 1:
-            plt.title('Analogy vs. double-discrepancy\n'
-                      '"An {a} and {b}" vs.\n'
-                      '"An {a} and {b}"',
-                      fontsize=14, pad=10)
+            title = ('Two-item relation\n'
+                     '"An {a} and {b}" vs.\n'
+                     '"An {a} and {d}"')
+            # plt.title('Two-item relation\n'
+            #           '"An {a} and {b}" vs.\n'
+            #           '"An {a} and {d}"',
+            #           fontsize=14, pad=10)
             # plt.title('a:b vs. a:c')
         else:
-            plt.title('Analogy vs. second-discrepancy\n'
-                      '"An {a} and {b}, a {c} and {d}" vs.\n'
-                      '"An {a} and {d}, a {c} and {b}"',
-                      fontsize=14, pad=10)
-
+            title = ('Easy comparison\n'
+                     '"An {a} and {b}, a {c} and {d}" vs.\n'
+                     '"An {a} and {d}, a {c} and {b}"')
+    plt.title(title, fontsize=16 if four_piece else 14, pad=10)
 
     vals_l = [vals_residual, vals_attn_output, vals_down]
     labels = ['Residual\n(input)', 'Attention\naddition',
               'FFN\naddition', 'Attention\nweights']
     colors = ['k', 'r', 'dodgerblue', 'green']
-    general_llama_plot(vals_l, labels, colors,
-                       ylabel='Accuracy (%)' if (not flip_within and
-                                                 position == 1) else '',
-                       do_legend=False, xlabel=True)
+    if not four_piece:
+        do_ylabel = False
+    general_llama_plot(vals_l, labels, colors, ylabel='Accuracy (%)',
+                       do_legend=False, xlabel=xlabel,
+                       num_layers=num_layers, do_ylabel=do_ylabel,)
 
 
 @cache

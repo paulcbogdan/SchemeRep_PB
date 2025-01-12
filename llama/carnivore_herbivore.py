@@ -7,6 +7,7 @@ from sklearn.model_selection import LeaveOneOut, LeaveOneGroupOut
 from tqdm import tqdm
 
 from Utils.pickle_wrap_funcs import pickle_wrap
+from llama.analogy_analyze.analogy_llama import prepare_analogy_figs
 from llama.devereux_llama import get_llama_activations_deve
 from llama.get_obj_scn_vecs import process_cat_cat_inner
 from llama.plot_2rel import general_llama_plot
@@ -270,6 +271,14 @@ def cross_species_regression(layer_name=19, normalize=True,
                              activation_model='meta-llama/Llama-3.2-3b',
                              food_second=False
                              ):
+    if food_second == 'both':
+        kw_outer = {'layer_name': layer_name, 'activation_model': activation_model,
+                    'cross_animal': cross_animal, 'food_second': True,
+                    'normalize': normalize, 'cat': cat}
+        r2_True = cross_species_regression(**kw_outer)
+        kw_outer['food_second'] = False
+        r2_False = cross_species_regression(**kw_outer)
+        return (r2_True + r2_False) / 2
     if cat == 'input' and layer_name == 0 and normalize:
         return np.nan # (all inputs are same so normalize will make all nans)
     # Normalize=True is critical for generalizing from carnivore <-> herbivore
@@ -372,18 +381,21 @@ def plot_layers_cross_species(cross_animal=False,
                               activation_model='meta-llama/Llama-3.3-70b-Instruct',
                               # activation_model='meta-llama/Llama-3.2-3b',
                               food_second=False,
-                              plot_title=True
+                              plot_title=True, xlabel=True,
+                              four_piece=False
                               ):
     vals_attn = []
     vals_residual = []
     vals_attn_output = []
     vals_down = []
     vals_mid = []
-    for layer_name in range(0, 28):
+    num_layers = 28 if ('3b' in activation_model or '3b' in activation_model[0]) else 80
+
+    for layer_name in range(num_layers):
         layer_name_l = layer_name
         kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
               'cross_animal': cross_animal, 'food_second': food_second}
-        kw['food_second'] = True
+
 
         if 'bury' not in activation_model:
             r2_attn = cross_species_regression(cat='attn_weights', **kw)
@@ -394,28 +406,31 @@ def plot_layers_cross_species(cross_animal=False,
         r2_input = cross_species_regression(cat='input', **kw)
         r2_attn_output = cross_species_regression(cat='attn_output', **kw)
         r2_down_proj = cross_species_regression(cat='down_proj_out', **kw)
+
+        print(f'{layer_name} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
+
+        # if food_second == 'both':
+        #     kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
+        #       'cross_animal': cross_animal, 'food_second': food_second}
+        #     kw['food_second'] = False
+        #
+        #     if 'bury' not in activation_model:
+        #         r2_attn_ = cross_species_regression(cat='attn_weights', **kw)
+        #     else:
+        #         r2_attn_ = np.nan
+        #
+        #     r2_gate_ = cross_species_regression(cat='gate_proj_in', **kw)
+        #     r2_input_ = cross_species_regression(cat='input', **kw)
+        #     r2_attn_output_ = cross_species_regression(cat='attn_output', **kw)
+        #     r2_down_proj_ = cross_species_regression(cat='down_proj_out', **kw)
+        #
+        #     r2_attn = (r2_attn + r2_attn_) / 2
+        #     r2_gate = (r2_gate + r2_gate_) / 2
+        #     r2_input = (r2_input + r2_input_) / 2
+        #     r2_attn_output = (r2_attn_output + r2_attn_output_) / 2
+        #     r2_down_proj = (r2_down_proj + r2_down_proj_) / 2
         #
         # print(f'{layer_name} | {r2_attn=:.3f}, {r2_input=:.3f}, {r2_attn_output=:.3f}, {r2_down_proj=:.3f}')
-        #
-        kw = {'layer_name': layer_name_l, 'activation_model': activation_model,
-              'cross_animal': cross_animal, 'food_second': food_second}
-        kw['food_second'] = False
-
-        if 'bury' not in activation_model:
-            r2_attn_ = cross_species_regression(cat='attn_weights', **kw)
-        else:
-            r2_attn_ = np.nan
-
-        r2_gate_ = cross_species_regression(cat='gate_proj_in', **kw)
-        r2_input_ = cross_species_regression(cat='input', **kw)
-        r2_attn_output_ = cross_species_regression(cat='attn_output', **kw)
-        r2_down_proj_ = cross_species_regression(cat='down_proj_out', **kw)
-
-        r2_attn = (r2_attn + r2_attn_) / 2
-        r2_gate = (r2_gate + r2_gate_) / 2
-        r2_input = (r2_input + r2_input_) / 2
-        r2_attn_output = (r2_attn_output + r2_attn_output_) / 2
-        r2_down_proj = (r2_down_proj + r2_down_proj_) / 2
 
         vals_attn.append(r2_attn)
         vals_residual.append(r2_input)
@@ -430,16 +445,27 @@ def plot_layers_cross_species(cross_animal=False,
         plt.title(f'Carn vs. Herb: {food_second=}, {cross_animal=}',
                   fontsize=16)
 
-    vals_l = [vals_residual, vals_attn_output, vals_down, vals_attn]
+    vals_l = [vals_residual, vals_attn_output, vals_down,
+              # vals_attn
+              ]
     labels = ['Residual\n(input)', 'Attention\naddition',
-              'FFN\naddition', 'Attention\nweights']
+              'FFN\naddition', #'Attention\nweights'
+              ]
     colors = ['k', 'r', 'dodgerblue', 'green']
-    plt.title('Herbivore/carnivore x plant/meat\n"An {animal} and {food}"')
+    if four_piece:
+        plt.title('Herbivore/carnivore\nx plant/meat')
+    else:
+        plt.title('Herbivore/carnivore x plant/meat\n"An {animal} and {food}"')
     general_llama_plot(vals_l, labels, colors, ylabel='Accuracy (%)',
-                       do_legend=False)
+                       do_legend=False, num_layers=num_layers,
+                       xlabel=xlabel, do_ylabel=not four_piece)
     # plt.show()
 
 if __name__ == '__main__':
-    plot_layers_cross_species()
-    # plot_layers_cross_species(food_second=True)
+    plot_layers_cross_species(cross_animal=True)
+    plt.show()
+    plot_layers_cross_species(cross_animal=False)
+    plt.show()
+    # prepare_analogy_figs(activation_model=r'meta-llama/Llama-3.3-70b-Instruct')
+
 

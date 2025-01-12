@@ -33,7 +33,7 @@ def get_llama_activations_deve(item0, item1, activation_model):
     if isinstance(activation_model, tuple):
         print(f'Doing deve: {item0}, {item1}')
         extractor = get_llama_extractor(model_name=activation_model[0])
-        add_on = (f'I thought about this for a long while. '
+        add_on_ = (f'I thought about this for a long while. '
                   f'The more I pondered, the clearer it became '
                   f'that my initial reaction was just the tip of '
                   f'the iceberg. There were layers to this issue, '
@@ -44,9 +44,9 @@ def get_llama_activations_deve(item0, item1, activation_model):
                   f'thought I knew. It was like peeling an onion, '
                   f'revealing not just answers, but more questions, '
                   f'more nuances to explore')
-        if (activation_model[1] == 'bury' or activation_model[1] == 'bury_solo' or
+        if (activation_model[1] == 'bury' or activation_model[1] == 'bury_item' or
                 (isinstance(activation_model[1], tuple) and activation_model[1][0] == 'bury')):
-            add_on = f'are here. {add_on}'
+            add_on = f'are here. {add_on_}'
             if isinstance(activation_model[1], tuple):
                 words = add_on.split(' ')
                 num_words = int(len(words) * activation_model[1][1])
@@ -54,22 +54,20 @@ def get_llama_activations_deve(item0, item1, activation_model):
             else:
                 words = add_on.split(' ')
                 num_words = len(words)
-            if activation_model[1] == 'bury_solo':
+            if activation_model[1] == 'bury_item':
                 if item0[0].lower() in ['a', 'e', 'i', 'o', 'u']:
-                    sentence = (f'An {item0}. {add_on}')
+                    sentence = (f'An {item0} is here. {add_on_}')
                 else:
-                    sentence = (f'A {item0}. {add_on}')
+                    sentence = (f'A {item0} is here. {add_on_}')
             else:
                 sentence = (f'{sentence} {add_on}')
-            # print(f'{sentence=}')
-            # quit()
             res = extractor.extract_activations(sentence, [words[:num_words][-1],
                                                            words[:num_words][-1]])
             print(f'Time needed for activation extraction: {time() - t:.3f} s')
             print(f'\t{[item0, item1]=} | {sentence=}')
             return res
         elif activation_model[1] == 'top':
-            sentence = f'{add_on}. {sentence}'
+            sentence = f'{add_on_}. {sentence}'
             res = extractor.extract_activations(sentence, [item0, item1], )
             print(f'Time needed for activation extraction: {time() - t:.3f} s')
             print(f'\t{[item0, item1]=} | {sentence=}')
