@@ -106,7 +106,9 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
         affine = np.array(affine)
         atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
                                            target_shape=(91, 109, 91),
-                                           interpolation='nearest')
+                                           interpolation='nearest',
+                                           force_resample=True,
+                                           copy_header=True)
     elif natview:
         affine = [[-3., 0., 0., 90.],
                   [0., 3., 0., -126.],
@@ -115,10 +117,14 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
         affine = np.array(affine)
         atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
                                            target_shape=(61, 73, 61),
-                                           interpolation='nearest')
+                                           interpolation='nearest',
+                                           force_resample=True,
+                                           copy_header=True)
     else:
         atlas['maps'] = image.resample_to_img(atlas['maps'], img,
-                                              interpolation='nearest')
+                                              interpolation='nearest',
+                                              force_resample=True,
+                                              copy_header=True)
     atlas['shenyang'] = shenyang
     return atlas
 

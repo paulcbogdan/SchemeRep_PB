@@ -145,7 +145,8 @@ def plot_all_buried(activation_model='meta-llama/Llama-3.2-3b'):
     # (a.) Experiment 1: averages, (b.) Experiment 1: residual stream many features
     # (c.) Experiment 2A, (d.) Experiment 2B, (e.) Experiment 2C
     # (f.) Experiment 3B, (g.) (Experiment 3C
-    plot_square(bury=True, do_legend=True, just2=True)
+    plot_square(bury=True, do_legend=True, just2=True,
+                suptitle='Buried semantics representation')
 
     activation_model_bury = (activation_model, 'bury')
     # activation_model = activation_model
@@ -235,7 +236,7 @@ def plot_exp2_triplet(activation_model, letters=('c.', 'd.', 'e.'),
 def plot_70b():
     activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
     plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct', bury=False,
-                just2=True)
+                just2=True, suptitle='Llama-3.3-70b-Instruct results')
 
     activation_model_bury = (activation_model, 'bury')
 
@@ -246,6 +247,10 @@ def plot_70b():
                          do_SchemeRep=True, norm_SchemeRep=True,
                          binary_nonrep=False, no_neu=(False, 'cont'),
                          do_xlabel=False, four_piece=True)
+    # compare_attn_vs_gate(activation_model=activation_model,
+    #                      do_SchemeRep=(True, 'deve'), norm_SchemeRep=True,
+    #                      binary_nonrep=False, no_neu=(False, 'cont'),
+    #                      do_xlabel=False, four_piece=True)
     plt.ylabel('Accuracy')
     plt.sca(axs[1])
     compare_attn_vs_gate(activation_model=activation_model,
@@ -255,7 +260,7 @@ def plot_70b():
     plt.sca(axs[2])
     plot_layers_cross_species(activation_model=activation_model,
                               food_second='both', xlabel=False,
-                              four_piece=True)
+                              four_piece=True, cross_animal=True)
 
     plt.sca(axs[3])
     compare_GPT_spots(activation_model=activation_model,
@@ -268,6 +273,7 @@ def plot_70b():
     plt.subplots_adjust(wspace=0.3, left=0.08, right=0.96, top=0.865, bottom=0.12,
                         hspace=0.3)
     plt.show()
+    quit()
 
     fig, axs = plt.subplots(1, 3, figsize=(13, 5))
     plt.sca(axs[0])
@@ -295,14 +301,9 @@ def plot_70b():
 
 
 if __name__ == '__main__':
-    # plot_70b()
+    plot_70b()
     # plot_all_buried()
-    # quit()
-    # test_a(a=2)
-    # f = partial(test_a, a=2)
-    # print(f())
-    # quit()
-    plot_2rel_3b()
+    # plot_2rel_3b()
     # plot_analogy_all()
     # plot_all_carn_herb()_
     # plot_2rel_3b(bury=False)

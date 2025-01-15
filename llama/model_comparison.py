@@ -125,13 +125,15 @@ def cross_t(model_vals, model_strs=None):
                       f'{t=:.3f}')
     return t_mat
 
-def plot_heatmap(corr_t, region_labels, region=None, attn=None,
-                 vmin=-5, vmax=5, cmap='coolwarm', title=None):
+def plot_heatmap(corr_t, region_labels, labels_horizontal,
+                 region=None, attn=None,
+                 vmin=-5, vmax=5, cmap='coolwarm', title=None,
+                 rotation=50):
     fig, ax = plt.subplots()
     im = ax.imshow(corr_t, cmap=cmap, interpolation='nearest',
                    vmin=vmin, vmax=vmax)
     if title is not None:
-        plt.title(title)
+        plt.title(title, pad=10)
 
     # Add text annotations
     for i in range(len(region_labels)):
@@ -140,10 +142,12 @@ def plot_heatmap(corr_t, region_labels, region=None, attn=None,
                 continue
             if cmap == 'coolwarm':
                 color = 'k'
+                color = 'w' if corr_t[i, j] > vmax else 'k'
             else:
                 color = 'k' if corr_t[i, j] > .1 else 'w'
             text = ax.text(j, i, f"{corr_t[i, j]:.2f}",
-                           ha="center", va="center", color=color)
+                           ha="center", va="center", color=color,
+                           )
 
     # Set the ticks and labels
     if region is not None:
@@ -152,8 +156,12 @@ def plot_heatmap(corr_t, region_labels, region=None, attn=None,
     ax.set_xticks(np.arange(len(region_labels)),
                  )
     ax.set_yticks(np.arange(len(region_labels)))
-    ax.set_xticklabels(region_labels,
-                       rotation=50)
+    if labels_horizontal is None:
+        ax.set_xticklabels(region_labels,
+                           rotation=rotation)
+    else:
+        ax.set_xticklabels(labels_horizontal,
+                           rotation=rotation)
     ax.set_yticklabels(region_labels)
 
     # Set the title and show the plot

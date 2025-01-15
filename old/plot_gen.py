@@ -167,9 +167,13 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     else:
         max_ticks = 6
         vabs = np.max([np.abs(np.min(Ms)), np.abs(np.max(Ms))])
-        tick_jump = (int(vabs) + 1)  // (max_ticks * 2)
-        ticks = list(range(-int(vmax), int(vmax) + 1, tick_jump))
-        axs[4].set_xticks(ticks, ticks, fontsize=11)
+        tick_jump = (int(vabs) + 1)  // (max_ticks)
+        # print(F'{vabs=}')
+        # print(f'{max_ticks=}')
+        # print(f'{tick_jump=}')
+        if tick_jump != 0:
+            ticks = list(range(-int(vmax), int(vmax) + 1, tick_jump))
+            axs[4].set_xticks(ticks, ticks, fontsize=11)
 
 
     if fp_out is None:

@@ -76,60 +76,146 @@ def get_accs(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     return vals
 
 
-def cross_accs(cat='attn_output', st_layer=0, gap=0,
-               # activation_model='meta-llama/Llama-3.3-70b-Instruct'
-               activation_model='meta-llama/Llama-3.2-3b',
+def cross_accs(#cat='attn_output',
+               cat='down_proj_out',
+               st_layer=0, gap=0,
+               activation_model='meta-llama/Llama-3.3-70b-Instruct'
+               #activation_model='meta-llama/Llama-3.2-3b',
                ):
     # cat = 'down_proj_out'
-    experiments = ['SchemeRep', 'SchemeRep_deve', 'SchemeRep_buried',
-                   # 'SchemeRep_bured_deve',
-                   'Rissman', 'Rissman_buried',
-                   'carn_herb', 'analogy_within', 'analogy_within_buried']
+    experiments = ['SchemeRep', 'Rissman', 'carn_herb',
+                   'SchemeRep_buried', 'Rissman_buried', 'analogy_within_buried',
+                   'analogy_within',]
+    labels = ['Exp. 2A', 'Exp. 2B', 'Exp. 2C',
+              'Exp. 2A (buried)', 'Exp. 2B (buried)', 'Exp. 3 (hard, buried)',
+              'Exp. 3 (hard)',]
+
+    colors = ['darkred', 'red', 'lightcoral',
+              'darkblue', 'dodgerblue', 'lightseagreen',
+              'k',]
+
     # experiments = ['analogy_within', 'analogy_within_buried']
     difs = []
+    d_r = {}
+    for i in range(5):
+        d_r[i] = []
+
     for experiment in experiments:
         vals = get_accs(experiment=experiment, cat=cat,
                         activation_model=activation_model)
         exp_str = f'{experiment:<22}: '
-        for i in range(1, 5):
+        for i in range(5):
             r = get_autocorr(vals, gap=i)
+            d_r[i].append(r)
             exp_str += f'r[{i}] = {r:+.2f} | '
         exp_str = exp_str[:-3]
         print(exp_str)
-        # r = get_autocorr(vals)
-        # r2 = get_autocorr(vals, gap=2)
-        # print(f'{experiment}: {r=:.2f} | {r2=:.2f}')
 
         vals = vals[st_layer:]
         dif0 = np.diff(vals, n=gap)
         difs.append(dif0)
+    exp_str = 'Mean autocorrs'
+    print(f'{cat=}')
+    for i in range(5):
+        M_r = np.mean(d_r[i])
+        SD_r = np.std(d_r[i])
+        exp_str += f'r[{i}] = {M_r:+.2f} ({SD_r:.2f}) | '
+    exp_str = exp_str[:-3]
+    print(exp_str)
+    # quit()
+
     difs = np.array(difs).T
     difs = stats.zscore(difs, axis=0, nan_policy='omit')
 
+    plt.rcParams.update({'font.size': 10})
+    plt.figure(figsize=(6, 4))
+
+    if gap == 0:
+        title = 'Accuracies'
+        if cat == 'attn_output':
+            title += ' (attention layer outputs)'
+        elif cat == 'down_proj_out':
+            title += ' (FFN layer outputs)'
+        letter = 'a.'
+    elif gap == 1:
+        title = 'Discrete first derivatives'
+        if cat == 'attn_output':
+            title += ' (attention layer outputs)'
+        elif cat == 'down_proj_out':
+            title += ' (FFN layer outputs)'
+        letter = 'b.'
+    plt.title(title)
+
     layers = np.arange(st_layer, st_layer + difs.shape[0])
-    for dif, experiment in zip(difs.T, experiments):
-        plt.plot(layers, dif, label=experiment, marker='o', markersize=2,
-                 alpha=.5)
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3,
-               frameon=False)
-    plt.tight_layout()  # Adjust layout to prevent overlap
+    for dif, experiment, label, color in (
+            zip(difs.T, experiments, labels, colors)):
+        plt.plot(layers, dif, label=label, marker='o', markersize=2,
+                 alpha=.7, color=color, linewidth=1)
+    handles, labels = plt.gca().get_legend_handles_labels()
+    order = [0, 3, 6, 1, 4, 2, 5]
+    handles_ = [handles[i] for i in order]
+    labels_ = [labels[i] for i in order]
+
+    plt.legend(handles_, labels_,
+               loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=3,
+               frameon=False,)
+    plt.ylabel('Z-scored accuracy difference', fontsize=11)
+    plt.xlabel('Layer', fontsize=11)
+    plt.gca().spines[['right', 'top']].set_visible(False)
+    plt.xticks(fontsize=11)
+    plt.yticks(fontsize=11)
+    plt.xlim(-1, 80)
+    # plt.tight_layout()  # Adjust layout to prevent overlap
+
+    plt.gca().text(-0.10, 1.05, letter, transform=plt.gca().transAxes,
+             fontsize=14, fontweight='bold', va='center')
+
+    plt.subplots_adjust(left=0.1, right=0.93, top=0.93, bottom=0.3)
     plt.show()
     # quit()
+    #
+    # # df = pd.DataFrame(difs, columns=experiments)
+    # # print(df.corr())
 
-    # df = pd.DataFrame(difs, columns=experiments)
-    # print(df.corr())
+    # labels_ = [label.replace(' (hard, buried', '\n(hard,\nburied') for label in labels]
+    labels_ = [label.replace(' (buried', '\n(buried') for label in labels]
+    labels_ = [label.replace(' (hard', '\n(hard') for label in labels_]
+
+    plt.rcParams.update({'font.size': 12})
+    labels_hor = ['2A', '2B', '2C',
+                  '2A\n(b.)', '2B\n(b.)', '3\n(b.)',
+                  '3',]
+    if gap >= 1:
+        title = 'First derivatives\ncorrelation matrix'# (last 40 layers)'
+        # difs = difs[-40:]
+    else:
+        title = 'Correlation matrix'
+
     corr = np.corrcoef(difs, rowvar=False)
     corr[np.diag_indices_from(corr)] = np.nan
-    plot_heatmap(corr, experiments, vmin=-1, vmax=1)
-    # plt.imshow(corr, cmap='coolwarm', vmin=-0.5, vmax=0.5)
-    # plt.show()
+    M_corr = np.nanmean(corr)
+    SD_corr = np.nanstd(corr)
+    print(f'{M_corr=:.2f} [{SD_corr=:.2f}]')
+
+    plot_heatmap(corr, labels_, labels_hor,
+                 vmin=-0.6, vmax=0.6, rotation=0,
+                 title=title)#, cmap='seismic')
 
 
-def get_autocorr(l, gap=1, st_pt=14):
-    l = l[st_pt:]
-    dif0 = np.diff(l, n=gap)
-    return stats.spearmanr(dif0[:-gap], dif0[gap:], nan_policy='omit')[0]
+def get_autocorr(l, gap=1, st_pt=0):
+    if gap == 0:
+        l = l[st_pt:]
+        return stats.spearmanr(l[:-1], l[1:], nan_policy='omit')[0]
+    else:
+        l = l[st_pt:]
+        dif0 = np.diff(l, n=gap)
+        return stats.spearmanr(dif0[:-gap], dif0[gap:],
+                               nan_policy='omit')[0]
 
 
 if __name__ == '__main__':
-    cross_accs()
+    # cross_accs(cat='down_proj_out', gap=0)
+    # cross_accs(cat='down_proj_out', gap=1)
+    print('-')
+    cross_accs(cat='attn_output', gap=0)
+    cross_accs(cat='attn_output', gap=1)

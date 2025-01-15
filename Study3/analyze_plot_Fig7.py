@@ -39,9 +39,10 @@ def get_hrf(tr=2.1):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      log_freqs=False, just_frontal=True,
-                     ctrl_SuppMat=False):
+                     ctrl_SuppMat=False, basic_BOLD=False):
     fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum = pickle_wrap(
-        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess, },
+        get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,
+                                   'basic_BOLD': basic_BOLD},
         easy_override=True, verbose=-1, )
 
     if fMRI_fluc is None:
@@ -67,15 +68,11 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
     custom_freqs = tuple(custom_freqs)
 
     kw = {'sn': sn, 'sess': sess,
-          # 'avg_before': False,
           'num_TRs': num_TRs, 'picks': picks,
-          # 'avg_ref': True,
-          # 'mastoid_ref': False, 'delay': False,
-          # 'double_speed': double_speed, 'excl_before': True,
           'custom_freqs': custom_freqs}
 
     EEG_fluc = pickle_wrap(get_EEG_score_sn, kwargs=kw,
-                           easy_override=False, verbose=-1)
+                           easy_override=False, verbose=1)
 
     if EEG_fluc is None:
         print(f'BAD EEG!! ({sn}; {sess})')
@@ -209,42 +206,45 @@ def get_sess_names(only_rs=True):
     SESS_OTHER += [f'02' + sess[2:] for sess in SESS_OTHER]
     return SESSES + SESS_INK + SESS_OTHER
 
-
-def do_EEG_fMRI_test(just_frontal=True):
-    SNS = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
+def prep_Study3():
+    sns = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10',
            '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
            '21', '22']
-    SESSES = get_sess_names()
+    sesses = get_sess_names()
 
     # A fair number of bad/missing datasets.
     #   I double-checked to make sure I downloaded this right.
     #   They just weren't in the data. This is mentioned in the Methods.
-    BAD_SNS = {('06', '02_task-rest'), ('12', '01_task-rest'),
+    bad_sns = {('06', '02_task-rest'), ('12', '01_task-rest'),
                ('16', '02_task-rest'), ('18', '01_task-rest'),
-               ('06', '02_task-inscapes'), ('07', '01_task_inscapes'),
+               ('06', '02_task-inscapes'), ('07', '01_task-inscapes'),
                ('09', '01_task-inscapes'), ('12', '01_task-inscapes'),
-               ('15', '02_task-inscapes'), ('18', '01_task_inscapes'),
+               ('15', '02_task-inscapes'), ('18', '01_task-inscapes'),
                }  # Bad EEG alignment
+    return sns, sesses, bad_sns
+
+def do_EEG_fMRI_test(just_frontal=True):
+    sns, sesses, bad_sns = prep_Study3()
 
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     dfs_l = []
-    # SNS = SNS[-10:]
-    for SN in SNS:
-        for j, SESS in enumerate(SESSES):
-            if SN in ['01', '02', '03', '09', '18'] and '02' in SESS: continue
-            if (SN, SESS) in BAD_SNS: continue
-            print(f'- ({SN}; {SESS}) -')
-            name2r, df = test_EEG_fMRI_sn(SN, SESS, just_frontal=just_frontal)
+    for sn in sns:
+        for j, sess in enumerate(sesses):
+            if sn in ['01', '02', '03', '09', '18'] and '02' in sess: continue
+            if (sn, sess) in bad_sns: continue
+            print(f'- ({sn}; {sess}) -')
+            name2r, df = test_EEG_fMRI_sn(sn, sess, just_frontal=just_frontal,
+                                          basic_BOLD=True)
             if name2r is None:
                 continue
             dfs_l.append(df)
 
             for key, r in name2r.items():
-                NAME2SN2L[SN][key].append(r)
+                NAME2SN2L[sn][key].append(r)
 
             NAME2L = defaultdict(list)
             simple2l = defaultdict(list)
-            for SN, d in NAME2SN2L.items():
+            for sn, d in NAME2SN2L.items():
                 for key, l in d.items():
                     NAME2L[key].append(np.mean(l))
                     simple2l[key].extend(l)
@@ -275,7 +275,7 @@ def do_EEG_fMRI_test(just_frontal=True):
 
             if 'r50.0' not in NAME2L:
                 continue
-            if N == 21 and j == len(SESSES) - 1:
+            if N == 21 and j == len(sesses) - 1:
                 plot_hz_corrs(NAME2L, effect_size=True, plot_se=True,
                               just_frontal=just_frontal)
 

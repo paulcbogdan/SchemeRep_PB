@@ -291,7 +291,7 @@ def plot_triangle(  # activation_model='meta-llama/Llama-3.2-3b',
 
 
 def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2=False,
-                bury=False, do_legend=True, just2=False):
+                bury=False, do_legend=True, just2=False, suptitle=None):
     plt.rcParams.update({'font.size': 14})
     if bury:
         activation_model = (activation_model, 'bury_item')
@@ -302,6 +302,8 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2=False,
     else:
         fig, axs = plt.subplots(2, 2, figsize=(13, 10))
         plt.sca(axs[0, 0])
+    if suptitle is not None:
+        plt.suptitle(suptitle, fontsize=16)
     single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
                            activation_model=activation_model,
                            do_r2=do_r2, do_legend=do_legend)
@@ -317,8 +319,12 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2=False,
     plt.gca().text(-0.2, 1.04, 'b.', transform=plt.gca().transAxes,
              fontsize=18, fontweight='bold', va='center')
     if just2:
-        plt.subplots_adjust(wspace=0.5, left=0.1, right=0.9, top=0.93, bottom=0.11,
-                            hspace=0.2)
+        if suptitle is not None:
+            plt.subplots_adjust(wspace=0.5, left=0.1, right=0.9, top=0.85, bottom=0.11,
+                                hspace=0.2)
+        else:
+            plt.subplots_adjust(wspace=0.5, left=0.1, right=0.9, top=0.93, bottom=0.11,
+                                hspace=0.2)
         plt.show()
         return
 
@@ -328,10 +334,10 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2=False,
     plt.gca().text(-0.2, 1.04, 'c.', transform=plt.gca().transAxes,
              fontsize=18, fontweight='bold', va='center')
 
-    if '3b' in activation_model or '3b' in activation_model[0]:
-        plt.sca(axs[1, 1])
-        plot_all_feats(cat='down_proj_out', activation_model=activation_model,
-                       feat2color=feat2color, xlabel=True, do_r2=do_r2)
+    # if '3b' in activation_model or '3b' in activation_model[0]:
+    plt.sca(axs[1, 1])
+    plot_all_feats(cat='down_proj_out', activation_model=activation_model,
+                   feat2color=feat2color, xlabel=True, do_r2=do_r2)
     plt.gca().text(-0.2, 1.04, 'd.', transform=plt.gca().transAxes,
              fontsize=18, fontweight='bold', va='center')
 
@@ -347,7 +353,7 @@ def single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
     cats = ['input', 'attn_output', 'down_proj_out', #'attn_weights'
             ]
     if '70b' in activation_model or '70b' in activation_model[0]:
-        cats = cats[:2] + cats[3:]
+        # cats = cats[:2] + cats[3:]
         num_layers = 80
     else:
         num_layers = 28
@@ -395,15 +401,15 @@ if __name__ == '__main__':
     # quit()
     # plot_square(activation_model=('meta-llama/Llama-3.2-3b', 'bury_item'))
 
-    plot_square()
-    # plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct')
+    # plot_square()
+    plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct')
     # single_feat_multi_cats()
     # plot_all_feats(cat='down_proj_out', activation_model='meta-llama/Llama-3.2-3b')
     # plot_all_feats(cat='input', activation_model='meta-llama/Llama-3.2-3b')
     # plot_all_feats(cat='attn_output', activation_model='meta-llama/Llama-3.2-3b')
     # plt.show()
-    quit()
+    # quit()
 
-    plot_all_feats(cat='down_proj_out', activation_model=('meta-llama/Llama-3.3-70b-Instruct',
-                                                          'bury_solo'))
+    # plot_all_feats(cat='down_proj_out', activation_model=('meta-llama/Llama-3.3-70b-Instruct',
+    #                                                       'bury_solo'))
     # TODO: run this 100% for down_proj_out

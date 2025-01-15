@@ -1,6 +1,8 @@
 import os
 import pathlib
 
+from marinate.pkld import pkld
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -58,6 +60,7 @@ def get_df_events(sn, RL_LR, cont_PE=None):
     return df_trials
 
 
+@pkld
 def get_df_PE(sn, RL_LR, learning_rate=1,
               drop_first=False, reset_trial0=False,
               for_prepoc=False):

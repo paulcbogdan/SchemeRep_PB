@@ -1,6 +1,8 @@
 import os
 import pathlib
 
+from marinate.pkld import pkld
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -170,64 +172,105 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     return ar
 
 
+@pkld
+def get_study1b_ar(sn, combine_regions=True, bilateral=False,
+                   only=None, learning_rate=None,
+                   drop_first=False, reset_trial0=False,
+                   rl_lr='both'):
+    # try:
+    df_rl, df_lr = get_df_PE(sn, 'both',
+                             learning_rate=learning_rate,
+                             drop_first=drop_first,
+                             reset_trial0=reset_trial0)
+    # except Exception as e:
+    #     print(f'Bad df: {sn}')
+    #     return None, None
+
+    try:
+        ar = get_sn_roi_ar(sn, rl_lr, combine_regions=combine_regions,
+                           bilateral=bilateral, reg_global=True,
+                           no_compcor=True)
+    except ValueError:
+        print(f'Bad fMRI: {sn}')
+        return None, None
+    except Exception as e:
+        print(f'ERROR: {sn}, {e=}')
+        time.sleep(1)
+        return None, None
+
+    if rl_lr.lower() == 'lr':
+        df = df_lr
+    elif rl_lr.lower() == 'rl':
+        df = df_rl
+    else:
+        raise ValueError
+
+    if only:
+        df.loc[df['event'] != only, 'trial_type'] = 'only'
+
+    df.loc[df['event'] == 'neut', 'trial_type'] = 'neut'
+    ar_high = ar[:, df['trial_type'] == 'high_PE']
+    ar_low = ar[:, df['trial_type'] == 'low_PE']
+
+    return ar_high, ar_low
+
+
 def get_conn_sn(sn, combine_regions=True, bilateral=False,
                 only=None, learning_rate=None,
                 drop_first=False, reset_trial0=False,
                 rl_lr='both'
                 ):
-    try:
-        df_rl, df_lr = get_df_PE(sn, 'both',
-                                 learning_rate=learning_rate,
-                                 drop_first=drop_first,
-                                 reset_trial0=reset_trial0)
-    except Exception as e:
-        print(f'ERROR: {sn}, {e=}')
-        time.sleep(1)
+    # try:
+    #     df_rl, df_lr = get_df_PE(sn, 'both',
+    #                              learning_rate=learning_rate,
+    #                              drop_first=drop_first,
+    #                              reset_trial0=reset_trial0)
+    # except Exception as e:
+    #     print(f'ERROR: {sn}, {e=}')
+    #     time.sleep(1)
+    #     return None, sn, None, None, None, None
+    #
+    # # ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+    # #                    bilateral=bilateral, reg_global=True,
+    # #                    no_compcor=True)
+    #
+    # try:
+    #     ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
+    #                        bilateral=bilateral, reg_global=True,
+    #                        no_compcor=True)
+    # except ValueError:
+    #     print(f'Not analyzed connectivity: {sn}')
+    #     return None, sn, None, None, None, None
+    # except Exception as e:
+    #     print(f'ERROR: {sn}, {e=}')
+    #     time.sleep(1)
+    #     return None, sn, None, None, None, None
+    # print('Got ar')
+    # if only:
+    #     df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
+    #
+    # df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
+    #
+    # ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
+    # ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
+
+    ar_high, ar_low = get_study1b_ar(sn, combine_regions=combine_regions,
+                                     bilateral=bilateral,
+                                     only=only, learning_rate=learning_rate,
+                                     drop_first=drop_first, reset_trial0=reset_trial0,
+                                     rl_lr='lr')
+    if ar_high is None:
+        print(f'Failed get_conn_sn: {sn}')
         return None, sn, None, None, None, None
 
-    # ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-    #                    bilateral=bilateral, reg_global=True,
-    #                    no_compcor=True)
-
-    try:
-        ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-                           bilateral=bilateral, reg_global=True,
-                           no_compcor=True)
-    except ValueError:
-        print(f'Not analyzed connectivity: {sn}')
+    ar_high2, ar_low2 = get_study1b_ar(sn, combine_regions=combine_regions,
+                                       bilateral=bilateral,
+                                       only=only, learning_rate=learning_rate,
+                                       drop_first=drop_first, reset_trial0=reset_trial0,
+                                       rl_lr='rl')
+    if ar_high2 is None:
+        print(f'Failed get_conn_sn (lr): {sn}')
         return None, sn, None, None, None, None
-    except Exception as e:
-        print(f'ERROR: {sn}, {e=}')
-        time.sleep(1)
-        return None, sn, None, None, None, None
-    print('Got ar')
-    if only:
-        df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
-
-    df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
-
-    ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
-
-    ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
-
-    try:
-        ar = get_sn_roi_ar(sn, 'RL', combine_regions=combine_regions,
-                           bilateral=bilateral, reg_global=True,
-                           no_compcor=True)
-    except ValueError:
-        print(f'Not analyzed connectivity: {sn}')
-        return None, sn, None, None, None, None
-    except Exception as e:
-        print(f'ERROR: {sn}, {e=}')
-        time.sleep(1)
-        return None, sn, None, None, None, None
-    if only:
-        df_rl.loc[df_rl['event'] != only, 'trial_type'] = 'only'
-
-    df_rl.loc[df_rl['event'] == 'neut', 'trial_type'] = 'neut'
-
-    ar_high2 = ar[:, df_rl['trial_type'] == 'high_PE']
-    ar_low2 = ar[:, df_rl['trial_type'] == 'low_PE']
 
     conn_high0 = np.corrcoef(ar_high)
     conn_high0[np.diag_indices_from(conn_high0)] = np.nan
@@ -275,14 +318,12 @@ def make_conn(combine_regions=False, bilateral=False,
         conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
             pickle_wrap(get_conn_sn, kwargs=kw, easy_override=False, dt_max=dt_max))
 
-
         if conn_high_sn is None:
             print(f'Bad conn: {sn}, attempting to redo')
             conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
                 pickle_wrap(get_conn_sn, kwargs=kw, easy_override=True, dt_max=dt_max))
 
         print(f'Time needed for sn ({sn}): {time.time() - t_st:.2f} s')
-
 
         if conn_high_sn is None:
             print('BAD CONN??')
@@ -351,6 +392,8 @@ def get_combo(kw, easy_override=False):
     conn_lows1 = np.mean([conn_lows1_loss, conn_lows1_win], axis=0)
     return conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
 
+def get_wl_contrast_conn(kw):
+    pass
 
 def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
                          sub_ROI_expected=False):
@@ -475,4 +518,4 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
 
 if __name__ == '__main__':
     run_Study1B_analysis()
-    run_Study1B_analysis(combine_regions=True)
+    # run_Study1B_analysis(combine_regions=True)

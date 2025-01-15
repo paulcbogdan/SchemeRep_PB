@@ -54,7 +54,8 @@ def get_fMRI_ar(sn, sess, combine_regions=False):
 
 
 
-def get_fMRI_score_sn(sn, sess='01', combine_regions=False,):
+def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
+                      basic_BOLD=False):
 
     try:
         ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
@@ -78,6 +79,23 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,):
     key2idxs['IPL'] = ROI2idx['IPL']
     key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']
     key2idxs['ATL'] = ROI2idx['ATL']
+
+    if basic_BOLD:
+        ar_ATL = stats.zscore(ar_fMRI[key2idxs['ATL']].mean(axis=0),
+                              nan_policy='omit')
+        ar_MFG = stats.zscore(ar_fMRI[key2idxs['MFG']].mean(axis=0),
+                              nan_policy='omit')
+        ar_IPL = stats.zscore(ar_fMRI[key2idxs['IPL']].mean(axis=0),
+                                nan_policy='omit')
+        ar_LOC = stats.zscore(ar_fMRI[key2idxs['LOC']].mean(axis=0),
+                                nan_policy='omit')
+        # fluc = np.abs(ar_ATL - ar_MFG)# + np.abs(ar_LOC - ar_IPL)
+        # fluc = np.abs(ar_LOC - ar_IPL)
+        fluc = np.abs(ar_ATL + ar_LOC - ar_MFG - ar_IPL)
+        alt1_signed = ar_ATL - ar_MFG + ar_LOC - ar_IPL
+        alt2_abs_sum = np.abs(ar_ATL) + np.abs(ar_MFG) + np.abs(ar_LOC) + np.abs(ar_IPL)
+        alt3_sum = ar_ATL + ar_MFG + ar_LOC + ar_IPL
+        return fluc, alt1_signed, alt2_abs_sum, alt3_sum
 
     conn_fMRI = ar_fMRI[None, :, :] * ar_fMRI[:, None, :]
 
