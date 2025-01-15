@@ -1,6 +1,9 @@
 import os
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
+
+# path = pathlib.Path(__file__).parent.parent.resolve()
+# os.chdir(path)
 
 import pandas as pd
 import matplotlib.ticker as mtick

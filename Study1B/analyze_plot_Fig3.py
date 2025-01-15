@@ -128,9 +128,15 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
 
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
                   reg_global=False, no_compcor=False, rs=False):
-    atlas = get_atlas(combine_regions=combine_regions,
-                      combine_bilateral=bilateral,
-                      HCP=True)
+    if isinstance(combine_regions, tuple):
+        assert combine_regions[1].lower() == 'schaefer'
+        atlas = get_atlas(combine_regions=combine_regions[0],
+                          combine_bilateral=bilateral,
+                          HCP=True, schaefer=True)
+    else:
+        atlas = get_atlas(combine_regions=combine_regions,
+                          combine_bilateral=bilateral,
+                          HCP=True)
     # print('TEST TEST')
     glob_str = '_global' if reg_global else ''
     cc_str = '_nocc' if no_compcor else ''
@@ -172,7 +178,7 @@ def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
     return ar
 
 
-@pkld
+@pkld(overwrite=False)
 def get_study1b_ar(sn, combine_regions=True, bilateral=False,
                    only=None, learning_rate=None,
                    drop_first=False, reset_trial0=False,
@@ -313,6 +319,7 @@ def make_conn(combine_regions=False, bilateral=False,
     while len(good_sns) < num_sns and (len(sns) > 0):
         sn = sns.pop()
         kw['sn'] = sn
+        t_st = time.time()
 
         # conn_high_sn, conn_low_sn, conn_high0, conn_high1, conn_low0, conn_low1
         conn_high_sn, conn_low_sn, conn_high0_sn, conn_high1_sn, conn_low0_sn, conn_low1_sn = (
@@ -348,12 +355,19 @@ def make_conn(combine_regions=False, bilateral=False,
 
 
 def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
-                         anat_ver=3):
+                         anat_ver=3, schaefer=False):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_VD_PA_partitions(age='healthy', anat=True,
                              do_PA=True, thr=.9, anat_ver=anat_ver,
-                             combine_regions=combine_regions)
-
+                             combine_regions=combine_regions,
+                             schaefer=schaefer)
+    print(p_dorsal)
+    if schaefer:
+        # if combine_regions:
+        #     assert np.max(p_dorsal + p_ventral) > 60
+        # else:
+        if not combine_regions:
+            assert np.max(p_dorsal + p_ventral) > 250
     if combine_bilateral:
         p_d_ant = np.array(p_d_ant[::2]) // 2
         p_d_pos = np.array(p_d_pos[::2]) // 2
@@ -392,16 +406,38 @@ def get_combo(kw, easy_override=False):
     conn_lows1 = np.mean([conn_lows1_loss, conn_lows1_win], axis=0)
     return conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
 
-def get_wl_contrast_conn(kw):
-    pass
+@pkld
+def get_wl_contrast_conn(kw, easy_override=False):
+    kw['only'] = 'loss'
+    (conn_highs_loss, conn_lows_loss, sns,
+     conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = (
+        pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
+    kw['only'] = 'win'
+    (conn_highs_win, conn_lows_win, sns2,
+     conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = (
+        pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
 
-def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
-                         sub_ROI_expected=False):
+    conn_wins = np.mean([conn_highs_win, conn_lows_win], axis=0)
+    conn_loss = np.mean([conn_highs_loss, conn_lows_loss], axis=0)
+
+    conn_wins0 = np.mean([conn_highs0_win, conn_lows0_win], axis=0)
+    conn_wins1 = np.mean([conn_highs1_win, conn_lows1_win], axis=0)
+    conn_loss0 = np.mean([conn_highs0_loss, conn_lows0_loss], axis=0)
+    conn_loss1 = np.mean([conn_highs1_loss, conn_lows1_loss], axis=0)
+    return conn_wins, conn_loss, sns, conn_wins0, conn_wins1, conn_loss0, conn_loss1
+
+def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
+                         sub_ROI_expected=False, schaefer=True):
+    if schaefer:
+        combine_regions = (combine_regions, 'schaefer')
     kw = {'combine_regions': combine_regions, 'bilateral': False,
           'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
           'drop_first': False, 'reset_trial0': True, }
 
-    if kw['only'] == 'combo':
+    if kw['only'] == 'wl':
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+            get_wl_contrast_conn(kw, easy_override=False))
+    elif kw['only'] == 'combo':
         # can either be run while averaging a loss matrix & win matrix ('combo')
         #   or just making a single one covering both PE ('both')
         # the manuscript uses 'combo'
@@ -410,18 +446,34 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
     else:
         conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
+    if schaefer:
+        combine_regions = combine_regions[0]
 
-    if combine_regions:
-
-        conn_highs[:, :, 46:] = np.nan
-        conn_highs[:, 46:, :] = np.nan
-        conn_lows[:, :, 46:] = np.nan
-        conn_lows[:, 46:, :] = np.nan
+    # print(conn_highs.shape)
+    # quit()
+    if schaefer:
+        if combine_regions:
+            conn_highs[:, :, 76:] = np.nan
+            conn_highs[:, 76:, :] = np.nan
+            conn_lows[:, :, 76:] = np.nan
+            conn_lows[:, 76:, :] = np.nan
+        else:
+            conn_highs[:, :, 1000:] = np.nan
+            conn_highs[:, 1000:, :] = np.nan
+            conn_lows[:, :, 1000:] = np.nan
+            conn_lows[:, 1000:, :] = np.nan
+        pass
     else:
-        conn_highs[:, :, 210:] = np.nan
-        conn_highs[:, 210:, :] = np.nan
-        conn_lows[:, :, 210:] = np.nan
-        conn_lows[:, 210:, :] = np.nan
+        if combine_regions:
+            conn_highs[:, :, 46:] = np.nan
+            conn_highs[:, 46:, :] = np.nan
+            conn_lows[:, :, 46:] = np.nan
+            conn_lows[:, 46:, :] = np.nan
+        else:
+            conn_highs[:, :, 210:] = np.nan
+            conn_highs[:, 210:, :] = np.nan
+            conn_lows[:, :, 210:] = np.nan
+            conn_lows[:, 210:, :] = np.nan
 
     if sub_ROI_expected:
         ROI_expected = np.nanmean(conn_highs, axis=(0, 2))
@@ -455,9 +507,11 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
         r = None
 
     ef_high = get_PE_x_Conn_effect(conn_highs, combine_regions=combine_regions,
-                                   combine_bilateral=bilateral)[0]
+                                   combine_bilateral=bilateral,
+                                   schaefer=schaefer)[0]
     ef_low = get_PE_x_Conn_effect(conn_lows, combine_regions=combine_regions,
-                                  combine_bilateral=bilateral)[0]
+                                  combine_bilateral=bilateral,
+                                  schaefer=schaefer)[0]
     itr = ef_low - ef_high
     t_final, p = stats.ttest_1samp(itr, 0)
 
@@ -468,13 +522,18 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral, HCP=True,
-                          lifu_labels=combine_regions)
+                          lifu_labels=combine_regions,
+                          schaefer=schaefer)
+        # print(atlas['ticks'])
+        # print(atlas['tick_lows'])
 
         title = f'\nt[{N - 1}] = {t_final:.2f}, f[{N - 1}] = {F:.2f}'
         if r is not None:
             title += f', {r=:.2f}'
 
-        if combine_regions:
+        if schaefer:
+            fp_out = None
+        elif combine_regions:
             atlas['ticks'] = atlas['ticks'][:23]
             atlas['tick_labels'] = atlas['tick_labels'][:23]
             atlas['tick_lows'] = atlas['tick_lows'][:23]
@@ -482,6 +541,9 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=True,
             fp_out = r'C:\PycharmProjects\SchemeRep\result_pics\Fig3\Fig3A_matrix.png'
         else:
             fp_out = None
+
+
+        # quit()
 
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,

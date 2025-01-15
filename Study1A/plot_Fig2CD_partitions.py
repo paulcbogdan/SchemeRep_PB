@@ -122,8 +122,30 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                          age: int | str = 'healthy',
                          thr=.95, do_PA=True, anat=False,
                          plot=False, combine_regions=False,
-                         anat_ver=3, regress=False):
-    if anat:
+                         anat_ver=3, regress=False,
+                         schaefer=False):
+    if schaefer:
+        atlas = get_atlas(combine_regions=combine_regions,
+                          schaefer=True)
+        l = []
+        keys = [('PFCl', 'PFClv'), ('IPL', ), ('TempPole',),
+                ('Striate', 'StriCal', 'ExStrInf', 'ExStrSup')]
+        for regions in keys:
+            regions_idxs = []
+            for region in regions:
+                idxs = [i for i, ROI_region in enumerate(atlas['ROI_regions'])
+                        if ROI_region == region]
+                regions_idxs.extend(idxs)
+            l.append(regions_idxs)
+        p_d_ant, p_d_pos, p_v_ant, p_v_pos = l
+        p_dorsal = p_d_ant + p_d_pos
+        p_ventral = p_v_ant + p_v_pos
+        matrix_mask = np.ones((len(atlas['ROI_regions']),
+                               len(atlas['ROI_regions'])),
+                              dtype=bool)
+        return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
+
+    elif anat:
         return get_anat_VD_PA(plot=plot, combine_regions=combine_regions,
                               anat_ver=anat_ver)
     else:

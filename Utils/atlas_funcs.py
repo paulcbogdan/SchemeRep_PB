@@ -7,6 +7,189 @@ import pandas as pd
 from nilearn import image
 from functools import cache
 
+from sympy.matrices.expressions.matadd import combine
+
+from marinate.pkld import pkld
+
+
+def get_Schaefer_atlas(HCP=False, combine_bilateral=False):
+    atlas = {}
+
+    from nilearn.datasets import fetch_atlas_schaefer_2018
+    atlas_ni = fetch_atlas_schaefer_2018(n_rois=1000, resolution_mm=2,
+                                      yeo_networks=17)
+    # df_coords = r'Schaefer2018_1000Parcels_17Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
+    fp_coords = r'C:\PycharmProjects\SchemeRep\docs\SchemePE\Schaefer2018_1000Parcels_17Networks_order_FSLMNI152_1mm.Centroid_RAS.csv'
+    df_coords = pd.read_csv(fp_coords)
+    atlas['coords'] = np.array(df_coords[['R', 'A', 'S']])
+
+    fp_ref = (r'C:\PycharmProjects\SchemeRep\fMRI_in\102'
+              r'\ENC_GM20_LLS1_bpF_full\OBJ'
+              r'\ENC_sub102_run1_trial1_subset3_pairID29_object.nii')
+    img_ref = image.load_img(fp_ref)
+    atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img_ref,
+                                          interpolation='nearest')
+
+    img_atlas = image.load_img(atlas_ni['maps'])
+    data = img_atlas.get_fdata()
+
+
+    # data_low = data[data < 500]
+    # data_high = data[data >= 500]
+    # print(np.nanmax(data))
+
+    # data[data >= 500] += 1
+    # data[data >= 501] *= 10
+    # data[data < 500] *= 2
+    # data[data >= 5010] /= 10
+    # data = np.array(data, dtype=int)
+    #
+    # #
+    # new_labels = [''] * 1000
+    # for i in range(500):
+    #     new_labels[i * 2] = str(atlas_ni['labels'][i], encoding='utf-8')
+    #     new_labels[i * 2 + 1] = str(atlas_ni['labels'][i + 500], encoding='utf-8')
+    # labels = new_labels
+    labels = atlas_ni['labels']
+    labels = [str(label, encoding='utf-8') for label in labels]
+
+    regions = [label.split('_')[-2] for label in labels]
+    regions_unique = []
+    regions_old_idxs = defaultdict(list)
+    for old_idx, region in enumerate(regions):
+        if region not in regions_old_idxs:
+            regions_unique.append(region)
+        regions_old_idxs[region].append(old_idx + 1)
+    old2new = {}
+    new2old = {}
+    new_idx = 0
+    for region in regions_unique:
+        for old_idx in regions_old_idxs[region]:
+            old2new[old_idx] = new_idx
+            new2old[new_idx] = old_idx
+            new_idx += 1
+
+
+    new_labels = []
+    for new_idx in range(0, 1000):
+        new_labels.append(labels[new2old[new_idx] - 1])
+    # print(new_labels)
+    # quit()
+
+    data_new = np.zeros_like(data)
+    for og_idx, new_idx in old2new.items():
+        # print(f'{og_idx=}, {new_idx=}')
+        # label = labels[new_idx]
+        # print(F'{new_idx} | {og_idx} | {label}')
+        data_new[data == og_idx] = new_idx
+    data = data_new
+    atlas['maps'] = image.new_img_like(img_atlas, data)
+    # print(data)
+    import matplotlib.pyplot as plt
+    # # print(data[45:50, 50:55, 25:30])
+    # # print(np.max(data))
+    # print(data_new[70, 50, 40])
+    # plt.imshow(data_new[:, 50, :], interpolation='none')
+    # # print(data_new[70, 50, 60])
+    # plt.colorbar()
+    # plt.show()
+    # quit()
+    # for i in range(1000):
+    #     pass
+
+    # regions_unique = list(set(regions))
+
+    # atlas['maps'] = image.resample_to_img(atlas_ni['maps'], img,
+    #                                       interpolation='nearest')
+
+    if HCP:
+        affine = [[-2., 0., 0., 90.],
+                  [0., 2., 0., -126.],
+                  [0., 0., 2., -72.],
+                  [0., 0., 0., 1.]]
+        affine = np.array(affine)
+        atlas['maps'] = image.resample_img(atlas['maps'], target_affine=affine,
+                                           target_shape=(91, 109, 91),
+                                           interpolation='nearest',
+                                           force_resample=True,
+                                           copy_header=True)
+
+    ROIs = new_labels
+    # print(ROIs)
+    ROIs = [ROI.replace('PrC_', 'PrCv_').replace('Cinga_1', 'PFCmp_6').
+            replace('PFCld', 'PFCl').replace('AntTemp', 'Temp')
+            for ROI in ROIs]
+
+    ROI_nums = [i + 1 for i in range(len(ROIs))]
+    n_ROIs = len(ROIs)
+    ROI_regions = []
+    ROI_regions_laterality = []
+    region_nums = defaultdict(list)
+    ROIs_ = []
+    for i, ROI in enumerate(ROIs):
+        ROI = ROI.replace('s_LH', 's_L').replace('s_RH', 's_R')
+        ROIs_.append(ROI)
+        # ROI = str(ROI, encoding='utf-8')
+        region = ROI.split('_')[-2]
+        ROI_regions.append(region)
+        LR = ROI.split('_')[1]
+        region_LR = region + '_' + LR
+        # print(f'{ROI} | {region_LR=}')
+        region_nums[region].append(i)#int(ROI_num)-1)
+        ROI_regions_laterality.append(region_LR)
+    ROIs = ROIs_
+
+    ticks = []
+    tick_labels = []
+    tick_lows = []
+    regions = list(region_nums.keys())
+    regions.sort()
+    for region in regions:
+        l = region_nums[region]
+    # for region, l in region_nums.items():
+        ticks.append(np.mean(l))
+        tick_labels.append(region)
+        tick_lows.append(l[0])
+    #     print(f'{region} | {region_nums=}')
+    # quit()
+
+    if combine_bilateral:
+        data = atlas['maps'].get_fdata()
+        data = (data + 1) - (data + 1) % 2
+        data /= 2
+        atlas['maps'] = image.new_img_like(atlas['maps'],
+                                           data)
+        ROIs = ROIs[::2]
+        ROIs_ = []
+        for ROI in ROIs:
+            ROI = ROI.replace('_L', '')
+            ROI_num, ROI_str = ROI.split(' ')
+            ROI_num = int(ROI.split()[0])
+            ROI_num = (ROI_num + 1) // 2
+            ROI = f'{ROI_num} {ROI_str}'
+            ROIs_.append(ROI)
+        ROIs = ROIs_
+
+    # print(tick_labels)
+    # quit()
+    # quit()
+    atlas['ROIs'] = ROIs
+    atlas['ROI_nums'] = ROI_nums
+    atlas['n_ROIs'] = n_ROIs
+    atlas['ROI_regions'] = ROI_regions # repeats, length = # ROI
+    atlas['ticks'] = ticks
+    atlas['tick_labels'] = tick_labels # no repeat, length = # regions
+    atlas['tick_lows'] = tick_lows
+    # for tick, label in zip(ticks, tick_labels):
+    #     print(f'{tick=}, {label=}')
+    # print(f'{tick_labels=}')
+
+    # quit()
+    atlas['shenyang'] = False
+    atlas['ROI_regions_laterality'] = ROI_regions_laterality
+    atlas['ROI2coord'] = dict(zip(ROIs, atlas['coords']))
+    return atlas
+
 
 def add_ROI_info(atlas):
     ROIs = atlas['labels']
@@ -129,10 +312,13 @@ def get_BN_and_resample(combine_bilateral=False, new_space=True, shenyang=True,
     return atlas
 
 def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
-                     natview=False, lifu_labels=True):
-    atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
-                                new_space=new_space, HCP=HCP,
-                                natview=natview, lifu_labels=lifu_labels)
+                     natview=False, lifu_labels=True, schaefer=False):
+    if schaefer:
+        atlas = get_Schaefer_atlas(HCP=HCP, combine_bilateral=combine_bilateral)
+    else:
+        atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
+                                    new_space=new_space, HCP=HCP,
+                                    natview=natview, lifu_labels=lifu_labels)
 
     region_to_new_number = {}
     cnt = 1
@@ -160,14 +346,19 @@ def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
     add_ROI_info(atlas)
     return atlas
 
-@cache
+@pkld(store='both')
 def get_atlas(combine_regions=False, combine_bilateral=False,
               new_space=True, shenyang=True,
-              HCP=False, natview=False, lifu_labels=True):
+              HCP=False, natview=False, lifu_labels=True,
+              schaefer=False):
+
     if combine_regions:
         atlas = get_combined_BNA(combine_bilateral=combine_bilateral,
                                  new_space=new_space, HCP=HCP,
-                                 natview=natview, lifu_labels=lifu_labels)
+                                 natview=natview, lifu_labels=lifu_labels,
+                                 schaefer=schaefer)
+    elif schaefer:
+        atlas = get_Schaefer_atlas(HCP=HCP, combine_bilateral=combine_bilateral)
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space, shenyang=shenyang,
@@ -195,3 +386,7 @@ def get_BNA_ROIs(code=None):
         raise NotImplementedError(f'get_BNA_ROIs, {code=}')
     return ROIs
 
+if __name__ == '__main__':
+    atlas = get_atlas(schaefer=True)
+    print(atlas['ROIs'])
+    print(atlas['ROI_regions'])

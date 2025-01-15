@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pickle
 
-from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo
+from Study1B.analyze_plot_Fig3 import get_sn_roi_ar, make_conn, get_combo, get_wl_contrast_conn
 from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 
 from Utils.pickle_wrap_funcs import pickle_wrap
@@ -158,7 +158,10 @@ def get_HCP_task_conn(combine_regions, focus='combo'):
           'only': focus, 'num_sns': 1000, 'learning_rate': 0.3,
           'drop_first': False, 'reset_trial0': True, }
 
-    if kw['only'] == 'combo':
+    if kw['only'] == 'wl':
+        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+            get_wl_contrast_conn(kw))
+    elif kw['only'] == 'combo':
         conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
             get_combo(kw))
     else:
@@ -177,7 +180,7 @@ def get_HCP_task_conn(combine_regions, focus='combo'):
 
 
 def get_dd_etc(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
-    print(f'{conn.shape=}')
+    # print(f'{conn.shape=}')
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
     dd = np.nanmean(dd, axis=(1, 2))
     vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
@@ -212,9 +215,9 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                     RAM_cache=True))
 
     assert set(sns) - set(sn2conns) == set(), f'{set(sns) - set(sn2conns)=}'
-    # itr_ef = get_itr_ef_from_sn2conns(sns, sn2conns, p_d_ant, p_d_pos,
-    #                                   p_v_ant, p_v_pos)
-    itr_ef = None
+    itr_ef = get_itr_ef_from_sn2conns(sns, sn2conns, p_d_ant, p_d_pos,
+                                      p_v_ant, p_v_pos)
+    # itr_ef = None
     itr_ef_lr = get_itr_ef_from_sn2conns(sns, sn2conns_lr, p_d_ant, p_d_pos,
                                          p_v_ant, p_v_pos)
     del sn2conns_lr
@@ -305,7 +308,7 @@ def get_final_HCP_sns():
     return sns
 
 def run_analysis_Study2B(num_test=10_000, skip_other=True,
-                         combine_regions=False, focus='combo'):
+                         combine_regions=False, focus='wl'):
     sns = get_final_HCP_sns()
 
 
@@ -403,7 +406,8 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
             get_HCP_task(sns, pda_i, pdp_i, pva_i, pvp_i,
                          combine_regions=combine_regions,
                          focus=focus))
-        print(f'\tTask time: {time() - t_st:.5f} s')
+        print(f'\tTask time ({focus}): {time() - t_st:.5f} s')
+        # print(f'{task_efs=}')
         # print(task_efs_lr)
 
         task_reliability, _ = stats.spearmanr(task_efs_lr, task_efs_rl,
@@ -423,14 +427,15 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
         rs_efs_l.append(rs_efs)
 
         if len(task_efs_l) % 10 == 0:
+            # print(f'{len(task_efs_l)=}, {len(rs_efs_l)=}')
             ttest_on_correlations(task_efs_l, rs_efs_l)
     # quit()
     str_shape = '_' + str(np.array(task_efs_l).shape)
-    fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr_{str_shape}_task.pkl'
+    fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr_{str_shape}_task_{focus}.pkl'
     Path(fp_pkl).parent.mkdir(parents=True, exist_ok=True)
     with open(fp_pkl, 'wb') as f:
         pickle.dump(task_efs_l, f)
-    fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr_{str_shape}_rs.pkl'
+    fp_pkl = fr'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr_{str_shape}_rs_{focus}.pkl'
     with open(fp_pkl, 'wb') as f:
         pickle.dump(rs_efs_l, f)
 
@@ -441,6 +446,8 @@ def ttest_on_correlations(task_efs_l, rs_efs_l):
     t_l = []
     for i, (task_efs, rs_efs) in enumerate(zip(np.array(task_efs_l).T,
                                                np.array(rs_efs_l).T)):
+        # print(f'{task_efs.shape=}')
+        # print(f'{rs_efs.shape=}')
         r, p = stats.spearmanr(task_efs, rs_efs)
         t_l.append(r)
 
