@@ -371,6 +371,8 @@ def get_llama_d_vecs(cat='input', layer_name=1, normalize=True,
               f'{time() - t_st:.3f} s')
     elif normalize:
         scn_objs_vecs = [d_vecs[(scn, obj)] for scn, obj in scn_objs]
+        # for (scn, obj), vecs in d_vecs.items():
+        #     print(f'{cat} | {scn}, {obj}: {vecs.shape=}')
         M = np.nanmean(scn_objs_vecs, axis=0)
         SD = np.nanstd(scn_objs_vecs, axis=0)
         for (scn, obj) in scn_objs:
@@ -670,11 +672,12 @@ if __name__ == '__main__':
     # MODEL = r'meta-llama/Llama-3.1-3b' # 16 layers, 2k vectors
     # MODEL = r'meta-llama/Llama-3.2-3b' # 28?? layers, 4k vectors?? (double check numbers)
     # MODEL = r'meta-llama/Llama-3.1-70b' # r80 layers, 8k vectors
-    MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
-    # MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
+    # MODEL = r'meta-llama/Llama-3.3-70b-Instruct' # 80 layers, 8k vectors
+    MODEL = r'meta-llama/Llama-2-7b-hf' # 32 layers, 32x128 vectors
     all_llama_layers = list(range(0, 80 if '70b' in MODEL else 28))
+    all_llama_layers = list(range(32))
 
-    all_llama_cats = ['gate_proj_in', 'attn_weights']
+    all_llama_cats = ['gate_proj_in', 'down_proj_out', 'attn_weights', ]
     # all_llama_cats = ['attn_output']
 
     # all_llama_cats = ['gate_proj_in', 'attn_weights']
@@ -695,9 +698,13 @@ if __name__ == '__main__':
             # SEMANTIC_L.append(('llama', LLAMA_CAT,
             #                    (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
             #                    'scn', MODEL, NORMALIZE))
+            if LLAMA_CAT != 'attn_weights':
+                SEMANTIC_L.append(('llama', LLAMA_CAT,
+                                   (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
+                                   'obj_solo', MODEL, NORMALIZE))
             SEMANTIC_L.append(('llama', LLAMA_CAT,
                                (LLAMA_LAYER, True) if LAST_ONLY else LLAMA_LAYER,
-                               'obj_solo', MODEL, NORMALIZE))
+                               'obj', MODEL, NORMALIZE))
 
 
     # for LLAMA_CAT in all_llama_cats:

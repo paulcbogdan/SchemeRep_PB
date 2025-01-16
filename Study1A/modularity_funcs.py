@@ -3,7 +3,10 @@ import pickle
 from pathlib import Path
 
 import numpy as np
-from nichord.combine import plot_and_combine
+try:
+    from nichord.combine import plot_and_combine
+except ModuleNotFoundError:
+    pass
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 

@@ -223,6 +223,7 @@ def calculate_category_homogeneity(feat2onehot):
 
 def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                    activation_model='meta-llama/Llama-3.2-3b',
+                   do_r2='5050'
                    # activation_model='meta-llama/Llama-3.3-70b-Instruct',
 
                    ):
@@ -230,7 +231,8 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
     df_w2v = do_feature_regression(activation_model='w2v', req=req,
                                    normalize_regr=normalize_regr,
-                                   do_r2='5050')
+                                   do_r2='5050'
+                                   )
     df_w2v.loc[df_w2v['r'].astype(float) < 0] = 0
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
 

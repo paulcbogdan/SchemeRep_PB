@@ -156,9 +156,11 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
 
 
 def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
-                      activation_model='70b'
+                      activation_model='2-7'
                       ):
-    if '3b' in activation_model:
+    if '2-7' in activation_model:
+        activation_model = r'meta-llama/Llama-2-7b-hf'
+    elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'

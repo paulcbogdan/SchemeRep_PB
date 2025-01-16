@@ -634,5 +634,5 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
 
 
 if __name__ == '__main__':
-    run_Study1B_analysis()
-    # run_Study1B_analysis(combine_regions=True)
+    # run_Study1B_analysis()
+    run_Study1B_analysis(combine_regions=True)
