@@ -9,6 +9,7 @@ from llama.devereux_llama import get_llama_vecs_ar, get_standard_items_list
 from llama.devereux_neuron import get_binary_feat_matrix
 from llama.devereux_w2v import get_w2v_deve_vecs
 from marinate.pkld import pkld
+from matplotlib import ticker as mtick
 
 
 def find_closest_feature(feat2onehot):
@@ -82,31 +83,20 @@ def get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat, layer_nam
     return vecs
 
 
-@pkld(overwrite=False)
+@pkld(overwrite=True)
 def do_feature_regression(feature='is_small',
                           pf_thresh=600, cat='gate_proj_in', layer_name=8,
                           activation_model='meta-llama/Llama-3.2-3b',
                           normalize=False, quick=1, item_standard='deve',
                           position=0, symmetric=False,
                           req=10, normalize_regr=False,
-                          do_r2=True):
+                          do_r2=True, shuffle=False):
     vecs = get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat,
                              layer_name, normalize, quick, position, symmetric)
 
     items, df = get_standard_items_list(pf_thresh, item_standard)
 
     feature2type = df.groupby('feature')['feature type'].first().to_dict()
-
-    # feat2onehot = pickle_wrap(get_binary_feat_matrix,
-    #                           kwargs={'items': items,
-    #                                   'pf_thresh': pf_thresh,
-    #                                   'threshold': 20,
-    #                                   'item_std': item_standard,
-    #                                   'req': req,
-    #                                   },
-    #                           verbose=-1, easy_override=False,
-    #                           RAM_cache=True)
-    # print(list(feat2onehot.keys()))
 
     feat2onehot = get_binary_feat_matrix(items, item_standard, threshold=20,
                                          pf_thresh=pf_thresh, req=req)
@@ -152,14 +142,16 @@ def do_feature_regression(feature='is_small',
     for feature, onehot in list(feat2onehot.items())[::-1]:
         if feature in bad_feats: continue
         feature_type = feature2type[feature]
-        res = fit_regularized_models(vecs, onehot, normalize=normalize_regr,
+        if shuffle:
+            np.random.shuffle(onehot)
+
+        acc = fit_regularized_models(vecs, onehot, normalize=normalize_regr,
                                      do_r2=do_r2)
-        r2_score = res['Ridge']['r2_score']
         # r2_score = np.random.normal()
         print(f'{feature_type} | {feature} ({np.mean(onehot):.2f}) | '
-              f'{r2_score=:.2f}')
+              f'{acc=:.2f}')
         feature_l.append(feature)
-        scores.append(r2_score)
+        scores.append(acc)
         feature_types_l.append(feature_type)
     feat2onehot_ = {feat: feat2onehot[feat] for feat in feature_l}
     # feat2M = calculate_category_homogeneity(feat2onehot_)
@@ -168,7 +160,12 @@ def do_feature_regression(feature='is_small',
                            'feature_type': feature_types_l,
                            'r2_score': scores})
     # df_res['feat_homogeneity'] = df_res['feature'].map(feat2M)
-    df_res['r'] = df_res['r2_score'] ** 0.5
+    if do_r2 == '5050':
+        df_res['r'] = df_res['r2_score']
+    elif do_r2:
+        df_res['r'] = df_res['r2_score'] ** 0.5
+    else:
+        raise ValueError
     df_res['closest'] = df_res['feature'].map(feat2closest)
     feat2r = df_res.set_index('feature')['r'].to_dict()
     df_res['closest_r'] = df_res['closest'].map(feat2r)
@@ -224,6 +221,7 @@ def calculate_category_homogeneity(feat2onehot):
 def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                    activation_model='meta-llama/Llama-3.2-3b',
                    do_r2='5050'
+                   # do_r2=True
                    # activation_model='meta-llama/Llama-3.3-70b-Instruct',
 
                    ):
@@ -231,8 +229,14 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
     df_w2v = do_feature_regression(activation_model='w2v', req=req,
                                    normalize_regr=normalize_regr,
-                                   do_r2='5050'
+                                   do_r2=do_r2, shuffle=False
                                    )
+
+    # print(df_w2v['r'])
+    # quit()
+    # if do_r2 == '5050':
+    #     df_w2v['r'] = df_w2v['r'].astype(float) - 0.5
+
     df_w2v.loc[df_w2v['r'].astype(float) < 0] = 0
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
 
@@ -240,24 +244,24 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                                      normalize_regr=normalize_regr,
                                      cat='input', activation_model=activation_model,
                                      pf_thresh=pf_thresh,
-                                     do_r2='5050'
-                                     # cat='down_proj_out'
+                                     do_r2=do_r2
                                      )
+    df_llama = df_llama.iloc[::-1]
+    # print(len(df_llama))
+    # quit()
+    # if do_r2 == '5050':
+    #     df_llama['r'] = df_llama['r'].astype(float) - 0.5
     df_llama.loc[df_llama['r'].astype(float) < 0] = 0
-
-    # df_w2v = df_w2v.iloc[:50]
-    # df_w2v = df_w2v.iloc[::-1]
-    # df_llama = df_llama.iloc[:50]
-    # df_llama = df_llama.iloc[::-1]
 
     x_llm = df_llama['feature'].str.replace('_', ' ').to_numpy()
 
-    y_llm = np.array(df_llama['r'].astype(float).to_numpy() ** 2)
-
-    # d_llama = {x: y for x, y in zip(x_llm, y_llm)}
+    y_llm = np.array(df_llama['r'].astype(float).to_numpy())
     d_w2v = {x: y for x, y in zip(df_w2v['feature'],
-                                  df_w2v['r'].astype(float).to_numpy() ** 2)}
+                                  df_w2v['r'].astype(float).to_numpy())}
     y_w2v = np.array([d_w2v.get(x, 0) for x in x_llm])
+    if do_r2 != '5050':
+        y_llm **= 0.5
+        y_w2v **= 0.5
 
     mapper = {'is pretty attra': 'is attractive',
               'is big large': 'is large',
@@ -273,7 +277,8 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
               'has skin peel': 'has peelable skin',
               # 'does make sound': 'makes sound',
               'is circular rou': 'is circular',
-              'is food': 'is human food'
+              'is food': 'is human food',
+              'does smell is s': 'is smelly'
               }
     # is_edible is just "living"
     x_llm = [mapper.get(x, x) for x in x_llm]
@@ -286,18 +291,26 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
 
     plt.figure(figsize=(4, 6.5))
     y_dif_w2v[y_dif_w2v < 0] = 0
+    # print(F'{len(y_gray)=}')
 
     plt.xlim(0, 1)
     plt.barh(x_llm, y_gray, color='gray')
     plt.barh(x_llm, y_dif_llm, left=y_gray, color='dodgerblue')
     plt.barh(x_llm, y_dif_w2v, left=y_gray, color='red')
-    # plt.ylim(-0.75, 49.75)
-    plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])  # , rotation=90)
+    plt.ylim(-1, 51)
     plt.yticks(fontsize=9)
     plt.gca().spines[['right', 'bottom', ]].set_visible(False)
     plt.gca().tick_params(top=True, labeltop=True,
                           bottom=False, labelbottom=False)
-    plt.xlabel('R² (binary prediction)', fontsize=11, labelpad=5)
+    if do_r2 == '5050':
+        plt.xticks([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+        plt.xlim(0.5, 1.0)
+        plt.gca().xaxis.set_major_formatter(mtick.StrMethodFormatter('{x:.0%}'))
+        plt.xlabel('Accuracy', fontsize=11, labelpad=5)
+    else:
+        plt.xlim(0, 1)
+        plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])  # , rotation=90)
+        plt.xlabel('R² (binary prediction)', fontsize=11, labelpad=5)
     plt.gca().xaxis.set_label_position('top')
 
     plt.tight_layout()

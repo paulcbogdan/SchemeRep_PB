@@ -19,7 +19,134 @@ from org_sns import get_sns
 from organize_bhv import get_trial_info
 from functools import cache
 from time import time
+import numpy as np
+from collections import Counter
+from sklearn.utils.validation import check_array, check_X_y, check_random_state
 
+from sklearn.linear_model import (RidgeCV)
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import (RepeatedStratifiedKFold,
+                                     RepeatedKFold, LeaveOneGroupOut,
+                                     StratifiedGroupKFold)
+from functools import partial
+from sklearn.metrics import r2_score
+from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.svm import SVC
+import warnings
+
+import numpy as np
+from sklearn.model_selection import RepeatedStratifiedKFold
+from sklearn.model_selection._split import BaseCrossValidator
+from collections import Counter
+from sklearn.utils.validation import check_array, check_X_y, check_random_state
+
+
+class BalancedStratifiedKFold(BaseCrossValidator):
+    """
+    A balanced version of RepeatedStratifiedKFold that ensures perfect stratification
+    even with odd numbers of samples.
+
+    Parameters
+    ----------
+    n_splits : int, default=5
+        Number of folds.
+    n_repeats : int, default=10
+        Number of times cross-validator needs to be repeated.
+    random_state : int, RandomState instance or None, default=None
+        Controls the randomness of each repeated cross-validation instance.
+    """
+
+    def __init__(self, n_splits=5, n_repeats=10, random_state=None):
+        self.n_splits = n_splits
+        self.n_repeats = n_repeats
+        self.random_state = random_state
+
+    def _iter_test_indices(self, X, y=None, groups=None):
+        """Generate indices to split data into training and test sets."""
+        # Calculate the ideal distribution per fold
+        class_counts = Counter(y)
+        total_samples = len(y)
+
+        # Calculate target count per class per fold
+        target_counts = {
+            label: count // self.n_splits
+            for label, count in class_counts.items()
+        }
+
+        rng = check_random_state(self.random_state)
+
+        # Repeat the CV n_repeats times
+        for _ in range(self.n_repeats):
+            # Get initial splits from RepeatedStratifiedKFold
+            rskf = RepeatedStratifiedKFold(
+                n_splits=self.n_splits,
+                n_repeats=1,
+                random_state=rng.randint(1000000)
+            )
+
+            for _, test_idx in rskf.split(X, y):
+                test_idx = np.array(test_idx)
+                all_idx = np.arange(len(y))
+                train_idx = np.array([i for i in all_idx if i not in test_idx])
+
+                # Check fold distribution
+                test_dist = Counter(y[test_idx])
+
+                # If distribution isn't perfect, adjust the split
+                for label in class_counts:
+                    current_count = test_dist[label]
+                    target_count = target_counts[label]
+
+                    while current_count != target_count:
+                        if current_count < target_count:
+                            # Move one sample from train to test
+                            candidates = [i for i in train_idx if y[i] == label]
+                            if candidates:
+                                idx_to_move = rng.choice(candidates)
+                                train_idx = train_idx[train_idx != idx_to_move]
+                                test_idx = np.append(test_idx, idx_to_move)
+                                current_count += 1
+                        else:
+                            # Move one sample from test to train
+                            candidates = [i for i in test_idx if y[i] == label]
+                            if candidates:
+                                idx_to_move = rng.choice(candidates)
+                                test_idx = test_idx[test_idx != idx_to_move]
+                                train_idx = np.append(train_idx, idx_to_move)
+                                current_count -= 1
+
+                yield test_idx
+
+    def get_n_splits(self, X=None, y=None, groups=None):
+        """Returns the number of splitting iterations in the cross-validator"""
+        return self.n_splits * self.n_repeats
+
+    def split(self, X, y, groups=None):
+        """Generate indices to split data into training and test set.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training data, where n_samples is the number of samples
+            and n_features is the number of features.
+        y : array-like of shape (n_samples,)
+            The target variable for supervised learning problems.
+        groups : array-like of shape (n_samples,), default=None
+            Group labels for the samples used while splitting the dataset into
+            train/test set. Not used in this implementation.
+
+        Yields
+        ------
+        train : ndarray
+            The training set indices for that split.
+        test : ndarray
+            The testing set indices for that split.
+        """
+        X, y = check_X_y(X, y, ensure_min_samples=self.n_splits)
+
+        for test_idx in self._iter_test_indices(X, y):
+            train_idx = np.array([i for i in range(len(y)) if i not in test_idx])
+            yield train_idx, test_idx
 
 def get_rissman_df(condition=''):
     fp = r'C:\PycharmProjects\SchemeRep\llama\features\WelshRissman_NatCom_all_data.csv'
@@ -234,16 +361,7 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
     Dictionary containing models and their R² scores
     """
 
-    from sklearn.linear_model import (RidgeCV)
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.model_selection import (RepeatedStratifiedKFold,
-                                         RepeatedKFold, LeaveOneGroupOut,
-                                         StratifiedGroupKFold)
-    from functools import partial
-    from sklearn.metrics import r2_score
-    from sklearn.exceptions import UndefinedMetricWarning
-    from sklearn.svm import SVC
-    import warnings
+
     warnings.filterwarnings('ignore', category=UndefinedMetricWarning)
 
     # Create cross-validation object
@@ -258,8 +376,9 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
             cv = LeaveOneGroupOut()
         cv.split = partial(cv.split, groups=groups)
     elif len(np.unique(y)) < 3:
-        cv = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=n_repeats,
-                                     random_state=random_state)
+        cv = BalancedStratifiedKFold(n_splits=5, n_repeats=2, random_state=42)
+        # cv = RepeatedStratifiedKFold(n_splits=cv_folds, n_repeats=n_repeats,
+        #                              random_state=random_state)
         binary = True
     else:
         cv = RepeatedKFold(n_splits=cv_folds, n_repeats=n_repeats,
@@ -284,139 +403,96 @@ def fit_regularized_models(X, y, cv_folds=5, random_state=42,
         else:
             raise ValueError
 
-
-
-
-    # cv = LeaveOneOut()
-    # print(f'{binary=}')
-
-    num_ones = (y == 1).sum()
-
-    # Initialize models
-    # lasso = LassoCV(cv=cv, random_state=random_state)
-    if multi_alpha:
-        ridge = RidgeCV(alphas=[0.1, 1.0, 10.0])  # cv=cv)
+    if binary:
+        model = SVC(kernel='linear', C=1)
     else:
-        ridge = RidgeCV()#cv=cv)
-    # ridge = RidgeCV(cv=cv)
-    svm = SVC(kernel='linear', C=1)
-    # print(f'{binary=}')
-    # print(f'{svm=}')
-    # print(f'{ridge=}')
-    # quit()
-    # svm = RidgeClassifier()
-    # elastic = ElasticNetCV(cv=cv, random_state=random_state)
-    # svm = SGDClassifier()
-    # svm = Elastic()
-
-    # Dictionary to store results
-    results = {}
-
-    # Fit models and calculate R² scores
-    for name, model in [  # ('Lasso', lasso),
-        # ('Ridge', ridge),
-        ('Ridge', svm) if binary else ('Ridge', ridge),
-        # ('ElasticNet', elastic)
-    ]:
-
-        fold_predictions = []
-        fold_R2s = []
-        coefs = []
-        y_tests = []
-        y_preds = []
-        test_sizes = []
-        for train_idx, test_idx in cv.split(X, y, groups=groups):
-            test_sizes.append(len(test_idx))
-            # Split data
-            X_train, X_test = X[train_idx], X[test_idx]
-            y_train, y_test = y[train_idx], y[test_idx]
-            if normalize:
-                X_train = StandardScaler().fit_transform(X_train)
-                X_test = StandardScaler().fit_transform(X_test)
-
-            # Fit model and make prediction
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_test)
-            if not binary:
-                y_pred[y_pred > 4] = 4
-                y_pred[y_pred < 1] = 1
-                r2 = r2_score(y_test, y_pred)
-            else:
-                if do_r2 and do_r2 != '5050':
-                    r2 = r2_score(y_test, y_pred)
-                else:
-                    r2 = np.mean(y_test == y_pred)
-
-            fold_R2s.append(r2)
-            try:
-                coefs.append(model.coef_)
-            except:
-                coefs.append(model.coef0)
-            y_tests.extend(list(y_test))
-            y_preds.extend(list(y_pred))
-
-        coefs = np.average(coefs, axis=0, weights=test_sizes)
-        r2 = np.average(fold_R2s, weights=test_sizes)
-        # quit()
-        # Store results
-        results[name] = {
-            'model': model,
-            'r2_score': r2,
-            # 'best_alpha': model.alpha_,
-            'coefs': coefs
-        }
-
-        if name == 'ElasticNet':
-            results[name]['l1_ratio'] = model.l1_ratio_
-
-        if plot:
-            plt.figure(figsize=(6, 4))
-            plt.rcParams.update({'font.size': 20})
-            plt.gca().spines[['right', 'top']].set_visible(False)
-            plt.scatter(y_preds, y_tests, color='green')
-            plt.title(f'{name} | {r2=:.2f}')
-            # plot_best_fit(y_preds, y_tests)
-            plt.text(3.36, 2.1, f'$r^2$ = {r2:.2f}', fontsize=21,
-                     ha='center')
-            plt.ylabel('Human-reported\nrelatedness',
-                       labelpad=8)
-            plt.xlabel('Attention-weight\npredicted relatedness',
-                       labelpad=8)
-            plt.xlim(0.9, 4.1)
-            plt.ylim(0.9, 4.1)
-            plt.gcf().subplots_adjust(left=0.175, right=0.975, top=0.975, bottom=0.28)
-            # plt.tight_layout()
-            plt.show()
-
-    # Print results
-    for name, result in results.items():
-        # print(f"{name} Regression Results:")
-        if result['r2_score'] < 0:
-            r_score = 0
+        if multi_alpha:
+            model = RidgeCV(alphas=[0.1, 1.0, 10.0])
         else:
-            r_score = np.sqrt(result['r2_score'])
-        # print(f"R² Score: {result['r2_score']:.3f} | {r_score=:.3f}")
-        if len(result['coefs'].shape) == 2:
-            result['coefs'] = result['coefs'][0]
+            model = RidgeCV()
 
-        if plot:
-            rs_all = []
-            for i in range(X.shape[1]):
-                r, p = stats.spearmanr(X[:, i], y)
-                rs_all.append(r)
-            plt.figure(figsize=(6, 4))
-            plt.rcParams.update({'font.size': 20})
-            plt.gca().spines[['right', 'top']].set_visible(False)
-            plt.hist(rs_all, bins=20, range=(-1, 1),
-                     color='green')
-            # plt.title(f'{name} | {r_score=:.2f}')
-            plt.xticks(np.linspace(-1, 1, 5, ))
-            plt.ylabel('Frequency (n)', labelpad=8)
-            plt.xlabel('Correlation (r)', labelpad=8)
-            plt.gcf().subplots_adjust(left=0.175, right=0.975,
-                                      top=0.975, bottom=0.28)
-            plt.show()
-    return results
+    fold_accs = []
+    coefs = []
+    y_tests = []
+    y_preds = []
+    test_sizes = []
+    for train_idx, test_idx in cv.split(X, y, groups=groups):
+        test_sizes.append(len(test_idx))
+        # Split data
+        X_train, X_test = X[train_idx], X[test_idx]
+        y_train, y_test = y[train_idx], y[test_idx]
+        if normalize:
+            X_train = StandardScaler().fit_transform(X_train)
+            X_test = StandardScaler().fit_transform(X_test)
+
+        # Fit model and make prediction
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        # print(f'{np.mean(y_train)=:.3f}, {y_train.shape=}')
+        # print(f'\t{np.mean(y_test)=:.3f}, {y_test.shape=}')
+        if binary:
+            if do_r2 == '5050':
+                acc = np.mean(y_test == y_pred)
+                # print(f'{acc=}')
+                # print(y_pred)
+                # print(y_test)
+                # quit()
+
+                assert .49 < np.mean(y_test) < .51, f'{np.mean(y_test)=}'
+            elif do_r2:
+                acc = r2_score(y_test, y_pred)
+
+            else:
+                acc = np.mean(y_test == y_pred)
+        else:
+            y_pred[y_pred > 4] = 4
+            y_pred[y_pred < 1] = 1
+            acc = r2_score(y_test, y_pred)
+
+        fold_accs.append(acc)
+        try:
+            coefs.append(model.coef_)
+        except:
+            coefs.append(model.coef0)
+        y_tests.extend(list(y_test))
+        y_preds.extend(list(y_pred))
+
+    acc = np.average(fold_accs, weights=test_sizes)
+
+    if plot:
+        plt.figure(figsize=(6, 4))
+        plt.rcParams.update({'font.size': 20})
+        plt.gca().spines[['right', 'top']].set_visible(False)
+        plt.scatter(y_preds, y_tests, color='green')
+        plt.title(f'{acc=:.2f}')
+        plt.text(3.36, 2.1, f'$r^2$ = {acc:.2f}', fontsize=21,
+                 ha='center')
+        plt.ylabel('Human-reported\nrelatedness',
+                   labelpad=8)
+        plt.xlabel('Attention-weight\npredicted relatedness',
+                   labelpad=8)
+        plt.xlim(0.9, 4.1)
+        plt.ylim(0.9, 4.1)
+        plt.gcf().subplots_adjust(left=0.175, right=0.975, top=0.975, bottom=0.28)
+        plt.show()
+
+    if plot:
+        rs_all = []
+        for i in range(X.shape[1]):
+            r, p = stats.spearmanr(X[:, i], y)
+            rs_all.append(r)
+        plt.figure(figsize=(6, 4))
+        plt.rcParams.update({'font.size': 20})
+        plt.gca().spines[['right', 'top']].set_visible(False)
+        plt.hist(rs_all, bins=20, range=(-1, 1),
+                 color='green')
+        plt.xticks(np.linspace(-1, 1, 5, ))
+        plt.ylabel('Frequency (n)', labelpad=8)
+        plt.xlabel('Correlation (r)', labelpad=8)
+        plt.gcf().subplots_adjust(left=0.175, right=0.975,
+                                  top=0.975, bottom=0.28)
+        plt.show()
+    return acc
 
 
 def get_rissman_similarity_many_layers(pair, cat='attn_weights', get_last=True,
@@ -549,12 +625,10 @@ def analyze_rissman(cat='attn_weights',
 
             vecs_all = np.concatenate(vecs_all, axis=1)
 
-            # print(f'{vecs_all.shape=}')
             result = fit_regularized_models(vecs_all, relatedness, plot=plot_hist,
                                             n_repeats=1, normalize=False,
                                             groups=groups if do_SchemeRep else None)
             print(f'{activation_model} | {result["Ridge"]["r2_score"]=:.2f}')
-            # quit()
 
             result = fit_regularized_models(np.array(vecs_all), relatedness, plot=plot_hist,
                                             n_repeats=1, normalize=False,

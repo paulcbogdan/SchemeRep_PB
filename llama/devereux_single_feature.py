@@ -241,7 +241,10 @@ def plot_all_feats(  # cat='input',
         plt.xticks(np.arange(0, num_layers, 5))
     else:
         plt.xticks(np.arange(0, num_layers, 10))
-    plt.yticks([-0.05, 0, 0.05, 0.1, .15, .2, .25])
+    if do_r2 == '5050':
+        plt.yticks([0.0, 0.1, 0.2, .3, .4, .5])
+    else:
+        plt.yticks([-0.05, 0, 0.05, 0.1, .15, .2, .25])
     plt.gca().spines[['top', 'right']].set_visible(False)
     return feat2color
 
@@ -290,7 +293,7 @@ def plot_triangle(  # activation_model='meta-llama/Llama-3.2-3b',
     quit()
 
 
-def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2=False,
+def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2='5050',
                 bury=False, do_legend=True, just2=False, suptitle=None):
     plt.rcParams.update({'font.size': 14})
     if bury:
@@ -378,6 +381,9 @@ def single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
               ]
     colors = ['k', 'r', 'dodgerblue', #'green'
               ]
+    cats = cats[:1]
+    labels = labels[:1]
+    colors = colors[:1]
     # if '70b' in activation_model or '70b' in activation_model[0]:
     #     labels = labels[:2] + labels[3:]
     #     colors = colors[:2] + colors[3:]
@@ -401,8 +407,8 @@ if __name__ == '__main__':
     # quit()
     # plot_square(activation_model=('meta-llama/Llama-3.2-3b', 'bury_item'))
 
-    # plot_square()
-    plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct')
+    plot_square()
+    # plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct')
     # single_feat_multi_cats()
     # plot_all_feats(cat='down_proj_out', activation_model='meta-llama/Llama-3.2-3b')
     # plot_all_feats(cat='input', activation_model='meta-llama/Llama-3.2-3b')
