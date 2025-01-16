@@ -1,10 +1,13 @@
 import os
 import pathlib
 
+from openpyxl.utils.units import inch_to_dxa
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
 import os
+import matplotlib.pyplot as plt
 
 from scipy import stats
 
@@ -58,7 +61,7 @@ def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
     var_beta = sigma_s / ss_x
 
     z = betas / np.sqrt(var_beta)
-    z_both = np.full((246, 246), np.nan)
+    z_both = np.full((n_roi, n_roi), np.nan)
     z_both[trils] = z
     z_both[trils[1], trils[0]] = z
     z_both = z_both if flip else -z_both
@@ -70,7 +73,6 @@ def get_regression_matrix(sn_inc_conn, flip=True, nans=True):
 
 def get_1sample_ttest_matrix(graph0, graph1):
     dif_graph = graph0 - graph1
-
     M_graph = np.nanmean(dif_graph, axis=0)
     SD_graph = np.nanstd(dif_graph, axis=0)
     N_graph = np.nansum(~np.isnan(dif_graph), axis=0)
@@ -93,22 +95,38 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str = 'healthy',
                                      sn_inc_conn[age2idxs[age], -1, :, :])
         z_both = -z_both if do_PA else z_both
 
-    atlas = get_atlas(combine_regions=combine_regions)
+    # plt.imshow(z_both)
+    # plt.show()
+    # quit()
+    # schaefer = sn_inc_conn.shape[-1] % 100 == 0
+    if sn_inc_conn.shape[-1] % 100 == 0:
+        if sn_inc_conn.shape[-1] == 1000:
+            schaefer = True
+        else:
+            schaefer = (True, sn_inc_conn.shape[-1])
+    atlas = get_atlas(combine_regions=combine_regions, schaefer=schaefer)
     labels = atlas['labels']
-    bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp', }
-    for i, label in enumerate(labels):
-        for bad_label in bad_labels:
-            if bad_label in label:
-                z_both[i, :] = np.nan
-                z_both[:, i] = np.nan
-                break
+    if not schaefer:
+        bad_labels = {'Str', 'Tha', 'Amyg', 'Hipp', }
+        for i, label in enumerate(labels):
+            for bad_label in bad_labels:
+                if bad_label in label:
+                    z_both[i, :] = np.nan
+                    z_both[:, i] = np.nan
+                    break
 
     PA_VD_str = 'PA' if do_PA else 'VD'
+    if isinstance(schaefer, tuple):
+        schaef_str = f'schaef{schaefer[1]}_thr{thr}_'
+    else:
+        schaef_str = f'schaefer_thr{thr}_' if schaefer else ''
     cur_dir = os.getcwd()
-    dir_out = f'{cur_dir}/result_pics/Fig2/{PA_VD_str}_modules'
+    dir_out = f'{cur_dir}/result_pics/Fig2/{schaef_str}{PA_VD_str}_modules'
+
     partitions, matrix_mask = \
         get_main_partitions(z_both, coords=atlas['coords'], plot=plot,
                             threshold=thr, dir_out_full=dir_out, )
+
 
     for i, p in enumerate(partitions):
         labels = [atlas['labels'][i] for i in p]
@@ -124,12 +142,16 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                          plot=False, combine_regions=False,
                          anat_ver=3, regress=False,
                          schaefer=False):
-    if schaefer:
+    if schaefer and anat:
         atlas = get_atlas(combine_regions=combine_regions,
-                          schaefer=True)
+                          schaefer=schaefer)
         l = []
-        keys = [('PFCl', 'PFClv'), ('IPL', ), ('TempPole',),
-                ('Striate', 'StriCal', 'ExStrInf', 'ExStrSup')]
+        keys = [('PFCl', 'PFClv'),
+                ('IPL', 'IPS', 'ParOcc'),
+                ('TempPole', 'AntTemp'),
+                ('Striate', 'StriCal', 'ExStrInf', 'ExStrSup',
+                 'ExStr' # LOC
+                 )]
         for regions in keys:
             regions_idxs = []
             for region in regions:
@@ -143,6 +165,10 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
         matrix_mask = np.ones((len(atlas['ROI_regions']),
                                len(atlas['ROI_regions'])),
                               dtype=bool)
+        if plot:
+            plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                             combine_regions=combine_regions,
+                             schaefer=True)
         return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
     elif anat:
@@ -152,18 +178,30 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
         assert not combine_regions
 
     if sn_inc_conn is None or age2idxs is None:
+        if isinstance(schaefer, tuple):
+            atlas_name = schaefer
+        elif schaefer:
+            atlas_name = 'schaefer'
+        else:
+            atlas_name = 'BNA'
+
         kwargs = {'fp': 'obj7_fMRI',
                   'key': 'inc',
-                  'atlas_name': 'BNA',
+                  'atlas_name': atlas_name,
                   'key_vals': (1, 2, 3),
                   'get_df_sn': True
                   }
         sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, _ = \
             pickle_wrap(load_FC, None, kwargs=kwargs,
                         easy_override=False, verbose=1, cache_dir='cache')
+        age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
 
     PA_VD_str = 'PA' if do_PA else 'VD'
-    fp = (f'cache/{PA_VD_str}_modules_thresh{thr}.pkl')
+    if isinstance(schaefer, tuple):
+        schaef_str = f'_schaef{schaefer[1]}'
+    else:
+        schaef_str = '_schaefer' if schaefer else ''
+    fp = (f'cache/{PA_VD_str}_modules_thresh{thr}{schaef_str}.pkl')
 
     partitions, matrix_mask = \
         pickle_wrap(lambda:
@@ -174,7 +212,8 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                                           regress=regress), fp,
                     easy_override=True)
 
-    atlas = get_atlas(combine_regions=combine_regions)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      schaefer=schaefer)
     coords = atlas['coords']
     p_dorsal, p_ventral = partitions[0], partitions[1]
     p_d_ant, p_d_pos = anterior_posterior_split(p_dorsal, coords)
@@ -286,37 +325,45 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
     if plot:
         plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                          combine_regions=combine_regions)
-
     if make_csv:
         save_vendor_csv(p_d_ant, p_d_pos, p_v_ant, p_v_pos, scrub=False, anat=True)
     return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
 
 def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                     combine_regions=False):
-    atlas = get_atlas(combine_regions=combine_regions)
+                     combine_regions=False, schaefer=False):
+    atlas = get_atlas(combine_regions=combine_regions,
+                      schaefer=schaefer)
+
 
     idx_to_quadrant = {i: 'PD' for i in p_d_pos}
     idx_to_quadrant.update({i: 'PV' for i in p_v_pos})
     idx_to_quadrant.update({i: 'AD' for i in p_d_ant})
     idx_to_quadrant.update({i: 'AV' for i in p_v_ant})
     node_sizes = []
-    quadrant2labels = defaultdict(list)
+    # quadrant2labels = defaultdict(list)
     for i in range(len(atlas['labels'])):
         if i not in idx_to_quadrant:
             idx_to_quadrant[i] = 'N/A'
             node_sizes.append(0)
         else:
-            quadrant = idx_to_quadrant[i]
-            label = atlas['labels'][i]
-            label = label.split(' ')[1].split('_')[0]
-            quadrant2labels[quadrant].append(label)
+            # quadrant = idx_to_quadrant[i]
+            # label = atlas['labels'][i]
+            # if schaefer:
+
+            # print(F'{label=}')
+            # label = label.split(' ')[1].split('_')[0]
+            # quadrant2labels[quadrant].append(label)
             node_sizes.append(10)
 
     from nichord import plot_glassbrain
 
     cur_dir = os.getcwd()
-    fp_quad = fr'{cur_dir}\result_pics\Fig2\Fig2D_anat_quads.png'
+    if isinstance(schaefer, tuple):
+        schaef_str = f'_schaef{schaefer[1]}'
+    else:
+        schaef_str = '_schaefer' if schaefer else ''
+    fp_quad = fr'{cur_dir}\result_pics\Fig2\Fig2D_anat_quads{schaef_str}.png'
 
     coords = atlas['coords']
     edges = [(i, i) for i in range(len(coords))]
@@ -328,6 +375,11 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                       'mislabeled_PD': 'darkgreen',
                       'mislabeled_PV': 'darkgoldenrod',
                       'N/A': 'black'}
+    print(f'{idx_to_quadrant}')
+    print(len(idx_to_quadrant))
+    # print(f'{idx_to_quadrant=}')
+    # print(f'{node_sizes=}')
+    # quit()
 
     plot_glassbrain(idx_to_quadrant, edges, edge_weights, fp_quad,
                     coords, node_size=node_sizes, linewidths=15,
@@ -336,8 +388,16 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
 
 if __name__ == '__main__':
     # Data-driven modules (Fig 2C)
-    get_VD_PA_partitions(do_PA=True, plot=True, thr=.95, regress=True)
-    get_VD_PA_partitions(do_PA=False, plot=True, thr=.95, regress=True)
+    SCHAEFER = True
+    THR = 0.995 if SCHAEFER else 0.95
+    SCHAEFER = (True, 400)
+    THR = 0.98
+    # get_VD_PA_partitions(do_PA=True, plot=True, thr=THR, regress=True,
+    #                      schaefer=SCHAEFER)
+    # get_VD_PA_partitions(do_PA=False, plot=True, thr=THR, regress=True,
+    #                      schaefer=SCHAEFER)
+    # quit()
 
     # Four anatomical quadrants (Fig 2D)
-    get_VD_PA_partitions(plot=True, anat_ver=3, anat=True)
+    get_VD_PA_partitions(plot=True, anat_ver=3, anat=True,
+                         schaefer=SCHAEFER)

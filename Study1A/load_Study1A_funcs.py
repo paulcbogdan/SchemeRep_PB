@@ -16,8 +16,8 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
             do_sort=False, voxelwise=False, regionwise=False,
             combine_regions=False, get_df_sn=False,
             combine_bilateral=False, strict_sns=False, ):
-    if atlas_name == 'schaefer':
-        atlas = get_atlas(schaefer=True)
+    if atlas_name == 'schaefer' or isinstance(atlas_name, tuple):
+        atlas = get_atlas(schaefer=atlas_name)
     else:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=combine_bilateral,
@@ -41,15 +41,15 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
     for i, age in enumerate([1, 2]):
         sns = age2sn[age]
         if combine_regions:
-            if combine_bilateral:
-                ROIs_l = atlas['ROI_regions']
-            else:
-                ROIs_l = get_BNA_ROIs(code='BNA_region')
+            # if combine_bilateral:
+            ROIs_l = atlas['ROI_regions']
+            # else:
+            #     ROIs_l = get_BNA_ROIs(code='BNA_region')
         else:
-            if combine_bilateral:
-                ROIs_l = atlas['ROIs']
-            else:
-                ROIs_l = get_BNA_ROIs(code=atlas_name)
+            # if combine_bilateral:
+            ROIs_l = atlas['ROIs']
+            # else:
+            #     ROIs_l = get_BNA_ROIs(code=atlas_name)
 
         for sn in sns:
             print(f'Prepping FC: {sn=} (idx: {sn_idx})')
@@ -152,6 +152,8 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
             age2idxs[age].append(sn_idx)
             df_sns.append(df_sn)
             sn_idx += 1
+
+    age2idxs['healthy'] = age2idxs[1] + age2idxs[2]
 
     if voxelwise or regionwise:
         for ROI, vals in ROI2act.items():

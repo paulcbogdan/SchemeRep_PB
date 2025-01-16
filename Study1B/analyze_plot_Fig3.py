@@ -1,6 +1,8 @@
 import os
 import pathlib
 
+from pygments.unistring import combine
+
 from marinate.pkld import pkld
 
 path = pathlib.Path(__file__).parent.parent.resolve()
@@ -25,15 +27,18 @@ from Utils.plotting_funcs import plot_connectivity
 from Utils.pickle_wrap_funcs import pickle_wrap
 
 
-def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
+def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral,
+                    schaefer=False):
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_PE_x_Conn_effect(
-        conn_highs, combine_regions=combine_regions, combine_bilateral=bilateral)
+        conn_highs, combine_regions=combine_regions, combine_bilateral=bilateral,
+        schaefer=schaefer)
     df = pd.DataFrame({'high_PA': dd + vv, 'high_VD': dv_ant + dv_pos,
                        'high_dd': dd, 'high_vv': vv, 'high_dv_ant': dv_ant,
                        'high_dv_pos': dv_pos, })
 
     itr, dd, vv, dv_ant, dv_pos, M_overall = get_PE_x_Conn_effect(
-        conn_lows, combine_regions=combine_regions, combine_bilateral=bilateral)
+        conn_lows, combine_regions=combine_regions, combine_bilateral=bilateral,
+        schaefer=schaefer)
     df['low_PA'] = dd + vv
     df['low_VD'] = dv_ant + dv_pos
     df['low_dd'] = dd
@@ -45,7 +50,13 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
         df[f'{ef}_diff'] = df[f'high_{ef}'] - df[f'low_{ef}']
         t, p = stats.ttest_rel(df[f'high_{ef}'], df[f'low_{ef}'])
         N = np.sum(~np.isnan(df[f'high_{ef}']))
-        print(f'{ef}: t[{N - 1}] = {t:.2f}, {p=:.4f}')
+        if ef in ['PA', 'dd', 'vv']:
+            extra = ' (expected negative)'
+        elif ef in ['VD', 'dv_ant', 'dv_pos']:
+            extra = ' (expected positive)'
+        else:
+            raise ValueError
+        print(f'{ef}: t[{N - 1}] = {t:.2f}, {p=:.4f} {extra}')
 
     df = pd.DataFrame({'FC': df['high_PA'].to_list() + df['low_PA'].to_list() +
                              df['high_VD'].to_list() + df['low_VD'].to_list(),
@@ -129,10 +140,15 @@ def plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral):
 def get_sn_roi_ar(sn, lr, combine_regions=False, bilateral=False,
                   reg_global=False, no_compcor=False, rs=False):
     if isinstance(combine_regions, tuple):
-        assert combine_regions[1].lower() == 'schaefer'
+        assert (combine_regions[1][0].lower() == 'schaefer' or
+                combine_regions[1].lower() == 'schaefer')
+        if isinstance(combine_regions[1], tuple):
+            schaefer = (True, combine_regions[1][1])
+        else:
+            schaefer = True
         atlas = get_atlas(combine_regions=combine_regions[0],
                           combine_bilateral=bilateral,
-                          HCP=True, schaefer=True)
+                          HCP=True, schaefer=schaefer)
     else:
         atlas = get_atlas(combine_regions=combine_regions,
                           combine_bilateral=bilateral,
@@ -294,7 +310,7 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
 def make_conn(combine_regions=False, bilateral=False,
               only=None, learning_rate=None,
               num_sns=None, drop_first=False,
-              reset_trial0=False, ):
+              reset_trial0=False, get6=False):
     # final subjects established as ones with both task-fMRI LR/RL and resting-state LR/RL
     fp = r'Study1B/final_HCP_subjects.txt'
     with open(fp, 'r') as f:
@@ -331,6 +347,7 @@ def make_conn(combine_regions=False, bilateral=False,
                 pickle_wrap(get_conn_sn, kwargs=kw, easy_override=True, dt_max=dt_max))
 
         print(f'Time needed for sn ({sn}): {time.time() - t_st:.2f} s')
+        # quit()
 
         if conn_high_sn is None:
             print('BAD CONN??')
@@ -339,19 +356,23 @@ def make_conn(combine_regions=False, bilateral=False,
 
         conn_highs.append(conn_high_sn)
         conn_lows.append(conn_low_sn)
-        conn_highs0.append(conn_high0_sn)
-        conn_highs1.append(conn_high1_sn)
-        conn_lows0.append(conn_low0_sn)
-        conn_lows1.append(conn_low1_sn)
         good_sns.append(sn)
+        if get6:
+            conn_highs0.append(conn_high0_sn)
+            conn_highs1.append(conn_high1_sn)
+            conn_lows0.append(conn_low0_sn)
+            conn_lows1.append(conn_low1_sn)
 
     print(f'{bad_sns=}')
     conn_highs = np.array(conn_highs)
     conn_lows = np.array(conn_lows)
 
     print(f'Final sns: {len(good_sns)=}')
-    return (conn_highs, conn_lows, good_sns, conn_highs0, conn_highs1,
-            conn_lows0, conn_lows1)
+    if get6:
+        return (conn_highs, conn_lows, good_sns, conn_highs0, conn_highs1,
+                conn_lows0, conn_lows1)
+    else:
+        return conn_highs, conn_lows, good_sns
 
 
 def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
@@ -361,7 +382,13 @@ def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
                              do_PA=True, thr=.9, anat_ver=anat_ver,
                              combine_regions=combine_regions,
                              schaefer=schaefer)
-    print(p_dorsal)
+    # print(f'{schaefer=}')
+    # print(f'{np.max(p_d_ant)=}')
+    # print(f'{np.max(p_d_pos)=}')
+    # print(f'{np.max(p_v_ant)=}')
+    # print(f'{np.max(p_v_pos)=}')
+    # quit()
+    # print(p_dorsal)
     if schaefer:
         # if combine_regions:
         #     assert np.max(p_dorsal + p_ventral) > 60
@@ -387,82 +414,106 @@ def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
     return dd + vv - dv_ant - dv_pos, dd, vv, dv_ant, dv_pos, M_overall
 
 
-def get_combo(kw, easy_override=False):
+def get_combo(kw, easy_override=False, get6=False):
+    kw = kw.copy()
     kw['only'] = 'loss'
-    (conn_highs_loss, conn_lows_loss, sns,
-     conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = (
+    kw['get6'] = get6
+    tup = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
+    if get6:
+        (conn_highs_loss, conn_lows_loss, sns,
+         conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = tup
+    else:
+        conn_highs_loss, conn_lows_loss, sns = tup
+
     kw['only'] = 'win'
-    (conn_highs_win, conn_lows_win, sns2,
-     conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = (
+    tup = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
+    if get6:
+        (conn_highs_win, conn_lows_win, sns2,
+         conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = tup
+    else:
+        conn_highs_win, conn_lows_win, sns2 = tup
     assert sns == sns2
     conn_highs = np.mean([conn_highs_loss, conn_highs_win], axis=0)
     conn_lows = np.mean([conn_lows_loss, conn_lows_win], axis=0)
-
-    conn_highs0 = np.mean([conn_highs0_loss, conn_highs0_win], axis=0)
-    conn_highs1 = np.mean([conn_highs1_loss, conn_highs1_win], axis=0)
-    conn_lows0 = np.mean([conn_lows0_loss, conn_lows0_win], axis=0)
-    conn_lows1 = np.mean([conn_lows1_loss, conn_lows1_win], axis=0)
-    return conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
+    if get6:
+        conn_highs0 = np.mean([conn_highs0_loss, conn_highs0_win], axis=0)
+        conn_highs1 = np.mean([conn_highs1_loss, conn_highs1_win], axis=0)
+        conn_lows0 = np.mean([conn_lows0_loss, conn_lows0_win], axis=0)
+        conn_lows1 = np.mean([conn_lows1_loss, conn_lows1_win], axis=0)
+        return conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1
+    else:
+        return conn_highs, conn_lows, sns
 
 @pkld
-def get_wl_contrast_conn(kw, easy_override=False):
+def get_wl_contrast_conn(kw, easy_override=False, get6=False):
     kw['only'] = 'loss'
-    (conn_highs_loss, conn_lows_loss, sns,
-     conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = (
+    tup = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
+    if get6:
+        (conn_highs_loss, conn_lows_loss, sns,
+         conn_highs0_loss, conn_highs1_loss, conn_lows0_loss, conn_lows1_loss) = tup
+    else:
+        conn_highs_loss, conn_lows_loss, sns = tup
     kw['only'] = 'win'
-    (conn_highs_win, conn_lows_win, sns2,
-     conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = (
+    tup = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
+    if get6:
+        (conn_highs_win, conn_lows_win, sns2,
+         conn_highs0_win, conn_highs1_win, conn_lows0_win, conn_lows1_win) = tup
+    else:
+        conn_highs_win, conn_lows_win, sns2 = tup
 
     conn_wins = np.mean([conn_highs_win, conn_lows_win], axis=0)
     conn_loss = np.mean([conn_highs_loss, conn_lows_loss], axis=0)
-
-    conn_wins0 = np.mean([conn_highs0_win, conn_lows0_win], axis=0)
-    conn_wins1 = np.mean([conn_highs1_win, conn_lows1_win], axis=0)
-    conn_loss0 = np.mean([conn_highs0_loss, conn_lows0_loss], axis=0)
-    conn_loss1 = np.mean([conn_highs1_loss, conn_lows1_loss], axis=0)
-    return conn_wins, conn_loss, sns, conn_wins0, conn_wins1, conn_loss0, conn_loss1
+    if get6:
+        conn_wins0 = np.mean([conn_highs0_win, conn_lows0_win], axis=0)
+        conn_wins1 = np.mean([conn_highs1_win, conn_lows1_win], axis=0)
+        conn_loss0 = np.mean([conn_highs0_loss, conn_lows0_loss], axis=0)
+        conn_loss1 = np.mean([conn_highs1_loss, conn_lows1_loss], axis=0)
+        return conn_wins, conn_loss, sns, conn_wins0, conn_wins1, conn_loss0, conn_loss1
+    else:
+        return conn_wins, conn_loss, sns
 
 def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
-                         sub_ROI_expected=False, schaefer=True):
-    if schaefer:
+                         sub_ROI_expected=False, schaefer=(True, 400)):
+    if isinstance(schaefer, tuple):
+        combine_regions = (combine_regions, ('schaefer', schaefer[1]))
+    elif schaefer:
         combine_regions = (combine_regions, 'schaefer')
     kw = {'combine_regions': combine_regions, 'bilateral': False,
           'only': 'combo', 'num_sns': 1000, 'learning_rate': 0.3,
           'drop_first': False, 'reset_trial0': True, }
 
     if kw['only'] == 'wl':
-        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+        conn_highs, conn_lows, sns = (
             get_wl_contrast_conn(kw, easy_override=False))
     elif kw['only'] == 'combo':
         # can either be run while averaging a loss matrix & win matrix ('combo')
         #   or just making a single one covering both PE ('both')
         # the manuscript uses 'combo'
-        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+        conn_highs, conn_lows, sns = (
             get_combo(kw, easy_override=False))
     else:
-        conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
+        conn_highs, conn_lows, sns = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     if schaefer:
         combine_regions = combine_regions[0]
 
-    # print(conn_highs.shape)
-    # quit()
     if schaefer:
-        if combine_regions:
-            conn_highs[:, :, 76:] = np.nan
-            conn_highs[:, 76:, :] = np.nan
-            conn_lows[:, :, 76:] = np.nan
-            conn_lows[:, 76:, :] = np.nan
-        else:
-            conn_highs[:, :, 1000:] = np.nan
-            conn_highs[:, 1000:, :] = np.nan
-            conn_lows[:, :, 1000:] = np.nan
-            conn_lows[:, 1000:, :] = np.nan
         pass
+        # if combine_regions:
+        #     conn_highs[:, :, 76:] = np.nan
+        #     conn_highs[:, 76:, :] = np.nan
+        #     conn_lows[:, :, 76:] = np.nan
+        #     conn_lows[:, 76:, :] = np.nan
+        # else:
+        #     conn_highs[:, :, 1000:] = np.nan
+        #     conn_highs[:, 1000:, :] = np.nan
+        #     conn_lows[:, :, 1000:] = np.nan
+        #     conn_lows[:, 1000:, :] = np.nan
+        # pass
     else:
         if combine_regions:
             conn_highs[:, :, 46:] = np.nan
@@ -483,11 +534,13 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
         ROI_expected = (ROI_expected[:, None] + ROI_expected[None, :]) / 2
         conn_lows -= ROI_expected[None]
 
-    if not combine_regions:
-        plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral)
+    # print(f'{schaefer=}')
+    # quit()
+    # if not combine_regions:
+    plot_Fig2B_bars(conn_highs, conn_lows, combine_regions, bilateral,
+                    schaefer=schaefer)
 
     overall = (conn_highs + conn_lows) / 2
-    print(f'{overall.shape=}')
 
     plt.rcParams.update({'font.size': 16,
                          'font.sans-serif': 'Arial'})
@@ -505,6 +558,7 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
         print(f'Gambling x SchemeRep: {r=:.2f}, {p=:.3f}')
     else:
         r = None
+
 
     ef_high = get_PE_x_Conn_effect(conn_highs, combine_regions=combine_regions,
                                    combine_bilateral=bilateral,
@@ -524,8 +578,6 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
                           combine_bilateral=bilateral, HCP=True,
                           lifu_labels=combine_regions,
                           schaefer=schaefer)
-        # print(atlas['ticks'])
-        # print(atlas['tick_lows'])
 
         title = f'\nt[{N - 1}] = {t_final:.2f}, f[{N - 1}] = {F:.2f}'
         if r is not None:
@@ -542,13 +594,16 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
         else:
             fp_out = None
 
-
-        # quit()
+        for i in range(len(atlas['ticks'])):
+            tick = atlas['ticks'][i]
+            label = atlas['tick_labels'][i]
+            low = atlas['tick_lows'][i]
+            print(f'{i} | {tick=:<3}, {low=:<4}, {label=}')
 
         plot_connectivity(t, atlas['ticks'], atlas['tick_labels'],
                           atlas['tick_lows'], title=title, tile=.01,
                           no_avg=True, cbar_label='t-value',
-                          vmin=-6, vmax=6, fp=fp_out)
+                          vmin=-4, vmax=4, fp=fp_out)
 
 
 def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):

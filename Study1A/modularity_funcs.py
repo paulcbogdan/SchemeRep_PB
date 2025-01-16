@@ -3,7 +3,7 @@ import pickle
 from pathlib import Path
 
 import numpy as np
-# from nichord.combine import plot_and_combine
+from nichord.combine import plot_and_combine
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 
@@ -186,7 +186,8 @@ def plot_partitions(partitions, M_conn_masked, coords=None,
         if len(p) < 5:
             continue
         M_corr_part = get_partition_matrix(M_conn_masked, p, w_zeros=True)
-        assert M_corr_part.shape in [(246, 246), (54, 54)]
+        # assert M_corr_part.shape in [(246, 246), (54, 54), (1000, 1000)], \
+        #     f'{M_corr_part.shape=}'
         fn = f'module_{i}.png'
         title = f'Partition {i + 1}{title_extra}'
         cur_dir = os.getcwd()
