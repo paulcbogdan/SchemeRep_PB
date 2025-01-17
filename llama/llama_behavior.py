@@ -87,8 +87,10 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                     big_voxelwise=False, do_acc=True,
                     control_item=False,
                     st=8, end=20, attn=True,
-                    normalize=True
+                    normalize=True,
+                    local_target=True
                     ):
+
 
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
@@ -134,10 +136,9 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
         # df_sn.loc[enc_nans, 'enc_acc'] = np.nan
     else:
         df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
-    # print(df_sn['enc_acc'].value_counts())
-    # quit()
 
-    kw = get_base_kw_predicting(sn, FC_target, local, big_voxelwise)
+    kw = get_base_kw_predicting(sn, FC_target, local_target,
+                                big_voxelwise)
     kw['semantic'] = model_attn
     kw['ROIs_ctrl'] = [model_item] if control_item else []
 
@@ -232,7 +233,7 @@ def run_sn_mem(region, local=False, big_voxelwise=False,
 @pkld(overwrite=False)
 def run_sn_attn_enc(region, control_item=False, do_acc=True,
                     FC=None, local=False, attn=True,
-                    normalize=True):
+                    normalize=True, local_target=True):
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
@@ -240,21 +241,25 @@ def run_sn_attn_enc(region, control_item=False, do_acc=True,
 
     # print(1 + 'str')
 
+
     for sn in sns:
-        # try:
+
+
         try:
             if FC:
                 ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
                                      control_item=control_item,
                                      do_acc=do_acc, attn=attn,
-                                     normalize=normalize)
+                                     normalize=normalize,
+                                     local_target=local_target)
             else:
                 ef = sn_attn_enc(sn, region=region, local=local,
                                  control_item=control_item,
                                  do_acc=do_acc, attn=attn,
                                  normalize=normalize)
         except FileNotFoundError as e:
-        #     print(f'{e=}')
+            # print(f'{e=}')
+            # quit()
             efs.append(np.nan)
             continue
         efs.append(ef)

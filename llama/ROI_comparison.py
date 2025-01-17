@@ -309,7 +309,7 @@ def run_attn_ROIs(combine_regions=False, st=8, end=20,
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
-def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
+def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
@@ -322,15 +322,18 @@ def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
         #                           local=combine_regions,
         #                           attn='down_proj_out',)
         t, vals = run_sn_attn_enc(ROI, control_item=False,
-                                  do_acc=True, #FC='tha_str',
+                                  do_acc=True, FC='PFC_ACC',
                                   local=combine_regions,
-                                  attn=True, normalize=True)
-        print(f'{ROI}: {t=:.3f}')
+                                  attn=True, normalize=True,
+                                  local_target=True)
+        p = stats.t.sf(t, 60)
+        print(f'{ROI}: {t=:.3f}, {p=:.3f}')
         ts.append(t)
 
     title = 'Attention x encoding accuracy\n'
     cmap = 'viridis'
-    my_plot_surf(ts, atlas, title, vmax=6, thresh=1.65,
+    cmap = 'magma'
+    my_plot_surf(ts, atlas, title, vmax=4, thresh=0,
                  only_positive=True, cmap=cmap)
 
 def run_mem_ROIs(combine_regions=True):

@@ -155,15 +155,15 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=False, attn=False, normalize=False,
-                      activation_model='3b'):
+def run_layers_static(obj_scn=True, attn=False, normalize=True,
+                      activation_model='70b'):
     if '2-7' in activation_model:
         activation_model = r'meta-llama/Llama-2-7b-hf'
     elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-    # activation_model = (activation_model, 'bury')
+    activation_model = (activation_model, 'bury')
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
@@ -186,7 +186,8 @@ def run_layers_static(obj_scn=False, attn=False, normalize=False,
             fps_do = 'non_obj'
 
         # if '3b' in activation_model:
-        if 'bury' not in activation_model:
+        # if 'bury' not in activation_model:
+        if not ('bury' in activation_model and '70b' in activation_model[0]):
             semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
                                             attn=False, do_M='obj_solo', last_only=False,
                                             normalize=True
@@ -207,11 +208,11 @@ def run_layers_static(obj_scn=False, attn=False, normalize=False,
         try:
             if 'bury' in semantic[4]: # Can't do first layer
                 # print('AAAAAAAAAH')
+                # print(semantic)
                 if semantic[2] == 0:
                     continue
         except TypeError:
             pass
-        # print(semantic)
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
                          target_ROIs, ctrl_contex=False if isinstance(attn, str) else attn)
 
