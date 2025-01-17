@@ -188,8 +188,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
     X[:, 1:] = stats.zscore(X[:, 1:], axis=0)
     flat_stim = stats.zscore(flat_stim)
-
-    assert np.sum(np.isnan(flat_stim)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
+    num_nans = np.sum(np.isnan(flat_stim))
+    p_nans = num_nans / len(flat_stim)
+    assert num_nans == 0, (f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=} | '
+                           f'{num_nans=} ({p_nans:.1%})')
 
     # print(flat_stim)
     # quit()

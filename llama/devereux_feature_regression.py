@@ -232,13 +232,18 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                                    do_r2=do_r2, shuffle=False
                                    )
 
+    l = df_w2v['feature'].to_list()
+    print(f'{l=}')
+    quit()
     # print(df_w2v['r'])
     # quit()
     # if do_r2 == '5050':
     #     df_w2v['r'] = df_w2v['r'].astype(float) - 0.5
 
+
     df_w2v.loc[df_w2v['r'].astype(float) < 0] = 0
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
+
 
     df_llama = do_feature_regression(layer_name=list(range(4, 16)), req=req,
                                      normalize_regr=normalize_regr,
@@ -254,6 +259,7 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     df_llama.loc[df_llama['r'].astype(float) < 0] = 0
 
     x_llm = df_llama['feature'].str.replace('_', ' ').to_numpy()
+
 
     y_llm = np.array(df_llama['r'].astype(float).to_numpy())
     d_w2v = {x: y for x, y in zip(df_w2v['feature'],

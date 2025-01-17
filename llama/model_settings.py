@@ -43,6 +43,9 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
             llama_layer = (llama_layer, True)
         for llama_cat in all_llama_cats:
             if isinstance(do_M, str):
+                if include_scn:
+                    semantic_l.append(('llama', llama_cat, llama_layer, 'scn', activation_model,
+                                       normalize))
                 semantic_l.append(('llama', llama_cat, llama_layer, do_M, activation_model,
                                    normalize))
             elif do_M:

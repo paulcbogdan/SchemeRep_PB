@@ -3,10 +3,11 @@ from scipy import stats
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
-from llama.llama_behavior import run_sn_attn_enc
+from llama.llama_behavior import run_sn_attn_enc, run_sn_mem
 from llama.model_settings import get_base_kw, get_explore_llama
 from llama.run_many_layers import run_layer
 from old.plot_gen import my_plot_surf
+from org_sns import get_sns
 
 
 def process_allow_misses(kw, ROI):
@@ -89,15 +90,20 @@ def item_vs_attn_ROIs(combine_regions=False, st=8, end=None,
 
 def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
                  activation_model='meta-llama/Llama-3.2-3b',
-                 do_M=False, obj_task=True):
+                 do_M=False, obj_task=True, age_ef=False):
     llama31_3b = get_explore_llama(activation_model,
                                    attn=attn, st=st, end=end,
                                    do_M=do_M, last_only=False)
     model = llama31_3b
 
     # model = get_explore_BERT('simCSE', do_M=False, st=2, end=10)
-    atlas = get_atlas(combine_regions=combine_regions)
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
+
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
 
     ts = []
     for ROI in ROIs:
@@ -107,13 +113,22 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
             fps = 'non_obj'
         # fps = ['con7_fMRI']
         kw = get_base_kw(ROI, model=model, fps=fps,
-                         big_voxelwise=False, local=False)
+                         big_voxelwise=False, local=combine_regions)
         process_allow_misses(kw, ROI)
         t, vals = pickle_wrap(run_layer, kwargs=kw,
                               verbose=-1, easy_override=False,
                               dir_branches=100)
+        if age_ef:
+            assert len(sns) == len(vals)
+            vals_YA = np.array([vals[i] for i, sn in enumerate(sns) if sn[0] == '1'])
+            vals_OA = np.array([vals[i] for i, sn in enumerate(sns) if sn[0] == '2'])
+            M_ya = np.nanmean(vals_YA)
+            M_oa = np.nanmean(vals_OA)
+            t, p = stats.ttest_ind(vals_YA, vals_OA, equal_var=False)
+            print(f'{ROI}: YA = {M_ya:.4f}, OA = {M_oa:.4f}: {t=:.3f}, {p=:.3f}')
+        else:
+            print(f'{ROI}: {t=:.3f}')
         # if np.abs(t) > 2:
-        print(f'{ROI}: {t=:.3f}')
         ts.append(t)
 
     vmax = np.quantile(np.abs(ts), 0.95)
@@ -127,6 +142,7 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
     else:
         if fps == 'obj':
             title = 'Object embedding (scene → object)\n'
+            cmap = 'Oranges'
         else:
             title = 'Object embedding (one scene)\n'
 
@@ -152,9 +168,9 @@ def run_all_ROIs(combine_regions=False, st=8, end=None, attn=True,
                  only_positive=True, cmap=cmap)
 
 
-def run_ctxt_contrast_ROIs(combine_regions=False, st=6, end=20,
+def run_ctxt_contrast_ROIs(combine_regions=True, st=6, end=20,
                            activation_model='meta-llama/Llama-3.2-3b',
-                           ):
+                           age_ef=False):
     model_obj_scn = get_explore_llama(activation_model,
                                       attn=False, st=st, end=end,
                                       do_M=False, last_only=False)
@@ -162,14 +178,18 @@ def run_ctxt_contrast_ROIs(combine_regions=False, st=6, end=20,
     model_obj_solo = get_explore_llama(activation_model,
                                        attn=False, st=st, end=end,
                                        do_M='obj_solo', last_only=False)
-    model_scn = get_explore_llama(activation_model,
-                                  attn=False, st=st, end=end,
-                                  do_M='scn', last_only=False)
+    # model_scn = get_explore_llama(activation_model,
+    #                               attn=False, st=st, end=end,
+    #                               do_M='scn', last_only=False)
 
     # model = get_explore_BERT('simCSE', do_M=False, st=2, end=10)
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
+
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
 
     ts = []
     ts_ctx = []
@@ -192,8 +212,28 @@ def run_ctxt_contrast_ROIs(combine_regions=False, st=6, end=20,
                                    verbose=-1, easy_override=False,
                                    dir_branches=100)
         t, p = stats.ttest_rel(vals_ctxt, vals_solo, nan_policy='omit')
-        print(f'Context vs. solo | {ROI}: {t=:.3f}')
+        if age_ef:
+            assert len(sns) == len(vals_solo) == len(vals_ctxt)
+            vals_s_YA = np.array([vals_solo[i] for i, sn in enumerate(sns) if sn[0] == '1'])
+            vals_s_OA = np.array([vals_solo[i] for i, sn in enumerate(sns) if sn[0] == '2'])
+            vals_c_YA = np.array([vals_ctxt[i] for i, sn in enumerate(sns) if sn[0] == '1'])
+            vals_c_OA = np.array([vals_ctxt[i] for i, sn in enumerate(sns) if sn[0] == '2'])
+            t_s, p = stats.ttest_ind(vals_s_YA, vals_s_OA, equal_var=False)
+            t_c, p = stats.ttest_ind(vals_c_YA, vals_c_OA, equal_var=False)
+            t_x, p = stats.ttest_ind(vals_c_YA - vals_s_YA,
+                                     vals_c_OA - vals_s_OA, equal_var=False)
+            print(f'{ROI} | solo: {t_s=:.2f}, context: {t_c=:.2f}, interaction: {t_x=:.2f}')
+            t = t_x
+
+            # M_ya = np.nanmean(vals_YA)
+            # M_oa = np.nanmean(vals_OA)
+            # t, p = stats.ttest_ind(vals_YA, vals_OA, equal_var=False)
+            # print(f'Context vs. solo | {ROI}: YA = {M_ya:.4f}, OA = {M_oa:.4f}: {t=:.3f}, {p=:.3f}')
+        else:
+            print(f'Context vs. solo | {ROI}: {t=:.3f}')
         ts.append(t)
+
+
 
     vmax = np.quantile(np.abs(ts), 0.95)
     title = ('Contextualized vs. static contrast\n'
@@ -218,6 +258,13 @@ def run_attn_ROIs(combine_regions=False, st=8, end=20,
     model = get_explore_llama(activation_model,
                               attn=True, st=st, end=end,
                               do_M=False, last_only=False)
+
+    model = get_explore_llama(activation_model,
+                              attn='attn_output', st=st, end=end,
+                              do_M=False, last_only=False,
+                              normalize=(0, 1),
+                              # normalize=True
+                              )
 
     model_obj_solo = get_explore_llama(activation_model,
                                        attn=False, st=st, end=end,
@@ -262,7 +309,7 @@ def run_attn_ROIs(combine_regions=False, st=8, end=20,
     my_plot_surf(ts, atlas, title, vmax=6, thresh=2,
                  only_positive=True, cmap=cmap)
 
-def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
+def run_attn_bhv_ROIs(combine_regions=False, st=8, end=20,):
     atlas = get_atlas(combine_regions=combine_regions,
                       combine_bilateral=combine_regions)
     ROIs = atlas['ROIs']
@@ -271,19 +318,13 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
     ts = []
     for ROI in ROIs:
         # t, vals = run_sn_attn_enc(ROI, control_item=True,
-        #                           do_acc=True, #FC='tha_str',
-        #                           FC=None,
+        #                           do_acc=True, FC='tha_str',
         #                           local=combine_regions,
-        #                           # test=True
-        #                           )
-
-
-        # t, vals = run_sn_attn_enc('Tha', control_item=False,
-        #                           do_acc=True, FC=ROI,
-        #                           local=combine_regions)
+        #                           attn='down_proj_out',)
         t, vals = run_sn_attn_enc(ROI, control_item=False,
-                                  do_acc=True, FC='tha_str',
-                                  local=combine_regions)
+                                  do_acc=True, #FC='tha_str',
+                                  local=combine_regions,
+                                  attn=True, normalize=True)
         print(f'{ROI}: {t=:.3f}')
         ts.append(t)
 
@@ -292,29 +333,39 @@ def run_attn_bhv_ROIs(combine_regions=True, st=8, end=20,):
     my_plot_surf(ts, atlas, title, vmax=6, thresh=1.65,
                  only_positive=True, cmap=cmap)
 
+def run_mem_ROIs(combine_regions=True):
+    atlas = get_atlas(combine_regions=combine_regions,
+                      combine_bilateral=combine_regions)
+    ROIs = atlas['ROIs']
+
+    ts = []
+    for ROI in ROIs:
+        t, p, vals = run_sn_mem(ROI, local=combine_regions,
+                                fp_neuro='obj7_fMRI', get_age_ef=True)
+        print(f'Mem | {ROI}: {t=:.3f}, {p=:.3f}')
+        ts.append(t)
+
+    title = 'IFAF x memory\n(conceptual & visual) accuracy'
+    cmap = 'inferno'
+    my_plot_surf(ts, atlas, title, vmax=6, thresh=1.65,
+                 only_positive=True, cmap=cmap)
+
 def make_Fig3_obj_solo(st=6, end=20, activation_model='meta-llama/Llama-3.2-3b'):
     run_all_ROIs(attn=False, activation_model=activation_model,
                  st=st, end=end, do_M='obj_solo', obj_task=False)
 
+def make_Fig5_obj_context(st=6, end=20, activation_model='meta-llama/Llama-3.2-3b'):
+    run_all_ROIs(attn=False, activation_model=activation_model,
+                 st=st, end=end, do_M=False, obj_task=True)
+
 
 if __name__ == '__main__':
-    make_Fig3_obj_solo()
+    # run_mem_ROIs()
+    # quit()
+    # make_Fig5_obj_context()
+    # make_Fig3_obj_solo()
+    # quit()
     run_attn_bhv_ROIs()
-    run_attn_ROIs()
-    run_ctxt_contrast_ROIs()
+    # run_attn_ROIs()
+    # run_ctxt_contrast_ROIs()
     quit()
-    tick = 16
-    ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'
-
-    for st in range(4, 20, tick):
-        # run_all_ROIs(attn=True, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-        #              do_M=False, obj_task=True)
-        # continue
-        # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-        #              do_M=True, obj_task=True)
-        # continue
-
-        # run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st+tick,
-        #              do_M=True, obj_task=False)
-        run_all_ROIs(attn=False, activation_model=ACTIVATION_MODEL, st=st, end=st + tick,
-                     do_M='obj_solo', obj_task=False)

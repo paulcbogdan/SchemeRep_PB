@@ -145,7 +145,7 @@ def get_type2RSM_(df, plot=False, attn=False, pf_thresh=250,
     return type2RSM
 
 def get_devereux_RSM_by_type_(pf_thresh=250, attn=False, odd_even=None,
-                              feat_min=5):
+                              feat_min=5, all=False):
     items, df = get_standard_items_list(pf_thresh=pf_thresh)
     final_feats = ['is_heavy', 'is_soft', 'is_thin', 'is_strong', 'is_colourful',
                    'is_fast', 'has_claws', 'made_of_glass', 'does_smell_is_s',
@@ -168,15 +168,22 @@ def get_devereux_RSM_by_type_(pf_thresh=250, attn=False, odd_even=None,
         num_features_by_type = df.groupby('feature type')['feature'].nunique()
         print(num_features_by_type)
 
+    if all:
+        df['feature type'] = 'all'
+
+    features = list(df['feature'].unique())
     if odd_even is not None:
-        assert odd_even in [0, 1]
-        all_keep_features = []
-        for feature_type, df_feat_type in df.groupby('feature type'):
-            features = df_feat_type['feature'].value_counts()
-            features_odd = features.index.to_list()[odd_even::2]
-            all_keep_features.extend(features_odd)
-        all_keep_features = set(all_keep_features)
-        df = df[df['feature'].isin(all_keep_features)]
+        features = set(features[odd_even::2])
+        df = df[df['feature'].isin(features)]
+        # assert odd_even in [0, 1]
+        # all_keep_features = []
+        # for feature_type, df_feat_type in df.groupby('feature type'):
+        #     features = df_feat_type['feature'].value_counts()
+        #     features_odd = features.index.to_list()[odd_even::2]
+        #     all_keep_features.extend(features_odd)
+        # all_keep_features = set(all_keep_features)
+        # df = df[df['feature'].isin(all_keep_features)]
+
 
     df = fix_feature_type_classification(df)
     type2RSM = get_type2RSM_(df, attn=attn, pf_thresh=pf_thresh)
@@ -191,38 +198,29 @@ def get_devereux_RSM_by_type(pf_thresh=250, attn=False, odd_even=None):
     print('Got devereux RSMs')
     return type2RSM
 
-@pkld(store='both', verbose=1)
-def get_devereux_top50_RSM(pf_thresh=300):
-    # pf_thresh = 600
-    items = ['is_small', 'is_for_children', 'is_heavy', 'is_circular_rou', 'is_thin',
-             'is_big_large', 'is_expensive', 'is_strong', 'does_smell_is_s',
-             'made_of_plastic', 'made_of_glass', 'has_a_handle_ha', 'is_electric',
-             'has_claws', 'made_of_wood', 'is_a_tool', 'is_fast', 'is_pretty_attra',
-             'is_warm', 'is_dangerous', 'has_legs', 'has_fur_hair', 'has_a_tail',
-             'is_found_in_kit', 'does_carry_tran', 'is_food', 'is_noisy',
-             'is_a_weapon', 'has_teeth', 'is_an_animal', 'does_make_sound',
-             'has_skin_peel', 'made_of_metal', 'made_of_fabric_', 'is_a_plant',
-             'is_found_in_sea', 'is_a_fruit', 'is_a_vegetable', 'is_an_insect',
-             'has_wings', 'has_wheels', 'does_swim', 'is_eaten_edible', 'is_a_bird',
-             'is_clothing', 'does_fly', 'is_a_mammal', 'has_feathers', 'is_worn',
-             'is_a_musical_in']
-    # items = ['is_found_in_sea', 'made_of_fabric_', 'is_electric', 'is_a_weapon', 'is_a_fruit', 'made_of_metal', 'does_fly', 'is_eaten_edible', 'has_fur_hair', 'is_clothing', 'is_an_insect', 'has_wheels', 'has_skin_peel', 'is_a_vegetable', 'has_wings', 'is_a_musical_in', 'has_feathers', 'is_worn', 'is_a_mammal', 'is_a_bird']
-    # items = ['is_a_bird']
-    # print(len(items))
+@pkld(store='both', verbose=1, overwrite=True)
+def get_devereux_top50_RSM(pf_thresh=300, odd_even=None):
+    items = ['does_swim', 'is_a_mammal', 'is_clothing', 'is_worn', 'does_make_sound', 'has_a_tail', 'is_found_in_sea', 'is_a_musical_in', 'is_an_animal', 'is_eaten_edible', 'is_a_bird', 'is_a_plant', 'does_carry_tran', 'does_fly', 'has_claws', 'has_fur_hair', 'has_wings', 'is_an_insect', 'is_a_fruit', 'has_skin_peel', 'is_a_weapon', 'is_a_vegetable', 'has_wheels', 'has_teeth', 'is_fast', 'is_electric', 'has_legs', 'is_pretty_attra', 'has_feathers', 'made_of_fabric_', 'made_of_metal', 'is_warm', 'made_of_wood', 'made_of_glass', 'is_a_tool', 'is_found_in_kit', 'is_colourful', 'is_food', 'is_for_children', 'made_of_plastic', 'has_a_handle_ha', 'is_strong', 'is_dangerous', 'is_heavy', 'is_big_large', 'does_smell_is_s', 'is_circular_rou', 'is_small', 'is_expensive', 'is_soft', 'is_thin']
+    print(len(items))
     top50 = set(items)
-
     items, df = get_standard_items_list(pf_thresh=pf_thresh, norm_per_concept=False)
-    # df = fix_feature_type_classification(df)
     df = df[df['feature'].apply(lambda x: x[:15]).isin(top50)] # TODO: fix to be same as items
-    # print(df['feature'].nunique())
-    # quit()
+    features = list(df['feature'].unique())
+    if odd_even is not None:
+        features = set(features[odd_even::2])
+        df = df[df['feature'].isin(features)]
+    # TODO: clean this up when refactor. stop using the :15. Have items @pkld
     df['pf'] = df['pf'].apply(lambda x: 1 if x > 4 else 0)
     df = df[df['pf'] > 0]
     df['feature type'] = 'top50'
-    # df_feat_cnt = df['feature'].value_counts()
-    # df_feat_cnt = df_feat_cnt[df_feat_cnt > 19]
-    # df = df[df['feature'].isin(df_feat_cnt.index)]
     type2RSM = get_type2RSM_(df, attn=False, pf_thresh=pf_thresh)
+    if odd_even is not None:
+        if odd_even == 1:
+            type2RSM['Human (odd feats)'] = type2RSM['top50']
+        else:
+            type2RSM['Human (even feats)'] = type2RSM['top50']
+    else:
+        type2RSM['Human'] = type2RSM['top50']
     return type2RSM
 
 
@@ -251,25 +249,26 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
         models = get_dev_explore_BERT(activation_model)
     elif activation_model == 'w2v':
         return {'top50': [.478]}
-        val = .416 # claculated via devereux_w2v.py
-        label = 'word2vec'
-        plt.plot([14], [val], label=label, color='red',
-                 marker='o', linewidth=3, markersize=8)
-        plt.plot([13.1, 14.9], [val, val], color='red',
-                 linewidth=3)
-        return
+        # val = .416 # claculated via devereux_w2v.py
+        # label = 'word2vec'
+        # plt.plot([14], [val], label=label, color='red',
+        #          marker='o', linewidth=3, markersize=8)
+        # plt.plot([13.1, 14.9], [val, val], color='red',
+        #          linewidth=3)
+        # return
 
     # models = get_dev_explore_BERT('simCSE')
 
-    layers = len(models)
-
+    num_layers = len(models)
+    # print(f'{num_layers=}')
+    # quit()
     # models = get_explore_llama(activation_model=activation_model,
     #                            attn=False, st=7, end=21, normalize=True)
     # models = [models]
 
     type2list = defaultdict(list)
 
-    for layer in range(0, layers):
+    for layer in range(0, num_layers):
         model = models[layer]
         print(f'Layer ({model[1]}): {layer}')
         # pf_thresh = 300
@@ -281,14 +280,6 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
                                  symmetric=False
                                  )
         RSM[np.diag_indices_from(RSM)] = np.nan
-        # plt.imshow(RSM, aspect='auto', interpolation='none')
-        # plt.colorbar()
-        # plt.show()
-        # quit()
-
-        # upper_tile = np.nanquantile(RSM, 0.99)
-        # RSM[RSM > upper_tile] = np.nan
-
         trils = np.tril_indices_from(RSM, k=-1)
         RSM_flat = RSM[trils]
 
@@ -297,8 +288,6 @@ def do_llama_x_dev(attn=False, activation_model='meta-llama/Llama-3.2-3b',
             type2RSM_all = get_devereux_RSM_by_type(pf_thresh=pf_thresh,
                 attn=isinstance(attn, bool) and attn, )
             type2RSM.update(type2RSM_all)
-        # print(list(type2RSM))
-
 
         for feature_type, RSM_feat in type2RSM.items():
             assert RSM_feat.shape == RSM.shape, f'{RSM_feat.shape=} {RSM.shape=}'
@@ -380,6 +369,7 @@ def plot_all_deve_lines():
         d = do_llama_x_dev(activation_model=model, one_line=False,
                            pf_thresh=300, quick=1)
         vals = d['top50']
+        print(f'{vals=}')
         plt.plot(list(range(len(vals))), vals,
                  label=model, color=color,
                  marker='.')
@@ -388,6 +378,6 @@ def plot_all_deve_lines():
 
 
 if __name__ == '__main__':
-    # plot_all_deve_lines()
-    do_llama_x_dev()
+    plot_all_deve_lines()
+    # do_llama_x_dev()
 

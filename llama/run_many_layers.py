@@ -155,28 +155,28 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
-                      activation_model='2-7'
-                      ):
+def run_layers_static(obj_scn=False, attn=False, normalize=False,
+                      activation_model='3b'):
     if '2-7' in activation_model:
         activation_model = r'meta-llama/Llama-2-7b-hf'
     elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-    # activation_model = ('meta-llama/Llama-3.3-70b-Instruct', 'bury')
+    # activation_model = (activation_model, 'bury')
+
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)
     ALL_RESULTS_VALS = defaultdict(list)
     if isinstance(attn, bool) and attn:
-        semantic_l = get_explore_llama(activation_model=activation_model, #'grok_first'),
+        semantic_l = get_explore_llama(activation_model=activation_model,
                                        attn=True, do_M=False, last_only=False,
                                        include_scn=True, normalize=normalize,
                                        )
         fps_do = 'obj'
     else:
         if obj_scn:
-            semantic_l = get_explore_llama(activation_model=activation_model, #'grok_first'),
+            semantic_l = get_explore_llama(activation_model=activation_model,
                                            attn=attn, do_M=False, last_only=False,
                                            normalize=normalize,
                                            )
@@ -184,6 +184,7 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
         else:
             semantic_l = []
             fps_do = 'non_obj'
+
         # if '3b' in activation_model:
         if 'bury' not in activation_model:
             semantic_l += get_explore_llama(activation_model=activation_model, #'grok_first'),
@@ -200,15 +201,29 @@ def run_layers_static(obj_scn=True, attn='down_proj_out', normalize=True,
         w2v_glove_l = [True, 'glove']
         semantic_l += w2v_glove_l
 
+    # fps_do = ['con7_fMRI']
 
     for semantic in semantic_l:
+        try:
+            if 'bury' in semantic[4]: # Can't do first layer
+                # print('AAAAAAAAAH')
+                if semantic[2] == 0:
+                    continue
+        except TypeError:
+            pass
+        # print(semantic)
         run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS,
                          target_ROIs, ctrl_contex=False if isinstance(attn, str) else attn)
 
     print_all_results(ALL_RESULTS)
     fps_do2title = {'obj': 'Task: Only encoding',
                     'non_obj': 'Task: All but encoding',
-                    'all': 'Task: All tasks'}
+                    'all': 'Task: All tasks',
+                    ('bl7_fMRI', ): 'Baseline task',
+                    ('con7_fMRI', ): 'Conceptual retrieval task',
+                    ('vis7_fMRI', ): 'Visual retrieval task'}
+    if isinstance(fps_do, list):
+        fps_do = tuple(fps_do)
     plot_results_t(ALL_RESULTS, fps_do2title[fps_do])
     # plot_results_M_SE(target_ROIs, ALL_RESULTS_VALS, fps_do2title[fps_do])
     quit()

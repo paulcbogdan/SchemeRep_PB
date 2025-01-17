@@ -34,39 +34,27 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
 
 def sn_attn_enc(sn, region='subcort', local=True,
                 big_voxelwise=False, do_acc=True,
-                control_item=False
+                control_item=False, attn=True,
+                normalize=True
                 ):
     # region = 'PFC'
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
-                                   attn=True, normalize=True,
+                                   attn=attn, normalize=normalize,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
                                    st=8, end=20,
                                    last_only=False
                                    )
 
-    # model_attn = get_explore_llama(activation_model,
-    #                                attn='attn_output',
-    #                                normalize=1,
-    #                                do_prod=False, do_M=False,
-    #                                include_scn=False,
-    #                                st=2, end=20,
-    #                                last_only=False
-    #                                )
-
-    # model_attn = get_explore_llama(activation_model,
-    #                                attn=False, normalize=1,
-    #                                do_prod=False, do_M=False,
-    #                                include_scn=False,
-    #                                st=4, end=16,
-    #                                last_only=False
-    #                                )
-
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
                                    include_scn=True,
-                                   do_prod=False)
+                                   do_prod=False,
+                                   do_M='obj_solo',
+                                   )
+    # print(model_item)
+    # quit()
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
 
     # kw['semantic'] = 'inc'
@@ -88,53 +76,32 @@ def sn_attn_enc(sn, region='subcort', local=True,
     if do_acc:
         df_sn['inc_m'] = df_sn['inc'].map({1: 1, 2: 2.5, 3: 4})
         df_sn['enc_acc'] = -(df_sn['inc_m'] - df_sn['per_inc']).abs()
-        # enc_nans = df_sn['enc_acc'].isna()
-        # df_sn['enc_acc'] = (df_sn['enc_acc'] < 1).astype(float)
-        # df_sn.loc[enc_nans, 'enc_acc'] = np.nan
     else:
         df_sn['enc_acc'] = df_sn['per_inc'].astype(float)
 
     df_sn = df_sn.dropna(subset=['IRAFs', 'enc_acc'])
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['enc_acc'])
-    # print(f'{r=:.3f}')
     return r
 
 def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
                     big_voxelwise=False, do_acc=True,
                     control_item=False,
-                    st=8, end=20
+                    st=8, end=20, attn=True,
+                    normalize=True
                     ):
-    # local = True
-    # control_item = False
+
     activation_model = 'meta-llama/Llama-3.2-3b'
     model_attn = get_explore_llama(activation_model,
-                                   attn=True, normalize=True,
+                                   attn=attn, normalize=normalize,
                                    do_prod=False, do_M=False,
                                    include_scn=True,
                                    st=st, end=end,
                                    last_only=False
                                    )
 
-    # model_attn = get_explore_llama(activation_model,
-    #                                attn='attn_output',
-    #                                normalize=1,
-    #                                do_prod=False, do_M=False,
-    #                                include_scn=False,
-    #                                st=2, end=20,
-    #                                last_only=False
-    #                                )
-
-    # model_attn = get_explore_llama(activation_model,
-    #                                attn=False, normalize=1,
-    #                                do_prod=False, do_M=False,
-    #                                include_scn=False,
-    #                                st=st, end=end,
-    #                                last_only=False
-    #                                )
-
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
-                                   include_scn=False,
+                                   include_scn=True,
                                    do_prod=False,
                                    do_M='obj_solo',
                                    st=st, end=end
@@ -147,10 +114,6 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
     kw['semantic'] = model_attn
 
     kw['ROIs_ctrl'] = [model_item] if control_item else []
-    # print(kw['ROIs_ctrl'])
-    # quit()
-    # print(kw)
-    # quit()
 
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                         easy_override=False, dir_branches=100)
@@ -203,20 +166,17 @@ def sn_attn_enc_Tha(sn, region, FC_target='tha_str', local=True,
     return t[0, 1]
 
 
-def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
-    local = True
-    big_voxelwise = False
+@pkld(overwrite=False)
+def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False,
+               fp_neuro='obj7_fMRI'):
     activation_model = 'meta-llama/Llama-3.2-3b'
-    model = get_explore_llama(activation_model,
-                              attn=True, normalize=True,
-                              do_M=False, st=4, end=16,)
 
     model = get_explore_llama(activation_model,
                               attn=False, normalize=True,
                               do_M='obj_solo', st=6, end=22)
 
     kw = get_base_kw_predicting(sn, region, local, big_voxelwise)
-    kw['fp'] = 'obj7_fMRI'
+    kw['fp'] = fp_neuro
     kw['semantic'] = model
     kw['ROIs_ctrl'] = []#'cortical_M_corr']#model_solo]
 
@@ -242,21 +202,40 @@ def sn_item_dm(sn, region='Str', local=True, big_voxelwise=False):
     assert len(df_sn) > 10, f'{len(df_sn)=}'
 
     r, p = stats.pearsonr(df_sn['IRAFs'], df_sn['mem_key'])
-    # r = np.nanmean(df_sn['IRAFs'])
-    is_YA = df_sn['is_YA'].iloc[0]
-
-    # if is_YA:
-    #     r = 0
-    #     r = -r
     return r
 
-@pkld(overwrite=True)
-def run_sn_attn_enc(region, control_item=False, do_acc=True,
-                    FC=None, local=False):
+@pkld(overwrite=False)
+def run_sn_mem(region, local=False, big_voxelwise=False,
+               fp_neuro='obj7_fMRI', get_age_ef=False):
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
     efs = []
+    for sn in sns:
+        try:
+            ef = sn_item_dm(sn, region=region, local=local,
+                            big_voxelwise=big_voxelwise,
+                            fp_neuro=fp_neuro)
+        except FileNotFoundError:
+            efs.append(np.nan)
+            continue
+        efs.append(ef)
+    if get_age_ef:
+        efs_YA = [ef for sn, ef in zip(sns, efs) if str(sn)[0] == '1']
+        efs_OA = [ef for sn, ef in zip(sns, efs) if str(sn)[0] == '2']
+        t, p = stats.ttest_ind(efs_YA, efs_OA, equal_var=False)
+        return t, p, efs
+    else:
+        t, p = stats.ttest_1samp(efs, 0, axis=0, nan_policy='omit')
+        return t, p, efs
+
+@pkld(overwrite=False)
+def run_sn_attn_enc(region, control_item=False, do_acc=True,
+                    FC=None, local=False, attn=True,
+                    normalize=True):
+    sns = get_sns('all')['healthy']
+    bad_sns = ['116', '125', '133', '213', '215', '231']
+    sns = [sn for sn in sns if sn not in bad_sns]
     efs = []
 
     # print(1 + 'str')
@@ -267,11 +246,13 @@ def run_sn_attn_enc(region, control_item=False, do_acc=True,
             if FC:
                 ef = sn_attn_enc_Tha(sn, region, FC_target=FC, local=local,
                                      control_item=control_item,
-                                     do_acc=do_acc)
+                                     do_acc=do_acc, attn=attn,
+                                     normalize=normalize)
             else:
                 ef = sn_attn_enc(sn, region=region, local=local,
                                  control_item=control_item,
-                                 do_acc=do_acc)
+                                 do_acc=do_acc, attn=attn,
+                                 normalize=normalize)
         except FileNotFoundError as e:
         #     print(f'{e=}')
             efs.append(np.nan)
