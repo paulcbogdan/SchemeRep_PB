@@ -1,4 +1,5 @@
 from collections import defaultdict
+from sys import activate_stack_trampoline
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -155,15 +156,17 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True, attn=False, normalize=True,
-                      activation_model='70b'):
-    if '2-7' in activation_model:
+def run_layers_static(obj_scn=False, attn=False, normalize=True,
+                      activation_model='Mist'):
+    if 'Mist' in activation_model:
+        activation_model = r'mistralai/Mistral-7b-v0.3'
+    elif '2-7' in activation_model:
         activation_model = r'meta-llama/Llama-2-7b-hf'
     elif '3b' in activation_model:
         activation_model = 'meta-llama/Llama-3.2-3b'
     else:
         activation_model = 'meta-llama/Llama-3.3-70b-Instruct'
-    activation_model = (activation_model, 'bury')
+    # activation_model = (activation_model, 'bury')
 
     target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] #
     ALL_RESULTS = defaultdict(list)

@@ -145,7 +145,25 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
     d_vecs = {}
     cat_, inner = process_cat_cat_inner(cat)
     cnt = 0
-    if quick == 'scenes':
+    if isinstance(items, tuple) and len(items) == 2:
+        item2item1s = {}
+        for item0, item1 in zip(items[0], items[1]):
+            if isinstance(item0, float) or isinstance(item1, float):
+                continue
+            # if np.isnan(item0) or np.isnan(item1):
+            #     continue
+            item2item1s[item0] = [item1]
+        for item0, item1 in zip(items[0], items[1]):
+            if isinstance(item0, float) or isinstance(item1, float):
+                continue
+            if item1 in item2item1s:
+                item2item1s[item1].append(item0)
+            else:
+                item2item1s[item1] = [item0]
+        items_ = [item for item in items[0] if not isinstance(item, float)]
+        items_ += [item for item in items[1] if not isinstance(item, float)]
+        items = items_
+    elif quick == 'scenes':
         item2item1s = get_context_pairs(items)
         items = list(item2item1s.keys())
     elif quick:
@@ -159,6 +177,7 @@ def get_llama_d_vecs_non_normed_deve_(items, symmetric=False,
             items1 = item2item1s[item0]
         else:
             items1 = items
+        print(f'{item0}: {items1=}')
         for i1_idx, item1 in enumerate(items1):
             if item1 == item0:
                 if quick:

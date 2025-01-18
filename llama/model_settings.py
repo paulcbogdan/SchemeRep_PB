@@ -23,7 +23,10 @@ def get_explore_llama(activation_model='meta-llama/Llama-3.3-70b-Instruct',
     #     assert not do_M
     # print(activation_model)
     # if activation_model == 'meta-llama/Llama-3.2-3b':
-    if ('-1b' in activation_model or
+    if ('Mist' in activation_model or
+        (isinstance(activation_model, tuple) and 'Mist' in activation_model)):
+        all_llama_layers = list(range(st, 32 if end is None else end))
+    elif ('-1b' in activation_model or
             (isinstance(activation_model, tuple) and '-1b' in activation_model[0])):
         all_llama_layers = list(range(st, 16 if end is None else end))
     elif ('-3b' in activation_model or

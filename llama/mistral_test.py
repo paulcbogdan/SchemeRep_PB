@@ -1,7 +1,10 @@
 import torch
+from torch.onnx.symbolic_opset9 import tensor
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import numpy as np
-
+from transformers import BitsAndBytesConfig
+from accelerate import init_empty_weights, load_checkpoint_and_dispatch
+# from transformers import MistralForCausalLM, MistralTokenizer
 
 def precompute_rope_params(head_dim, theta_base=10_000, context_length=4096, freq_config=None):
     # from: https://github.com/rasbt/LLMs-from-scratch/blob/main/ch05/07_gpt_to_llama/standalone-llama32.ipynb
@@ -134,43 +137,18 @@ class LlamaActivationExtractor:
             def attention_big_hook_(module, input, output):
 
                 hidden_states = input[0]
-                _, num_tokens, _ = hidden_states.size()
-
                 # Compute query, key, value projections
                 query_states = module.self_attn.q_proj(hidden_states)
                 key_states = module.self_attn.k_proj(hidden_states)
                 value_states = module.self_attn.v_proj(hidden_states)
 
-                if 'Mistral-7b-v0.3' in self.model_name:
-                    num_heads = 32
-                    num_key_value_heads = 8
-                    head_dim = 4096 // num_heads
-                    num_kvh_groups = 4
-                elif 'Llama-3.2-3b' in self.model_name:
-                    num_heads = 24
-                    num_key_value_heads = 8
-                    head_dim = 3072 // num_heads
-                    num_kvh_groups = 3
-                else:
-                    raise ValueError
-                # else:
-                #     # num_heads = module.self_attn.num_heads
-                #     num_key_value_heads = module.self_attn.num_key_value_heads
-                #     head_dim = module.self_attn.head_dim
-                #     num_kvh_groups = module.self_attn.num_key_value_groups
+                num_heads = 32
+                num_key_value_heads = 8
+                head_dim = 4096 // num_heads
+                num_kvh_groups = 4
 
-                # print(module.self_attn.num_heads)
-                # print(module.self_attn.,num_heads)
-                # print(module)
-                # print(module.self_attn)
-                # quit()
-                # for name, param in module.self_attn.named_parameters():
-                #     print(f'{name} | {param.size()}')
-                # print(dict(module.named_parameters()).keys())
-                # quit()
+                # print(query_states.size())
 
-
-                # Reshape and compute attention scores
                 query_states = query_states.view(
                     query_states.size(0),
                     query_states.size(1),
@@ -196,13 +174,13 @@ class LlamaActivationExtractor:
                 key_states = key_states.transpose(1, 2)
                 value_states = value_states.transpose(1, 2)
 
-                rope_config = {  # RoPE frequency scaling
+                rope_config = {              # RoPE frequency scaling
                     "factor": 32.0,
                     "low_freq_factor": 1.0,
                     "high_freq_factor": 4.0,
                     "original_context_length": 8192,
                 }
-                mask, cos, sin = SharedBuffers.get_buffers(192,  # 8192,#48,
+                mask, cos, sin = SharedBuffers.get_buffers(192,#8192,#48,
                                                            module.self_attn.head_dim, 500_000.0,
                                                            rope_config, torch.bfloat16)
                 key_states = compute_rope(key_states, cos.to(self.model.device),
@@ -215,6 +193,7 @@ class LlamaActivationExtractor:
 
                 value_states = value_states.repeat_interleave(
                     num_kvh_groups, dim=1)
+
 
                 attn_scores = (query_states @ key_states.transpose(2, 3) /
                                (module.self_attn.head_dim ** 0.5))
@@ -241,6 +220,7 @@ class LlamaActivationExtractor:
         self.hooks = []
         for name, module in self.model.named_modules():
             name_spl = name.split('.')
+            print(f'{name=}')
             if len(name_spl) < 2: continue
             if name_spl[-2] == 'self_attn':
                 if name_spl[-1] == 'o_proj':
@@ -406,9 +386,7 @@ def main():
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
-    # extractor = LlamaActivationExtractor(r'mistralai/Mistral-7b-v0.3')
-
+    extractor = LlamaActivationExtractor(r'mistralai/Mistral-7b-v0.3')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
 
     extractor._register_comprehensive_hooks()
