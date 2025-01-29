@@ -41,12 +41,7 @@ def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
                 kwargs_['ROIs_ctrl'] = [f'{network}_BOLD', ]
             else:
                 kwargs_['ROIs_ctrl'] = []
-            # print(target_ROI)
-            # quit()
 
-            # t_ROIs_all, r_sqs_ROIs_all = run_all_sn(kwargs_, RSA,
-            #                                         easy_override=False,
-            #                                         )
 
             t_ROIs_all, r_sqs_ROIs_all = (
                 utils.pickle_wrap(run_all_sn_, kwargs={'kwargs': kwargs_,
@@ -54,8 +49,6 @@ def plot_cortex_RSA(semantic=True, RSA=True, control_network=False):
                                                        'ISPC': False,
                                                        'ERS_alt': False},))
 
-            # print(t_ROIs_all)
-            # quit()
             ts_ROI.append(t_ROIs_all)
             print(f'{target_ROI=}, t = {t_ROIs_all:.3f}')
 

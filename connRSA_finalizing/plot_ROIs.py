@@ -2,7 +2,7 @@ from Utils.atlas_funcs import get_atlas
 import numpy as np
 from nilearn import plotting, image
 import matplotlib.pyplot as plt
-from connRSA_finalizing.conn_Fig6 import get_idxs
+from connRSA_finalizing.plot_Fig5_conn import get_idxs
 from connRSA.jit_funcs import do_int_downsample, do_int_upsample
 
 

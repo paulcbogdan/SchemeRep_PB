@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from Utils.atlas_funcs import get_atlas
 from connRSA.conn_regress import do_regr_RSA_sn
-from connRSA_finalizing.conn_Fig6 import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
+from connRSA_finalizing.plot_Fig5_conn import get_IC_mat, get_cross_IC_mat, get_cross_ERS_mat, get_cross_IRAF_mat
 from connRSA.old_Oct29.conn_x_RSA_lmer import get_idxs
 from connRSA.single_trial_conn import prep_fps
 from Study1A.load_Study1A_funcs import load_FC
@@ -303,18 +303,18 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
         return df
 
 
-    kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
-              'fp1': None, 'trial_similarity': 'corr',
+    kwargs = {'semantic': semantic,
+              'trial_similarity': 'corr',
               'second_order': 'spear',
               'RDM_method': 'within_nan',
               'stdize_by_run': False,
-              'regress_row': False, 'four_tasks': '7',
+              'regress_row': False,
               'ROI_focus': f'{key}_M' if get_local else
               (f'{key}_BOLD_cmb' if big_voxelwise else f'{key}_BOLD'),
               'ROIs_ctrl': [f'{key}_M'] if ctrl_within else [],
               }
 
-    fps = prep_fps(kwargs['four_tasks'])
+    fps = prep_fps('7')
     sns = get_sns('all')['healthy']
     bad_sns = ['116', '125', '133', '213', '215', '231']
     sns = [sn for sn in sns if sn not in bad_sns]
@@ -326,19 +326,14 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
     betas_dif_all = np.full((len(sns), len(fps)), np.nan)
     for i, sn in enumerate(sns):
         for j, fp in enumerate(fps):
-            kwargs['cv'] = False
             kwargs['return_dif'] = True
             kwargs['sn'] = sn
             kwargs['fp'] = fp
             if (sn, fp) in bad_tups:
                 continue
 
-            # if corr:
-            #     beta2, beta1, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-            #                                     verbose=-1)
-            # else:
             beta1, beta2, dif = pickle_wrap(do_regr_RSA_sn, kwargs=kwargs,
-                                            verbose=-1, easy_override=False)
+                               verbose=-1, easy_override=True)
             if np.isnan(beta1):
                 continue
 
@@ -510,8 +505,8 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
                 facecolors=('dodgerblue', 0.5),
                 edgecolors=(0, 0, 0, 0.5),
                 )
-    plt.xlabel('Mean temporal lobe\n$RSM_{local}$-$RSM_{local}$ correlation')
-    plt.ylabel('Temporal lobe distributed\nsemantic RSA effect')
+    plt.xlabel('ITL $NSM_{ROI}$-$NSM_{ROI}$ correlation')
+    plt.ylabel('ITL semantic RSA effect')
 
     low = np.nanquantile(df['conn'], 0.00)
     high = np.nanquantile(df['conn'], 1.0)

@@ -1,11 +1,11 @@
-from connRSA_finalizing.plot_RSM_x_RSM_bars import plot_FigureS1_bars_region
+from connRSA_finalizing.plot_Fig34_main_bars import plot_DistRep_bars
 from scipy import stats
 
 def test_SFG_vs_OFG(big_voxelwise=True):
-    SFG_betas = plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=big_voxelwise,
-                                          get_betas=True)
-    OFG_betas = plot_FigureS1_bars_region('OrG', big_voxelwise=big_voxelwise,
-                                          get_betas=True)
+    SFG_betas = plot_DistRep_bars('PFC_no_OFC', big_voxelwise=big_voxelwise,
+                                  get_betas=True)
+    OFG_betas = plot_DistRep_bars('OrG', big_voxelwise=big_voxelwise,
+                                  get_betas=True)
 
     conds = [(False, 'Local'), (False, 'Distributed'),
              (True, 'Local'), (True, 'Distributed')]
@@ -42,21 +42,21 @@ def test_SFG_vs_OFG(big_voxelwise=True):
     t_sem_itr, p_sem_itr = stats.ttest_1samp(sem_itr, 0)
     print(f'Semantic SFG x OFG interaction: {t_sem_itr=:.3f}, {p_sem_itr=:.4f}')
 
-    SFG_betas = plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=big_voxelwise,
-                                          get_betas=False, no_lines_stars=True)
-    OFG_betas = plot_FigureS1_bars_region('OrG', big_voxelwise=big_voxelwise,
-                                          get_betas=False, no_lines_stars=True)
+    SFG_betas = plot_DistRep_bars('PFC_no_OFC', big_voxelwise=big_voxelwise,
+                                  get_betas=False, no_lines_stars=True)
+    OFG_betas = plot_DistRep_bars('OrG', big_voxelwise=big_voxelwise,
+                                  get_betas=False, no_lines_stars=True)
     # print('-*-' * 100)
 
 
 
 def plot_SFG_vs_OFG(big_voxelwise=False):
-    plot_FigureS1_bars_region('SFG', big_voxelwise=False)
-    plot_FigureS1_bars_region('OrG', big_voxelwise=False)
+    plot_DistRep_bars('SFG', big_voxelwise=False)
+    plot_DistRep_bars('OrG', big_voxelwise=False)
 
     # plot_FigureS1_bars_region('PFC_no_OFC', big_voxelwise=True)
-    plot_FigureS1_bars_region('SFG', big_voxelwise=True)
-    plot_FigureS1_bars_region('OrG', big_voxelwise=True)
+    plot_DistRep_bars('SFG', big_voxelwise=True)
+    plot_DistRep_bars('OrG', big_voxelwise=True)
 
 if __name__ == '__main__':
     big_voxelwise = True

@@ -95,9 +95,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     else:
         raise ValueError
 
-    # plt.imshow(RSM_stim)
-    # plt.show()
-    # quit()
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 
@@ -167,6 +164,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
 
         if regress_row:
+
             # Here, we get the X IRAFs on Y then regress out effect of ctrl_IRAF on X_IRAF
             IRAFs_focus = do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim)
             return IRAFs_focus
@@ -693,9 +691,10 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
 
 
 def prep_ROI_avg(target_name, ROI_cols,
-                 fp0, fp1, trial_similarity, stdize_by_run, semantic,
+                 trial_similarity, stdize_by_run, semantic,
                  second_order, RDM_method, fp,
                  four_tasks='8',
+                 fp0=None, fp1=None,
                  RSA=False, ISPC=False,
                  ERS_alt=False, regress_row=False):
     kwargs = locals().copy()

@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 from scipy import stats
 
 from Utils.atlas_funcs import get_atlas
-from connRSA_finalizing.conn_Fig6 import run_IC_analysis, plot_FC_mat
-from connRSA_finalizing.plot_RSM_x_RSM_bars import plot_FigureS1_bars_region
+from connRSA_finalizing.plot_Fig5_conn import run_IC_analysis, plot_FC_mat
+from connRSA_finalizing.plot_Fig34_main_bars import plot_DistRep_bars
 
 import utils
 # from Utils.pickle_wrap_funcs import pickle_wrap
@@ -44,7 +44,7 @@ def plot_conn_vs_DistRSA(ERS=True, regress_FC=False, RSA_feat=False):
 
     region2dist_RSA = {}
     for region in region2score_IC.keys():
-        betas = utils.pickle_wrap(plot_FigureS1_bars_region,
+        betas = utils.pickle_wrap(plot_DistRep_bars,
                                   easy_override=False,
                                   kwargs={'region': region,
                                           'big_voxelwise': False,

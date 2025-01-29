@@ -1,5 +1,5 @@
 from Utils.pickle_wrap_funcs import pickle_wrap
-from connRSA_finalizing.plot_bars_explore import plot_Fig5_v2_kw
+from connRSA.plot_bars_explore import plot_Fig5_v2_kw
 from llama.model_settings import get_base_kw
 
 

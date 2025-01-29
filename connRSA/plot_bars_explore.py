@@ -222,8 +222,8 @@ def plot_Fig5_v2_bars_all(big_voxelwise=True):
     #                                attn=False)
     # semantic_l = semantic_l + semantic_l_
     # semantic_l = semantic_l[4::5]
-    semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-2-7b-hf',
-                                   attn=False)
+    # semantic_l = get_explore_llama(activation_model=r'meta-llama/Llama-2-7b-hf',
+    #                                attn=False)
     semantic_l = semantic_l[::-1]
 
     for semantic in semantic_l:

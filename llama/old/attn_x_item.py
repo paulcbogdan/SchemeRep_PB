@@ -1,8 +1,7 @@
 import numpy as np
 
-from connRSA_finalizing.plot_bars_explore import get_explore_llama
-from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM, get_sn_fp_llama_RSM_l
-from org_sns import get_sns
+from connRSA.plot_bars_explore import get_explore_llama
+from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM_l
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 

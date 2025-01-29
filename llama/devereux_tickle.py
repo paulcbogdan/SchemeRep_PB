@@ -48,9 +48,7 @@ class ActivationModifier:
                 for neuron_idx, adjustment in self.activation_adjustments[layer_num]:
                     input[:, :, neuron_idx] += adjustment
                     # output[:, :, neuron_idx] += adjustment
-
             return output
-
         return hook
 
     def _register_hooks(self):

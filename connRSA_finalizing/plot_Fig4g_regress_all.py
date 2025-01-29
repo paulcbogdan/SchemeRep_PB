@@ -147,20 +147,6 @@ def run_regress(region='Occipital', big_voxelwise=True,):
 
     plt.rcParams.update({'font.sans-serif': 'Arial'})
 
-    # if region == 'ITL':
-    #     plt.text(1, -0.0004, '  ***  ', fontsize=28, ha='center',
-    #              color='w', va='center')
-    # elif region == 'IT':
-    #     plt.text(1, -0.0009, '  ***  ', fontsize=28, ha='center',
-    #              color='w', va='center')
-
-    # if region == 'ITL':
-    #     plt.text(1, 0.0095, '  ***  ', fontsize=32, ha='center',
-    #              color='k', va='center')
-    # elif region == 'IT':
-    #     plt.text(1, 0.0095, '  ***  ', fontsize=32, ha='center',
-    #              color='k', va='center')
-
     lw = 1.5
     for x in [0, 1]:
         if region not in ['IT', 'ITL'] or x == 0:
@@ -246,53 +232,9 @@ def run_regress(region='Occipital', big_voxelwise=True,):
                     f'all_regress_averages_{region}.png', dpi=300)
     plt.show()
 
-# from matplotlib.text import Text
-# ax = plt.gca()
-# def custom_ylabel(ax, text):
-#     # Split the text into words
-#     words = text.split()
-#
-#     # Create custom Text objects for each colored word
-#     dark_red_text = Text(0, 0, words[0], color=(0.5, 0, 0, 0.7),
-#                          rotation=90, verticalalignment='center')
-#     red_text = Text(0, 0, ' ' + ' '.join(words[1:]), color=(1, 0, 0, 0.7),
-#                     rotation=90, verticalalignment='center')
-#
-#     # Remove the existing ylabel
-#     ax.set_ylabel('')
-#
-#     # Add custom text
-#     ax.text(-0.1, 0.5, dark_red_text._text,
-#             color=dark_red_text.get_color(),
-#             transform=ax.transAxes,
-#             rotation=90,
-#             verticalalignment='center')
-#     ax.text(-0.1, 0.5, red_text._text,
-#             color=red_text.get_color(),
-#             transform=ax.transAxes,
-#             rotation=90,
-#             verticalalignment='center')
-#
-#
-# # Example plot
-# plt.plot([1, 2, 3], [1, 2, 3])
-#
-# # Apply custom y-label
-# custom_ylabel(ax, 'Dark Red red Words')
-#
-# plt.tight_layout()
-# plt.show()
 
 
 if __name__ == '__main__':
-    # ax = plt.gca()
-    # ax.set_ylabel('Dark Red Word red Word',
-    #               color={'Dark Red': (0.5, 0, 0, 0.7),
-    #                      'red': (1, 0, 0, 0.7)},
-    #               fontsize=12)
-    # plt.show()
-    # quit()
-
     BIG_VOXELWISE = False
     # run_regress('Occipital', big_voxelwise=BIG_VOXELWISE)
     run_regress('IT', big_voxelwise=BIG_VOXELWISE)

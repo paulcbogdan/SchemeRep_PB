@@ -903,8 +903,17 @@ if __name__ == '__main__':
     # print(df_sn)
     pd.set_option('display.width', None)
     pd.set_option('display.max_rows', None)
-    df_sn = get_trial_info_('215', ret=False)
-    df_sn.sort_values(by='obj_trial', inplace=True,)
+    df_sn102 = get_trial_info('102', ret=False)
+    df_sn103 = get_trial_info('103', ret=False)
+    df_sn104 = get_trial_info('104', ret=False)
+    df = pd.concat([df_sn102, df_sn103, df_sn104], ignore_index=True)
+
+    df = df[['obj', 'scene', 'sn']]
+    fp_out = r'C:\PycharmProjects\UnpackLlama\in_feature_data\SchemeRep_obj_scn.csv'
+    df.to_csv(fp_out, index=False)
+
+    # print(len(df_sn))
+    # df_sn.sort_values(by='obj_trial', inplace=True,)
     # print(df_sn[['obj_trial', 'bl_trial', 'obj']])
     # print(CNT_VIS_RESPS)
     # print(CNT_CON_RESPS)
