@@ -1,14 +1,14 @@
-from operator import index
+from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from Utils.pickle_wrap_funcs import pickle_wrap
 from llama.devereux_llama import get_llama_d_vecs_non_normed_deve_
 from llama.get_obj_scn_vecs import get_llama_d_vecs
 from llama.model_settings import get_explore_llama
 from organize_bhv import get_trial_info
-import pandas as pd
-from pathlib import Path
+
 
 def get_llama_df(semantic_tup):
     activation_model = semantic_tup[4]
@@ -52,7 +52,6 @@ def get_llama_dino_df(activation_model='meta-llama/Llama-3.2-3b',
         fp = r'C:\PycharmProjects\SchemeRep\llama\features\DinoWords_01.17.2025.csv'
         df_words = pd.read_csv(fp)
         words = df_words['Object1DisplayName'].to_list()
-
 
     d_vecs, fp = pickle_wrap(get_llama_d_vecs_non_normed_deve_,
                              kwargs={'items': words, 'symmetric': False,
@@ -111,16 +110,16 @@ def get_llama_dino_df(activation_model='meta-llama/Llama-3.2-3b',
 
     return df
 
+
 def make_all_dinolab(cat='input', do_pair=True):
     activation_model = 'meta-llama/Llama-3.2-3b'
-    model2name = {'meta-llama/Llama-3.2-3b': 'Llama-3.2-3b',}
+    model2name = {'meta-llama/Llama-3.2-3b': 'Llama-3.2-3b', }
     name = model2name[activation_model]
 
     for layer_name in range(28):
         df = get_llama_dino_df(activation_model='meta-llama/Llama-3.2-3b',
-                            cat=cat, layer_name=layer_name, normalize=True,
+                               cat=cat, layer_name=layer_name, normalize=True,
                                do_pair=do_pair)
-
         if do_pair:
             fn = f'pair_vecs_{name}_{cat}_{layer_name}.csv'
         else:
@@ -134,7 +133,7 @@ def make_all_dinolab(cat='input', do_pair=True):
 
 def make_all_schemerep_csv():
     ACTIVATION_MODEL = 'meta-llama/Llama-3.2-3b'
-    MODEL2NAME = {'meta-llama/Llama-3.2-3b': 'Llama-3.2-3b',}
+    MODEL2NAME = {'meta-llama/Llama-3.2-3b': 'Llama-3.2-3b', }
     SEMANTIC_L = get_explore_llama(activation_model=ACTIVATION_MODEL,
                                    attn=False, do_M='obj_solo', last_only=False,
                                    include_scn=False, normalize=True
@@ -155,5 +154,3 @@ def make_all_schemerep_csv():
 
 if __name__ == '__main__':
     make_all_dinolab()
-
-

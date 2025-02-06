@@ -24,8 +24,8 @@ def get_network_partitions():
     return network2p
 
 
-def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
-    atlas = get_atlas()
+def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False):
+    atlas = get_atlas(schaefer=schaefer)
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos, }
     ps_hemi = defaultdict(list)
     for key, p in ps.items():
@@ -39,8 +39,10 @@ def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos):
 
 
 def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
-                    combine_regions=False):
-    sn_roi_act, sns, conn_trials = load_rs_BOLD()
+                    combine_regions=False,
+                    schaefer=False
+                    ):
+    sn_roi_act, sns, conn_trials = load_rs_BOLD(schaefer=schaefer)
     print('Onto get_df_networks...')
 
     network2p = pickle_wrap(get_network_partitions)
@@ -52,11 +54,46 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
     networks = list(key2conn)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_VD_PA_partitions(age='healthy', do_PA=True, anat=True,
-                             anat_ver=anat_ver,
-                             combine_regions=combine_regions)
+                             anat_ver=anat_ver, combine_regions=combine_regions,
+                             schaefer=schaefer)
+    print(F'{p_v_ant=}')
+
+    # p_v_pos = ([138, 6, 5, 8, 133, 254, 2, 4, 7, 10, 139, 1, 3, 9, 41, 22] +
+    #            [23, 20, 16, 18, 14, 21, 13, 17, 12, 142, 15, 19, 136, 140, 135] +
+    #            [10, 143, 139, 144, 145, 41, 268, 42, 326, 9, 148, 39] +
+    #            [46, 45, 20, 44, 329, 332, 152, 21, 150, 154, 151, 153, 142, 273, 324] +
+    #            [375, 24, 1, 38, 376, 28, 131, 3, 369, 35, 25, 27, 4, 42, 40, 325, 371, 22, 34, 26, 370, 9, 39, 338, 23,
+    #             36, 44, 31, 20] +
+    #            [35, 36, 31, 371, 337, 23, 39, 44, 329, 345, 43, 373, 20, 46, 45, 32, 344, 328, 37, 14, 13, 372, 33, 21,
+    #             16, 30, 29, 378])
+
+    # p_v_ant = ([259, 260, 258, 379, 244, 257, 241, 247, 361, 95, 246, 94, 242, 226] +
+    #            [252, 248, 250, 249, 385, 251, 399, 102, 366, 104, 90, 386, 265, 367, 263])
+    p_v_ant = ([258, 257, 241, 247, 246, 242] +
+               [252, 250, 249, 385, 399, 102, 265])
+
+
+    # p_d_pos = ([184, 185, 183, 158, 113, 314, 384, 269, 88, 309, 160, 159, 138, 313, 383, 311, 308, 112, 315, 271, 161,
+    #             87, 312, 8, 50, 310, 162, 126, 6, 89, 270, 147, 272, 109, 139, 93, 146, 10, 268, 143, 145, 41, 144] +
+    #            [273, 153, 151, 320, 155, 142, 276, 171, 117, 324, 169, 170, 19, 322, 116, 323, 140, 321, 141, 275, 120,
+    #             393, 186, 118, 318, 391, 274, 390, 317, 319, 66, 69, 394, 316, 187, 168, 188, 91, 167, 92, 121, 392])
+    #
+    # p_d_ant = ([214, 212, 215, 213, 297, 296, 210, 208, 298, 175, 181, 209, 176, 211, 278, 299, 300, 224, 177, 279, 284,
+    #             229, 281, 277, 353, 280, 283, 227] +
+    #            [235, 305, 356, 217, 292, 303, 359, 289, 218, 288, 179, 290, 398, 395, 178, 223, 304, 397, 222, 396, 220,
+    #             216, 221, 219, 182, 301] +
+    #            [365, 190, 364, 189, 212, 296, 100, 363, 298, 297, 211, 213, 96, 208, 99] +
+    #            [107, 223, 191, 222, 220, 221, 367, 103, 219, 216, 301, 304, 368, 192, 193])
+
+    # print(F'{p_d_ant=}')
+    # print(F'{p_d_pos=}')
+    print(F'{p_v_ant=}')
+    # quit()
+    # print(F'{p_v_pos=}')
 
     if add_hemi:
-        ps_hemi = get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos)
+        ps_hemi = get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                              schaefer=schaefer)
         keys_both = []
         for key, p0 in ps_hemi.items():
             for key1, p1 in ps_hemi.items():
@@ -73,8 +110,10 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
         key2conn[key] = get_FC_between_ROIs(conn_trials[:, None],
                                             p0, p1)
 
+    num_ROIs = get_num_ROIs(schaefer)
+
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials[:, None],
-                                                list(range(246)))
+                                                list(range(num_ROIs)))
 
     act_keys = ['dp', 'da', 'vp', 'va']
     act_p = [p_d_pos, p_d_ant, p_v_pos, p_v_ant]
@@ -82,7 +121,7 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
     for key, p in zip(act_keys, act_p):
         key2p_M[key] = np.nanmean(sn_roi_act[:, p, :], axis=1)
     act_keys += 'no'
-    p_no = [i for i in range(246) if i not in p_dorsal + p_ventral]
+    p_no = [i for i in range(num_ROIs) if i not in p_dorsal + p_ventral]
     key2p_M['no'] = np.nanmean(sn_roi_act[:, p_no, :], axis=1)
 
     df_as_d = defaultdict(list)
@@ -128,28 +167,44 @@ def partial_corr_df(df, cols, cov, verbose=1):
     return ar
 
 
-def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos):
-    ad_else = list(set(range(246)) - set(p_d_ant))
-    pd_else = list(set(range(246)) - set(p_d_pos))
-    av_else = list(set(range(246)) - set(p_v_ant))
-    pv_else = list(set(range(246)) - set(p_v_pos))
+def get_num_ROIs(schaefer):
+    if isinstance(schaefer, tuple):
+        num_ROIs = schaefer[1]
+    elif isinstance(schaefer, bool):
+        if schaefer:
+            num_ROIs = 1000
+        else:
+            num_ROIs = 246
+    else:
+        raise ValueError
+    return num_ROIs
 
-    no_match = list(set(range(246)) -
+
+def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
+                 schaefer=False):
+    num_ROIs = get_num_ROIs(schaefer)
+
+    ad_else = list(set(range(num_ROIs)) - set(p_d_ant))
+    pd_else = list(set(range(num_ROIs)) - set(p_d_pos))
+    av_else = list(set(range(num_ROIs)) - set(p_v_ant))
+    pv_else = list(set(range(num_ROIs)) - set(p_v_pos))
+
+    no_match = list(set(range(num_ROIs)) -
                     set(p_d_ant + p_d_pos + p_v_ant + p_v_pos))
 
-    dd_else = list(set(range(246)) - set(p_d_ant + p_d_pos))
-    dv_ant_else = list(set(range(246)) - set(p_d_ant + p_v_ant))
-    vv_else = list(set(range(246)) - set(p_v_ant + p_v_pos))
-    dv_pos_else = list(set(range(246)) - set(p_d_pos + p_v_pos))
+    dd_else = list(set(range(num_ROIs)) - set(p_d_ant + p_d_pos))
+    dv_ant_else = list(set(range(num_ROIs)) - set(p_d_ant + p_v_ant))
+    vv_else = list(set(range(num_ROIs)) - set(p_v_ant + p_v_pos))
+    dv_pos_else = list(set(range(num_ROIs)) - set(p_d_pos + p_v_pos))
 
     p_ant = list(set(p_d_ant + p_v_ant))
     p_pos = list(set(p_d_pos + p_v_pos))
 
     # allow diagonal
-    pd_no = list(set(range(246)) - set(p_d_pos + p_d_ant + p_v_pos))
-    ad_no = list(set(range(246)) - set(p_d_ant + p_d_pos + p_v_ant))
-    pv_no = list(set(range(246)) - set(p_v_pos + p_v_ant + p_d_pos))
-    av_no = list(set(range(246)) - set(p_v_ant + p_v_pos + p_d_ant))
+    pd_no = list(set(range(num_ROIs)) - set(p_d_pos + p_d_ant + p_v_pos))
+    ad_no = list(set(range(num_ROIs)) - set(p_d_ant + p_d_pos + p_v_ant))
+    pv_no = list(set(range(num_ROIs)) - set(p_v_pos + p_v_ant + p_d_pos))
+    av_no = list(set(range(num_ROIs)) - set(p_v_ant + p_v_pos + p_d_ant))
 
     conn_keys = ['dd', 'vv',
                  'dv_ant', 'dv_pos',

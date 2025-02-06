@@ -20,16 +20,10 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
     print(idxs)
     # quit()
     rois = sorted(idxs)
-    # rois = rois[5:6]
-    # rois = rois[11:12]
-    # rois = rois[1:2]
-
 
     print(f'{system} | number of ROIs: {len(rois)}')
     data = atlas['maps'].get_fdata()
     data = prune2rois(data, rois)
-
-
 
 
     if voxelwise:
@@ -62,29 +56,13 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
         data[data > 0] -= np.min(data[data > 0])
 
     img = image.new_img_like(atlas['maps'], data)
-    # plt.hist(data[data > 0].flatten())
-    # plt.show()
-    # quit()
 
     fig = plt.figure(figsize=(4.2, 5))
 
-    plotting.plot_glass_brain(img,
-                              cmap='turbo',#plt.get_cmap(cmap),
-                              black_bg=False,
-                              vmin=0.5,
+    plotting.plot_glass_brain(img, cmap='turbo',
+                              black_bg=False, vmin=0.5,
                               resampling_interpolation='nearest',
-                              display_mode='x',
-                              figure=fig,
-                              # alpha=.0
-                              # bg_img=None
-                              )
-
-    # plotting.plot_roi(img, cmap='turbo',#plt.get_cmap(cmap),
-    #                           # black_bg=False,
-    #                           vmin=0.5,
-    #                           resampling_interpolation='nearest',
-    #                           display_mode='x', figure=fig,
-    #                           bg_img=None)
+                              display_mode='x', figure=fig,)
     plt.show(dpi=1000)
 
 NUM_VOXELS_ALL = []
@@ -118,8 +96,6 @@ def prune2rois(data, rois, scramble_order=False, idx_cnt=True):
     SD_num_voxels_system = np.std(num_voxels_system)
     print(f'{low_num_voxels_system=:.0f} | {high_num_voxels_system=:.0f} | {median_num_voxels_system=:.0f} | '
           f'M = {mean_num_voxels_system:.0f} [SD = {SD_num_voxels_system:.0f}]')
-    # plt.hist(num_voxels_system, bins=32, range=(0, 1600))
-    # plt.show()
 
     if len(NUM_VOXELS_ALL) > 100:
         low_num_voxels = np.min(NUM_VOXELS_ALL)
@@ -143,30 +119,6 @@ def do_slicing(data):
     data *= data_
     return data
 
-# from nilearn import image
-# from pathlib import Path
-#
-# fps = [r'C:/test.nii',
-#        r'C:\test.nii',
-#        Path(r'C:/test.nii'),
-#        Path(r'C:\test.nii'),
-#        ]
-# for fp in fps:
-#     image.load_img(fp)
-
 if __name__ == '__main__':
-    # from nilearn import image
-    # from pathlib import Path
-    #
-    # fps = [r'C:/test.nii',
-    #        r'C:\test.nii',
-    #        Path(r'C:/test.nii'),
-    #        Path(r'C:\test.nii'),
-    #        ]
-    # for fp in fps:
-    #     image.load_img(fp)
-    # quit()
-
-    # 'ITL', 'OC_IT'
-    for target in ['Occipital']:#, 'IT', 'Parietal', 'PFC']:
+    for target in ['Occipital']:
         plot_large_avg_ROIs(target, voxelwise=True)

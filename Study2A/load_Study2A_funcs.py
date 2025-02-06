@@ -10,9 +10,11 @@ from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 
 
-def load_rs_BOLD(norm_std=False, combine_regions=False):
+def load_rs_BOLD(norm_std=False, combine_regions=False,
+                 schaefer=False):
     f = partial(load_resting_data,
-                combine_regions=combine_regions)
+                combine_regions=combine_regions,
+                schaefer=schaefer)
     sn_roi_act, sns, conn_trials = load_act_conn(norm_std,
                                                  easy_override=False,
                                                  f=f, YA_only=False)
@@ -51,7 +53,8 @@ def get_sn_rs(sn):
     return data
 
 
-def load_resting_data(YA_only=False, combine_regions=False, ):
+def load_resting_data(YA_only=False, combine_regions=False,
+                      schaefer=True):
     sns = ['102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112',
            '113', '114', '115', '116', '117', '118', '119', '120', '123', '124', '125',
            '126', '127', '128', '129', '130', '131', '132', '133', '134', '135', '136',
@@ -63,7 +66,9 @@ def load_resting_data(YA_only=False, combine_regions=False, ):
         sns = [sn for sn in sns if int(sn) < 200]
 
     sn_roi_act = []
-    atlas = get_atlas(combine_regions=combine_regions)
+    # print(f'{schaefer=}')
+    # quit()
+    atlas = get_atlas(combine_regions=combine_regions, schaefer=schaefer)
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
     ROIs = atlas['ROIs']
@@ -71,9 +76,13 @@ def load_resting_data(YA_only=False, combine_regions=False, ):
     ROI_regions = atlas['ROI_regions']
 
     for i, sn in tqdm(enumerate(sns), desc='Loading fMRI'):
-        data = pickle_wrap(get_sn_rs, kwargs={'sn': sn},
+        # old path with this setup
+        fp = fr'cache\get_sn_rs\_True_True_False_True_False_{sn}_False_False.pkl'
+
+        data = pickle_wrap(get_sn_rs, fp, kwargs={'sn': sn},
                            easy_override=False)
         ar = []
+
 
         for j, (ROI, ROI_num, region) in enumerate(
                 zip(ROIs, ROI_nums, ROI_regions)):
@@ -87,7 +96,6 @@ def load_resting_data(YA_only=False, combine_regions=False, ):
     sn_roi_act = np.array(sn_roi_act)
     return sn_roi_act, sns
 
-
 def normalize_std_over_time(sn_roi_act):
     sn_SD_trial = np.nanstd(sn_roi_act, axis=1)
     sn_SD_M = np.nanmean(sn_SD_trial, axis=1)
@@ -100,9 +108,10 @@ def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
                   RAM_cache=False):
     if f is None:
         f = load_resting_data
+
     sn_roi_act, sns = pickle_wrap(f, easy_override=easy_override,
                                   kwargs={'YA_only': YA_only},
-                                  RAM_cache=RAM_cache)
+                                  RAM_cache=RAM_cache,)
 
     bad_rs_sns = {'133'}
     sns = [sn for sn in sns if sn not in bad_rs_sns]
@@ -111,4 +120,16 @@ def load_act_conn(norm_std, f=None, easy_override=False, YA_only=False,
     if norm_std: sn_roi_act = normalize_std_over_time(sn_roi_act)
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
+
     return sn_roi_act, sns, conn_trials
+
+
+
+if __name__ == '__main__':
+    import os
+    import pathlib
+
+    path = pathlib.Path(__file__).parent.parent.resolve()
+    os.chdir(path)
+
+    load_resting_data()

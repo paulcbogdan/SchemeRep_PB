@@ -118,7 +118,6 @@ def get_Schaefer_atlas(HCP=False, combine_bilateral=False,
         ROI_regions.append(region)
         LR = ROI.split('_')[1]
         region_LR = region + '_' + LR
-        # print(f'{ROI} | {region_LR=}')
         region_nums[region].append(i)  # int(ROI_num)-1)
         ROI_regions_laterality.append(region_LR)
     ROIs = ROIs_
@@ -133,7 +132,6 @@ def get_Schaefer_atlas(HCP=False, combine_bilateral=False,
         ticks.append(np.mean(l))
         tick_labels.append(region)
         tick_lows.append(l[0])
-        print(f'{region} | {region_nums[region]=}')
 
     if combine_bilateral:
         data = atlas['maps'].get_fdata()

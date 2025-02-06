@@ -146,9 +146,14 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                           schaefer=schaefer)
         l = []
         keys = [('PFCl', 'PFClv'),
-                ('IPL', 'IPS', 'ParOcc'),
-                ('TempPole', 'AntTemp'),
-                ('Striate', 'StriCal', 'ExStrInf', 'ExStrSup',
+                ('IPL', 'IPS',
+                 # 'ParOcc'
+                 ),
+                ('TempPole',
+                 'AntTemp',
+                 ),
+                ('Striate', 'StriCal',
+                 'ExStrInf', #'ExStrSup',
                  'ExStr' # LOC
                  )]
         for regions in keys:
@@ -167,7 +172,7 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
         if plot:
             plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                              combine_regions=combine_regions,
-                             schaefer=True)
+                             schaefer=schaefer)
         return p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask
 
     elif anat:
@@ -346,13 +351,6 @@ def plot_quads_Fig2D(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
             idx_to_quadrant[i] = 'N/A'
             node_sizes.append(0)
         else:
-            # quadrant = idx_to_quadrant[i]
-            # label = atlas['labels'][i]
-            # if schaefer:
-
-            # print(F'{label=}')
-            # label = label.split(' ')[1].split('_')[0]
-            # quadrant2labels[quadrant].append(label)
             node_sizes.append(10)
 
     from nichord import plot_glassbrain
