@@ -1,10 +1,10 @@
 import os
 import pathlib
 
-import matplotlib.pyplot as plt
-
-from Study2A.rs_connectivity_funcs import get_hemi_ps
-from marinate.pkld import pkld
+# import matplotlib.pyplot as plt
+#
+# from Study2A.rs_connectivity_funcs import get_hemi_ps
+# from marinate.pkld import pkld
 
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
@@ -38,7 +38,7 @@ def get_sn_roi_ar_std(**kw):
     return ar
 
 
-@cache
+# @cache
 def get_sns_roi_ar_std(sns, **kw):
     ars = []
     for sn in sns:
@@ -493,7 +493,40 @@ def get_quads(skip_other=False, combine_regions=False, p_no_override=False,):
     return p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no
 
 
+def load_rs_HCP_BOLD(schaefer=False, combine_regions=False,
+                     lr='LR'):
+    combine_regions_ = combine_regions
+    if schaefer:
+        assert not schaefer == True
+        combine_regions = (combine_regions, ('schaefer', 400))
+    else:
+        combine_regions = combine_regions
+    kw = {'lr': lr, 'combine_regions': combine_regions,
+          'bilateral': False, 'reg_global': False,
+          'no_compcor': False, 'rs': True}
+    fp = r'Study1B/final_HCP_subjects.txt'
+    with open(fp, 'r') as f:
+        s = f.read()
+    s = s.replace('\n', '').replace(' ', '')
+    sns = s.split(',')
+    if combine_regions_:
+        sns = tuple(sns)
+        sn_roi_act = get_sns_roi_ar_std(tuple(sns), **kw)
+        sn_roi_act = sn_roi_act[:, :, :120]
+        # sn_roi_act = sn_roi_act[:, :, ::4]
+    else:
+        sns = tuple(sns[::5])
+        sn_roi_act = get_sns_roi_ar_std(tuple(sns), **kw)
+        sn_roi_act = sn_roi_act[:, :, :40]
+    # print(sn_roi_act.shape)
+    # quit()
+    conn_trials = sn_roi_act[..., None, :] * \
+                  sn_roi_act[..., None, :, :]
+    return sn_roi_act, sns, conn_trials
+
+# get_HCP_rs_BOLD()
+
 if __name__ == '__main__':
-    # run_analysis_Study2B(focus='combo')
-    run_analysis_Study2B(focus='loss')
-    run_analysis_Study2B(focus='wl')
+    run_analysis_Study2B(focus='combo')
+    # run_analysis_Study2B(focus='loss')
+    # run_analysis_Study2B(focus='wl')

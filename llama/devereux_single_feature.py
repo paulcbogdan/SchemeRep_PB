@@ -105,7 +105,8 @@ def get_accuracy_curves(cat, pf_thresh, threshold, req,
              'is_a_tool', 'is_warm', 'has_a_tail', 'has_teeth', 'is_for_children',
              'made_of_plastic', 'has_claws', 'is_expensive',
              'is_circular_rou', 'does_smell_is_s', 'is_colourful',
-             'is_thin', 'is_small', 'is_fast', 'made_of_glass', 'is_heavy', 'is_soft', 'is_strong']
+             'is_thin', 'is_small', 'is_fast', 'made_of_glass', 'is_heavy',
+             'is_soft', 'is_strong']
     feats = [feat for feat in feats if feat in feats_og]
     feats = feats[:20]
     # 'is_food', too similar to is_edible
@@ -238,6 +239,8 @@ def plot_all_feats(  # cat='input',
                  'attn_output': 'Attention layer output',
                  'down_proj_out': 'FFN output', }
     plt.title(cat2title[cat])
+    plt.title('Accuracy by property', pad=12)
+
     # plt.gca().set_facecolor('whitesmoke')
     plt.grid(color='lightgray', linestyle='-', linewidth=0.5, alpha=0.4)
     plt.xlim(-0.5, num_layers + 0.5)
@@ -300,13 +303,16 @@ def plot_triangle(  # activation_model='meta-llama/Llama-3.2-3b',
 
 
 def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2='5050',
-                bury=False, do_legend=True, just2=False, suptitle=None):
+                bury=False, do_legend=True, just2=True, suptitle=None,
+                subplot_letters=False):
     plt.rcParams.update({'font.size': 14})
     if bury:
         activation_model = (activation_model, 'bury_item')
 
     if just2:
         fig, axs = plt.subplots(1, 2, figsize=(13, 5))
+        # fig, axs = plt.subplots(2, 1, figsize=(6.5, 10))
+
         plt.sca(axs[0])
     else:
         fig, axs = plt.subplots(2, 2, figsize=(13, 10))
@@ -316,8 +322,9 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2='5050',
     single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
                            activation_model=activation_model,
                            do_r2=do_r2, do_legend=do_legend)
-    plt.gca().text(-0.2, 1.04, 'a.', transform=plt.gca().transAxes,
-             fontsize=18, fontweight='bold', va='center')
+    if subplot_letters:
+        plt.gca().text(-0.2, 1.04, 'a.', transform=plt.gca().transAxes,
+                 fontsize=18, fontweight='bold', va='center')
 
     if just2:
         plt.sca(axs[1])
@@ -325,8 +332,9 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2='5050',
         plt.sca(axs[0, 1])
     feat2color = plot_all_feats(cat='input', activation_model=activation_model,
                                 do_r2=do_r2)
-    plt.gca().text(-0.2, 1.04, 'b.', transform=plt.gca().transAxes,
-             fontsize=18, fontweight='bold', va='center')
+    if subplot_letters:
+        plt.gca().text(-0.2, 1.04, 'b.', transform=plt.gca().transAxes,
+                 fontsize=18, fontweight='bold', va='center')
     if just2:
         if suptitle is not None:
             plt.subplots_adjust(wspace=0.5, left=0.1, right=0.9, top=0.85, bottom=0.11,
@@ -340,15 +348,17 @@ def plot_square(activation_model='meta-llama/Llama-3.2-3b', do_r2='5050',
     plt.sca(axs[1, 0])
     plot_all_feats(cat='attn_output', activation_model=activation_model,
                    feat2color=feat2color, xlabel=True, do_r2=do_r2)
-    plt.gca().text(-0.2, 1.04, 'c.', transform=plt.gca().transAxes,
-             fontsize=18, fontweight='bold', va='center')
+    if subplot_letters:
+        plt.gca().text(-0.2, 1.04, 'c.', transform=plt.gca().transAxes,
+                 fontsize=18, fontweight='bold', va='center')
 
     # if '3b' in activation_model or '3b' in activation_model[0]:
     plt.sca(axs[1, 1])
     plot_all_feats(cat='down_proj_out', activation_model=activation_model,
                    feat2color=feat2color, xlabel=True, do_r2=do_r2)
-    plt.gca().text(-0.2, 1.04, 'd.', transform=plt.gca().transAxes,
-             fontsize=18, fontweight='bold', va='center')
+    if subplot_letters:
+        plt.gca().text(-0.2, 1.04, 'd.', transform=plt.gca().transAxes,
+                 fontsize=18, fontweight='bold', va='center')
 
     plt.subplots_adjust(wspace=0.5, left=0.1, right=0.9, top=0.95, bottom=0.07,
                         hspace=0.2)
@@ -394,7 +404,8 @@ def single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
     #     labels = labels[:2] + labels[3:]
     #     colors = colors[:2] + colors[3:]
 
-    plt.title('Averages across 20 item features')
+    # plt.title('Averages across 20 item features')
+    plt.title('Average accuracy across properties', pad=12)
 
     if do_r2 == '5050':
         ylabel = 'Accuracy (%)'
@@ -405,34 +416,17 @@ def single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
         ylabel = 'Accuracy relative to baseline (Δ%)'
         y_high = 0.08
         y_low = -0.0025
+    # print(vals_l.shape)
+    # print(vals_l)
+    # quit()
 
     general_llama_plot(vals_l, labels, colors,
                        ylabel=ylabel, y_low=y_low, y_high=y_high,
                        xlabel=False, num_layers=num_layers,
-                       do_legend=do_legend)
+                       do_legend=do_legend and len(labels) > 1)
 
 
 if __name__ == '__main__':
-    # for layer_name in range(53, 80):
-    #     test = regression_one_feature('is_fast', cat='attn_output',
-    #                                   layer_name=layer_name,
-    #                                   activation_model='meta-llama/Llama-3.3-70b-Instruct',
-    #                                   # do_r2='5050',
-    #                                   do_r2=False,
-    #                                   pf_thresh=300, req=5)
-    #     print(test)
-    # quit()
-    # plot_square(activation_model=('meta-llama/Llama-3.2-3b', 'bury_item'))
 
     plot_square()
-    # plot_square(activation_model='meta-llama/Llama-3.3-70b-Instruct')
-    # single_feat_multi_cats()
-    # plot_all_feats(cat='down_proj_out', activation_model='meta-llama/Llama-3.2-3b')
-    # plot_all_feats(cat='input', activation_model='meta-llama/Llama-3.2-3b')
-    # plot_all_feats(cat='attn_output', activation_model='meta-llama/Llama-3.2-3b')
-    # plt.show()
-    # quit()
-
-    # plot_all_feats(cat='down_proj_out', activation_model=('meta-llama/Llama-3.3-70b-Instruct',
-    #                                                       'bury_solo'))
-    # TODO: run this 100% for down_proj_out
+    # plot_vert()

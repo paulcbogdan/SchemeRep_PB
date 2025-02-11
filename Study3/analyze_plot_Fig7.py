@@ -45,7 +45,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,
                                    'basic_BOLD': basic_BOLD,
                                    'schaefer': schaefer},
-        easy_override=False, verbose=-1, )
+        easy_override=True, verbose=-1, )
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -231,6 +231,7 @@ def do_EEG_fMRI_test(just_frontal=True):
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     dfs_l = []
     # sns = sns[::-1]
+    # sns = sns[1:2]
     for sn in sns:
         for j, sess in enumerate(sesses):
             if sn in ['01', '02', '03', '09', '18'] and '02' in sess: continue
@@ -240,6 +241,7 @@ def do_EEG_fMRI_test(just_frontal=True):
                                           basic_BOLD=False)
             if name2r is None:
                 continue
+
             dfs_l.append(df)
 
             for key, r in name2r.items():

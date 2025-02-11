@@ -899,7 +899,7 @@ def find_circles(pairs):
     return circles
 
 def plot_simple_rissman_analyses():
-    analyze_rissman(cat='attn_output',
+    analyze_rissman(cat='attn_weights',
                     activation_model='meta-llama/Llama-3.2-3b',
                     get_last=False, layer_name=list(range(7, 12)),
                     do_SchemeRep = False, plot_hist=True,

@@ -163,6 +163,9 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                 regions_idxs.extend(idxs)
             l.append(regions_idxs)
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = l
+        if not combine_regions:
+            p_v_ant = ([258, 257, 241, 247, 246, 242] +
+                       [252, 250, 249, 385, 399, 102, 265])
         p_dorsal = p_d_ant + p_d_pos
         p_ventral = p_v_ant + p_v_pos
         matrix_mask = np.ones((len(atlas['ROI_regions']),

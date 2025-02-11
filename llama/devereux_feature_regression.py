@@ -10,6 +10,9 @@ from llama.devereux_neuron import get_binary_feat_matrix
 from llama.devereux_w2v import get_w2v_deve_vecs
 from marinate.pkld import pkld
 from matplotlib import ticker as mtick
+from pathlib import Path
+import os
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 
 def find_closest_feature(feat2onehot):
@@ -83,10 +86,11 @@ def get_vecs_for_regr(activation_model, pf_thresh, item_standard, cat, layer_nam
     return vecs
 
 
-@pkld(overwrite=True)
+@pkld(overwrite=False)
 def do_feature_regression(feature='is_small',
                           pf_thresh=600, cat='gate_proj_in', layer_name=8,
-                          activation_model='meta-llama/Llama-3.2-3b',
+                          # activation_model='meta-llama/Llama-3.2-3b',
+                          activation_model=r'meta-llama/Llama-3.3-70b-Instruct',
                           normalize=False, quick=1, item_standard='deve',
                           position=0, symmetric=False,
                           req=10, normalize_regr=False,
@@ -220,26 +224,23 @@ def calculate_category_homogeneity(feat2onehot):
 
 def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                    activation_model='meta-llama/Llama-3.2-3b',
-                   do_r2='5050'
+                   do_r2='5050',
                    # do_r2=True
                    # activation_model='meta-llama/Llama-3.3-70b-Instruct',
 
                    ):
     model_name = ['simCSE']
-    # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=12)
+    # df_w2v = do_feature_regression(activation_model='simCSE', layer_name=6)
     df_w2v = do_feature_regression(activation_model='w2v', req=req,
                                    normalize_regr=normalize_regr,
                                    do_r2=do_r2, shuffle=False
                                    )
 
     l = df_w2v['feature'].to_list()
-    print(f'{l=}')
-    quit()
-    # print(df_w2v['r'])
-    # quit()
-    # if do_r2 == '5050':
-    #     df_w2v['r'] = df_w2v['r'].astype(float) - 0.5
-
+    try:
+        l.remove('is_food') # to get to 50, very similar to is_edible already
+    except ValueError:
+        pass
 
     df_w2v.loc[df_w2v['r'].astype(float) < 0] = 0
     df_w2v['feature'] = df_w2v['feature'].str.replace('_', ' ')
@@ -251,11 +252,8 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
                                      pf_thresh=pf_thresh,
                                      do_r2=do_r2
                                      )
+    df_llama = df_llama[df_llama['feature'] != 'is_food']
     df_llama = df_llama.iloc[::-1]
-    # print(len(df_llama))
-    # quit()
-    # if do_r2 == '5050':
-    #     df_llama['r'] = df_llama['r'].astype(float) - 0.5
     df_llama.loc[df_llama['r'].astype(float) < 0] = 0
 
     x_llm = df_llama['feature'].str.replace('_', ' ').to_numpy()
@@ -288,6 +286,7 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
               }
     # is_edible is just "living"
     x_llm = [mapper.get(x, x) for x in x_llm]
+    assert len(x_llm) == 50, f'Only len: {len(x_llm)=}'
 
     y_dif_llm = y_llm - y_w2v
     y_dif_llm[y_dif_llm < 0] = 0
@@ -303,7 +302,7 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     plt.barh(x_llm, y_gray, color='gray')
     plt.barh(x_llm, y_dif_llm, left=y_gray, color='dodgerblue')
     plt.barh(x_llm, y_dif_w2v, left=y_gray, color='red')
-    plt.ylim(-1, 51)
+    plt.ylim(-1, 50)
     plt.yticks(fontsize=9)
     plt.gca().spines[['right', 'bottom', ]].set_visible(False)
     plt.gca().tick_params(top=True, labeltop=True,
@@ -312,7 +311,8 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
         plt.xticks([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         plt.xlim(0.5, 1.0)
         plt.gca().xaxis.set_major_formatter(mtick.StrMethodFormatter('{x:.0%}'))
-        plt.xlabel('Accuracy', fontsize=11, labelpad=5)
+        plt.xlabel('Accuracy (pooling layers 4-16)',
+                   fontsize=13, labelpad=5)
     else:
         plt.xlim(0, 1)
         plt.xticks([0, 0.2, 0.4, 0.6, 0.8, 1.])  # , rotation=90)
@@ -320,6 +320,9 @@ def plot_feat_regr(req=5, normalize_regr=False, pf_thresh=600,
     plt.gca().xaxis.set_label_position('top')
 
     plt.tight_layout()
+    fp = r'result_pics/Llama/Figure1/Fig1b_bars.png'
+    Path(fp).parent.mkdir(exist_ok=True, parents=True)
+    plt.savefig(fp, dpi=300)
     plt.show()
     pd.set_option('display.max_rows', None)
     print(df_llama[['feature_type', 'feature', 'r']])

@@ -8,6 +8,7 @@ from scipy import stats
 from Study1A.modularity_funcs import get_partition_matrix, get_FC_between_ROIs
 from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 from Study2A.load_Study2A_funcs import load_rs_BOLD
+from Study2B.analyze_Study2B import load_rs_HCP_BOLD
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
 
@@ -28,12 +29,14 @@ def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False,
                 combine_regions=False):
     atlas = get_atlas(schaefer=schaefer, combine_regions=combine_regions)
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos, }
+    # print(f'{ps=}')
     ps_hemi = defaultdict(list)
     for key, p in ps.items():
         # if schaefer:
         #     p = sorted(p, key=lambda x: atlas['coords'][x][1])
         for i in p:
             coord = atlas['coords'][i]
+            # print(f'{i}: {coord}')
             if coord[0] < 0:
                 ps_hemi[f'L{key}'].append(i)
             else:
@@ -42,61 +45,41 @@ def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False,
 
 
 def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
-                    combine_regions=False,
-                    schaefer=False
+                    combine_regions=False, schaefer=False,
+                    HCP=True
                     ):
-    sn_roi_act, sns, conn_trials = load_rs_BOLD(schaefer=schaefer)
+    if HCP:
+        sn_roi_act_lr, sns, conn_trials_lr = load_rs_HCP_BOLD(schaefer=schaefer,
+                                                              combine_regions=combine_regions,
+                                                              lr='LR')
+        sn_roi_act_rl, sns, conn_trials_rl = load_rs_HCP_BOLD(schaefer=schaefer,
+                                                              combine_regions=combine_regions,
+                                                              lr='RL')
+        sn_roi_act = np.concatenate([sn_roi_act_lr, sn_roi_act_rl], axis=-1)
+        conn_trials = np.concatenate([conn_trials_lr, conn_trials_rl], axis=-1)
+    else:
+        sn_roi_act, sns, conn_trials = load_rs_BOLD(schaefer=schaefer,
+                                                    combine_regions=combine_regions)
     print('Onto get_df_networks...')
-
-    network2p = pickle_wrap(get_network_partitions)
+    # print(conn_trials.shape)
+    print(F'{conn_trials.shape=}')
+    # quit()
 
     key2conn = {}
-    for network, p in network2p.items():
-        key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
+    # network2p = pickle_wrap(get_network_partitions) # FPCN, DMN, etc. I think
+    # for network, p in network2p.items():
+    #     key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
 
     networks = list(key2conn)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_VD_PA_partitions(age='healthy', do_PA=True, anat=True,
                              anat_ver=anat_ver, combine_regions=combine_regions,
                              schaefer=schaefer)
-    print(F'{p_v_ant=}')
-
-    # p_v_pos = ([138, 6, 5, 8, 133, 254, 2, 4, 7, 10, 139, 1, 3, 9, 41, 22] +
-    #            [23, 20, 16, 18, 14, 21, 13, 17, 12, 142, 15, 19, 136, 140, 135] +
-    #            [10, 143, 139, 144, 145, 41, 268, 42, 326, 9, 148, 39] +
-    #            [46, 45, 20, 44, 329, 332, 152, 21, 150, 154, 151, 153, 142, 273, 324] +
-    #            [375, 24, 1, 38, 376, 28, 131, 3, 369, 35, 25, 27, 4, 42, 40, 325, 371, 22, 34, 26, 370, 9, 39, 338, 23,
-    #             36, 44, 31, 20] +
-    #            [35, 36, 31, 371, 337, 23, 39, 44, 329, 345, 43, 373, 20, 46, 45, 32, 344, 328, 37, 14, 13, 372, 33, 21,
-    #             16, 30, 29, 378])
-
-    # p_v_ant = ([259, 260, 258, 379, 244, 257, 241, 247, 361, 95, 246, 94, 242, 226] +
-    #            [252, 248, 250, 249, 385, 251, 399, 102, 366, 104, 90, 386, 265, 367, 263])
-    p_v_ant = ([258, 257, 241, 247, 246, 242] +
-               [252, 250, 249, 385, 399, 102, 265])
-
-
-    # p_d_pos = ([184, 185, 183, 158, 113, 314, 384, 269, 88, 309, 160, 159, 138, 313, 383, 311, 308, 112, 315, 271, 161,
-    #             87, 312, 8, 50, 310, 162, 126, 6, 89, 270, 147, 272, 109, 139, 93, 146, 10, 268, 143, 145, 41, 144] +
-    #            [273, 153, 151, 320, 155, 142, 276, 171, 117, 324, 169, 170, 19, 322, 116, 323, 140, 321, 141, 275, 120,
-    #             393, 186, 118, 318, 391, 274, 390, 317, 319, 66, 69, 394, 316, 187, 168, 188, 91, 167, 92, 121, 392])
-    #
-    # p_d_ant = ([214, 212, 215, 213, 297, 296, 210, 208, 298, 175, 181, 209, 176, 211, 278, 299, 300, 224, 177, 279, 284,
-    #             229, 281, 277, 353, 280, 283, 227] +
-    #            [235, 305, 356, 217, 292, 303, 359, 289, 218, 288, 179, 290, 398, 395, 178, 223, 304, 397, 222, 396, 220,
-    #             216, 221, 219, 182, 301] +
-    #            [365, 190, 364, 189, 212, 296, 100, 363, 298, 297, 211, 213, 96, 208, 99] +
-    #            [107, 223, 191, 222, 220, 221, 367, 103, 219, 216, 301, 304, 368, 192, 193])
-
-    # print(F'{p_d_ant=}')
-    # print(F'{p_d_pos=}')
-    print(F'{p_v_ant=}')
-    # quit()
-    # print(F'{p_v_pos=}')
 
     if add_hemi:
         ps_hemi = get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                              schaefer=schaefer)
+                              schaefer=schaefer, combine_regions=combine_regions)
+        print(f'{ps_hemi=}')
         keys_both = []
         for key, p0 in ps_hemi.items():
             for key1, p1 in ps_hemi.items():
@@ -107,14 +90,15 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
                 keys_both.append(key_both)
         networks += keys_both
 
+    num_ROIs = conn_trials.shape[1]
+
     conn_keys, conn_ps = prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos,
-                                      p_v_ant, p_v_pos)
+                                      p_v_ant, p_v_pos, num_ROIs=conn_trials.shape[1])
     for key, (p0, p1) in zip(conn_keys, conn_ps):
         key2conn[key] = get_FC_between_ROIs(conn_trials[:, None],
                                             p0, p1)
 
-    num_ROIs = get_num_ROIs(schaefer)
-
+    print('bleh')
     key2conn['FC_all'] = get_module_trialwise_z(conn_trials[:, None],
                                                 list(range(num_ROIs)))
 
@@ -184,8 +168,10 @@ def get_num_ROIs(schaefer):
 
 
 def prep_conn_ps(p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                 schaefer=False):
-    num_ROIs = get_num_ROIs(schaefer)
+                 # schaefer=False
+                 num_ROIs
+                 ):
+    # num_ROIs = get_num_ROIs(schaefer)
 
     ad_else = list(set(range(num_ROIs)) - set(p_d_ant))
     pd_else = list(set(range(num_ROIs)) - set(p_d_pos))

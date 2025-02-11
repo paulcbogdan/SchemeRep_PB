@@ -151,7 +151,22 @@ class LlamaActivationExtractor:
                     num_key_value_heads = 8
                     head_dim = 3072 // num_heads
                     num_kvh_groups = 3
+                elif 'Llama-3.3-70b' in self.model_name:
+                    num_heads = 64
+                    num_key_value_heads = 8
+                    head_dim = 128
+                    num_kvh_groups = num_heads // num_key_value_heads
                 else:
+                    # model_name = r'meta-llama/Llama-3.3-70b-Instruct'
+                    config = AutoConfig.from_pretrained(self.model_name)
+                    print(config)
+
+                    for name, param in module.self_attn.named_parameters():
+                        print(f'{name} | {param.size()}')
+                    # print(module.self_attn.num_heads)
+                    # print(module.self_attn.num_key_value_groups)
+                    # print(module.self_attn.head_dim)
+                    # print(dict(module.self_attn))
                     raise ValueError
                 # else:
                 #     # num_heads = module.self_attn.num_heads
@@ -164,8 +179,7 @@ class LlamaActivationExtractor:
                 # print(module)
                 # print(module.self_attn)
                 # quit()
-                # for name, param in module.self_attn.named_parameters():
-                #     print(f'{name} | {param.size()}')
+
                 # print(dict(module.named_parameters()).keys())
                 # quit()
 
@@ -403,10 +417,10 @@ def main():
     # extractor = LlamaActivationExtractor(r'baffo32/decapoda-research-llama-7B-hf')
 
     # extractor = LlamaActivationExtractor('meta-llama/Llama-2-7b-hf')
-    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b-Instruct')
+    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.3-70b-Instruct')
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
 
-    extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
+    # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.2-3b')
     # extractor = LlamaActivationExtractor(r'mistralai/Mistral-7b-v0.3')
 
     # extractor = LlamaActivationExtractor(r'meta-llama/Llama-3.1-70b')
@@ -432,4 +446,10 @@ def main():
 
 
 if __name__ == "__main__":
+    # from transformers import AutoConfig
+    # model_name = r'meta-llama/Llama-3.3-70b-Instruct'
+    # config = AutoConfig.from_pretrained(model_name)
+    # print(config)
+    # quit()
+
     main()

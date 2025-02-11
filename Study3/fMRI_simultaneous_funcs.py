@@ -46,11 +46,9 @@ def get_fMRI_ar(sn, sess, combine_regions=False,
     atlas = get_atlas(natview=True, combine_regions=combine_regions,
                       schaefer=schaefer)
 
-
     ar_fMRI = img_data2ar(data_fMRI, atlas)
     ar_fMRI = stats.zscore(ar_fMRI, axis=-1)
     return ar_fMRI
-
 
 
 def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
@@ -75,8 +73,6 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
 
     for i, region in enumerate(atlas['ROI_regions']):
         ROI2idx[region].append(i)
-
-
 
     # key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG']
     # key2idxs['IPL'] = ROI2idx['IPL']
@@ -113,14 +109,25 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
 
     conn_fMRI = ar_fMRI[None, :, :] * ar_fMRI[:, None, :]
 
-    ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
-                               key2idxs['MFG'])].mean(axis=(0, 1))
-    ATL_LOC = conn_fMRI[np.ix_(key2idxs['ATL'],
-                               key2idxs['LOC'])].mean(axis=(0, 1))
-    MFG_IPL = conn_fMRI[np.ix_(key2idxs['MFG'],
-                               key2idxs['IPL'])].mean(axis=(0, 1))
-    IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
-                               key2idxs['LOC'])].mean(axis=(0, 1))
+
+    if np.any(np.isnan(conn_fMRI[:, :, 0])):
+        ATL_MFG = np.nanmean(conn_fMRI[np.ix_(key2idxs['ATL'],
+                                              key2idxs['MFG'])], axis=(0, 1))
+        ATL_LOC = np.nanmean(conn_fMRI[np.ix_(key2idxs['ATL'],
+                                              key2idxs['LOC'])], axis=(0, 1))
+        MFG_IPL = np.nanmean(conn_fMRI[np.ix_(key2idxs['MFG'],
+                                              key2idxs['IPL'])], axis=(0, 1))
+        IPL_LOC = np.nanmean(conn_fMRI[np.ix_(key2idxs['IPL'],
+                                              key2idxs['LOC'])], axis=(0, 1))
+    else:
+        ATL_MFG = conn_fMRI[np.ix_(key2idxs['ATL'],
+                                   key2idxs['MFG'])].mean(axis=(0, 1))
+        ATL_LOC = conn_fMRI[np.ix_(key2idxs['ATL'],
+                                   key2idxs['LOC'])].mean(axis=(0, 1))
+        MFG_IPL = conn_fMRI[np.ix_(key2idxs['MFG'],
+                                   key2idxs['IPL'])].mean(axis=(0, 1))
+        IPL_LOC = conn_fMRI[np.ix_(key2idxs['IPL'],
+                                   key2idxs['LOC'])].mean(axis=(0, 1))
 
     ATL_MFG = stats.zscore(ATL_MFG, axis=-1)
     ATL_LOC = stats.zscore(ATL_LOC, axis=-1)

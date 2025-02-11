@@ -31,19 +31,23 @@ np.bool = bool
 np.int = int
 
 
-def prep_plot_Fig2F_bars():
+def prep_plot_Fig2F_bars(schaefer=True):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
-              'atlas_name': 'BNA',
+              'atlas_name': ('schaefer', 400) if schaefer else 'BNA',
               'key_vals': (1, 2, 3),
-              'get_df_sn': True
+              'get_df_sn': True,
               }
     sn_inc_conn, sn_conn, age2idxs, sn_inc_activity, df_sns = \
         pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
+    if schaefer:
+        schaefer = (schaefer, 400)
+    else:
+        schaefer = False
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
-        get_VD_PA_partitions(age='healthy', anat=True)
+        get_VD_PA_partitions(age='healthy', anat=True, schaefer=schaefer)
     matrix_mask[~matrix_mask] = np.nan
 
     sn_inc_activity_std = stats.zscore(sn_inc_activity, axis=3, nan_policy='omit')
@@ -89,9 +93,10 @@ def prep_plot_Fig2F_bars():
          'age': ages, 'sn': subj_nums}
 
     df_agg = pd.DataFrame(d)
-    plot_Fig2F_bars(df_agg)
+    plot_Fig2F_bars(df_agg, schaefer=schaefer)
 
-def plot_Fig2F_bars(df_agg, mean_norm=True):
+
+def plot_Fig2F_bars(df_agg, mean_norm=True, schaefer=False):
     plot_params = {
         'y': 'vals',
         'x': 'inc',
@@ -111,9 +116,9 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
         t, p = stats.ttest_rel(df_inc['vals'], df_con['vals'])
         print(f'{wb}: {t=:.3f}, {p=:.4f}')
 
-    if mean_norm:
-        for cond_set in cond_sets:
-            df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
+    for cond_set in cond_sets:
+        df_set = df_agg.loc[df_agg['within_between'].isin(cond_set)]
+        if mean_norm:
             for wb in ['Within', 'Between']:
                 for sn in df_set['sn'].unique():
                     match = (df_set['sn'] == sn) & (df_set['within_between'] == wb)
@@ -169,7 +174,10 @@ def plot_Fig2F_bars(df_agg, mean_norm=True):
         plt.ylim(-0.092, 0.092)
         plt.tight_layout()
         M_norm_str = '_no_M_norm' if not mean_norm else ''
-        fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_boxen{M_norm_str}.png'
+        if schaefer:
+            fp = fr'result_pics/Fig2/FigS3B_PE_x_Conn_boxen{M_norm_str}_schaefer.png'
+        else:
+            fp = fr'result_pics/Fig2/Fig2F_PE_x_Conn_boxen{M_norm_str}.png'
         plt.savefig(fp, dpi=600)
         plt.show()
 

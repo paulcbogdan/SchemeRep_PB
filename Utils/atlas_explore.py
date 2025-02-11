@@ -5,7 +5,7 @@ from Utils.atlas_funcs import get_atlas
 import numpy as np
 
 
-def plot_ROI(schaefer=True, ROI='IPL_L', combine_regions=True):
+def plot_ROI(schaefer=True, ROI='IPL_L', combine_regions=False):
     if schaefer:
         schaefer = (schaefer, 400)
     else:
@@ -16,7 +16,7 @@ def plot_ROI(schaefer=True, ROI='IPL_L', combine_regions=True):
     #     idx = atlas['labels'].index(ROI)
     # if not idx:
     #     raise ValueError(f'ROI {ROI} not found in atlas: {atlas["labels"]=}')
-    idx = 47
+    idx = 252
     # print(idx)
     # quit()
     data = image.load_img(atlas['maps']).get_fdata()
