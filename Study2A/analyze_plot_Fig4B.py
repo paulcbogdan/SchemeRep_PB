@@ -20,7 +20,7 @@ from tqdm import tqdm
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
-def plot_Fig4B(anat_version=3, schaefer=False, HCP=False):
+def plot_Fig4B(anat_version=3, schaefer=True, HCP=False):
     if isinstance(schaefer, bool) and schaefer:
         schaefer = (True, 400)
 
@@ -31,7 +31,7 @@ def plot_Fig4B(anat_version=3, schaefer=False, HCP=False):
     df, _ = pickle_wrap(get_df_networks, kwargs={'anat_ver': anat_version,
                                                  'schaefer': schaefer,
                                                  'HCP': HCP,
-                                                 'combine_regions': True if (schaefer or HCP) else False,
+                                                 'combine_regions': True if HCP else False,
                                                  },
                         easy_override=False)
 
