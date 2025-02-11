@@ -276,7 +276,7 @@ def plot_vendor_hub_spoke(fp='obj7_fMRI', combine_regions=False,
     # abs_max = np.nanmax(np.abs(z_graph_))
     # print(f'{i}: {abs_max=:.3f}')
     # plt.colorbar()
-    fp_out = fr'result_pics/other/hub_spoke/_{atlas["ROIs"][i]}.png'
+    fp_out = fr'result_pics/other/hub_spoke_{atlas["ROIs"][i]}.png'
     plt.savefig(fp_out, dpi=300)
     plt.show()
 

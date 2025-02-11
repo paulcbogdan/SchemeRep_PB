@@ -523,12 +523,12 @@ if __name__ == '__main__':
                     print(f'{key} ({N=}): {M=:.3f} [{M_low:.3f}, {M_high:.3f}] '
                           f'({t=:.3f} | {d=:.3f}), {p=:.2e}, {p_wilcox=:.2e} | '
                           f'{M_above:.1%}')
-            # continue
-            # if 'r50' not in NAME2L:
-            #     continue
-            # if N == 21 and j == len(SESSES) - 1:
-            #     # print('done')
-            #     if 'r1' in NAME2L:
-            #         plot_hz_corrs(NAME2L)
-                # else:
-                #     plot_regrs(pd.concat(dfs_l))
+            continue
+            if 'r50' not in NAME2L:
+                continue
+            if N == 21 and j == len(SESSES) - 1:
+                # print('done')
+                if 'r1' in NAME2L:
+                    plot_hz_corrs(NAME2L)
+                else:
+                    plot_regrs(pd.concat(dfs_l))

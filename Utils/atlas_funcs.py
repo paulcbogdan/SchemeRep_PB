@@ -4,6 +4,7 @@ from collections import defaultdict
 from nilearn import plotting
 import matplotlib.pyplot as plt
 
+
 path = pathlib.Path(__file__).parent.parent.resolve()
 os.chdir(path)
 
@@ -16,7 +17,7 @@ from marinate.pkld import pkld
 
 
 def get_Schaefer_atlas(HCP=False, combine_bilateral=False,
-                       schaefer=True):
+                       schaefer=True, natview=False):
     if isinstance(schaefer, tuple):
         assert len(schaefer) == 2
         assert schaefer[0]
@@ -42,6 +43,17 @@ def get_Schaefer_atlas(HCP=False, combine_bilateral=False,
         affine = np.array(affine)
         atlas['maps'] = image.resample_img(atlas_ni['maps'], target_affine=affine,
                                            target_shape=(91, 109, 91),
+                                           interpolation='nearest',
+                                           force_resample=True,
+                                           copy_header=True)
+    elif natview:
+        affine = [[-3., 0., 0., 90.],
+                  [0., 3., 0., -126.],
+                  [0., 0., 3., -72.],
+                  [0., 0., 0., 1.]]
+        affine = np.array(affine)
+        atlas['maps'] = image.resample_img(atlas_ni['maps'], target_affine=affine,
+                                           target_shape=(61, 73, 61),
                                            interpolation='nearest',
                                            force_resample=True,
                                            copy_header=True)
@@ -295,7 +307,7 @@ def get_combined_BNA(combine_bilateral=False, new_space=True, HCP=False,
                      natview=False, lifu_labels=True, schaefer=False):
     if schaefer:
         atlas = get_Schaefer_atlas(HCP=HCP, combine_bilateral=combine_bilateral,
-                                   schaefer=schaefer)
+                                   schaefer=schaefer, natview=natview)
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space, HCP=HCP,
@@ -342,7 +354,7 @@ def get_atlas(combine_regions=False, combine_bilateral=False,
                                  schaefer=schaefer)
     elif schaefer:
         atlas = get_Schaefer_atlas(HCP=HCP, combine_bilateral=combine_bilateral,
-                                   schaefer=schaefer)
+                                   schaefer=schaefer, natview=natview)
     else:
         atlas = get_BN_and_resample(combine_bilateral=combine_bilateral,
                                     new_space=new_space, shenyang=shenyang,
@@ -773,23 +785,10 @@ def get_BNA_ROIs(code=None):
         raise NotImplementedError(f'get_BNA_ROIs, {code=}')
     return ROIs
 
-def plot_ROI(schaefer=True, ROI='Temp_L', combine_regions=True):
-    atlas = get_atlas(combine_regions=combine_regions,
-                      schaefer=(schaefer, 400))
-    if isinstance(ROI, str):
-        idx = atlas['labels'].index(ROI)
-    if not idx:
-        raise ValueError(f'ROI {ROI} not found in atlas: {atlas["labels"]=}')
-    data = image.load_img(atlas['maps']).get_fdata()
-    ROI_data = data == (idx + 1)
-    plotting.plot_roi(image.new_img_like(atlas['maps'], ROI_data),
-                      title=f'{ROI}')
-    plt.show()
-
 
 if __name__ == '__main__':
-    # plot_ROI()
-    # quit()
+    plot_ROI()
+    quit()
     from nilearn.datasets import fetch_atlas_schaefer_2018
 
     atlas_ni = fetch_atlas_schaefer_2018(n_rois=400, resolution_mm=2,

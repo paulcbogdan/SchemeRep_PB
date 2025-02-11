@@ -2,7 +2,7 @@ import os
 
 from tqdm import tqdm
 
-os.chdir(r'H:\PycharmProjects_H\SchemeRep')
+os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 from collections import defaultdict
 from pathlib import Path
@@ -52,7 +52,7 @@ def prep_activation_for_univariate(fp='obj3_fMRI', key='inc', conds=(1, 3),
         sns = age2sn[age]
         for sn in sns:
             print(f'Prepping univariate: {sn=}')
-            df_sn = get_trial_info(sn, easy_override=True)
+            df_sn = get_trial_info(sn, easy_override=False)
             ROI2vecs0 = get_ROI_vecs(sn, atlas, fp, df_sn, nan_thresh=1.01,
                                      drop_nan_voxels=False,
                                      org_by_region=False,
@@ -449,7 +449,8 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
     pd.set_option('display.max_rows', 115)
     kwargs = {'fp': fp, 'key': 'inc', 'conds': (1, 3),
               'only_sh_sns': True, 'combine_regions': False}
-    df, ROI_cols = pickle_wrap(prep_activation_for_univariate, None, kwargs=kwargs, easy_override=False,
+    df, ROI_cols = pickle_wrap(prep_activation_for_univariate, None,
+                               kwargs=kwargs, easy_override=False,
                                cache_dir='cache')
 
     # df = df[~pd.isna(df['con_hit'])]
@@ -531,7 +532,7 @@ def do_univariate_analysis(fp='cmb3_fMRI'):
         return
 
 if __name__ == '__main__':
-    # do_univariate_analysis(fp='obj7_fMRI')
-    plot_congruency_lmer(fp='obj7_fMRI')
+    do_univariate_analysis(fp='obj7_fMRI')
+    # plot_congruency_lmer(fp='obj7_fMRI')
 
 

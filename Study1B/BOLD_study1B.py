@@ -119,8 +119,9 @@ def prep_quad_ROIs(skip_other=True, combine_regions=False,
 
 
 def study1b_BOLD_x_RS(combine_regions=False, only='win',
-                      skip_other=True):
+                      skip_other=False):
     sns = get_final_HCP_sns()
+    sns = sns[:30]
     # sns = sns[:750]
     # sns = sns[:5]
     # sns = sns[::-1]
@@ -175,7 +176,7 @@ def study1b_BOLD_x_RS(combine_regions=False, only='win',
               np.sqrt(ROI_efs_all.shape[0]))
 
 
-def plot_study1b_BOLD(combine_regions=False, only='wl'):
+def plot_study1b_BOLD(combine_regions=False, only='combo'):
     sns = get_final_HCP_sns()
     # sns = sns[:750]
     # sns = sns[:5]
@@ -210,11 +211,21 @@ def plot_study1b_BOLD(combine_regions=False, only='wl'):
         print(f'{name} | {t=:.2f}, {p=:.4f}')
     # quit()
 
-    my_plot_surf(ROI_ts, atlas, f'Study1B BOLD: {only}', vmax=7, thresh=3,
-                 only_positive=False, cmap='turbo', )
+    if only == 'combo':
+        title = 'Study 1B: Regional PE (BOLD) effects'
+    elif only == 'wl':
+        title = 'Study 1B: Regional Win/Loss (BOLD) effects'
+    else:
+        title = 'Need title'
+
+    fp_out = f'result_pics/SuppMat/FigS2B_{only}.png'
+    my_plot_surf(ROI_ts, atlas, title, vmax=6, thresh=2.5,
+                 only_positive=False, fp_out=fp_out
+                 #cmap='turbo',
+                 )
 
 
 if __name__ == '__main__':
-    study1b_BOLD_x_RS()
-    # plot_study1b_BOLD()
+    # study1b_BOLD_x_RS()
+    plot_study1b_BOLD()
     # get_BOLD_ef('100206')

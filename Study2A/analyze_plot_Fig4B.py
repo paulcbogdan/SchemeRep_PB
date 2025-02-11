@@ -92,7 +92,7 @@ def plot_Fig4B(anat_version=3, schaefer=(True, 400)):
     corr = bool_ar
 
     # corr = corr > .0
-    corr = corr[:8, :8]
+    # corr = corr[:8, :8]
 
     partitions = get_modules(corr)
     corr_v0 = get_partition_matrix(np.ones(corr.shape), partitions[0],

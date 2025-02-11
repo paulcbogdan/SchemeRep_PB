@@ -39,11 +39,13 @@ def get_hrf(tr=2.1):
 
 def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
                      log_freqs=False, just_frontal=True,
-                     ctrl_SuppMat=False, basic_BOLD=False):
+                     ctrl_SuppMat=False, basic_BOLD=False,
+                     schaefer=True):
     fMRI_fluc, alt1_signed, alt2_abs_sum, alt3_sum = pickle_wrap(
         get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,
-                                   'basic_BOLD': basic_BOLD},
-        easy_override=True, verbose=-1, )
+                                   'basic_BOLD': basic_BOLD,
+                                   'schaefer': schaefer},
+        easy_override=False, verbose=-1, )
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -228,13 +230,14 @@ def do_EEG_fMRI_test(just_frontal=True):
 
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
     dfs_l = []
+    # sns = sns[::-1]
     for sn in sns:
         for j, sess in enumerate(sesses):
             if sn in ['01', '02', '03', '09', '18'] and '02' in sess: continue
             if (sn, sess) in bad_sns: continue
             print(f'- ({sn}; {sess}) -')
             name2r, df = test_EEG_fMRI_sn(sn, sess, just_frontal=just_frontal,
-                                          basic_BOLD=True)
+                                          basic_BOLD=False)
             if name2r is None:
                 continue
             dfs_l.append(df)

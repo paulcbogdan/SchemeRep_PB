@@ -2,6 +2,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import ticker as mtick
+from matplotlib.pyplot import ylabel
 
 from llama.Rissman_similarity_analysis import fit_regularized_models
 from llama.devereux_feature_regression import get_vecs_for_regr
@@ -171,7 +172,8 @@ def plot_all_feats(  # cat='input',
     cmap_t = plt.get_cmap('turbo')
     cmap = create_modified_turbo(remove_light_peak=True, remove_dark_ends=False)
 
-    accuracy_curves_l -= baselines[:, None]
+    if do_r2 != '5050':
+        accuracy_curves_l -= baselines[:, None]
     last_accs = accuracy_curves_l[:, -1]
     acc_order = np.argsort(last_accs)
     accuracy_curves_l = accuracy_curves_l[acc_order]
@@ -203,8 +205,10 @@ def plot_all_feats(  # cat='input',
     acc_min = min(last_accs)
     acc_max = max(last_accs)
     if do_r2 == '5050':
-        ylim_low = -0.075
-        ylim_high = 0.5
+        ylim_low = 0.5
+        ylim_high = 1.0
+        # ylim_low = -0.075
+        # ylim_high = 0.5
     else:
         ylim_low = -0.075
         ylim_high = 0.29
@@ -216,8 +220,6 @@ def plot_all_feats(  # cat='input',
         num_layers = 28
     else:
         num_layers = 80
-    # print(f'{num_layers=}')
-    # quit()
 
     for c, feat, last_acc, spot, in zip(c_darks, feats, last_accs,
                                         np.linspace(acc_min, acc_max, len(c_darks))):
@@ -226,7 +228,10 @@ def plot_all_feats(  # cat='input',
                  [last_acc, spot], color=c, linewidth=0.5,
                  alpha=.5, zorder=-1)
 
-    plt.ylabel('Accuracy relative to baseline (Δ%)')
+    if do_r2 == '5050':
+        plt.ylabel('Accuracy (%)')
+    else:
+        plt.ylabel('Accuracy relative to baseline (Δ%)')
     if xlabel: plt.xlabel('Layer')
     plt.gca().yaxis.set_major_formatter(mtick.StrMethodFormatter('{x:.0%}'))
     cat2title = {'input': 'Residual stream (transformer input)',
@@ -242,7 +247,8 @@ def plot_all_feats(  # cat='input',
     else:
         plt.xticks(np.arange(0, num_layers, 10))
     if do_r2 == '5050':
-        plt.yticks([0.0, 0.1, 0.2, .3, .4, .5])
+        # plt.yticks([0.0, 0.1, 0.2, .3, .4, .5])
+        plt.yticks([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
     else:
         plt.yticks([-0.05, 0, 0.05, 0.1, .15, .2, .25])
     plt.gca().spines[['top', 'right']].set_visible(False)
@@ -389,10 +395,21 @@ def single_feat_multi_cats(pf_thresh=300, threshold=20, req=5,
     #     colors = colors[:2] + colors[3:]
 
     plt.title('Averages across 20 item features')
+
+    if do_r2 == '5050':
+        ylabel = 'Accuracy (%)'
+        y_high = 1.0
+        y_low = 0.5
+        vals_l = np.array(vals_l) + 0.5
+    else:
+        ylabel = 'Accuracy relative to baseline (Δ%)'
+        y_high = 0.08
+        y_low = -0.0025
+
     general_llama_plot(vals_l, labels, colors,
-                       ylabel='Accuracy relative to baseline (Δ%)',
-                       y_low=-0.0025, y_high=0.5 if do_r2 == '5050' else 0.08,
-                       xlabel=False, num_layers=num_layers, do_legend=do_legend)
+                       ylabel=ylabel, y_low=y_low, y_high=y_high,
+                       xlabel=False, num_layers=num_layers,
+                       do_legend=do_legend)
 
 
 if __name__ == '__main__':

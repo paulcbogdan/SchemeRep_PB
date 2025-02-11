@@ -242,39 +242,6 @@ def get_conn_sn(sn, combine_regions=True, bilateral=False,
                 drop_first=False, reset_trial0=False,
                 rl_lr='both'
                 ):
-    # try:
-    #     df_rl, df_lr = get_df_PE(sn, 'both',
-    #                              learning_rate=learning_rate,
-    #                              drop_first=drop_first,
-    #                              reset_trial0=reset_trial0)
-    # except Exception as e:
-    #     print(f'ERROR: {sn}, {e=}')
-    #     time.sleep(1)
-    #     return None, sn, None, None, None, None
-    #
-    # # ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-    # #                    bilateral=bilateral, reg_global=True,
-    # #                    no_compcor=True)
-    #
-    # try:
-    #     ar = get_sn_roi_ar(sn, 'LR', combine_regions=combine_regions,
-    #                        bilateral=bilateral, reg_global=True,
-    #                        no_compcor=True)
-    # except ValueError:
-    #     print(f'Not analyzed connectivity: {sn}')
-    #     return None, sn, None, None, None, None
-    # except Exception as e:
-    #     print(f'ERROR: {sn}, {e=}')
-    #     time.sleep(1)
-    #     return None, sn, None, None, None, None
-    # print('Got ar')
-    # if only:
-    #     df_lr.loc[df_lr['event'] != only, 'trial_type'] = 'only'
-    #
-    # df_lr.loc[df_lr['event'] == 'neut', 'trial_type'] = 'neut'
-    #
-    # ar_high = ar[:, df_lr['trial_type'] == 'high_PE']
-    # ar_low = ar[:, df_lr['trial_type'] == 'low_PE']
 
     ar_high, ar_low = get_study1b_ar(sn, combine_regions=combine_regions,
                                      bilateral=bilateral,

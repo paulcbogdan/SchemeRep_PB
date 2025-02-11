@@ -24,11 +24,14 @@ def get_network_partitions():
     return network2p
 
 
-def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False):
-    atlas = get_atlas(schaefer=schaefer)
+def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False,
+                combine_regions=False):
+    atlas = get_atlas(schaefer=schaefer, combine_regions=combine_regions)
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos, }
     ps_hemi = defaultdict(list)
     for key, p in ps.items():
+        # if schaefer:
+        #     p = sorted(p, key=lambda x: atlas['coords'][x][1])
         for i in p:
             coord = atlas['coords'][i]
             if coord[0] < 0:

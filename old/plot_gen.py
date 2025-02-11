@@ -13,7 +13,8 @@ from Utils.atlas_funcs import get_atlas
 #     atlas = get_atlas(combine_regions=combine_regions, bilateral=bilateral)
 
 def get_split_cmap(vabs, thresh, cmap, blue_half=False,
-                   black_line=0, full_range=False, inferno_half=False):
+                   black_line=0, full_range=False,
+                   inferno_half=False):
     if isinstance(cmap, str):
         cmap = plt.cm.get_cmap(cmap)
 
@@ -32,42 +33,43 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False,
                           axis=1).T
     prop_colored = 1 - prop_gray
 
-        # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
-        #                        axis=1).T
+    # vals_black = np.repeat(np.array([0, 0, 0, 1])[:, None], n_black,
+    #                        axis=1).T
 
     n_colored = int(n * prop_colored)
-    print(f'{n_colored=}')
+    # print(f'{n_colored=}')
     if blue_half:
         vals_colored = cmap(np.linspace(0.05, .9, n_colored))
     else:
         if full_range:
             vals_colored = cmap(np.linspace(0.0, 1., n))
         else:
-            vals_colored = cmap(np.linspace(0.05, .9, n))
-    #I don't like the purple...
+            vals_colored = cmap(np.linspace(0.1, .9, n))
+    # I don't like the purple...
     if inferno_half:
         vals_high = vals_colored
     else:
-        vals_low = vals_colored[:int(n_colored/2)]
-        vals_high = vals_colored[-int(n_colored/2):]
+        vals_low = vals_colored[:len(vals_colored) // 2]
+        x = np.linspace(0, 1, vals_low.shape[0])
+        xp = np.linspace(0, 1, n_colored // 2)
+        vals_low = np.array([np.interp(xp, x, vals_low[:, i])
+                             for i in range(4)]).T
+        # vals_high = vals_colored[-int(n_colored/2):]
+        vals_high = vals_colored[-len(vals_colored) // 2:]
+        vals_high = np.array([np.interp(xp, x, vals_high[:, i])
+                              for i in range(4)]).T
+        # vals_low = vals_colored[:int(n_colored/2)]
+        # vals_high = vals_colored[-int(n_colored/2):]
 
     if inferno_half:
         cutoff = int(thresh / vabs * len(vals_gray))
         cutoff_flip = len(vals_gray) - cutoff
         vals_gray = vals_gray[:cutoff]
-        # print(vals_high.shape)
-        # quit()
 
         x = np.linspace(0, 1, cutoff_flip)
         xp = np.linspace(0, 1, len(vals_high))
         vals_high = [np.interp(x, xp, vals_high[:, i]) for i in range(4)]
         vals_high = np.array(vals_high).T
-        # print(vals_high)
-        # quit()
-        # print(vals_high.shape)
-        # quit()
-        # vals_high = vals_high[cutoff:]
-        # vals_high = vals_high[vals_high.shape[0] // 2:]
         if black_line > 0:
             vals_gray[-1:] = [0, 0, 0, 1]
             vals_high[:1] = [0, 0, 0, 1]
@@ -86,6 +88,9 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False,
             n_black = int(n * black_line)
             vals_high[:n_black] = [0, 0, 0, 1]
         vals = np.concatenate([vals_low, vals_gray, vals_high])
+        # print(vals_low)
+        # print(vals_high)
+        # quit()
 
         # vals = vals[vals.shape[0] // 2:, :]
 
@@ -96,17 +101,15 @@ def get_split_cmap(vabs, thresh, cmap, blue_half=False,
 
     # print(vals[0:])
 
-
     cmap = ListedColormap(vals)
 
     # print(vals)
     return cmap
 
 
-
 def my_plot_surf(Ms, atlas, title, fp_out=None,
                  neg='', pos='', thresh=1.65, vmax=4,
-                 cmap='hot_cold', only_positive=False,
+                 cmap='cold_hot', only_positive=False,
                  strict_thresh=True):
     from nilearn import plotting
     atlas['coords'] = np.array(atlas['coords'])
@@ -138,8 +141,9 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     if cmap == 'rainbow_r':
         cmap = get_split_cmap(vabs, thresh, 'rainbow_r', )
     else:
-        cmap = cmap
-        # cmap = get_split_cmap(vabs, thresh, cmap, inferno_half=only_positive)
+        # cmap = cmap
+        cmap = get_split_cmap(vabs, thresh, cmap, inferno_half=only_positive,
+                              full_range=False)
 
     if only_positive:
         img_data[img_data < 0] = 0
@@ -166,14 +170,20 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
                           labelpad=-43)
     else:
         max_ticks = 6
-        vabs = np.max([np.abs(np.min(Ms)), np.abs(np.max(Ms))])
-        tick_jump = (int(vabs) + 1)  // (max_ticks)
-        # print(F'{vabs=}')
-        # print(f'{max_ticks=}')
+        vabs = np.nanmax([np.abs(np.nanmin(Ms)), np.abs(np.nanmax(Ms))])
+        tick_jump = (int(vabs) + 1) // (max_ticks)
+        # if tick_jump < 2:
+        tick_jump = 2
+        # print(f'{vmax=}')
         # print(f'{tick_jump=}')
         if tick_jump != 0:
             ticks = list(range(-int(vmax), int(vmax) + 1, tick_jump))
             axs[4].set_xticks(ticks, ticks, fontsize=11)
+        axs[4].set_xlabel('t-value', fontsize=12,
+                          labelpad=-43)
+        # print(ticks)
+        # quit()
+        # if vmax == 7:
 
 
     if fp_out is None:
@@ -187,7 +197,7 @@ def my_plot_surf(Ms, atlas, title, fp_out=None,
     return
 
     view = plotting.view_img(img, threshold=thresh, cmap=cmap, colorbar=True,
-                        vmax=vmax)
+                             vmax=vmax)
     view.open_in_browser()
     return
     # quit()
@@ -253,6 +263,6 @@ if __name__ == '__main__':
                              # node_kwargs={'c': 'k',
                              #              'size': 10},
                              # title=f'L SFG x R IFG'
-                             title = ''
+                             title=''
                              )
     plotting.show()

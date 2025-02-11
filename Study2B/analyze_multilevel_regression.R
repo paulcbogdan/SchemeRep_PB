@@ -27,3 +27,27 @@ print(summary(mod))
 print(effectsize::standardize_parameters(mod))
 
 #-------------
+df$task = scale(df$task)
+df$rs = scale(df$rs)
+
+mod <- lmer('rs ~ 1 + task + (1 + task | roi) + (1 + task | sn)', data=df,
+            control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
+                                  optCtrl = list(method = "nlminb", 
+                                                 starttests = FALSE, kkt = FALSE
+                                  )),
+            REML=F, verbose=100)
+print(summary(mod))
+print(effectsize::standardize_parameters(mod))
+
+#-------------
+df$task = scale(df$task)
+df$rs = scale(df$rs)
+
+mod <- lmer('rs ~ 1 + task + (1 + task | roi) + (1 | sn)', data=df,
+            control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
+                                  optCtrl = list(method = "nlminb", 
+                                                 starttests = FALSE, kkt = FALSE
+                                  )),
+            REML=F, verbose=100)
+print(summary(mod))
+print(effectsize::standardize_parameters(mod))

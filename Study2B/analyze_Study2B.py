@@ -3,6 +3,7 @@ import pathlib
 
 import matplotlib.pyplot as plt
 
+from Study2A.rs_connectivity_funcs import get_hemi_ps
 from marinate.pkld import pkld
 
 path = pathlib.Path(__file__).parent.parent.resolve()
@@ -160,11 +161,16 @@ def get_HCP_task_conn(combine_regions, focus='combo'):
 
     if kw['only'] == 'wl':
         conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
-            get_wl_contrast_conn(kw))
+            get_wl_contrast_conn(kw, get6=True))
+        # conn_highs, conn_lows, sns = (
+        #     get_wl_contrast_conn(kw, easy_override=False))
     elif kw['only'] == 'combo':
+        # conn_highs, conn_lows, sns = (
+        #     get_wl_contrast_conn(kw, easy_override=False))
         conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
-            get_combo(kw))
+            get_combo(kw, get6=True))
     else:
+        kw['get6'] = True
         conn_highs, conn_lows, sns, conn_highs0, conn_highs1, conn_lows0, conn_lows1 = (
             pickle_wrap(make_conn, kwargs=kw, easy_override=False))
     sn2conns = {}
@@ -211,8 +217,10 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
                  combine_regions=False, focus='combo'):
     kw = {'combine_regions': combine_regions, 'focus': focus}
     sn2conns, sn2conns_lr, sn2conns_rl = (
-        pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=True,
+        pickle_wrap(get_HCP_task_conn, kwargs=kw, easy_override=False,
                     RAM_cache=True))
+    # print(sn2conns.shape)
+    # quit()
 
     assert set(sns) - set(sn2conns) == set(), f'{set(sns) - set(sn2conns)=}'
     itr_ef = get_itr_ef_from_sn2conns(sns, sn2conns, p_d_ant, p_d_pos,
@@ -224,6 +232,8 @@ def get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
     itr_ef_rl = get_itr_ef_from_sn2conns(sns, sn2conns_rl, p_d_ant, p_d_pos,
                                          p_v_ant, p_v_pos)
     del sn2conns_rl
+    # print(itr_ef)
+    # quit()
     # plt.scatter(itr_ef_lr, itr_ef_rl)
     # plt.show()
     return itr_ef, itr_ef_lr, itr_ef_rl
@@ -308,7 +318,7 @@ def get_final_HCP_sns():
     return sns
 
 def run_analysis_Study2B(num_test=10_000, skip_other=True,
-                         combine_regions=False, focus='wl'):
+                         combine_regions=False, focus='combo'):
     sns = get_final_HCP_sns()
 
 
@@ -317,24 +327,6 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
 
     p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all, p_no_all = (
         get_quads(skip_other=False, combine_regions=combine_regions))
-
-    # rs_efs_all_lr = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-    #                             p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-    #                             lr='LR', combine_regions=combine_regions, bilateral=False,
-    #                             )
-    # rs_efs_all_rl = get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-    #                                p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
-    #                                lr='RL', combine_regions=combine_regions, bilateral=False,
-    #                                )
-    # rs_efs_all = np.nanmean([rs_efs_all_lr, rs_efs_all_rl], axis=0)
-
-    # reliability, _ = stats.spearmanr(rs_efs_all_lr, rs_efs_all_rl, nan_policy='omit')
-    # nans = np.isnan(rs_efs_all_lr) | np.isnan(rs_efs_all_rl)
-    # print(f'Num nans: {np.sum(nans)} / {rs_efs_all_rl.shape}')
-    # print(f'Spearman reliability: {reliability=:.4f}')
-    # reliability_r, _ = stats.pearsonr(rs_efs_all_lr[~nans], rs_efs_all_rl[~nans])
-    # print(f'Pearson reliability: {reliability_r=:.4f}')
-    # quit()
 
     task_effs_all, task_efs_all_lr, task_efs_all_rl = (
         get_HCP_task(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
@@ -472,8 +464,11 @@ def ttest_on_correlations(task_efs_l, rs_efs_l):
           f't[{N - 1}] = {t:.2f}, {p=:.3f}')
 
 
+
+# get_quads_schaefer()
+
 @cache
-def get_quads(skip_other=False, combine_regions=False, p_no_override=False):
+def get_quads(skip_other=False, combine_regions=False, p_no_override=False,):
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
         get_VD_PA_partitions(age='healthy', do_PA=True, anat=True,
                              combine_regions=combine_regions)
@@ -499,4 +494,6 @@ def get_quads(skip_other=False, combine_regions=False, p_no_override=False):
 
 
 if __name__ == '__main__':
-    run_analysis_Study2B()
+    # run_analysis_Study2B(focus='combo')
+    run_analysis_Study2B(focus='loss')
+    run_analysis_Study2B(focus='wl')

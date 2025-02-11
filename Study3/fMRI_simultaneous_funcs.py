@@ -3,15 +3,18 @@ from time import sleep
 
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from nilearn import masking, image
 from nilearn.image import high_variance_confounds
 
+from Study1A.plot_Fig2CD_partitions import get_VD_PA_partitions
 from Study3.EEG_simultaneous_funcs import ROOT_EEG_FMRI
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
-import scipy.stats as stats
 
-def get_fMRI_ar(sn, sess, combine_regions=False):
+
+def get_fMRI_ar(sn, sess, combine_regions=False,
+                schaefer=False):
     root_sn = fr'{ROOT_EEG_FMRI}\sub-{sn}\ses-{sess.split("_")[0]}'
     dir_func = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_preproc'
     fp_fMRI = fr'{dir_func}\func_pp_filter_sm0.mni152.3mm.nii.gz'
@@ -27,9 +30,9 @@ def get_fMRI_ar(sn, sess, combine_regions=False):
             img = image.load_img(fp_fMRI)
         else:
             print('\tConfirmed no file')
-            return None, None
+            return None
 
-    df_compcor = pd.DataFrame(high_variance_confounds(img, mask_img=mask_img,))
+    df_compcor = pd.DataFrame(high_variance_confounds(img, mask_img=mask_img, ))
     dir_nuisance = fr'{root_sn}\func\sub-{sn}_ses-{sess}_bold\func_nuisance'
     fp_motion = fr'{dir_nuisance}\mc_1-6.txt'
     df_motion = pd.read_csv(fp_motion, sep=' ', header=None,
@@ -40,30 +43,28 @@ def get_fMRI_ar(sn, sess, combine_regions=False):
 
     data_fMRI = img.get_fdata()
 
-    atlas = get_atlas(natview=True, combine_regions=combine_regions)
+    atlas = get_atlas(natview=True, combine_regions=combine_regions,
+                      schaefer=schaefer)
 
-    key2idxs = {'ATL': [], 'MFG': [], 'IPL': [], 'LOC': []}
-    for i, region in enumerate(atlas['ROI_regions']):
-        for key, l in key2idxs.items():
-            if key in region:
-                l.append(i)
 
     ar_fMRI = img_data2ar(data_fMRI, atlas)
     ar_fMRI = stats.zscore(ar_fMRI, axis=-1)
-    return ar_fMRI, key2idxs
+    return ar_fMRI
 
 
 
 def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
-                      basic_BOLD=False):
-
+                      basic_BOLD=False, schaefer=False):
     try:
-        ar_fMRI, key2idxs = pickle_wrap(get_fMRI_ar,
-                                        kwargs={'sn': sn, 'sess': sess,},
-                                        easy_override=False, verbose=0,)
+        ar_fMRI = pickle_wrap(get_fMRI_ar,
+                              kwargs={'sn': sn, 'sess': sess,
+                                      'schaefer': schaefer},
+                              easy_override=False, verbose=0, )
     except ValueError as e:
         print(f'Missing file ({sn}, {sess}): {e=}')
         return None
+    # print(f'{ar_fMRI.shape=}')
+    # quit()
 
     if ar_fMRI is None:
         return None
@@ -75,10 +76,23 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
     for i, region in enumerate(atlas['ROI_regions']):
         ROI2idx[region].append(i)
 
-    key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG']
-    key2idxs['IPL'] = ROI2idx['IPL']
-    key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']
-    key2idxs['ATL'] = ROI2idx['ATL']
+
+
+    # key2idxs['MFG'] = ROI2idx['MFG'] + ROI2idx['IFG']
+    # key2idxs['IPL'] = ROI2idx['IPL']
+    # key2idxs['LOC'] = ROI2idx['LOC'] + ROI2idx['sOcG'] + ROI2idx['EVC']
+    # key2idxs['ATL'] = ROI2idx['ATL']
+    p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \
+        get_VD_PA_partitions(age='healthy', do_PA=True, anat=True,
+                             combine_regions=combine_regions,
+                             schaefer=schaefer)
+
+    key2idxs = {}
+    key2idxs['ATL'] = p_v_ant
+    key2idxs['MFG'] = p_d_ant
+    key2idxs['IPL'] = p_d_pos
+    key2idxs['LOC'] = p_v_pos
+    # quit()
 
     if basic_BOLD:
         ar_ATL = stats.zscore(ar_fMRI[key2idxs['ATL']].mean(axis=0),
@@ -86,9 +100,9 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
         ar_MFG = stats.zscore(ar_fMRI[key2idxs['MFG']].mean(axis=0),
                               nan_policy='omit')
         ar_IPL = stats.zscore(ar_fMRI[key2idxs['IPL']].mean(axis=0),
-                                nan_policy='omit')
+                              nan_policy='omit')
         ar_LOC = stats.zscore(ar_fMRI[key2idxs['LOC']].mean(axis=0),
-                                nan_policy='omit')
+                              nan_policy='omit')
         # fluc = np.abs(ar_ATL - ar_MFG)# + np.abs(ar_LOC - ar_IPL)
         # fluc = np.abs(ar_LOC - ar_IPL)
         fluc = np.abs(ar_ATL + ar_LOC - ar_MFG - ar_IPL)
@@ -119,6 +133,7 @@ def get_fMRI_score_sn(sn, sess='01', combine_regions=False,
     alt2_abs_sum = np.abs(MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC)
     alt3_sum = MFG_IPL + ATL_LOC + ATL_MFG + IPL_LOC
     return fluc, alt1_signed, alt2_abs_sum, alt3_sum
+
 
 def img_data2ar(data, atlas):
     ar = []

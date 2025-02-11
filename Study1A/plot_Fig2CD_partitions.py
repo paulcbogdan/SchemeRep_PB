@@ -145,12 +145,11 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
         atlas = get_atlas(combine_regions=combine_regions,
                           schaefer=schaefer)
         l = []
-        keys = [('PFCl', 'PFClv'),
-                ('IPL', 'IPS',
+        keys = [('PFCl', 'PFClv', 'PFCv'),
+                ('IPL', 'IPS', 'ParOper',
                  # 'ParOcc'
                  ),
-                ('TempPole',
-                 'AntTemp',
+                ('TempPole', 'AntTemp',
                  ),
                 ('Striate', 'StriCal',
                  'ExStrInf', #'ExStrSup',
