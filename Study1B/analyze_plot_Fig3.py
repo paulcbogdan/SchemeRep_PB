@@ -369,6 +369,9 @@ def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
         p_v_pos = np.array(p_v_pos[::2]) // 2
 
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
+    # print(p_d_pos)
+    # # print(conn)
+    # quit()
     dd = np.nanmean(dd, axis=(1, 2))
     vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
     vv = np.nanmean(vv, axis=(1, 2))
@@ -415,7 +418,9 @@ def get_combo(kw, easy_override=False, get6=False):
 
 @pkld
 def get_wl_contrast_conn(kw, easy_override=False, get6=False):
+    # easy_override = True
     kw['only'] = 'loss'
+    kw['get6'] = get6
     tup = (
         pickle_wrap(make_conn, kwargs=kw, easy_override=easy_override))
     if get6:
@@ -444,7 +449,7 @@ def get_wl_contrast_conn(kw, easy_override=False, get6=False):
         return conn_wins, conn_loss, sns
 
 def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
-                         sub_ROI_expected=False, schaefer=(True, 400)):
+                         sub_ROI_expected=False, schaefer=False):#(True, 400)):
     if isinstance(schaefer, tuple):
         combine_regions = (combine_regions, ('schaefer', schaefer[1]))
     elif schaefer:
@@ -468,19 +473,12 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
     if schaefer:
         combine_regions = combine_regions[0]
 
+    # print(conn_highs[0])
+    # print(sns[0])
+    # quit()
+
     if schaefer:
         pass
-        # if combine_regions:
-        #     conn_highs[:, :, 76:] = np.nan
-        #     conn_highs[:, 76:, :] = np.nan
-        #     conn_lows[:, :, 76:] = np.nan
-        #     conn_lows[:, 76:, :] = np.nan
-        # else:
-        #     conn_highs[:, :, 1000:] = np.nan
-        #     conn_highs[:, 1000:, :] = np.nan
-        #     conn_lows[:, :, 1000:] = np.nan
-        #     conn_lows[:, 1000:, :] = np.nan
-        # pass
     else:
         if combine_regions:
             conn_highs[:, :, 46:] = np.nan
@@ -534,11 +532,15 @@ def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
                                   combine_bilateral=bilateral,
                                   schaefer=schaefer)[0]
     itr = ef_low - ef_high
+    # print(ef_high)
+    # print(sns)
+    print(conn_highs[:, 2, 4])
     t_final, p = stats.ttest_1samp(itr, 0)
 
     N = itr.shape[0]
     F = t_final ** 2
     print(f't[{N - 1}] = {t_final:.2f}, {p=:.4f}, F = {F:.2f}')
+    quit()
 
     if not bilateral:
         atlas = get_atlas(combine_regions=combine_regions,
@@ -602,4 +604,4 @@ def get_Study1A_matrix_for_corr(combine_regions=False, plot=False):
 
 if __name__ == '__main__':
     # run_Study1B_analysis()
-    run_Study1B_analysis(combine_regions=True)
+    run_Study1B_analysis(combine_regions=False)

@@ -61,7 +61,9 @@ def plot_EEG_x_fMRI():
 
     ts = np.linspace(0, time, time * true_resolution)
 
-    fig, axs = plt.subplots(5, 2, figsize=(6.5, 8),
+    # fig, axs = plt.subplots(5, 2, figsize=(6.5, 8),
+    #                         constrained_layout=True)
+    fig, axs = plt.subplots(3, 3, figsize=(9, 6),
                             constrained_layout=True)
 
     osc = np.sin(np.pi * ts * true_hz)
@@ -80,13 +82,13 @@ def plot_EEG_x_fMRI():
     plt.xlim(0, 20)
     plt.ylim(0, np.max(amplitude) * 1.1)
 
-    gs = axs[0, 0].get_gridspec()
-    for ax in axs[1, :]:
-        ax.remove()
-    axbig = fig.add_subplot(gs[1, :])
+    # gs = axs[0, 0].get_gridspec()
+    # for ax in axs[1, :]:
+    #     ax.remove()
+    # axbig = fig.add_subplot(gs[1, :])
+    # plt.sca(axbig)
     osc_a = osc * amplitude
-
-    plt.sca(axbig)
+    plt.sca(axs[0, 2])
     plt.title('Oscillation x amplitude')
     plt.plot(ts, osc_a, linewidth=0.5, color='teal')
     plt.xticks([0, 5, 10, 15, 20], ['0 s', '5 s', '10 s', '15 s', '20 s'])
@@ -97,7 +99,7 @@ def plot_EEG_x_fMRI():
     VD = osc_a
     PA = -osc_a
 
-    plt.sca(axs[2, 0])
+    plt.sca(axs[1, 0])
     plt.title('True PA & VD signals')
     plt.plot(ts, PA, linewidth=0.5, color='blue', label='PA')
     plt.plot(ts, VD, linewidth=0.5, color='red', label='VD')
@@ -117,7 +119,7 @@ def plot_EEG_x_fMRI():
     VD_ = VD.reshape(-1, true_bins_TR).mean(axis=1)
     PA_ = PA.reshape(-1, true_bins_TR).mean(axis=1)
 
-    plt.sca(axs[3, 0])
+    plt.sca(axs[1, 1])
     plt.title('Measured PA & VD signals')
     for i in range(len(ts_)):
         t = ts_[i]
@@ -133,7 +135,7 @@ def plot_EEG_x_fMRI():
     plt.ylim(-.18, .18)
     setup_x(time)
 
-    plt.sca(axs[4, 0])
+    plt.sca(axs[1, 2])
     plt.title(f'|PA - VD| difference')
     ds = np.abs(VD_ - PA_)
     plt.scatter(ts_, ds, linewidth=0.5, color='purple')
@@ -151,7 +153,7 @@ def plot_EEG_x_fMRI():
                                               output='power')[0, 0]
     tfr = np.sqrt(tfr)
     tfr1 = tfr[0]
-    plt.sca(axs[2, 1])
+    plt.sca(axs[2, 0])
     plt.title(f'{freqs[0]} Hz power')
     plt.plot(ts[true_resolution * 2:], tfr1[true_resolution * 2:],
              linewidth=0.5, color='limegreen')
@@ -163,7 +165,7 @@ def plot_EEG_x_fMRI():
     print(f'{r=:.4f}')
 
     tfr2 = tfr[1]
-    plt.sca(axs[3, 1])
+    plt.sca(axs[2, 1])
     plt.title(f'{freqs[1]} Hz power')
     plt.plot(ts, tfr2, linewidth=0.5, color='limegreen')
     tfr2_ = tfr2.reshape(-1, true_bins_TR).mean(axis=1)
@@ -174,7 +176,7 @@ def plot_EEG_x_fMRI():
     print(f'{r=:.4f}')
 
     tfr3 = tfr[2]
-    plt.sca(axs[4, 1])
+    plt.sca(axs[2, 2])
     plt.title(f'{freqs[2]} Hz power')
     plt.plot(ts, tfr3, linewidth=0.5, color='limegreen')
     tfr3_ = tfr3.reshape(-1, true_bins_TR).mean(axis=1)
@@ -186,12 +188,17 @@ def plot_EEG_x_fMRI():
 
     fig.canvas.draw()
 
-    axs = [axs[0, 0], axs[0, 1],
-           axbig,
-           axs[2, 0], axs[3, 0],
-           axs[4, 0], axs[2, 1], axs[3, 1], axs[4, 1]]
+    # axs = [axs[0, 0], axs[0, 1], axs[0, 2],
+    # axbig,
+    # axs[2, 0], axs[3, 0],
+    # axs[4, 0], axs[2, 1],
+    # axs[3, 1], axs[4, 1]]
+    axs = [axs[0, 0], axs[0, 1], axs[0, 2],
+           axs[1, 0], axs[1, 1], axs[1, 2],
+           axs[2, 0], axs[2, 1], axs[2, 2]]
 
-    labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
+    # labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
+    labels = ['(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)', '(K)']
     from matplotlib.transforms import ScaledTranslation
 
     for ax, label in zip(axs, labels):
@@ -203,7 +210,7 @@ def plot_EEG_x_fMRI():
             0.0, 1.0, label, transform=(
                     ax.transAxes + ScaledTranslation(-20 / 72, +7 / 72,
                                                      fig.dpi_scale_trans)),
-            va='bottom', fontweight="bold", fontsize=12)
+            va='bottom', fontweight="bold", fontsize=14)
 
     fp_out = fr'result_pics/SuppMat_EEG_fMRI_sim.png'
     plt.savefig(fp_out, dpi=600)
@@ -302,4 +309,4 @@ def do_multiple_EEG_fMRI_sim(noise_mag, nsims=100, time=2400):
 
 if __name__ == '__main__':
     plot_EEG_x_fMRI()
-    do_EEG_fMRI_sim()
+    # do_EEG_fMRI_sim()

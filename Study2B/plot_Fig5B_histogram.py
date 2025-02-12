@@ -34,10 +34,10 @@ def get_np_t_task(wl=False, schaefer=False, combine_regions=False, just_lr='L'):
                 fp_task0 = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr__(1300, 500)_task_combo_schaefer_h0.pkl'
                 fp_task1 = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task\HCP_rs_x_task_corr__(1300, 500)_task_combo_schaefer_h1.pkl'
         else:
-            # fp_rs = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
-            # fp_task = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_task.pkl'
-            fp_rs = r'cache/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
-            fp_task = r'cache/HCP_rs_x_task_corr__(3432, 1000)_task.pkl'
+            fp_rs = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
+            fp_task = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_task.pkl'
+            # fp_rs = r'cache/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
+            # fp_task = r'cache/HCP_rs_x_task_corr__(3432, 1000)_task.pkl'
 
             # fp = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task'
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     # np_t = np.array(np_t)
     #
     # M_t = np.mean(np_t, axis=0)
-    np_rs, np_t = get_np_t_task(wl=False, schaefer=True, combine_regions=True)
+    np_rs, np_t = get_np_t_task(wl=True, schaefer=False, combine_regions=False)
     M_t = np.mean(np_t, axis=0)
     M_rs = np.mean(np_rs, axis=0)
     n_roi = np_rs.shape[0]

@@ -3,7 +3,8 @@ from matplotlib import pyplot as plt
 
 
 def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
-                  flip_VD=True, high_words=False, just_frontal=False):
+                  flip_VD=True, high_words=False, just_frontal=False,
+                  schaefer=False):
     def get_range(hz):
         if hz < 1:
             return 'dimgray'
@@ -157,7 +158,9 @@ def plot_hz_corrs(name2r, effect_size=False, t_vals=False, plot_se=True,
     plt.gcf().subplots_adjust(left=0.2, right=0.9, top=0.9, bottom=0.2)
 
     frontal_str = '_frontal' if just_frontal else ''
-    if effect_size:
+    if schaefer:
+        fp_out = fr'result_pics/Fig7/hz_effect_size{frontal_str}_schaefer.png'
+    elif effect_size:
         fp_out = fr'result_pics/Fig7/hz_effect_size{frontal_str}.png'
     else:
         last = 'VD' if flip_VD else 'PA'

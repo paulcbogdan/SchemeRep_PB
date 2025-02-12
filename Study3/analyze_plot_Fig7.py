@@ -45,7 +45,7 @@ def test_EEG_fMRI_sn(sn='06', sess='01', double_speed=True,
         get_fMRI_score_sn, kwargs={'sn': sn, 'sess': sess,
                                    'basic_BOLD': basic_BOLD,
                                    'schaefer': schaefer},
-        easy_override=True, verbose=-1, )
+        easy_override=False, verbose=-1, )
 
     if fMRI_fluc is None:
         print(f'None fMRI fluc ({sn}; {sess}) !')
@@ -225,7 +225,7 @@ def prep_Study3():
                }  # Bad EEG alignment
     return sns, sesses, bad_sns
 
-def do_EEG_fMRI_test(just_frontal=True):
+def do_EEG_fMRI_test(just_frontal=True, schaefer=True):
     sns, sesses, bad_sns = prep_Study3()
 
     NAME2SN2L = defaultdict(lambda: defaultdict(list))
@@ -238,7 +238,7 @@ def do_EEG_fMRI_test(just_frontal=True):
             if (sn, sess) in bad_sns: continue
             print(f'- ({sn}; {sess}) -')
             name2r, df = test_EEG_fMRI_sn(sn, sess, just_frontal=just_frontal,
-                                          basic_BOLD=False)
+                                          basic_BOLD=False, schaefer=schaefer)
             if name2r is None:
                 continue
 
@@ -282,7 +282,7 @@ def do_EEG_fMRI_test(just_frontal=True):
                 continue
             if N == 21 and j == len(sesses) - 1:
                 plot_hz_corrs(NAME2L, effect_size=True, plot_se=True,
-                              just_frontal=just_frontal)
+                              just_frontal=just_frontal, schaefer=schaefer)
 
 
 if __name__ == '__main__':

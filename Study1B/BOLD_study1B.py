@@ -176,23 +176,21 @@ def study1b_BOLD_x_RS(combine_regions=False, only='win',
               np.sqrt(ROI_efs_all.shape[0]))
 
 
-def plot_study1b_BOLD(combine_regions=False, only='combo'):
+def plot_study1b_BOLD(combine_regions=True, only='combo'):
     sns = get_final_HCP_sns()
+    # sns = sns[:10]
     # sns = sns[:750]
     # sns = sns[:5]
     # sns = sns[::-1]
     ROI_efs_all = []
     for sn in tqdm(sns, desc='plot_study1b_BOLD'):
-        # if only == 'wl':
-        #     ROI_efs = get_BOLD_loss_ef(sn, combine_regions=combine_regions,
-        #                                drop_first=True
-        #                                )
-        # else:
         ROI_efs = get_BOLD_ef(sn, combine_regions=combine_regions,
                               only=only, drop_first=True
                               )
 
         ROI_efs_all.append(ROI_efs)
+        # print(len(ROI_efs))
+        # quit()
     ROI_efs_all = np.array(ROI_efs_all)
     ROI_ts = (np.nanmean(ROI_efs_all, axis=0) /
               np.nanstd(ROI_efs_all, axis=0) *
@@ -200,15 +198,23 @@ def plot_study1b_BOLD(combine_regions=False, only='combo'):
 
     atlas = get_atlas(combine_regions=combine_regions)
 
+    for i, ROI in enumerate(atlas['ROIs']):
+        efs = ROI_efs_all[:, i]
+        # efs = np.nanmean(efs, axis=1)
+        t, p = stats.ttest_1samp(efs, 0)
+        N = len(efs)
+        print(f'{ROI} | t[{N - 1}]={t:.2f}, {p=:.4f}')
+    quit()
+
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other=False, combine_regions=combine_regions))
 
-    for l, name in zip([p_d_ant, p_d_pos, p_v_ant, p_v_pos],
-                       ['PFC', 'Parietal', 'ATL', 'Occipital']):
-        efs = ROI_efs_all[:, l]
-        efs = np.nanmean(efs, axis=1)
-        t, p = stats.ttest_1samp(efs, 0)
-        print(f'{name} | {t=:.2f}, {p=:.4f}')
+    # for l, name in zip([p_d_ant, p_d_pos, p_v_ant, p_v_pos],
+    #                    ['PFC', 'Parietal', 'ATL', 'Occipital']):
+    #     efs = ROI_efs_all[:, l]
+    #     efs = np.nanmean(efs, axis=1)
+    #     t, p = stats.ttest_1samp(efs, 0)
+    #     print(f'{name} | {t=:.2f}, {p=:.4f}')
     # quit()
 
     if only == 'combo':
