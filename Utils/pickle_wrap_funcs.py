@@ -169,10 +169,8 @@ def pickle_wrap(callback: object, filepath: object = None,
     t_st = time()
 
     if filepath is None:
-
         filepath = get_default_fp(args, kwargs, callback, cache_dir, verbose,
                                   dir_branches=dir_branches)
-        print(f'{filepath=}')
     if RAM_cache and filepath in PICKLE_CACHE:
         if get_fp:
             return PICKLE_CACHE[filepath], filepath

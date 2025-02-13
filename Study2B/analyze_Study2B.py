@@ -3,6 +3,8 @@ import pathlib
 
 import matplotlib.pyplot as plt
 
+from marinate.pkld import pkld
+
 # import matplotlib.pyplot as plt
 #
 # from Study2A.rs_connectivity_funcs import get_hemi_ps
@@ -53,6 +55,8 @@ def get_sns_roi_ar_std(sns, **kw):
     return np.array(ars)
 
 
+# @pkld(store='both')
+
 @cache
 def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
     if kw['lr'] == 'LR_RL':
@@ -91,13 +95,6 @@ def get_rs_conn_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos, **kw):
 
     return rs_conn_compressed, map2new
 
-
-def uncompress_conn(conn, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
-                    n_roi):
-    p_all = list(p_d_ant) + list(p_d_pos) + list(p_v_ant) + list(p_v_pos)
-    conn_uncompressed = np.full((conn.shape[0], n_roi, n_roi, conn.shape[3]), np.nan)
-    conn_uncompressed[:, *np.ix_(p_all, p_all), :] = conn
-    return conn_uncompressed
 
 
 def get_HCP_rs_sns(sns, p_d_ant, p_d_pos, p_v_ant, p_v_pos,
@@ -329,7 +326,7 @@ def get_final_HCP_sns():
         s = f.read()
     s = s.replace('\n', '').replace(' ', '')
     sns = s.split(',')
-    sns = sns[::-1]
+    # sns = sns[::-1]
     return sns
 
 
@@ -337,7 +334,7 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
                          combine_regions=False, focus='combo'):
     sns = get_final_HCP_sns()
     # sns = sns[:400]
-    sns = sns[::-1]
+    # sns = sns[::-1]
     # print(sns)
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
@@ -349,7 +346,7 @@ def run_analysis_Study2B(num_test=10_000, skip_other=True,
     task_effs_all, task_efs_all_lr, task_efs_all_rl = (
         get_HCP_task(sns, p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                      combine_regions=combine_regions, focus=focus))
-    # print(task_effs_all)
+
     t, p = stats.ttest_1samp(task_effs_all, 0)
     print(f'Overall task effect: {t=:.3f}, {p=:.3f}')
     t_lr, p_lr = stats.ttest_1samp(task_efs_all_lr, 0)

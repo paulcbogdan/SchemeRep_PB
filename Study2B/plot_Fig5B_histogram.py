@@ -66,22 +66,9 @@ def get_np_t_task(wl=False, schaefer=False, combine_regions=False, just_lr='L'):
     return np_rs, np_t
 
 if __name__ == '__main__':
-    #
-    # # files generated via analyze_Study2B.py
-    # # fp_rs = r'cache/HCP_rs_x_task_corr__(3432, 1000)_rs.pkl'
-    # fp_rs = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(290, 1000)_rs_combo_schaefer.pkl'
-    # # fp_rs = r'cache/rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_rs_wl.pkl'
-    # np_rs = pickle.load(open(fp_rs, 'rb'))
-    # np_rs = np.array(np_rs)
-    # # fp_t = r'cache/HCP_rs_x_task_corr__(3432, 1000)_task.pkl'
-    # fp_t = r'C:\PycharmProjects\SchemeRep\cache\rs_x_task/HCP_rs_x_task_corr__(290, 1000)_task_combo_schaefer.pkl'
-    # # fp_t = r'cac he/rs_x_task/HCP_rs_x_task_corr__(3432, 1000)_task_wl.pkl'
-    #
-    # np_t = pickle.load(open(fp_t, 'rb'))
-    # np_t = np.array(np_t)
-    #
+
     # M_t = np.mean(np_t, axis=0)
-    np_rs, np_t = get_np_t_task(wl=True, schaefer=False, combine_regions=False)
+    np_rs, np_t = get_np_t_task(wl=False, schaefer=False, combine_regions=False)
     M_t = np.mean(np_t, axis=0)
     M_rs = np.mean(np_rs, axis=0)
     n_roi = np_rs.shape[0]
