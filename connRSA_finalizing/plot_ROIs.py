@@ -44,7 +44,7 @@ def plot_large_avg_ROIs(system, cmap='turbo', voxelwise=False): # 'turbo'
 
         # data[:, :, 0::2] = 0
 
-    downsample = 2
+    downsample = 1
     if downsample > 1:
         data = data[..., None]
         mask = data > 0.5
@@ -120,5 +120,5 @@ def do_slicing(data):
     return data
 
 if __name__ == '__main__':
-    for target in ['Occipital']:
-        plot_large_avg_ROIs(target, voxelwise=True)
+    for target in ['ITL']:
+        plot_large_avg_ROIs(target, voxelwise=False)

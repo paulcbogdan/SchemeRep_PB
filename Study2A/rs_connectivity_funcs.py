@@ -28,6 +28,11 @@ def get_network_partitions():
 def get_hemi_ps(p_d_ant, p_d_pos, p_v_ant, p_v_pos, schaefer=False,
                 combine_regions=False):
     atlas = get_atlas(schaefer=schaefer, combine_regions=combine_regions)
+    print(f'{schaefer=}')
+    print(f'{p_d_ant=}')
+    print(f'{p_d_pos=}')
+    print(f'{p_v_ant=}')
+    print(f'{p_v_pos=}')
     ps = {'da': p_d_ant, 'dp': p_d_pos, 'va': p_v_ant, 'vp': p_v_pos, }
     # print(f'{ps=}')
     ps_hemi = defaultdict(list)

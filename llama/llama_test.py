@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 import numpy as np
 
 
@@ -161,8 +161,8 @@ class LlamaActivationExtractor:
                     config = AutoConfig.from_pretrained(self.model_name)
                     print(config)
 
-                    for name, param in module.self_attn.named_parameters():
-                        print(f'{name} | {param.size()}')
+                    # for name, param in module.self_attn.named_parameters():
+                    #     print(f'{name} | {param.size()}')
                     # print(module.self_attn.num_heads)
                     # print(module.self_attn.num_key_value_groups)
                     # print(module.self_attn.head_dim)
@@ -446,6 +446,8 @@ def main():
 
 
 if __name__ == "__main__":
+
+
     # from transformers import AutoConfig
     # model_name = r'meta-llama/Llama-3.3-70b-Instruct'
     # config = AutoConfig.from_pretrained(model_name)

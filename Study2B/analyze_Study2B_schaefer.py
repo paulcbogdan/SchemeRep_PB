@@ -68,8 +68,8 @@ def get_closest_pair(p_L, p_R, combine_regions=False, schaefer=(True, 400)):
 
 def run_analysis_Study2B_sch(num_test=500, skip_other=True,
                              combine_regions=False, focus='combo',
-                             half=None, just_lr='L'):
-    sns = get_final_HCP_sns()
+                             half=None, just_lr=None):
+    sns = get_final_HCP_sns()#[:25]
     if half is not None:
         half_str = f'_h{half}'
         if half == 0:
@@ -86,10 +86,12 @@ def run_analysis_Study2B_sch(num_test=500, skip_other=True,
         lr_str = ''
 
 
+    schaefer =  ('schaefer', 100)
     Lda, Rda, Ldp, Rdp, Lva, Rva, Lvp, Rvp = (
-        get_quads_schaefer(combine_regions=combine_regions))
+        get_quads_schaefer(combine_regions=combine_regions,
+                           schaefer=schaefer))
 
-    combine_regions = (combine_regions, ('schaefer', 400))
+    combine_regions = (combine_regions, schaefer)
 
     # da_len = min(len(Lda), len(Rda))
     # dp_len = min(len(Ldp), len(Rdp))
@@ -211,9 +213,11 @@ def run_analysis_Study2B_sch(num_test=500, skip_other=True,
 
 
 if __name__ == '__main__':
-    # run_analysis_Study2B_sch()
-    # run_analysis_Study2B_sch(half=0)
+    run_analysis_Study2B_sch(half=None)
+    # run_analysis_Study2B_sch(half=0)#, focus='loss')
+    # run_analysis_Study2B_sch(half=1)#, focus='loss')
+
     # run_analysis_Study2B_sch(half=None)
-    run_analysis_Study2B_sch(half=None, just_lr='L')
-    run_analysis_Study2B_sch(half=None, just_lr='R')
+    # run_analysis_Study2B_sch(half=None, just_lr='L')
+    # run_analysis_Study2B_sch(half=None, just_lr='R')
 

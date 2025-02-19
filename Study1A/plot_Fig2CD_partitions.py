@@ -163,9 +163,9 @@ def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                 regions_idxs.extend(idxs)
             l.append(regions_idxs)
         p_d_ant, p_d_pos, p_v_ant, p_v_pos = l
-        if not combine_regions:
-            p_v_ant = ([258, 257, 241, 247, 246, 242] +
-                       [252, 250, 249, 385, 399, 102, 265])
+        # if not combine_regions:
+        #     p_v_ant = ([258, 257, 241, 247, 246, 242] +
+        #                [252, 250, 249, 385, 399, 102, 265])
         p_dorsal = p_d_ant + p_d_pos
         p_ventral = p_v_ant + p_v_pos
         matrix_mask = np.ones((len(atlas['ROI_regions']),
@@ -300,9 +300,9 @@ def get_anat_VD_PA(plot=False, anat_ver=1, combine_regions=False,
     if anat_ver == 3:
         # ROI lists based on classifiers (PoG, STG, pSTS discarded)
         #   These are the lists best motivated by the task data
-        p_d_ant_labels = ['MFG', 'IFG']
-        p_d_pos_labels = ['IPL', ]  # 'SPL' (SPL not supported by the con_reg)
-        p_v_ant_labels = ['ATL', ]
+        p_d_ant_labels = ['MFG', 'IFG']#, 'SFG']
+        p_d_pos_labels = ['IPL', ] #+ ['SPL'] # 'SPL' (SPL not supported by the con_reg)
+        p_v_ant_labels = ['ATL', ] #+ ['STG']
         p_v_pos_labels = ['LOC', 'sOcG', 'EVC']
     elif anat_ver == 2:
         # Very minimal ROI lists. One region per list

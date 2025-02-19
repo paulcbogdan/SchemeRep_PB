@@ -32,8 +32,8 @@ def get_base_kw_predicting(sn, region, local, big_voxelwise):
     kw['stdize_by_run'] = False
     return kw
 
-def sn_attn_enc(sn, region='subcort', local=True,
-                big_voxelwise=False, do_acc=True,
+def sn_attn_enc(sn, region='PFC', local=True,
+                big_voxelwise=False, do_acc=False,
                 control_item=False, attn=True,
                 normalize=True
                 ):
@@ -46,6 +46,8 @@ def sn_attn_enc(sn, region='subcort', local=True,
                                    st=8, end=20,
                                    last_only=False
                                    )
+    # print(model_attn)
+    # quit()
 
     model_item = get_explore_llama(activation_model,
                                    attn=False, normalize=True,
@@ -62,6 +64,7 @@ def sn_attn_enc(sn, region='subcort', local=True,
     kw['ROIs_ctrl'] = [model_item] if control_item else []
     # ['inc']# model_item] # ['cortical_M_corr']#model_item]
 
+
     IRAFs = pickle_wrap(do_regr_RSA_sn, kwargs=kw, verbose=-1,
                         easy_override=False, dir_branches=100)
 
@@ -70,6 +73,12 @@ def sn_attn_enc(sn, region='subcort', local=True,
     if len(kw['ROIs_ctrl']):
         IRAFs = IRAFs[:, 0]
     df_sn['IRAFs'] = IRAFs
+
+    l = df_sn['IRAFs'].to_list()
+    print(f'{sn}')
+    print(f'{region}')
+    print(f'{l=}')
+    quit()
 
     # df_sn = df_sn[df_sn['inc'] < 3]
 
@@ -282,9 +291,9 @@ def test_sn_llama_mem():
         for sn in sns:
             # ef = sn_attn_enc(sn, region=REGION)
             try:
-                # ef = sn_attn_enc(sn, region=REGION)
-                ef = sn_attn_enc_Tha(sn, region=REGION,
-                                     )
+                ef = sn_attn_enc(sn, region=REGION)
+                # ef = sn_attn_enc_Tha(sn, region=REGION,
+                #                      )
             except np.linalg.LinAlgError:
                 pass
             # ef = sn_item_dm(sn, region=REGION)

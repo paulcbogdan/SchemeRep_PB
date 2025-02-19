@@ -53,8 +53,7 @@ def get_network_triangle_consistency(sns, p0, p1, p2, p_d_ant_all, p_d_pos_all,
                 tvc_ik_lr = get_rs_edge_tvc(sns, i, k,
                                             p_d_ant_all, p_d_pos_all, p_v_ant_all, p_v_pos_all,
                                             lr='LR', combine_regions=combine_regions)
-                # print(f'{tvc_ik_lr=}')
-                # quit()
+
 
                 fluc_lr = np.nanmean(np.abs(tvc_ij_lr - tvc_ik_lr), axis=1)
 
@@ -81,12 +80,19 @@ def get_network_triangle_consistency(sns, p0, p1, p2, p_d_ant_all, p_d_pos_all,
 
     sn_overall_lr = np.nanmean(sns_all_r_lr, axis=0)
     sn_overall_rl = np.nanmean(sns_all_r_rl, axis=0)
+    # print(sns_all_r_rl.shape)
+    # quit()
     icc_overall = np.corrcoef(sn_overall_lr, sn_overall_rl)[0, 1]
+
+    # roi_overall_lr = np.nanmean(sns_all_r_lr, axis=1)
+    # roi_overall_rl = np.nanmean(sns_all_r_rl, axis=1)
 
     within_subj_icc_l = []
     for sn_j in range(sns_all_r_lr.shape[1]):
         sns_r_lr = sns_all_r_lr[:, sn_j]
         sns_r_rl = sns_all_r_rl[:, sn_j]
+        # sns_r_rl = roi_overall_lr
+
         icc = np.corrcoef(sns_r_lr, sns_r_rl)[0, 1]
         within_subj_icc_l.append(icc)
 
@@ -108,7 +114,7 @@ def get_network_triangle_consistency(sns, p0, p1, p2, p_d_ant_all, p_d_pos_all,
 
 def get_network_connesitency(sns, p0, p1, p_d_ant_all, p_d_pos_all,
                              p_v_ant_all, p_v_pos_all,
-                             combine_regions=False):
+                             combine_regions=False, subtract_M=False):
     sns_all_r_lr = []
     sns_all_r_rl = []
     for i in p0:
@@ -136,8 +142,11 @@ def get_network_connesitency(sns, p0, p1, p_d_ant_all, p_d_pos_all,
     # print(sns_all_r_rl.shape)
     # quit()
 
-    sns_all_r_lr -= np.nanmean(sns_all_r_lr, axis=1, keepdims=True)
-    sns_all_r_rl -= np.nanmean(sns_all_r_rl, axis=1, keepdims=True)
+    if subtract_M:
+        roi_overall_lr = np.nanmean(sns_all_r_lr, axis=1, keepdims=True)
+        roi_overall_rl = np.nanmean(sns_all_r_rl, axis=1, keepdims=True)
+        sns_all_r_lr -= roi_overall_lr
+        sns_all_r_rl -= roi_overall_rl
 
     sn_overall_lr = np.nanmean(sns_all_r_lr, axis=0)
     sn_overall_rl = np.nanmean(sns_all_r_rl, axis=0)
@@ -146,6 +155,9 @@ def get_network_connesitency(sns, p0, p1, p_d_ant_all, p_d_pos_all,
     within_subj_icc_l = []
     for sn_j in range(sns_all_r_lr.shape[1]):
         sns_r_lr = sns_all_r_lr[:, sn_j]
+        # print(roi_overall_rl.shape)
+        # quit()
+        # sns_r_rl = roi_overall_rl[:, 0]
         sns_r_rl = sns_all_r_rl[:, sn_j]
         icc = np.corrcoef(sns_r_lr, sns_r_rl)[0, 1]
         within_subj_icc_l.append(icc)
@@ -172,7 +184,7 @@ def get_network_connesitency(sns, p0, p1, p_d_ant_all, p_d_pos_all,
 
 def consistency_edge_rs_static(num_test=10_000, skip_other=True,
                                combine_regions=False, focus='combo'):
-    sns = get_final_HCP_sns()[:100]
+    sns = get_final_HCP_sns()[:1000]
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other=skip_other, combine_regions=combine_regions))
@@ -208,7 +220,7 @@ def consistency_edge_rs_static(num_test=10_000, skip_other=True,
 
 def consistency_edge_rs_fluc(num_test=10_000, skip_other=True,
                              combine_regions=False, focus='combo'):
-    sns = get_final_HCP_sns()[:100]
+    sns = get_final_HCP_sns()[:250]
 
     p_d_ant, p_d_pos, p_v_ant, p_v_pos, p_no = (
         get_quads(skip_other=skip_other, combine_regions=combine_regions))

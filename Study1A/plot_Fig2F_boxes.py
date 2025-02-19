@@ -31,7 +31,7 @@ np.bool = bool
 np.int = int
 
 
-def prep_plot_Fig2F_bars(schaefer=True):
+def prep_plot_Fig2F_bars(schaefer=False):
     kwargs = {'fp': 'obj7_fMRI',
               'key': 'inc',
               'atlas_name': ('schaefer', 400) if schaefer else 'BNA',
@@ -96,7 +96,7 @@ def prep_plot_Fig2F_bars(schaefer=True):
     plot_Fig2F_bars(df_agg, schaefer=schaefer)
 
 
-def plot_Fig2F_bars(df_agg, mean_norm=True, schaefer=False):
+def plot_Fig2F_bars(df_agg, mean_norm=False, schaefer=False):
     plot_params = {
         'y': 'vals',
         'x': 'inc',

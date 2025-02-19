@@ -1,8 +1,10 @@
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 
 from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
+from Utils.pickle_wrap_funcs import pickle_wrap
 from connRSA.DistRep_ROI_RSA import ROI2NETWORK
 from connRSA.make_RSM_stim import get_sn_fp_stim_RSM
 from connRSA.single_trial_conn import prep_fps
@@ -13,8 +15,6 @@ from llama.get_obj_scn_vecs import get_sn_fp_llama_RSM, get_sn_fp_llama_RSM_l
 from networks.old.networks import prep_networks
 from old.plot_gen import my_plot_surf
 from organize_bhv import get_trial_info
-from Utils.pickle_wrap_funcs import pickle_wrap
-import warnings
 
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
@@ -23,6 +23,7 @@ import scipy.stats as stats
 
 from org_sns import get_sns
 import matplotlib.pyplot as plt
+
 
 def do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim):
     RSM_ctrl_l = np.array(RSM_ctrl_l)
@@ -46,6 +47,7 @@ def do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim):
     solutions = solutions[:, 1:]
     return solutions
 
+
 def get_sn_fp_inc_RSM(sn, fp):
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
@@ -55,12 +57,12 @@ def get_sn_fp_inc_RSM(sn, fp):
     RSM = np.abs(v_inc[:, None] - v_inc[None, :])
     return RSM
 
+
 def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
                    second_order, RDM_method, stdize_by_run, semantic,
                    regress_row=True, return_dif=False,
                    pickle_wrap_key=None
                    ):
-
     dir_in = fr'C:/PycharmProjects/SchemeRep/cache/conn_RSA/ars/RSA'
     dir_focus = (f'{dir_in}/{fp}_{trial_similarity}_'
                  f'{second_order}_{RDM_method}_{stdize_by_run}')
@@ -94,7 +96,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_stim = get_sn_fp_BERT_RSM_l(sn, fp, semantic)
     else:
         raise ValueError
-
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 
@@ -141,9 +142,9 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         # quit()
         bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
                     ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
-        if (sn, fp) in bad_tups: # Missing one run from these scans
+        if (sn, fp) in bad_tups:  # Missing one run from these scans
             pass
-        elif n_good_cols == 0: # accommodate the sns with missing runs
+        elif n_good_cols == 0:  # accommodate the sns with missing runs
             print(f'No good columns ({sn}, {fp})! {n_ctrls=}, {n_nans_cols=}, '
                   f'{n_skip_cols=}')
             good_rows = ~np.isnan(flat_ctrls).any(axis=1)
@@ -162,9 +163,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         else:
             flat_ctrls = flat_ctrls[:, ~nan_cols]
 
-
         if regress_row:
-
             # Here, we get the X IRAFs on Y then regress out effect of ctrl_IRAF on X_IRAF
             IRAFs_focus = do_regr_IRAFs(RSM_focus, RSM_ctrl_l, RSM_stim)
             return IRAFs_focus
@@ -180,7 +179,6 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     if RDM_method == 'within_nan':
         X = X[~np.isnan(flat_focus), :]
         flat_stim = flat_stim[~np.isnan(flat_focus)]
-
 
     assert np.sum(np.isnan(X)) == 0, f'{sn=}, {ROI_focus=}, {ROIs_ctrl=}, {fp=}'
 
@@ -204,7 +202,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
             return solution[1], solution[2], solution[1] - solution[2]
 
     p = X.shape[1] - 1
-    n = X.shape[0] - 1 # minus 1 because of the intercept
+    n = X.shape[0] - 1  # minus 1 because of the intercept
     r_sq = 1 - residuals / np.sum((flat_stim - np.mean(flat_stim)) ** 2)
 
     try:
@@ -217,10 +215,10 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
     # quit()
     return solution[1], r_sq
 
-def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
-                   second_order, RDM_method, stdize_by_run, semantic,
-                   fp0, fp1, four_tasks, regress_row=False):
 
+def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
+                    second_order, RDM_method, stdize_by_run, semantic,
+                    fp0, fp1, four_tasks, regress_row=False):
     dir_in = fr'cache/conn_RSA/ars/ISPC'
     dir_focus = f'{dir_in}/{fp}_{trial_similarity}'
     fp_focus = f'{dir_focus}/{sn}_{ROI_focus}.npy'
@@ -276,6 +274,7 @@ def do_regr_ISPC_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
 
     ERS_dif, var_explained = get_ERS_scores(ISPC_focus)
     return ERS_dif, var_explained
+
 
 def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
                      easy_override=False):
@@ -343,8 +342,9 @@ def send_to_specific(kwargs, RSA, ISPC=False, ERS_alt=False,
 
     return np.nanmean(scores), np.nanmean(r_sqs)
 
+
 def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=True,
-               skip_sns_bonus=None):
+                skip_sns_bonus=None):
     z_l = []
     r_sqs = []
     sns = get_sns('all')['healthy']
@@ -353,7 +353,6 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=True,
     sns = [sn for sn in sns if sn not in bad_sns]
     # bad_tups = {('132', 'obj7_fMRI'), ('138', 'vis7_fMRI'),
     #             ('224', 'obj7_fMRI'), ('234', 'obj7_fMRI')}
-
 
     for sn in sns:
         if skip_sns_bonus and sn in skip_sns_bonus:
@@ -379,18 +378,19 @@ def run_all_sn_(kwargs, RSA, ISPC, ERS_alt, easy_override=True,
     M_r_sq = np.nanmean(np.array(r_sqs))
     focus = kwargs['ROI_focus']
     ctrl = kwargs['ROIs_ctrl']
-    print(f't[{len(z_l)-1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
+    print(f't[{len(z_l) - 1}]={t:.3f}, {p=:.3f} | {M_r_sq=:.5%} '
           f': {focus=}, {ctrl=}')
     if len(z_l) != 60:
-
         warnings.warn(f'Bad length ({len(z_l)=}: {kwargs=}')
     return t, np.nanmean(np.array(r_sqs))
+
 
 def run_all_sn(kwargs, RSA, ISPC=False, ERS_alt=False,
                easy_override=False, skip_sns_bonus=None):
     kw_outer = locals().copy()
     return pickle_wrap(run_all_sn_, kwargs=kw_outer,
                        easy_override=easy_override)
+
 
 def get_title(RSA, ISPC, kwargs, fontsize):
     if 'PFC_ACC' in kwargs['ROI_focus']:
@@ -437,7 +437,7 @@ def get_title(RSA, ISPC, kwargs, fontsize):
 
 def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
                       plot=True,
-                      ctrl_large_strict=True, # control mega-ROI with separate ROI
+                      ctrl_large_strict=True,  # control mega-ROI with separate ROI
                       ctrl_large_w_avg=False,
                       ctrl_large_strict_and_avg=True,
 
@@ -491,7 +491,6 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
     # t_large_all_strict, _ = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
     #                                    easy_override=easy_override)
 
-
     kwargs_['ROIs_ctrl'] = []
     t_large, r_sqs_large = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
                                       easy_override=easy_override)
@@ -507,14 +506,14 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
 
     kwargs_['ROIs_ctrl'] = [voxel_small_M]
     t_avg_all, r_sqs_bold_all = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                            easy_override=easy_override)
+                                           easy_override=easy_override)
 
     kwargs_['ROIs_ctrl'] = voxel_small_all
     t_avg_strict, _ = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                            easy_override=easy_override)
+                                 easy_override=easy_override)
     kwargs_['ROIs_ctrl'] = []
     t_avg, r_sqs_bold = run_all_sn(kwargs_, RSA, ISPC, ERS_alt,
-                                    easy_override=easy_override)
+                                   easy_override=easy_override)
 
     print('-')
     print(f'{t_ROIs=:.3f} ({r_sqs_ROIs:.4f})')
@@ -560,7 +559,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             fig = plt.figure(figsize=(4.2, 5))
             fig.subplots_adjust(bottom=0.18, left=0.24, right=0.85, top=0.85)
             bar_names = ['Small\nvoxel', 'Large\naverage', ]
-            colors = ['dodgerblue', 'crimson',]
+            colors = ['dodgerblue', 'crimson', ]
             # plt.bar(bar_names,
             #         [t_ROIs_dif, t_avg_dif],
             #         bottom=[t_ROIs_all, t_avg_all],
@@ -638,7 +637,7 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
             fig = plt.figure(figsize=(5.6, 5))
             fig.subplots_adjust(bottom=0.18, left=0.21, right=0.85, top=0.85)
             bar_names = ['Small\nvoxel', 'Large\nvoxel', 'Large\naverage', ]
-            colors = ['dodgerblue', 'orange', 'crimson',]
+            colors = ['dodgerblue', 'orange', 'crimson', ]
 
             plt.bar(bar_names,
                     [t_ROIs_dif, t_large_dif, t_avg_dif],
@@ -664,8 +663,8 @@ def plot_stacked_bars(kwargs, RSA, ISPC, ERS_alt, easy_override=False,
         if np.isnan(max_height):
             print('NaN max_height!')
             max_height = 0
-        plt.yticks(range(0, int(max_height*1.07) + 1,
-                         min(max(int(max_height*1.07) // 4, 1), 5)),
+        plt.yticks(range(0, int(max_height * 1.07) + 1,
+                         min(max(int(max_height * 1.07) // 4, 1), 5)),
                    fontsize=24)
         plt.ylim(0, max_height * 1.07)
         title_pad = ' ' * (len(title) // 10)
@@ -766,7 +765,7 @@ def do_regr():
     RSA = True
     semantic = False
     ERS_alt = False
-    trial_similarity = 'corr' # euc
+    trial_similarity = 'corr'  # euc
     # trial_similarity = 'euc' # euc
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -774,8 +773,7 @@ def do_regr():
     stdize_by_run = True if trial_similarity == 'euc' else False
     # stdize_by_run = False
 
-
-    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC'] # , 'subcort'
+    target_ROIs = ['Occipital', 'ITL', 'Parietal', 'PFC']  # , 'subcort'
     # target_ROIs = ['FPT', 'DMN', 'FP']
     target_ROIs = ['Ventral']
     target_ROIs = ['OrG', 'SFG', 'INS']
@@ -784,7 +782,6 @@ def do_regr():
     target_ROIs = ['ITG', 'FuG', 'PhG', 'OcG', 'Cun']
     target_ROIs = ['STG', 'MTG', 'EVC', 'LOC', 'ATL', 'IFG', 'MFG']
     # target_ROIs = ['Hipp', 'Tha', 'Amyg', 'Str']
-
 
     target_ROIs = get_atlas(combine_regions=True,
                             combine_bilateral=True)['tick_labels']
@@ -795,15 +792,13 @@ def do_regr():
     target_ROIs = ['cortical']
     target_ROIs = ['Temporal']
 
-
     ts_ROI, ts_BOLD, ts_conn = [], [], []
     for regress_row in [False]:
         for target_ROI in target_ROIs:
-
             regions = set(prep_networks(
                 network_setting=ROI2NETWORK[target_ROI])[target_ROI])
             ROIs_match = [ROI for region in regions
-                              for ROI in get_BNA_ROIs() if region in ROI]
+                          for ROI in get_BNA_ROIs() if region in ROI]
             ROI_lvl_control = [f'{ROI}_BOLD' for ROI in ROIs_match]
 
             kwargs = {'semantic': semantic, 'fp': None, 'fp0': None,
@@ -824,11 +819,11 @@ def do_regr():
             # quit()
 
             outer_kwargs = {'kwargs': kwargs, 'RSA': RSA, 'ISPC': ISPC,
-                           'ERS_alt': ERS_alt,
-                           'easy_override': easy_override,
-                           'plot': len(target_ROIs) < 10,
-                           'ctrl_large_strict': ctrl_strict,
-                           'ctrl_avg_strict': ctrl_strict}
+                            'ERS_alt': ERS_alt,
+                            'easy_override': easy_override,
+                            'plot': len(target_ROIs) < 10,
+                            'ctrl_large_strict': ctrl_strict,
+                            'ctrl_avg_strict': ctrl_strict}
 
             outer_kwargs['voxel_small_M'] = voxel_small_M
             outer_kwargs['voxel_small_all'] = ROI_lvl_control
@@ -869,8 +864,8 @@ def do_regr():
 
 
 import sys
+
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
     do_regr()
-

@@ -297,11 +297,13 @@ def plot_DistRep_bars(region='Occipital', big_voxelwise=True,
         plt.subplots_adjust(top=.95)
 
     if big_voxelwise:
-        plt.savefig(f'result_pics/DistRep_bars/{one_fp_str}'
-                    f'{no_stars_str}yellow_voxelwise_{region}.png', dpi=300)
+        fp = (f'result_pics/DistRep_bars/{one_fp_str}'
+              f'{no_stars_str}yellow_voxelwise_{region}.png')
     else:
-        plt.savefig(f'result_pics/DistRep_bars/{one_fp_str}'
-                    f'{no_stars_str}red_averages_{region}.png', dpi=300)
+        fp = (f'result_pics/DistRep_bars/{one_fp_str}'
+              f'{no_stars_str}red_averages_{region}.png')
+    print(f'Figure out: {fp=}')
+    plt.savefig(fp, dpi=300)
     plt.show()
 
 def do_three_way_itr(big_voxelwise=False):
@@ -364,6 +366,6 @@ if __name__ == '__main__':
     quit()
 
     # plot_DistRep_Fig3_bars()
-    plot_DistRep_Fig4_bars()
-    quit()
+    # plot_DistRep_Fig4_bars()
+    # quit()
     plot_FigureS1_bars()
