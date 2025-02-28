@@ -10,10 +10,10 @@ from connRSA.old_Oct29.conn_report import report_results
 from Utils.pickle_wrap_funcs import pickle_wrap
 
 ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
-               'PFC': 16, 'PFC_ACC': 14, #'FP': 14,
+               'PFC': 16, 'PFC_ACC': 14,  # 'FP': 14,
                'perceptual': 17,
                'full_frontal': 11, 'full_frontal_CG': 11, 'MTL': 9, 'MTL2': 20,
-               'subcort': 21 , 'INScc': 22, 'cingulate': 22, 'cortical': 23,
+               'subcort': 21, 'INScc': 22, 'cingulate': 22, 'cortical': 23,
                'IT': 24, 'ITL': 25, 'Parietal': 26, 'OC_IT': 27, 'OC_T': 27,
                'cortex': 28, 'FP': 29, 'DMN': 29, 'FPT': 29,
                'Temporal': 30,
@@ -27,7 +27,9 @@ ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'EVC': 19, 'LOC': 19, 'sOcG': 19, 'Amyg': 19, 'Hipp': 19,
                     'Str': 19, 'Tha': 19}
 ROI2NETWORK.update(ROI2network_anat)
-
+ROI2network_anat_lr = {f'{k}_L': 34 for k, v in ROI2network_anat.items()} | \
+                      {f'{k}_R': 34 for k, v in ROI2network_anat.items()}
+ROI2NETWORK.update(ROI2network_anat_lr)
 
 def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
                     conn='euc', trial_similarity='euc',
@@ -59,18 +61,17 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
         # settings['RDM_method'] = 'clever_std'
         settings['RDM_method'] = 'within_nan'
 
-
     settings['conn'] = 'BOLD'
     # print(f'BOLD ' * 10)
     # print(RSA)
     results_bold_comb = pickle_wrap(run_settings, None,
-                                   kwargs=settings, easy_override=False,
-                                   verbose=1, cache_dir=dir_results,
-                                   dt_max=dt_max)
+                                    kwargs=settings, easy_override=False,
+                                    verbose=1, cache_dir=dir_results,
+                                    dt_max=dt_max)
     report_results(results_bold_comb, do_lmer=False)
     # quit()
 
-    if settings['do_networks'] != 19: # this is covered by combine one below
+    if settings['do_networks'] != 19:  # this is covered by combine one below
         print(f'COMBINE BIG ' * 10)
         settings['combine_regions'] = True
         results_bold_cmb_big = pickle_wrap(run_settings, None,
@@ -79,7 +80,7 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
                                            dt_max=dt_max)
         report_results(results_bold_cmb_big, do_lmer=False)
 
-    if settings['do_networks'] != 19: # this is covered by combine one below
+    if settings['do_networks'] != 19:  # this is covered by combine one below
         settings['conn'] = 'BOLD_ctrl'
         print(f'COMBINE BIG BOLD ctrl' * 10)
         settings['combine_regions'] = True
@@ -106,7 +107,6 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
     # print(settings)
     # quit()
 
-
     settings['do_networks'] = False
     settings['combine_regions'] = True
     print(f'COMBINE ' * 10)
@@ -116,14 +116,13 @@ def DistRep_ROI_RSA(RSA=True, semantic=False, do_networks=False,
                                        verbose=1, cache_dir=dir_results)
     report_results(results_bold_sep_big, do_lmer=False)
 
-
     print(f'BOLD SUB MEAN ' * 10)
     settings['conn'] = 'BOLD_ctrl'
     settings['combine_regions'] = True
 
     results_bold_sep_big_sub_mean = pickle_wrap(run_settings, None,
-                                       kwargs=settings, easy_override=True,
-                                       verbose=1, cache_dir=dir_results)
+                                                kwargs=settings, easy_override=True,
+                                                verbose=1, cache_dir=dir_results)
     report_results(results_bold_sep_big, do_lmer=False)
 
     # return (results_conn, results_bold_comb, results_bold_sep_big,
@@ -169,8 +168,9 @@ if __name__ == '__main__':
     # targets = ['tha_str']
     targets = ['PFC_no_OFC']
     targets = ['tha_str']
+    targets = ['LPFC']
+    targets = ['SFG_L']
     for sem_per in [True, False]:
-        for target in targets:#[::-1]:
+        for target in targets:  # [::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,
                                 RSA=True)
-

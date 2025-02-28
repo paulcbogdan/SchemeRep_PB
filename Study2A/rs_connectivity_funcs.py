@@ -71,9 +71,9 @@ def get_df_networks(zscore=False, anat_ver=3, add_hemi=True,
     # quit()
 
     key2conn = {}
-    # network2p = pickle_wrap(get_network_partitions) # FPCN, DMN, etc. I think
-    # for network, p in network2p.items():
-    #     key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
+    network2p = pickle_wrap(get_network_partitions) # FPCN, DMN, etc. I think
+    for network, p in network2p.items():
+        key2conn[network] = get_module_trialwise_z(conn_trials[:, None], p)
 
     networks = list(key2conn)
     p_dorsal, p_ventral, p_d_ant, p_d_pos, p_v_ant, p_v_pos, matrix_mask = \

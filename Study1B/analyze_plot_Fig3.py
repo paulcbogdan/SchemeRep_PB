@@ -369,9 +369,6 @@ def get_PE_x_Conn_effect(conn, combine_regions=False, combine_bilateral=False,
         p_v_pos = np.array(p_v_pos[::2]) // 2
 
     dd = conn[:, *np.ix_(p_d_pos, p_d_ant)]
-    # print(p_d_pos)
-    # # print(conn)
-    # quit()
     dd = np.nanmean(dd, axis=(1, 2))
     vv = conn[:, *np.ix_(p_v_pos, p_v_ant)]
     vv = np.nanmean(vv, axis=(1, 2))

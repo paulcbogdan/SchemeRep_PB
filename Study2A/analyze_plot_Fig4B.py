@@ -19,6 +19,16 @@ from tqdm import tqdm
 
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+def contrast_with_typical_networks(anat_version=3, schaefer=False,
+                                   HCP=False):
+    df, _ = pickle_wrap(get_df_networks, kwargs={'anat_ver': anat_version,
+                                                 'schaefer': schaefer,
+                                                 'HCP': HCP,
+                                                 'combine_regions': True if HCP else False,
+                                                 },
+                        easy_override=False)
+
+
 
 def plot_Fig4B(anat_version=3, schaefer=True, HCP=False):
     if isinstance(schaefer, bool) and schaefer:
@@ -159,4 +169,5 @@ if __name__ == '__main__':
     pd.options.display.float_format = '{:.2f}'.format
 
     # plot_Fig4B(schaefer=False)
-    plot_Fig4B()
+    # plot_Fig4B()
+    contrast_with_typical_networks()

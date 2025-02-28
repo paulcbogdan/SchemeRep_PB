@@ -1,3 +1,6 @@
+from Utils.atlas_funcs import get_atlas
+
+
 def prep_networks(network_setting=1):
     if not network_setting:
         return None
@@ -172,6 +175,9 @@ def prep_networks(network_setting=1):
         networks = {'tha_str': ['Tha', 'Str']}
     elif network_setting == 33:
         networks = {'PFC_no_OFC': ['IFG', 'MFG', 'SFG', 'ACC']}
+    elif network_setting == 34:
+        atlas = get_atlas(combine_regions=True, combine_bilateral=False)
+        networks = {ROI: [ROI] for ROI in atlas['ROIs']}
     elif network_setting == -1:
         networks = {}
 
@@ -183,3 +189,6 @@ def prep_networks(network_setting=1):
     else:
         raise ValueError(f'Unknown setting: {network_setting}')
     return networks
+
+if __name__ == '__main__':
+    print(prep_networks(34))

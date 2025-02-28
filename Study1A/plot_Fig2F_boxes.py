@@ -158,6 +158,10 @@ def plot_Fig2F_bars(df_agg, mean_norm=False, schaefer=False):
 
         formula = 'vals_std ~ inc_num*within_between + within_between*sn_str'
         df_set['vals_std'] = stats.zscore(df_set['vals'])
+        df_set['wb_num'] = stats.zscore(df_set['wb_num'])
+        # print(df_set['wb_num'].unique())
+        # quit()
+        df_set['inc_num'] = stats.zscore(df_set['inc_num'])
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()
         print(res.summary())

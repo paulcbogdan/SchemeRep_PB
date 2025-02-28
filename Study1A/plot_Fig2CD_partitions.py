@@ -18,6 +18,7 @@ import numpy as np
 
 from Utils.atlas_funcs import get_atlas
 from Utils.pickle_wrap_funcs import pickle_wrap
+from functools import cache
 
 np.random.seed(0) # to make the Louvain/Leiden (non-deterministic) output always the same
 
@@ -134,7 +135,7 @@ def get_VD_PA_partitions_(sn_inc_conn, age2idxs, age: int | str = 'healthy',
 
     return partitions, matrix_mask
 
-
+@cache
 def get_VD_PA_partitions(sn_inc_conn=None, age2idxs=None,
                          age: int | str = 'healthy',
                          thr=.95, do_PA=True, anat=False,

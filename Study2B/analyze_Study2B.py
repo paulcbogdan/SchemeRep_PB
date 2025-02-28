@@ -624,8 +624,7 @@ def load_rs_HCP_BOLD(schaefer=False, combine_regions=False,
         sns = tuple(sns[::5])
         sn_roi_act = get_sns_roi_ar_std(tuple(sns), **kw)
         sn_roi_act = sn_roi_act[:, :, :40]
-    # print(sn_roi_act.shape)
-    # quit()
+
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
     return sn_roi_act, sns, conn_trials

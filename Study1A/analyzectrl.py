@@ -75,6 +75,22 @@ def do_analyze_ctrl(schaefer=False):
 
     sn_inc_activity_std = stats.zscore(sn_inc_activity, axis=3, nan_policy='omit')
 
+    # print(sn_inc_activity.shape)
+    # quit()
+
+    pd_act = sn_inc_activity[..., p_d_pos, :]
+    pv_act = sn_inc_activity[..., p_v_pos, :]
+    ad_act = sn_inc_activity[..., p_d_ant, :]
+    av_act = sn_inc_activity[..., p_v_ant, :]
+    pd_act = np.nanmean(pd_act, axis=(2, 3))
+    pd_act = np.reshape(pd_act.T, -1)
+    pv_act = np.nanmean(pv_act, axis=(2, 3))
+    pv_act = np.reshape(pv_act.T, -1)
+    ad_act = np.nanmean(ad_act, axis=(2, 3))
+    ad_act = np.reshape(ad_act.T, -1)
+    av_act = np.nanmean(av_act, axis=(2, 3))
+    av_act = np.reshape(av_act.T, -1)
+
     conn_trials = sn_inc_activity_std[..., None, :] * \
                   sn_inc_activity_std[..., None, :, :]
     conn_trials = np.repeat(matrix_mask[None, None, ..., None],
@@ -101,11 +117,6 @@ def do_analyze_ctrl(schaefer=False):
     subj_nums = []
     vals = []
 
-    keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos',
-            'dv_cross', 'vd_cross']
-    data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos,
-            dv_cross, vd_cross]
-    print(agg_within.shape)
     # print(agg_within)
     # print(np.reshape(agg_within.T, -1))
     #
@@ -117,15 +128,19 @@ def do_analyze_ctrl(schaefer=False):
     # d = {'vals': vals, 'inc': incs, 'within_between': wbs,
     #      'age': ages, 'sn': subj_nums}
     #
-    # for key, flat in zip(keys, data):
-    #     wbs += [key] * (3 * n_sn)
+    # for key, flat in zip(keys, data):,,iillkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk,
+    #     wbs += [key] * (3 * n_sn
     #     # vals += list(flat.T.reshape(-1))
     #     vals = flat.T.reshape(-1)
 
     keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos',
-            'dv_cross', 'vd_cross']
+            'dv_cross', 'vd_cross',]
     data = [agg_within, agg_between, dd_flat, vv_flat, dv_ant, dv_pos,
             dv_cross, vd_cross]
+    pds = []
+    pvs = []
+    ads = []
+    avs = []
     for key, flat in zip(keys, data):
         # incs += ['Inc'] * n_sn + ['Neu'] * n_sn + ['Con'] * n_sn
         incs += [-1] * n_sn + [0] * n_sn + [1] * n_sn
@@ -133,15 +148,24 @@ def do_analyze_ctrl(schaefer=False):
         wbs += [key] * (3 * n_sn)
         subj_nums += list(range(n_sn)) * 3
         vals += list(flat.T.reshape(-1))
+        pds += list(pd_act)
+        pvs += list(pv_act)
+        ads += list(ad_act)
+        avs += list(av_act)
 
     d = {'vals': vals, 'inc': incs, 'within_between': wbs,
-         'age': ages, 'sn': subj_nums}
+         'age': ages, 'sn': subj_nums,
+         'pd': pds, 'pv': pvs, 'ad': ads, 'av': avs}
 
     df_agg = pd.DataFrame(d)
     df_agg['sn'] = df_agg['sn'].astype(str)
+    df_agg['vals'] = stats.zscore(df_agg['vals'])
+    df_agg['inc'] = stats.zscore(df_agg['inc'])
 
     df_agg = df_agg[df_agg['within_between'].isin({'Within', 'Between'})]
-    formula = 'vals ~ 1 + within_between * sn + within_between * inc'
+    formula = 'vals ~ 1 + within_between * sn + within_between * inc + pd + pv + ad + av'
+    # formula = 'vals ~ 1 + within_between * sn + within_between * inc'
+
     model = smf.ols(formula=formula, data=df_agg)
     res = model.fit()
     print(res.summary())

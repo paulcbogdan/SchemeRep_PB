@@ -159,16 +159,12 @@ def run_one_semantic(semantic, fps_do, ALL_RESULTS, ALL_RESULTS_VALS, target_ROI
         t, vals = pickle_wrap(run_layer, kwargs=kw,
                               verbose=1, easy_override=False,
                               dir_branches=100, )
-        print(f'{list(vals)=}')
-        print(f'{target_ROIs=}')
-        print(f'{fps_do=}')
-        quit()
 
         ALL_RESULTS[(target_ROI, llama_cat, obj_scn)].append(t)
         ALL_RESULTS_VALS[(target_ROI, llama_cat, obj_scn)].append(vals)
 
 
-def run_layers_static(obj_scn=True, attn=False, normalize=True,
+def run_layers_static(obj_scn=True, attn=True, normalize=True,
                       activation_model='3b'):
     if 'Mist' in activation_model:
         activation_model = r'mistralai/Mistral-7b-v0.3'
@@ -220,8 +216,8 @@ def run_layers_static(obj_scn=True, attn=False, normalize=True,
     # fps_do = ['con7_fMRI']
 
     for semantic in semantic_l:
-        semantic = (semantic[0], semantic[1], 8, semantic[3],
-                    semantic[4], semantic[5])
+        # semantic = (semantic[0], semantic[1], 8, semantic[3],
+        #             semantic[4], semantic[5])
         try:
             if 'bury' in semantic[4]: # Can't do first layer
                 if semantic[2] == 0:

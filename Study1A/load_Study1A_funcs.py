@@ -53,7 +53,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
 
         for sn in sns:
             print(f'Prepping FC: {sn=} (idx: {sn_idx})')
-            df_sn = get_trial_info(sn, easy_override=False, ret=False)
+            df_sn = get_trial_info(sn, easy_override=False, ret=True)
             if do_sort:
                 sess = fp.split('_')[0].replace('2', '').replace('3', ''). \
                     replace('4', '').replace('7', '')
@@ -210,6 +210,7 @@ def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
     try:
+        # print(df_sn.columns)
         img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
     except TypeError as e:
         sn = df_sn['sn'].values[0]
