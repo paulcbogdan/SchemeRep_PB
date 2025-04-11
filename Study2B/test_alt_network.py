@@ -1,4 +1,5 @@
 from functools import cache
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,7 +100,7 @@ def get_alt_network_ef(combine_regions=False, bilateral=False, corr_z=False,
 
 
 def test_fluc_mag_networks(lr='LR', combine_regions=True,
-                           num_sns=1000):
+                           num_sns=100):
     kw = {'lr': lr, 'combine_regions': combine_regions,
           'bilateral': False, 'reg_global': False,
           'no_compcor': False, 'rs': True}
@@ -112,19 +113,19 @@ def test_fluc_mag_networks(lr='LR', combine_regions=True,
     if combine_regions:
         sns = tuple(sns)
         sn_roi_act = get_sns_roi_ar_std(tuple(sns), **kw)
-        sn_roi_act = sn_roi_act[:, :, :120]
+        sn_roi_act = sn_roi_act[:, :, :80]
     else:
         # sns = tuple(sns[::5])
         sn_roi_act = get_sns_roi_ar_std(tuple(sns), **kw)
-        sn_roi_act = sn_roi_act[:, :, :120]
+        sn_roi_act = sn_roi_act[:, :, :80]
 
     conn_trials = sn_roi_act[..., None, :] * \
                   sn_roi_act[..., None, :, :]
     # print(conn_trials.shape)
+    # quit()
     conn_trials = stats.zscore(conn_trials, axis=(1, 2))
     conn_trials = stats.zscore(conn_trials, axis=-1)
 
-    # 'VD', 'PA',
     networks = ['vv', 'dd', 'vd_ant', 'vd_pos',
                 'FPCN', 'VAN', 'DMN', 'DAN',
                 'Limbic', 'SM', 'Visual']
@@ -135,14 +136,14 @@ def test_fluc_mag_networks(lr='LR', combine_regions=True,
     for i, network0 in enumerate(networks):
         for j, network1 in enumerate(networks):
             if i >= j: continue
-            both_in = network0 in VD_PA_networks and network1 in VD_PA_networks
-            both_out = network0 not in VD_PA_networks and network1 not in VD_PA_networks
-            if not (both_in or both_out):
-                continue
-            if network0 in ['vv', 'dd'] and network1 in ['vv', 'dd']:
-                continue
-            if network0 in ['vd_ant', 'vd_pos'] and network1 in ['vd_ant', 'vd_pos']:
-                continue
+            # both_in = network0 in VD_PA_networks and network1 in VD_PA_networks
+            # both_out = network0 not in VD_PA_networks and network1 not in VD_PA_networks
+            # if not (both_in or both_out):
+            #     continue
+            # if network0 in ['vv', 'dd'] and network1 in ['vv', 'dd']:
+            #     continue
+            # if network0 in ['vd_ant', 'vd_pos'] and network1 in ['vd_ant', 'vd_pos']:
+            #     continue
 
             # if network0 == 'VD':
             #     network0a = 'vd_ant'
@@ -307,7 +308,17 @@ if __name__ == '__main__':
     #     idxs = get_yeo_idxs(network, combine_regions=True)
     #     print(f'{network=}, {len(idxs)=}')
 
-    test_fluc_mag_networks()
-    # get_bna2yeo()
+    # test_fluc_mag_networks()
+    d = get_bna2yeo(combine_regions=False)
+    cnt = defaultdict(int)
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False)
+
+    for key, val in d.items():
+        cnt[val] += 1
+        roi = atlas['ROIs'][key]
+        print(f'f{key} | {val} | {roi}')
+    print(cnt)
+
+
     # quit()
     # get_alt_network_ef()

@@ -176,7 +176,8 @@ def study1b_BOLD_x_RS(combine_regions=False, only='win',
               np.sqrt(ROI_efs_all.shape[0]))
 
 
-def plot_study1b_BOLD(combine_regions=True, only='combo'):
+def plot_study1b_BOLD(combine_regions=False, only='combo',
+                      combine_bilateral=True):
     sns = get_final_HCP_sns()
     # sns = sns[:10]
     # sns = sns[:750]
@@ -187,8 +188,12 @@ def plot_study1b_BOLD(combine_regions=True, only='combo'):
         ROI_efs = get_BOLD_ef(sn, combine_regions=combine_regions,
                               only=only, drop_first=True
                               )
-
+        if combine_bilateral:
+            ROI_efs = ROI_efs[::2] + ROI_efs[1::2]
         ROI_efs_all.append(ROI_efs)
+        # ROI_efs_all.append(ROI_efs)
+        # print(ROI_efs.shape)
+        # quit()
         # print(len(ROI_efs))
         # quit()
     ROI_efs_all = np.array(ROI_efs_all)
@@ -197,8 +202,11 @@ def plot_study1b_BOLD(combine_regions=True, only='combo'):
               np.sqrt(ROI_efs_all.shape[0]))
 
     atlas = get_atlas(combine_regions=combine_regions)
+    ROIs = atlas['ROIs']
+    if combine_bilateral:
+        ROIs = ROIs[::2]
 
-    for i, ROI in enumerate(atlas['ROIs']):
+    for i, ROI in enumerate(ROIs):
         efs = ROI_efs_all[:, i]
         # efs = np.nanmean(efs, axis=1)
         t, p = stats.ttest_1samp(efs, 0)

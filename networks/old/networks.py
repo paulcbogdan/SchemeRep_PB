@@ -178,6 +178,9 @@ def prep_networks(network_setting=1):
     elif network_setting == 34:
         atlas = get_atlas(combine_regions=True, combine_bilateral=False)
         networks = {ROI: [ROI] for ROI in atlas['ROIs']}
+    elif network_setting == 35:
+        networks = {'mOFC': ['OrG_L_6_1', 'OrG_R_6_1', 'OrG_L_6_4', 'OrG_R_6_4', 'OrG_L_6_5', 'OrG_R_6_5',],
+                    'lOFC': ['OrG_L_6_2', 'OrG_R_6_2', 'OrG_L_6_3', 'OrG_R_6_3', 'OrG_L_6_6', 'OrG_R_6_6',]}
     elif network_setting == -1:
         networks = {}
 
@@ -191,4 +194,10 @@ def prep_networks(network_setting=1):
     return networks
 
 if __name__ == '__main__':
+    atlas = get_atlas(combine_regions=False, combine_bilateral=False)
+    print(atlas['ROIs'])
+    # networks = {ROI: [ROI] for ROI in atlas['ROIs']}
+    quit()
+
+
     print(prep_networks(34))

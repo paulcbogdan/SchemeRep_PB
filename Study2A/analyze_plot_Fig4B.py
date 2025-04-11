@@ -168,6 +168,6 @@ if __name__ == '__main__':
     pd.set_option('display.precision', 2)
     pd.options.display.float_format = '{:.2f}'.format
 
-    # plot_Fig4B(schaefer=False)
-    # plot_Fig4B()
-    contrast_with_typical_networks()
+    plot_Fig4B(schaefer=False)
+    plot_Fig4B(schaefer=True)
+    # contrast_with_typical_networks()

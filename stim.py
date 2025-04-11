@@ -213,16 +213,6 @@ def get_DNN_vecs_(PCA=False, DNN_layer=2, PCA_obj=False,
                     transforms.Resize((224, 224)),
                     ])
 
-    # data_transforms = transforms.Compose([
-    #     transforms.ToTensor(),
-    #     # transforms.Resize((224, 224)),
-    #     transforms.Resize(256),
-    #     transforms.CenterCrop(224),
-    #     # transforms.ToTensor(),
-    #     transforms.Normalize(mean=[0.485, 0.456, 0.406],
-    #                          std=[0.229, 0.224, 0.225])
-    # ])
-
     names, fps = get_img_fns()
     img_vecs = []
     scn_vecs = []

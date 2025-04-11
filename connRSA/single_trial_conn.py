@@ -128,6 +128,8 @@ def prep_fps(four_tasks):
 
     elif four_tasks == '8':
         fps = ['bl8_fMRI', 'obj8_fMRI', 'con8_fMRI', 'vis8_fMRI']
+    elif four_tasks == 'scn':
+        fps = ['scn7_fMRI']
     else:
         raise NotImplementedError
     return fps
@@ -206,12 +208,20 @@ def  run_settings(RSA=True, semantic=False, do_networks=False,
                           )
                           # shenyang='_sh' in atlas)
     fps = prep_fps(four_tasks)
-    age2sn = get_sns('all', sh=False)
-    sns = age2sn[age]
+    if age == 3:
+        sns = [str(x) for x in range(301, 317)]
+        sns = [sn for sn in sns if sn not in ['307', '314']]
+        fps = ['obj7_fMRI', 'bl7_fMRI']
+    else:
+        age2sn = get_sns('all', sh=False)
+        sns = age2sn[age]
     # sns = ['126']
 
     # sns = sns[4::5]
     # print(RSA)
+    # quit()
+
+    # print(four_tasks)
     # quit()
 
     if isinstance(do_networks, str):

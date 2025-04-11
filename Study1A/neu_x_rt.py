@@ -41,9 +41,16 @@ def simple_rt_comparison(target='inc'):
     age2sn = get_sns('obj7_fMRI', sh=False)
     sns = age2sn['healthy']
     inc2rt = {1: [], 2: [], 3: [], 4: []}
+    prop_correct = []
     for sn in sns:
         df_sn = get_trial_info(sn, ret=False)
         if target == 'inc':
+            inc1 = df_sn[df_sn['inc'] == 1]
+            inc1_correct = (inc1['per_inc'] == 1).mean()
+            inc3 = df_sn[df_sn['inc'] == 3]
+            inc3_correct = (inc3['per_inc'] == 4).mean()
+            prop_correct.append((inc1_correct + inc3_correct) / 2)
+
             df_sn = df_sn[((df_sn['inc'] <= 2) & (df_sn['per_inc'] == 1)) |
                           ((df_sn['inc'] >= 2) & (df_sn['per_inc'] == 4)) |
                           ((df_sn['inc'] == 2))]
@@ -52,11 +59,23 @@ def simple_rt_comparison(target='inc'):
         for i, val in df_grp.to_dict().items():
             inc2rt[int(i)].append(val)
 
+    # print(f'{np.mean(prop_correct)=:.3f}')
+    # quit()
+
     for i, l in inc2rt.items():
         print(f'{i}: {len(l)=}')
 
     keys = [i for i, l in inc2rt.items() if len(l) > 0]
     if len(keys) == 3:
+        M1 = np.nanmean(inc2rt[1])
+        SE1 = np.nanstd(inc2rt[1], ddof=1)# / np.sqrt(len(inc2rt[1]))
+        M2 = np.nanmean(inc2rt[2])
+        SE2 = np.nanstd(inc2rt[2], ddof=1)# / np.sqrt(len(inc2rt[2]))
+        M3 = np.nanmean(inc2rt[3])
+        SE3 = np.nanstd(inc2rt[3], ddof=1)# / np.sqrt(len(inc2rt[3]))
+        print(f'{M1=:.3f}, {SE1=:.3f}')
+        print(f'{M2=:.3f}, {SE2=:.3f}')
+        print(f'{M3=:.3f}, {SE3=:.3f}')
         t12, p12 = stats.ttest_rel(inc2rt[1], inc2rt[2], nan_policy='omit')
         d = t12 / np.sqrt(len(inc2rt[1]))
         print(f'Inc vs. Neu: {t12=:.3f}, {p12=:.3f}, {d=:.3f}')

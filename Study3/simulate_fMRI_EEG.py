@@ -138,7 +138,9 @@ def plot_EEG_x_fMRI():
     plt.sca(axs[1, 2])
     plt.title(f'|PA - VD| difference')
     ds = np.abs(VD_ - PA_)
-    plt.scatter(ts_, ds, linewidth=0.5, color='purple')
+    # plt.scatter(ts_, ds, linewidth=0.5, color='purple')
+    plt.plot(ts_, ds, linewidth=1.5, color='purple', marker='o')
+
     plt.ylim(0, 0.33)
     plt.yticks([0, 0.1, 0.2, 0.3])
     setup_x(time)
@@ -158,7 +160,10 @@ def plot_EEG_x_fMRI():
     plt.plot(ts[true_resolution * 2:], tfr1[true_resolution * 2:],
              linewidth=0.5, color='limegreen')
     tfr1_ = tfr1.reshape(-1, true_bins_TR).mean(axis=1)
-    plt.scatter(ts_[1:], tfr1_[1:], color='darkgreen', alpha=.9, zorder=2)
+    # plt.scatter(ts_[1:], tfr1_[1:], color='darkgreen', alpha=.9, zorder=2)
+    plt.plot(ts_[1:], tfr1_[1:], color='darkgreen', alpha=.9, zorder=2,
+             marker='o', linewidth=1)
+
     plt.ylim(0, np.max(tfr1) * 1.05)
     setup_x(time)
     r, p = stats.pearsonr(tfr1_, ds)
@@ -169,7 +174,10 @@ def plot_EEG_x_fMRI():
     plt.title(f'{freqs[1]} Hz power')
     plt.plot(ts, tfr2, linewidth=0.5, color='limegreen')
     tfr2_ = tfr2.reshape(-1, true_bins_TR).mean(axis=1)
-    plt.scatter(ts_, tfr2_, color='darkgreen', alpha=.9, zorder=2)
+    # plt.scatter(ts_, tfr2_, color='darkgreen', alpha=.9, zorder=2)
+    plt.plot(ts_, tfr2_, color='darkgreen', alpha=.9, zorder=2,
+             marker='o', linewidth=1)
+
     plt.ylim(0, np.max(tfr2) * 1.05)
     setup_x(time)
     r, p = stats.pearsonr(tfr2_, ds)
@@ -181,6 +189,9 @@ def plot_EEG_x_fMRI():
     plt.plot(ts, tfr3, linewidth=0.5, color='limegreen')
     tfr3_ = tfr3.reshape(-1, true_bins_TR).mean(axis=1)
     plt.scatter(ts_, tfr3_, color='darkgreen', alpha=.9, zorder=2)
+    plt.plot(ts_, tfr3_, color='darkgreen', alpha=.9, zorder=2,
+             marker='o', linewidth=1)
+
     plt.ylim(0, np.max(tfr3) * 1.05)
     setup_x(time)
     r, p = stats.pearsonr(tfr3_, ds)
@@ -197,8 +208,8 @@ def plot_EEG_x_fMRI():
            axs[1, 0], axs[1, 1], axs[1, 2],
            axs[2, 0], axs[2, 1], axs[2, 2]]
 
-    # labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
-    labels = ['(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)', '(K)']
+    labels = ['(A)', '(B)', '(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)']
+    # labels = ['(C)', '(D)', '(E)', '(F)', '(G)', '(H)', '(I)', '(J)', '(K)']
     from matplotlib.transforms import ScaledTranslation
 
     for ax, label in zip(axs, labels):

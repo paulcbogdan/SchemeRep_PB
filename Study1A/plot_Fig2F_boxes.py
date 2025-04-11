@@ -42,6 +42,25 @@ def prep_plot_Fig2F_bars(schaefer=False):
         pickle_wrap(load_FC, None, kwargs=kwargs,
                     easy_override=False, verbose=1, cache_dir='cache')
 
+    sn2cond2rt = {}
+    inc_rts = []
+    neu_rts = []
+    con_rts = []
+    for df_sn in df_sns:
+        sn = df_sn['sn'].iloc[0]
+        sn2cond2rt[sn] = {}
+        for cond in [1, 2, 3]:
+            df_cond = df_sn[df_sn['inc'] == cond]
+            rt = df_cond['inc_rt'].mean()
+            sn2cond2rt[sn][cond] = rt
+            if cond == 1:
+                inc_rts.append(rt)
+            elif cond == 2:
+                neu_rts.append(rt)
+            elif cond == 3:
+                con_rts.append(rt)
+
+
     if schaefer:
         schaefer = (schaefer, 400)
     else:
@@ -77,6 +96,7 @@ def prep_plot_Fig2F_bars(schaefer=False):
     wbs = []
     subj_nums = []
     vals = []
+    rts = []
 
     keys = ['Within', 'Between', 'dd', 'vv', 'dv_ant', 'dv_pos',
             'dv_cross', 'vd_cross']
@@ -88,15 +108,16 @@ def prep_plot_Fig2F_bars(schaefer=False):
         wbs += [key] * (3 * n_sn)
         subj_nums += list(range(n_sn)) * 3
         vals += list(flat.T.reshape(-1))
+        rts += inc_rts + neu_rts + con_rts
 
     d = {'vals': vals, 'inc': incs, 'within_between': wbs,
-         'age': ages, 'sn': subj_nums}
+         'age': ages, 'sn': subj_nums, 'rt': rts}
 
     df_agg = pd.DataFrame(d)
     plot_Fig2F_bars(df_agg, schaefer=schaefer)
 
 
-def plot_Fig2F_bars(df_agg, mean_norm=False, schaefer=False):
+def plot_Fig2F_bars(df_agg, mean_norm=False, schaefer=True):
     plot_params = {
         'y': 'vals',
         'x': 'inc',
@@ -156,11 +177,10 @@ def plot_Fig2F_bars(df_agg, mean_norm=False, schaefer=False):
 
         df_set['sn_str'] = df_set['sn'].astype(str)
 
-        formula = 'vals_std ~ inc_num*within_between + within_between*sn_str'
+        # within_between*sn_str +
+        formula = 'vals_std ~ inc_num*within_between + within_between*sn_str + rt'
         df_set['vals_std'] = stats.zscore(df_set['vals'])
         df_set['wb_num'] = stats.zscore(df_set['wb_num'])
-        # print(df_set['wb_num'].unique())
-        # quit()
         df_set['inc_num'] = stats.zscore(df_set['inc_num'])
         model = smf.ols(formula=formula, data=df_set)
         res = model.fit()

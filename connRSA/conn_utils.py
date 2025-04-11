@@ -1,16 +1,15 @@
+import warnings
 from collections import defaultdict
+from time import time
 
 import numpy as np
-
-from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
-from Study1A.load_Study1A_funcs import get_ROI_vecs
-from stim import scipy_dist
-from utils import tril_flat, stdize, pb_outer_euc, pb_outer
-from Utils.pickle_wrap_funcs import pickle_wrap
 import scipy.stats as stats
 
-import warnings
-from time import time
+from Study1A.load_Study1A_funcs import get_ROI_vecs
+from Utils.atlas_funcs import get_atlas, get_BNA_ROIs
+from Utils.pickle_wrap_funcs import pickle_wrap
+from stim import scipy_dist
+from utils import tril_flat, stdize, pb_outer_euc, pb_outer
 
 warnings.filterwarnings('ignore', message='Mean of empty slice')
 warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
@@ -18,7 +17,6 @@ warnings.filterwarnings('ignore', message='Degrees of freedom <= 0 for slice.')
 
 def corr_matrix_last_two_dim(ar, nans=True, euc_dist=False,
                              stdize=True):
-
     # Second-to-last dim should be your variable
     # Last dim should be a time series
     m = np.nanmean if nans else np.mean
@@ -67,6 +65,7 @@ def corr_last_dim(ar0, ar1, nans=True, euc_dist=False, stdize=True):
     rs = m(rs, axis=-1)
     return rs
 
+
 def get_conn_vecs(vecs, vecs1=None, conn='euc', stdize_by_run=False):
     vecs = stdize(vecs, axis=0, nans=True, stdize_by_run=stdize_by_run)
     if vecs1 is None:
@@ -79,11 +78,12 @@ def get_conn_vecs(vecs, vecs1=None, conn='euc', stdize_by_run=False):
         vecs = pb_outer_euc(vecs, vecs1, tril=not cross,
                             flat=cross, nan_diag=not cross)
     elif conn == 'prod':
-        vecs = pb_outer(vecs, vecs1,  tril=not cross,
-                            flat=cross, nan_diag=not cross)
+        vecs = pb_outer(vecs, vecs1, tril=not cross,
+                        flat=cross, nan_diag=not cross)
     else:
         raise ValueError(f'conn={conn} not recognized')
     return vecs
+
 
 def calculate_cross_region_vecs(ROI2vecs, networks, conn='euc'):
     ROI2vecs_new = {}
@@ -120,24 +120,23 @@ def calculate_cross_region_vecs(ROI2vecs, networks, conn='euc'):
 
 def cluster_regions(ROI2vecs, networks):
     ROI2vecs_new = {}
+
+    OrG_ROIs = ['OrG_L_6_1', 'OrG_R_6_1', 'OrG_L_6_2', 'OrG_R_6_2', 'OrG_L_6_3', 'OrG_R_6_3',
+                'OrG_L_6_4', 'OrG_R_6_4', 'OrG_L_6_5', 'OrG_R_6_5', 'OrG_L_6_6', 'OrG_R_6_6', ]
+    OrG_ROI2idx = {ROI: i for i, ROI in enumerate(OrG_ROIs)}
+
     for network, ROIs in networks.items():
-        # print(list(ROI2vecs))
-        # print(ROIs)
-        # quit()
-
-
         vecs_l = []
         for ROI in ROIs:
-            if ROI == 'ATL_L_7_3':
-                ROI_vec = ROI2vecs['ATL'][:, -2]
-                # print(ROI_vec.shape)
-                # quit()
+            if ROI in OrG_ROI2idx:
+                ROI_vec = ROI2vecs['OrG'][:, OrG_ROI2idx[ROI]]
                 vecs_l.append(ROI_vec[:, None])
-
+            elif ROI == 'ATL_L_7_3':
+                ROI_vec = ROI2vecs['ATL'][:, -2]
+                vecs_l.append(ROI_vec[:, None])
             elif ROI == 'ATL_R_7_3':
                 ROI_vec = ROI2vecs['ATL'][:, -1]
                 vecs_l.append(ROI_vec[:, None])
-
                 # vecs_l.append([ROI2vecs['ATL'][:, -2]])
             elif ROI in ROI2vecs:
                 vecs_l.append(ROI2vecs[ROI])
@@ -147,10 +146,14 @@ def cluster_regions(ROI2vecs, networks):
             else:
                 if ROI != 'CG':
                     warnings.warn(f'ROI={ROI} not found')
+
         vecs = np.concatenate(vecs_l, axis=1)
+        # print(vecs.shape)
+        # quit()
 
         ROI2vecs_new[network] = vecs
     return ROI2vecs_new
+
 
 def get_BOLD_ctrl(combine_regions, sn, fp0, df_sn, org_by_region,
                   easy_override):
@@ -177,6 +180,7 @@ def get_BOLD_ctrl(combine_regions, sn, fp0, df_sn, org_by_region,
     ROI2vecs0 = ROI2vecs0_
     return ROI2vecs0
 
+
 def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                       org_by_region=True, cross_region=False,
                       conn=None, combine_regions=False,
@@ -198,7 +202,6 @@ def get_ROI_vecs_wrap(sn, atlas, fp0, df_sn, fp1=None, networks=None,
                                  easy_override=easy_override,
                                  combine_regions=combine_regions,
                                  verbose=-1)
-
 
     if fp1 is not None:
         if conn == 'BOLD_ctrl':
@@ -263,8 +266,6 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         vecs0 = vecs0[:, :, ~nan_cols]
         vecs1 = vecs1[:, :, ~nan_cols]
 
-
-
         # plt.imshow(vecs0[0, ...], aspect='auto')
         # plt.show()
 
@@ -297,6 +298,7 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
     else:
         raise ValueError(f'{trial_similarity=} not supported')
     return RSM_fMRI
+
 
 def get_mean_conn_trialwise(ROIs_l, ROI2vecs, conn='euc'):
     conn_trialwise = np.full((len(ROIs_l), len(ROIs_l), 114), np.nan)
@@ -331,6 +333,7 @@ def prep_for_ROI_analysis(ROI2vecs, PFC, PFC2):
         else:
             ROI2vecs_M[ROI] = np.nanmean(vecs, axis=1)
     return ROI2vecs_M
+
 
 def prep_for_pairwise(ROI2vecs, atlas):
     region2vecs = defaultdict(list)
@@ -377,14 +380,13 @@ def mask_img(img, ROIs, blocks=False):
         return img
 
     atlas_mask = pickle_wrap(get_atlas_mask, RAM_cache=True, easy_override=True)
-    img[~atlas_mask] = np.nan # Needed to basically get only ROIs and no non-ROI
+    img[~atlas_mask] = np.nan  # Needed to basically get only ROIs and no non-ROI
     if ROIs is None:
         print(f'\tTime needed to atlas mask: {time() - t_st=:.2f}')
         return img
 
-
     ROIs_mask = pickle_wrap(get_ROI_mask, kwargs={'ROIs': ROIs},
-                               RAM_cache=True, easy_override=True)
+                            RAM_cache=True, easy_override=True)
 
     img[~ROIs_mask, :] = np.nan
     # print(f'\tTime needed to mask ROIs: {time() - t_st=:.2f}')
@@ -396,10 +398,12 @@ def mask_img(img, ROIs, blocks=False):
     # quit()
     return img
 
+
 def get_atlas_mask():
     atlas = get_atlas()
     atlas_data = atlas['maps'].get_fdata()
     return atlas_data != 0
+
 
 def get_ROI_mask(ROIs):
     t_st = time()

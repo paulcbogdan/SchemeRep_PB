@@ -24,7 +24,13 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
                           )
 
     # Some of this is related to using this code for other projects
-    age2sn = get_sns('all' if strict_sns else fp, sh=False)
+    if strict_sns == 'MCI':
+        sns = [str(x) for x in range(301, 317) if x not in [307, 314]]
+        age2sn = {3: sns}
+        ages = [3]
+    else:
+        ages = [1, 2]
+        age2sn = get_sns('all' if strict_sns else fp, sh=False)
 
     for age, sns in age2sn.items():
         print(f'{age=}, {len(sns)=}')
@@ -38,7 +44,7 @@ def load_FC(atlas_name='BNA', fp='obj7_fMRI', split=False, key='inc',
     Y = []
     grp_idxs = []
     df_sns = []
-    for i, age in enumerate([1, 2]):
+    for i, age in enumerate(ages):
         sns = age2sn[age]
         if combine_regions:
             # if combine_bilateral:
@@ -209,6 +215,13 @@ def get_ROI_vecs(sn, atlas, fp_fMRI_col, df_sn, nan_thresh=.25,
 def get_ROI_vecs_(df_sn, fp_fMRI_col, atlas,
                   nan_thresh=.25, org_by_region=False,
                   drop_nan_voxels=True):
+
+    # print(df_sn[fp_fMRI_col])
+    # print(fp_fMRI_col)
+    # quit()
+    # img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])
+    # print(good_idxs)
+    # quit()
     try:
         # print(df_sn.columns)
         img, good_idxs = utils.load_ni_w_nan_fps(df_sn[fp_fMRI_col])

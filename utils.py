@@ -237,7 +237,13 @@ def make_title_str(pre_str, key, age, DNN_layer, semantic,
 
 def load_ni_w_nan_fps(fps):
     nan_idxs = pd.isna(fps)
+    # print(nan_idxs)
+    # print(fps)
+    # quit()
     good_idxs = ~nan_idxs
+
+    # print(F'{fps=}')
+    # quit()
 
     # fps = fps.apply(lambda x: None if x is None else x.replace(r'fMRI_in', r'G:\fMRI_in'))
 
@@ -252,8 +258,12 @@ def load_ni_w_nan_fps(fps):
         # print(fps)
         fps_ = []
         for fp in fps:
-            fp_new = fr'C:\PycharmProjects\SchemeRep\{fp}'
-            fps_.append(fp_new)
+            if r"C:\PycharmProjects\SchemeRep" in fp:
+                fps_.append(fp)
+            else:
+                fp_new = fr'C:\PycharmProjects\SchemeRep\{fp}'
+                fps_.append(fp_new)
+
         fps = fps_
         img = image.load_img(fps).get_fdata()
     return img, good_idxs

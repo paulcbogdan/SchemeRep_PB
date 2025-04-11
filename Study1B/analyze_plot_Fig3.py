@@ -447,6 +447,7 @@ def get_wl_contrast_conn(kw, easy_override=False, get6=False):
 
 def run_Study1B_analysis(combine_regions=False, bilateral=False, corr_z=False,
                          sub_ROI_expected=False, schaefer=False):#(True, 400)):
+    schaefer = (True, 400)
     if isinstance(schaefer, tuple):
         combine_regions = (combine_regions, ('schaefer', schaefer[1]))
     elif schaefer:

@@ -19,7 +19,7 @@ ROI2NETWORK = {'Occipital': 1, 'Ventral': 1, 'Dorsal': 1, 'else_cortical': 2,
                'Temporal': 30,
                'PL': 31, 'LPFC': 31,
                'tha_str': 32,
-               'PFC_no_OFC': 33}
+               'PFC_no_OFC': 33, 'mOFC': 35}
 ROI2network_anat = {'SFG': 19, 'MFG': 19, 'IFG': 19, 'OrG': 19, 'PrG': 19,
                     'PCL': 19, 'ATL': 19, 'STG': 19, 'MTG': 19, 'ITG': 19,
                     'FuG': 19, 'PhG': 19, 'pSTS': 19, 'SPL': 19, 'IPL': 19,
@@ -142,6 +142,7 @@ def run_DistRep_ROI_RSA(semantic=True, target_ROI='ITL', RSA=False):
     split = False
     RDM_method = 'within_nan'
     age = 'healthy'
+    age = 3
     # stdize_by_run = False # True if trialc_similarity == 'euc' else False
     stdize_by_run = True if trial_similarity == 'euc' else False
 
@@ -162,15 +163,17 @@ if __name__ == '__main__':
     targets = ['Occipital', 'IT', 'ITL', 'Parietal', 'PFC', 'OC_IT',
                'SFG']
     # targets = ['OC', 'IT', 'OC_IT']
-    targets = ['OC_T', 'Occipital', 'IT', 'OC_IT']
-    targets = ['Ventral']
-    targets = ['Occipital', 'IT', 'ITL']
+    # targets = ['OC_T', 'Occipital', 'IT', 'OC_IT', 'ITL']
+    # targets = ['Ventral']
+    # targets = ['Occipital', 'IT', 'ITL']
+    # # targets = ['tha_str']
+    # targets = ['PFC_no_OFC']
     # targets = ['tha_str']
-    targets = ['PFC_no_OFC']
-    targets = ['tha_str']
-    targets = ['LPFC']
-    targets = ['SFG_L']
-    for sem_per in [True, False]:
+    # targets = ['LPFC']
+    # targets = ['SFG']
+    # targets = ['mOFC']
+    # targets = get_atlas(cr=True, lifu_labels=False)['ROIs']
+    for sem_per in [True]:
         for target in targets:  # [::-1]:
             run_DistRep_ROI_RSA(semantic=sem_per, target_ROI=target,
                                 RSA=True)
