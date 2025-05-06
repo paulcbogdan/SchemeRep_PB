@@ -34,11 +34,11 @@ def make_sparse(mat, n_high=10, axis=1):
 
 if __name__ == "__main__":
     print("--*" * 10 + "--")
-    n_features = 20
+    n_features = 100
     n_voxels = 1000
-    n_trials = 1_000
-    n_features_per_trial = 2
-    n_high = 5
+    n_trials = 4_000
+    n_features_per_trial = 50
+    n_high = 3
     null_R = True
     trial_features = make_trial_features(n_trials, n_features_per_trial, n_features)
     feature_voxels_L = make_feature_voxels(n_voxels, n_features)
@@ -48,6 +48,14 @@ if __name__ == "__main__":
     feature_voxels_R = make_feature_voxels(n_voxels, n_features)
     # feature_voxels_R = np.random.normal(0, 1, feature_voxels_R.shape)
     feature_voxels_R_sp = make_sparse(feature_voxels_R, n_high=n_high, axis=1)
+    # plt.imshow(feature_voxels_R_sp, aspect="auto", interpolation="none")
+    # plt.show()
+    # quit()
+
+    trial_features_noise = make_trial_features(
+        n_trials, n_features_per_trial, n_features
+    )
+
     # feature_voxels_R_sp = feature_voxels_R
 
     # feature_voxels_concat = np.concatenate(
@@ -57,17 +65,40 @@ if __name__ == "__main__":
     rsm_model = np.corrcoef(trial_features)
 
     vecs_L = np.dot(trial_features, feature_voxels_L_sp.T)
-    rsm_L = np.corrcoef(vecs_L)
+    # vecs_L += np.random.normal(0, 1, vecs_L.shape)
+    # vecs_L = stats.zscore(
+    #     vecs_L,
+    #     axis=0,
+    # )
+    # nan_cols = np.isnan(vecs_L).sum(axis=0) > 0
+    # vecs_L = vecs_L[:, ~nan_cols]
+    print(f"{vecs_L.shape=}")
+
+    rsm_L = np.corrcoef(stats.rankdata(vecs_L, axis=1))
     trils = np.tril_indices_from(rsm_L, k=-1)
     rsm_L_ = rsm_L[trils]
     rsm_model_ = rsm_model[trils]
     r, p = stats.spearmanr(rsm_model_, rsm_L_)
     print(f"Left: {r=:.3f}")
 
-    vecs_R = np.dot(trial_features, feature_voxels_R_sp.T)
-    if null_R:
-        np.random.shuffle(vecs_R)
-    rsm_R = np.corrcoef(vecs_R)
+    vecs_R = np.dot(trial_features_noise, feature_voxels_R_sp.T)
+    # vecs_R = stats.zscore(
+    #     vecs_R,
+    #     axis=0,
+    # )
+    # nan_cols = np.isnan(vecs_R).sum(axis=0) > 0
+    # vecs_R = vecs_R[:, ~nan_cols]
+    # print(f"{vecs_R.shape=}")
+    # quit()
+
+    # if null_R:
+    #     np.random.shuffle(vecs_R)
+    # vecs_R += np.random.normal(0, 1, vecs_R.shape)
+    # print(f"{vecs_R.shape=}")
+    # quit()
+    # vecs_R =
+    # print
+    rsm_R = np.corrcoef(stats.rankdata(vecs_R, axis=1))
     print(f"{rsm_R.shape=}")
     rsm_R_ = rsm_R[trils]
     r, p = stats.spearmanr(rsm_model_, rsm_R_)
