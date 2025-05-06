@@ -72,6 +72,8 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         if RDM_method == 'within_nan':
             RSM_focus = within_run_to_nan(RSM_focus)
 
+    print(f'{semantic=}')
+
     flat_focus = RSM_focus[np.tril_indices_from(RSM_focus, k=-1)]
     if isinstance(semantic, str) and semantic.lower() == 'glove':
         RSM_stim = get_sn_fp_glove_RSM(sn, fp)
@@ -83,8 +85,11 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, 0)
     elif (isinstance(semantic, tuple) and semantic[0] != 'llama' and
           semantic[0] != 'BERT'):
+        assert isinstance(semantic[0], bool)
         assert not semantic[0]
         RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, semantic[1])
+    elif isinstance(semantic, tuple) and isinstance(semantic[0], bool) and semantic[0] == False:
+        RSM_stim = get_sn_fp_stim_RSM(sn, fp, False, layer=semantic[1])
     elif isinstance(semantic, tuple) and semantic[0] == 'llama':
         RSM_stim = get_sn_fp_llama_RSM(sn, fp, semantic)
     elif isinstance(semantic, tuple) and semantic[0] == 'BERT':
@@ -96,6 +101,7 @@ def do_regr_RSA_sn(sn, ROI_focus, ROIs_ctrl, fp, trial_similarity,
         RSM_stim = get_sn_fp_BERT_RSM_l(sn, fp, semantic)
     else:
         raise ValueError
+    # print('teeest')
 
     flat_stim = RSM_stim[np.tril_indices_from(RSM_stim, k=-1)]
 

@@ -249,6 +249,10 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
     else:
         vecs1 = vecs[:, None, :]
     if trial_similarity == 'corr':
+        # print(vecs0.shape)
+        # quit()
+        # print(vecs0.shape)
+        # quit()
         vecs0 = stdize(vecs0, axis=2, nans=True)
         vecs1 = stdize(vecs1, axis=2, nans=True)
         RSM_fMRI = np.nanmean(vecs0 * vecs1, axis=-1)  # Pearson
@@ -285,9 +289,10 @@ def get_trial_x_trial(vecs, vecs1=None, trial_similarity='corr'):
         # print(vecs0)
         vecs0_r = stats.rankdata(vecs0, method='average', axis=-1,
                                  nan_policy='omit')
-        # print(vecs0_r)
         vecs1_r = stats.rankdata(vecs1, method='average', axis=-1,
                                  nan_policy='omit')
+        # print(vecs0_r.shape)
+        # quit()
         vecs0_r = stdize(vecs0_r, axis=2, nans=True)
         vecs1_r = stdize(vecs1_r, axis=2, nans=True)
         RSM_fMRI = np.nanmean(vecs0_r * vecs1_r, axis=-1)  # Spearman

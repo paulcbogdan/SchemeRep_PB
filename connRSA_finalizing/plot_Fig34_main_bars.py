@@ -93,7 +93,7 @@ def plot_scatter_overlay(cond2betas, big_voxelwise):
 
 def plot_DistRep_bars(region='Occipital', big_voxelwise=True,
                       get_betas=False, no_lines_stars=False,
-                      fp=None):
+                      fp=None, VGG_semantic=False):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -142,6 +142,10 @@ def plot_DistRep_bars(region='Occipital', big_voxelwise=True,
 
             for cond in conds:
                 kwargs['semantic'] = cond[0]
+                if VGG_semantic and cond[0]:
+                    kwargs['semantic'] = (False, -1)
+                # print(kwargs['semantic'])
+                # print(f'{kwargs["semantic"]=}')
                 if cond[1] == 'Local':
                     kwargs['ROI_focus'] = f'{region}_M_{trial_similarity}'
                     if big_voxelwise:
@@ -361,11 +365,11 @@ import sys
 sys.setrecursionlimit(10000)
 
 if __name__ == '__main__':
-    do_three_way_itr(big_voxelwise=True)
-    do_three_way_itr(big_voxelwise=False)
-    quit()
+    # do_three_way_itr(big_voxelwise=True)
+    # do_three_way_itr(big_voxelwise=False)
+    # quit()
 
-    # plot_DistRep_Fig3_bars()
+    plot_DistRep_Fig3_bars()
     # plot_DistRep_Fig4_bars()
     # quit()
-    plot_FigureS1_bars()
+    # plot_FigureS1_bars()

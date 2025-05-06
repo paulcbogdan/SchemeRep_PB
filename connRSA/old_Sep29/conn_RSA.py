@@ -16,11 +16,14 @@ import matplotlib.pyplot as plt
 def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
            conn='euc', trial_similarity='corr', second_order='spear',
            RDM_method='by_run', combine_regions=False,
-           stdize_by_run=False, semantic=False):
+           stdize_by_run=False, semantic=False, norm_vert=True):
     BOLD = 'BOLD' in conn
     cross_region = 'cross_' in conn
     if 'cross_' in conn:
         conn = conn.replace('cross_', '')
+
+    # print('test')
+    # quit()
 
     df_sn = get_trial_info(sn, easy_override=False, verbose=-1)
     sess = (fp.split('_')[0].replace('2', '').replace('3', '').replace('4', '').
@@ -105,13 +108,17 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         vecs_BOLD = vecs_BOLD[:, keeps]
         sizes.append(np.sum(keeps))
 
-        vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
-        if BOLD or cross_region:
-            vecs = stdize(vecs_BOLD, axis=0, nans=True,
-                          stdize_by_run=stdize_by_run)
-        else:
-            vecs = get_conn_vecs(vecs_BOLD, conn=conn,
-                                 stdize_by_run=stdize_by_run)
+        # print(vecs_BOLD)
+        if norm_vert:
+            vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
+
+        if norm_vert:
+            if BOLD or cross_region:
+                vecs = stdize(vecs_BOLD, axis=0, nans=True,
+                              stdize_by_run=stdize_by_run)
+            else:
+                vecs = get_conn_vecs(vecs_BOLD, conn=conn,
+                                     stdize_by_run=stdize_by_run)
 
         if 'avg' in conn:
             vecs = np.nanmean(vecs, axis=-1)[..., None]
@@ -128,6 +135,7 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
 
             else:
                 vecs = stdize(vecs, axis=1, nans=True)
+        # vecs = stdize(vecs, axis=0, nans=True)
 
 
         if RDM_method == 'by_run':
@@ -145,15 +153,12 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=False)
         elif RDM_method == 'within_nan':
-            # trial_similarity = 'corr'
             RSM_fMRI = get_trial_x_trial(vecs,
                                          trial_similarity=trial_similarity)
             z = RDM_x_RDM(RSM_fMRI, RSM_stim, corr=second_order,
                           within_to_nan=True)
         else:
             raise ValueError(f'{RDM_method=} not supported')
-
-
 
         scores.append(z)
 
@@ -167,14 +172,18 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
 
 
         cmb = '_cmb' if (combine_regions and BOLD) else ''
-        fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
-        fp_RSM = f'{dir_out}/{fn_RSM}'
-
-        # print(fp_RSM)
-        # quit()
+        if norm_vert:
+            fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
+            fp_RSM = f'{dir_out}/{fn_RSM}'
+        else:
+            fp_RSM = fr'P:\cortney_test\pb_no_norm_vert\{sn}_{ROI}_{fp}_{conn}{cmb}_test.npy'
 
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)
+    if not norm_vert:
+        return
+    # print('bad')
+    # quit()
 
     fn_RSM = f'{sn}_stim_{semantic}.npy'
     fp_RSM = f'{dir_out}/{fn_RSM}'

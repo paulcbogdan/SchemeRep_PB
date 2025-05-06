@@ -29,9 +29,7 @@ def move_fp_RSM(sn, ROI, fp_fMRI='obj7_fMRI'):
         fp = Path(dir_in) / fn
         if not fp.exists():
             print(f'Missing: {sn}, {ROI}, {fp_fMRI}')
-            # quit()
             return
-    # print('Good: ', sn, ROI, fp_fMRI)
 
     dir_out = r'P:\UnpackLlama_P\fMRI_RSMs'
     fn_out = fr'{sn}\{fp_fMRI}_{ROI}.npy'
@@ -71,7 +69,6 @@ def get_sorted_sn_df(sn, fp):
     sess = fp.split('_')[0].replace('7', '')
     df_sn.sort_values(by=f'{sess}_trial', inplace=True)
     print(list(df_sn.columns))
-    # quit()
     keep_cols = ['sn', 'inc', 'vis_hit', 'con_hit',
                  'obj', 'scene', 'inc_rt', 'per_inc',
                  'obj_trial', 'con_trial', 'bl_trial',
@@ -126,10 +123,7 @@ def move_act(sn, fp_fMRI, ROI, combine_regions=True):
 
     sn2act = get_act_all(fp_fMRI, combine_regions=combine_regions,
                          mci=str(sn)[0] == '3')
-    # print(list(sn2act))
-    # print(f'{sn=}')
-    # quit()
-    # quit()
+
     try:
         act = sn2act[sn]
     except KeyError:
@@ -153,9 +147,6 @@ def move_act(sn, fp_fMRI, ROI, combine_regions=True):
 
 def send_region_bilateral_ROI(sn, fp_fMRI, region):
     atlas = get_atlas(combine_regions=False)
-    # print(list(atlas))
-    # print(atlas['ROI_regions_laterality'])
-    # quit()
 
     nsms = []
     for i, ROI in enumerate(atlas['ROIs']):
@@ -195,7 +186,7 @@ if __name__ == '__main__':
     # ROIs = ['IT']
 
     REGIONS = get_atlas(combine_regions=True,
-                        combine_bilateral=True)['ROIs']
+                        combine_bilateral=False)['ROIs']
     # ROIs = get_atlas()['ROIs']
     # ROIs = ['mOFC', 'lOFC']
     # REGIONS = ['cortical'] + REGIONS
@@ -203,24 +194,21 @@ if __name__ == '__main__':
 
 
     for sn in tqdm(sns, desc=f'Copying over sns'):
+        print(F'Cooking: {sn=}')
         if sn == '215': continue
         for fp_fMRI in fps_fMRI:
-            # print(f'{sn=}')
-            # print(f'{fp_fMRI=}')
-            # quit()
+
             # for region in ROIs:
             #     send_region_bilateral_ROI(sn, fp_fMRI, region)
             # continue
             # if 'obj' not in fp_fMRI:
             #     continue
 
-            for ROI in ROIs:
-                move_act(sn, fp_fMRI, ROI, combine_regions=True)
-            # continue
-            # quit()
+            # for ROI in ROIs:
+            #     move_act(sn, fp_fMRI, ROI, combine_regions=True)
 
             df_sn = get_sorted_sn_df(sn, fp_fMRI)
-            fp_df_sn_fp = fr'C:\PycharmProjects\UnpackLlama\fMRI_RSMs\{sn}\{sn}_{fp_fMRI}_df_sn.csv'
+            fp_df_sn_fp = fr'P:\UnpackLlama_P\fMRI_RSMs\{sn}\{sn}_{fp_fMRI}_df_sn.csv'
             df_sn.to_csv(fp_df_sn_fp, index=False)
             # continue
             for ROI in ROIs:
