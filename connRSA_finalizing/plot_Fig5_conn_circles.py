@@ -46,6 +46,7 @@ def plot_conn_circles(ERS=True, FC=False):
                 idx_to_label[i] = region2network[region]
             else:
                 idx_to_label[i] = 'N/A'
+                # M_corrs[i] = np.nan
 
     from nichord import plot_glassbrain
 
@@ -72,6 +73,9 @@ def plot_conn_circles(ERS=True, FC=False):
     node_sizes **= 4
     node_sizes[np.isnan(node_sizes)] = np.nanmin(node_sizes)
     node_sizes[node_sizes < 1] = 1
+    for i in range(len(node_sizes)):
+        if idx_to_label[i] == 'N/A':
+            node_sizes[i] = 0
 
 
     plot_glassbrain(idx_to_label, edges, edge_weights, fp_fig,

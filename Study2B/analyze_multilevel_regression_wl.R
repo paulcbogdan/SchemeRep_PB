@@ -6,13 +6,20 @@ library(optimx)    # needed for changing algorithm
 require(dplyr) 
 require(sjPlot)
 require(robumeta)
+require(feather)
 
 #-------------
+fp = r'(P:\PsychText_H\df_by_pval_custom2_2025_06-03.feather)'
+df = arrow::read_feather(fp)
+quit()
 
+fp = r'(P:\PsychText_H\df_by_pval_custom2_2025_06-03.csv)'
 
-fp = r'(C:\PycharmProjects\SchemeRep\Study2B\rs_task_wl_df_3432000.csv)'
+# fp = r'(C:\PycharmProjects\SchemeRep\Study2B\rs_task_wl_df_3432000.csv)'
 
 df = read.csv(fp)
+print(df)
+quit()
 
 
 # #-------------

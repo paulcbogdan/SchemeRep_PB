@@ -19,6 +19,7 @@ from Utils.pickle_wrap_funcs import pickle_wrap
 import matplotlib
 
 import os
+from pathlib import Path
 os.chdir(r'C:\PycharmProjects\SchemeRep')
 
 def prep_var_ERS(trialwise=True):
@@ -309,7 +310,7 @@ def get_RSA_betas(key, ctrl_within=True, get_local=True, semantic=True,
               'RDM_method': 'within_nan',
               'stdize_by_run': False,
               'regress_row': False,
-              'ROI_focus': f'{key}_M' if get_local else
+              'ROI_focus': f'{key}_M_corr' if get_local else
               (f'{key}_BOLD_cmb' if big_voxelwise else f'{key}_BOLD'),
               'ROIs_ctrl': [f'{key}_M'] if ctrl_within else [],
               }
@@ -455,7 +456,7 @@ def get_plain_corr():
     return np.array(corrs).transpose((1, 0, 2, 3))
 
 # TODO: FINALIZE IT or ITL
-def corr_RSA_conn(main_key='ITL', semantic=False):
+def corr_RSA_conn(main_key='ITL', semantic=True):
     df_conn = prep_conn_corrs(main_key, ERS=False, semantic=semantic)
 
     df_rsa = get_RSA_betas(main_key, ctrl_within=False, get_local=False,
@@ -482,8 +483,9 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
     # df = df[df['conn'] < .5] # one outlier
 
     import statsmodels.formula.api as smf
+    df['sn'] = df['sn'].astype(str)
 
-    formula = 'beta1 ~ conn'
+    formula = 'beta1 ~ 1 + conn'
     model = smf.ols(formula, data=df)
     results = model.fit()
     print(results.summary())
@@ -499,14 +501,16 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
                          'figure.figsize': (5, 4),
                          'mathtext.default': 'regular' })
 
-    r, p = stats.spearmanr(df['conn'], df['beta1'])
+    r, p = stats.pearsonr(df['conn'], df['beta1'])
+    print(f'Correlation: {r=:.2f}, {p=:.3f}')
     # plt.title(f'{main_key=}, {r=:.3f}, {p=:.4f}')
     plt.scatter(df['conn'], df['beta1'],
                 facecolors=('dodgerblue', 0.5),
                 edgecolors=(0, 0, 0, 0.5),
                 )
-    plt.xlabel('ITL $NSM_{ROI}$-$NSM_{ROI}$ correlation')
-    plt.ylabel('ITL semantic RSA effect')
+    # plt.xlabel('ITL $NSM_{ROI}$-$NSM_{ROI}$ correlation')
+    plt.xlabel('ITL mean representational similarity\n($NSM_{ROI}$ × $NSM_{ROI}$)')
+    plt.ylabel('ITL large-scale semantic RSA')
 
     low = np.nanquantile(df['conn'], 0.00)
     high = np.nanquantile(df['conn'], 1.0)
@@ -521,10 +525,13 @@ def corr_RSA_conn(main_key='ITL', semantic=False):
     plt.tight_layout()
     semantic_str = '_semantic' if semantic else '_perceptual'
     fp_fig = fr'result_pics/connRSA/RSM_RSM_x_RSA_{main_key}{semantic_str}.png'
+    Path(fp_fig).parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(fp_fig, dpi=600)
     plt.show()
-    df.to_csv(r'C:\PycharmProjects\SchemeRep\df_conn_x_RSA.csv', index=False)
+    # df.to_csv(r'C:\PycharmProjects\SchemeRep\df_conn_x_RSA.csv', index=False)
     print('SAVED .CSV')
+    df.to_csv(fr'C:\PycharmProjects\SchemeRep\df_conn_x_RSA_{main_key}_{semantic}.csv', index=False)
+
     quit()
     # quit()
     # print(df['conn'])

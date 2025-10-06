@@ -108,7 +108,8 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
         vecs_BOLD = vecs_BOLD[:, keeps]
         sizes.append(np.sum(keeps))
 
-        # print(vecs_BOLD)
+        # print(vecs_BOLD.shape)
+        # quit()
         if norm_vert:
             vecs_BOLD = stdize(vecs_BOLD, axis=0, nans=True)
 
@@ -119,6 +120,9 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             else:
                 vecs = get_conn_vecs(vecs_BOLD, conn=conn,
                                      stdize_by_run=stdize_by_run)
+
+        if not norm_vert:
+            assert stdize_by_run is None
 
         if 'avg' in conn:
             vecs = np.nanmean(vecs, axis=-1)[..., None]
@@ -176,7 +180,9 @@ def RSA_sn(sn, atlas, d_vecs, fp, networks=True,
             fn_RSM = f'{sn}_{ROI}_{conn}{cmb}.npy'
             fp_RSM = f'{dir_out}/{fn_RSM}'
         else:
-            fp_RSM = fr'P:\cortney_test\pb_no_norm_vert\{sn}_{ROI}_{fp}_{conn}{cmb}_test.npy'
+            # fp_RSM = fr'P:\cortney_test\pb_no_norm_vert\{sn}_{ROI}_{fp}_{conn}{cmb}_test.npy'
+            fp_RSM = fr'P:\UnpackLlama_P\fMRI_RSMs_no_vert\{sn}\{fp}_{ROI}{cmb}.npy'
+            Path(fp_RSM).parent.mkdir(parents=True, exist_ok=True)
 
         with open(fp_RSM, 'wb') as f:
             np.save(f, RSM_fMRI)

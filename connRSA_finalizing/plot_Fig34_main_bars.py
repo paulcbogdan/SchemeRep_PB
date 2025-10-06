@@ -93,7 +93,7 @@ def plot_scatter_overlay(cond2betas, big_voxelwise):
 
 def plot_DistRep_bars(region='Occipital', big_voxelwise=True,
                       get_betas=False, no_lines_stars=False,
-                      fp=None, VGG_semantic=False):
+                      fp=None, VGG_semantic=True):
     trial_similarity = 'corr'
     second_order = 'spear'
     RDM_method = 'within_nan'
@@ -283,10 +283,14 @@ def plot_DistRep_bars(region='Occipital', big_voxelwise=True,
 
     plt.gca().spines[['top', 'right', 'bottom']].set_visible(False)
     plt.ylim(floor - pad, height + pad)
-    plt.text(0.5, floor - pad * 12, 'Perceptual',
+    plt.text(0.5, floor - pad * 9.1, 'Perceptual',
              fontsize=22, ha='center')
-    plt.text(2.5, floor - pad * 12, 'Semantic',
-             fontsize=22, ha='center')
+    if VGG_semantic:
+        plt.text(2.5, floor - pad * 10, 'Semantic\n(VGG16)',
+                 fontsize=22, ha='center')
+    else:
+        plt.text(2.5, floor - pad * 12, 'Semantic',
+                 fontsize=22, ha='center')
 
     plt.subplots_adjust(bottom=0.26, left=0.29, right=.98, top=.98)
 

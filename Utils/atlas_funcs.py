@@ -13,8 +13,8 @@ import pandas as pd
 from nilearn import image
 
 from Utils.plotting_funcs import plot_connectivity
-from marinate.pkld import pkld
-
+# from marinate.pkld import pkld
+from pkld import pkld
 
 def get_Schaefer_atlas(HCP=False, combine_bilateral=False,
                        schaefer=True, natview=False):

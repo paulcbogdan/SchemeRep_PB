@@ -8,12 +8,15 @@ from tqdm import tqdm
 from Utils.atlas_funcs import get_atlas
 from organize_bhv import get_trial_info
 
+from pkld import pkld
 
 def get_DistRep_sns():
     sns = ['102', '103', '104', '105', '106', '107', '108', '109', '110', '111', '112', '113', '114', '115', '117',
            '118', '119', '120', '123', '124', '126', '127', '128', '129', '130', '131', '132', '134', '135', '136',
            '137', '138', '201', '202', '203', '204', '205', '206', '207', '208', '209', '210', '211', '212', '214',
            '216', '217', '218', '219', '221', '222', '224', '225', '227', '230', '232', '233', '234', '235', '239']
+    sns = ['125', '133', '215', '231']
+
     sns = [int(sn) for sn in sns]
     return sns
 
@@ -29,6 +32,8 @@ def move_fp_RSM(sn, ROI, fp_fMRI='obj7_fMRI'):
         fp = Path(dir_in) / fn
         if not fp.exists():
             print(f'Missing: {sn}, {ROI}, {fp_fMRI}')
+            print(fp)
+
             return
 
     dir_out = r'P:\UnpackLlama_P\fMRI_RSMs'
@@ -186,16 +191,19 @@ if __name__ == '__main__':
     # ROIs = ['IT']
 
     REGIONS = get_atlas(combine_regions=True,
+                        combine_bilateral=True)['ROIs']
+    REGIONS = get_atlas(combine_regions=False,
                         combine_bilateral=False)['ROIs']
     # ROIs = get_atlas()['ROIs']
     # ROIs = ['mOFC', 'lOFC']
     # REGIONS = ['cortical'] + REGIONS
     ROIs = REGIONS
+    fps_fMRI = ["bl7_fMRI"]
 
 
     for sn in tqdm(sns, desc=f'Copying over sns'):
         print(F'Cooking: {sn=}')
-        if sn == '215': continue
+        # if sn == '215': continue
         for fp_fMRI in fps_fMRI:
 
             # for region in ROIs:
@@ -209,6 +217,7 @@ if __name__ == '__main__':
 
             df_sn = get_sorted_sn_df(sn, fp_fMRI)
             fp_df_sn_fp = fr'P:\UnpackLlama_P\fMRI_RSMs\{sn}\{sn}_{fp_fMRI}_df_sn.csv'
+            Path(fp_df_sn_fp).parent.mkdir(parents=True, exist_ok=True)
             df_sn.to_csv(fp_df_sn_fp, index=False)
             # continue
             for ROI in ROIs:

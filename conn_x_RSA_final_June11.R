@@ -6,42 +6,93 @@ library(optimx)    # needed for changing algorithm
 require(dplyr) 
 require(sjPlot)
 require(robumeta)
+library(psych)
 
 #-------------
 
-fp = r'(C:\PycharmProjects\SchemeRep\df_conn_x_RSA.csv)'
-#fp = r'(C:\PycharmProjects\SchemeRep\df_conn_x_RSA_Occipital_False.csv)'
-#fp = r'(C:\PycharmProjects\SchemeRep\df_conn_x_RSA_ITL_True.csv)'
-
+fp = r'(C:\PycharmProjects\SchemeRep\df_conn_x_RSA_ITL_True.csv)'
 df = read.csv(fp)
 
-#-------------
+# df = dplyr::filter(df, fp != "bl7_fMRI")
+# df = dplyr::filter(df, fp != "obj7_fMRI")
+# df = dplyr::filter(df, fp != "vis7_fMRI")
+# df = dplyr::filter(df, fp != "con7_fMRI")
 
-# USING ITL
+# df$conn <- fisherz(df$conn)
 
 
-mod <- lmer('conn ~ 1 + local_per + beta1_per + 
-            (1 | fp) + (1 | sn)', data=df,
+# ITL x Semantic
+
+
+mod <- lmer('beta1 ~ 1 + conn +
+             (1 + conn | sn) ', data=df,
             control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
                                   optCtrl = list(method = "L-BFGS-B", 
                                                  starttests = FALSE, kkt = FALSE
                                   )),
-            REML=T)
+            REML=F)
 print(summary(mod))
 print(effectsize::standardize_parameters(mod))
 
 
 #-------------
-mod <- lmer('conn ~ 1 + local + beta1 + 
-            (1 | fp) + (1 | sn)', data=df,
+
+#  ITL x perceptual
+
+mod <- lmer('beta1_per ~ 1 + conn + 
+             (1 + conn | sn)', data=df,
             control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
                                   optCtrl = list(method = "L-BFGS-B", 
                                                  starttests = FALSE, kkt = FALSE
                                   )),
-            REML=T)
+            REML=F)
 print(summary(mod))
 print(effectsize::standardize_parameters(mod))
 #-------------
+
+
+fp = r'(C:\PycharmProjects\SchemeRep\df_conn_x_RSA_Occipital_False.csv)'
+df = read.csv(fp)
+# df = dplyr::filter(df, fp != "con7_fMRI")
+
+# control for local for OC as the conn-local effect is significant here
+
+
+# OC x Semantic
+
+
+mod <- lmer('beta1 ~ 1 + conn + local + 
+              (1 + conn | sn) ', data=df,
+            control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
+                                  optCtrl = list(method = "L-BFGS-B", 
+                                                 starttests = FALSE, kkt = FALSE
+                                  )),
+            REML=F)
+print(summary(mod))
+print(effectsize::standardize_parameters(mod))
+
+
+#-------------
+
+#  OC x perceptual
+
+mod <- lmer('beta1_per ~ 1 + conn + local_per + 
+              (1 + conn | sn)', data=df,
+            control = lmerControl(optimizer = "optimx", calc.derivs = FALSE, 
+                                  optCtrl = list(method = "L-BFGS-B", 
+                                                 starttests = FALSE, kkt = FALSE
+                                  )),
+            REML=F)
+print(summary(mod))
+print(effectsize::standardize_parameters(mod))
+#-------------
+
+
+
+
+
+
+
 
 # from collections import defaultdict
 # from datetime import datetime

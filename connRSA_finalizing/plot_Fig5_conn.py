@@ -730,6 +730,8 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
 
     df_OC = df[df['net'] == 'Occipital']['val'].values
     df_ITL = df[df['net'] == 'Temporal']['val'].values
+    df_parietal = df[df['net'] == 'Parietal']['val'].values
+    df_PFC = df[df['net'] == 'PFC']['val'].values
     t, p = stats.ttest_rel(df_OC, df_ITL)
     # print(df_ITL)
     idx = np.argmax(df_ITL)
@@ -739,9 +741,29 @@ def plot_network_M(corrs, corrs_FC, sns_FC, fn_out):
     N = np.sum(~np.isnan(df_OC))
     d = t / np.sqrt(len(df_OC))
     M_OC = np.nanmean(df_OC)
+    SE_OC = np.nanstd(df_OC) / np.sqrt(N)
     M_ITL = np.nanmean(df_ITL)
-    print(f'{fn_out}: {d=:.3f}, {M_OC=:.3f}, {M_ITL=:.3f}, '
-          f't[{N - 1}] = {t:.2f}, {p=:.3f}')
+    SE_ITL = np.nanstd(df_ITL) / np.sqrt(N)
+    M_parietal = np.nanmean(df_parietal)
+    SE_parietal = np.nanstd(df_parietal) / np.sqrt(N)
+    M_PFC = np.nanmean(df_PFC)
+    SE_PFC = np.nanstd(df_PFC) / np.sqrt(N)
+    print(f'{fn_out}: {d=:.3f}, {M_OC=:.2f} [{SE_OC:.2f}], {M_ITL=:.2f} [{SE_ITL:.2f}], '
+          f't[{N - 1}] = {t:.2f}, {p=:.3f}; {M_parietal=:.2f} '
+          f'[{SE_parietal:.2f}], {M_PFC=:.2f} [{SE_PFC:.2f}]')
+    M_OC_low = M_OC - 1.96 * SE_OC
+    M_OC_high = M_OC + 1.96 * SE_OC
+    M_ITL_low = M_ITL - 1.96 * SE_ITL
+    M_ITL_high = M_ITL + 1.96 * SE_ITL
+    M_parietal_low = M_parietal - 1.96 * SE_PFC
+    M_parietal_high = M_parietal + 1.96 * SE_PFC
+    M_PFC_low = M_PFC - 1.96 * SE_PFC
+    M_PFC_high = M_PFC + 1.96 * SE_PFC
+    print(f'{M_OC=:.2f} [{M_OC_low:.2f}, {M_OC_high:.2f}]')
+    print(f'{M_ITL=:.2f} [{M_ITL_low:.2f}, {M_ITL_high:.2f}]')
+    print(f'{M_parietal=:.2f} [{M_parietal_low:.2f}, {M_parietal_high:.2f}]')
+    print(f'{M_PFC=:.2f} [{M_PFC_low:.2f}, {M_PFC_high:.2f}]')
+
 
     # plt.text(0)
     # plt.title(title)
@@ -1088,4 +1110,4 @@ def plot_FC_mat(drop_con=False, four_tasks='7'):
 if __name__ == '__main__':
     plt.rcParams.update({'font.sans-serif': 'Arial'})
 
-    run_IC_analysis(ERS=False, regress_FC=True)
+    run_IC_analysis(ERS=False, regress_FC=False)

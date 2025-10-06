@@ -462,21 +462,20 @@ def run_analysis(
 if __name__ == "__main__":
 
 
-    sn = 102
 
     conn = "BOLD"
     trial_similarity = "corr"
-    # trial_similarity = 'euc'
     second_order = "spear"
     four_tasks = "7"
     combine_regions = False
     split = False
     RDM_method = "within_nan"
-    age = "healthy"
-    # age = 3
-    fp0 = 'bl7_fMRI'
+    # age = "healthy"
+    # age = "healthy"
+    # fp0 = 'bl7_fMRI'
 
-    stdize_by_run = False
+    stdize_by_run = None
+    # stdize_by_run = False
 
     RSA = True
     semantic = True
@@ -490,18 +489,38 @@ if __name__ == "__main__":
 
     d_vecs = prep_vecs(RSA, semantic)
 
-    RSA_sn(
-        sn,
-        atlas,
-        d_vecs,
-        fp0,
-        networks=networks,
-        conn=conn,
-        trial_similarity=trial_similarity,
-        second_order=second_order,
-        RDM_method=RDM_method,
-        combine_regions=combine_regions,
-        stdize_by_run=stdize_by_run,
-        semantic=semantic,
-        norm_vert=False
-    )
+    fps = prep_fps("7")
+    # print(fps)
+    # quit()
+    age2sn = get_sns("all", sh=False)
+    sns = age2sn[1] + age2sn[2]
+    # print(sns)
+    # quit()
+    sns = ['125', '133', '215', '231']
+    # sns = sns[::-1]
+    fps = ["bl7_fMRI"]
+
+    sns = [301]
+    sns = list(range(301, 317))
+    sns = [sn for sn in sns if sn not in [307, 314]]
+    sns = [str(sn) for sn in sns]
+
+
+    for sn in tqdm(sns, desc='Making no_vert NSMs'):
+        for fp0 in fps:
+            print(f'Onto RSA: {sn=}, {fp0=}')
+            RSA_sn(
+                sn,
+                atlas,
+                d_vecs,
+                fp0,
+                networks=networks,
+                conn=conn,
+                trial_similarity=trial_similarity,
+                second_order=second_order,
+                RDM_method=RDM_method,
+                combine_regions=combine_regions,
+                stdize_by_run=stdize_by_run,
+                semantic=semantic,
+                norm_vert=False
+            )
